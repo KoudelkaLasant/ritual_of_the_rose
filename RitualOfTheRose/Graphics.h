@@ -1,5 +1,5 @@
 #pragma once
-#include "framework.h"
+#include "Structures.h"
 
 
 template<class Interface>
@@ -20,21 +20,34 @@ class Graphics {
 public:
     Graphics() {}
     ~Graphics() {
+        teardownAllImages();
         SafeRelease(&D2DFactory);
         //SafeRelease(&IWICFactory);
         SafeRelease(&DWriteFactory);
         SafeRelease(&hwndRenderTarget);
-        SafeRelease(&BlackBrush);
-        SafeRelease(&GridPatternBitmapBrush);
-        SafeRelease(&example->texture);
     }
-	class Texture {
+	class Image {
 	public:
-        Texture() {}
-		Texture(int src) {
+        Image() {}
+        Image(int src) {
+            source = src;
+        }
+        Image(int src, pair<int, int> positionAsPercentage) {
+            source = src;
+            positionAsPercentage = positionAsPercentage;
+        }
+        Image(int src, pair<int, int> position, string anchorStyle) {
 			source = src;
+            positionAsPercentage = position;
+            anchorStyle = anchorStyle;
 		}
-		~Texture() {
+        Image(int src, pair<int, int> position, string anchorStyle, float opacity) {
+            source = src;
+            positionAsPercentage = position;
+            anchorStyle = anchorStyle;
+            opacity = opacity;
+        }
+		~Image() {
 			SafeRelease(&texture);
 		}
 		bool isLoaded() {
@@ -170,11 +183,40 @@ public:
 
             return hr;
         }
-
+        void draw(Graphics & graphics) {
+            if (texture == NULL) {
+                loadTexture(*&graphics);
+            }
+            D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
+            pair<int, int> position = getAbsolutePosition(renderTargetSize);
+            D2D1_RECT_F rect = getRect(position);
+            graphics.hwndRenderTarget->DrawBitmap(
+                texture,
+                rect, 
+                opacity);
+        }
+        D2D1_RECT_F getRect(pair<int, int> position) {
+            D2D1_SIZE_F size = texture->GetSize();
+            if (anchorStyle == "TOPLEFT") {
+                return D2D1::RectF(position.first, position.second, position.first+size.width, position.second + size.height);
+            }
+            else {
+                return D2D1::RectF(
+                    position.first - (size.width / 2),
+                    position.second - (size.height / 2),
+                    position.first + (size.width / 2),
+                    position.second + (size.height / 2));
+            }
+        }
+        pair<int, int> getAbsolutePosition(D2D1_SIZE_F renderTargetSize) {
+            return { renderTargetSize.width * positionAsPercentage.first / 100, renderTargetSize.height * positionAsPercentage.second / 100 };
+        }
 
         int source;
+        float opacity = 1.0;
 		ID2D1Bitmap  * texture = NULL;
-
+        pair<int, int> positionAsPercentage = {0,0};
+        string anchorStyle;
 	};
     void setup(HWND * hwnd) {
         hwnd = hwnd;
@@ -208,15 +250,7 @@ public:
             hr = D2DFactory->CreateHwndRenderTarget(
                 D2D1::RenderTargetProperties(),
                 D2D1::HwndRenderTargetProperties(*hwnd, size),
-                &hwndRenderTarget);
-        
-            hr = hwndRenderTarget->CreateSolidColorBrush(
-                D2D1::ColorF(D2D1::ColorF::Black),
-                &BlackBrush
-            );
-            example = new Texture(IDB_PNG1);
-            hr = example->loadTexture(*this);
- 
+                &hwndRenderTarget); 
         }
         return hr;
     }
@@ -231,16 +265,11 @@ public:
 
             hwndRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
 
-            D2D1_SIZE_F renderTargetSize = hwndRenderTarget->GetSize();
-            D2D1_SIZE_F size = example->texture->GetSize();
-            ID2D1Bitmap * to_draw = example->texture;
-
-
-
-            hwndRenderTarget->DrawBitmap(
-                example->texture,
-                D2D1::RectF(0.0f, 0.0f, size.width, size.height)
-            );
+            for (auto const& [key, val] : ImageMap.internalMap) {
+                for (auto const& value : ImageMap[key].internalList) {
+                    value->draw(*this);
+                }
+            }
 
             // add code here to draw every image 
         }
@@ -299,13 +328,30 @@ public:
     {
         SafeRelease(&hwndRenderTarget);
     }
+    void addImage(Image * image, int layer) {
+        if (not ImageMap.hasKey(layer)) {
+            ImageMap[layer] = List<Image *>();
+        }
+        ImageMap[layer].push_back(image);
+    }
+    void teardownAllImages() {
+        for (auto const & [key, val] : ImageMap.internalMap) {
+            while (not ImageMap[key].empty()) {
+                Image* toDelete = ImageMap[key].front();
+                SafeRelease(&toDelete->texture);
+                delete ImageMap[key].front();
+                ImageMap[key].front() = NULL;
+                ImageMap[key].pop_front();
+            }
+        }
+        ImageMap.clear();
+        
+    }
 
     HWND * hwnd;
 	ID2D1Factory * D2DFactory;
     IWICImagingFactory * IWICFactory;
     IDWriteFactory* DWriteFactory;
     ID2D1HwndRenderTarget* hwndRenderTarget;
-    ID2D1BitmapBrush * GridPatternBitmapBrush;
-    ID2D1SolidColorBrush* BlackBrush = NULL;
-    Texture * example = NULL;
+    Map<int, List<Image *>> ImageMap;
 };
