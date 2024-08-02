@@ -22,10 +22,15 @@ using namespace std;
 #include <list>
 #include <string>
 #include <map>
+#include <vector>
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "windowscodecs.lib")
 #pragma comment(lib, "dwrite.lib")
 #include "CImg.h"
+#include "shellapi.h"
+#include "atlstr.h"
+#include <chrono>
+
 
 
 #ifndef HINST_THISCOMPONENT

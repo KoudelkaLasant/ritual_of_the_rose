@@ -1,5 +1,5 @@
 #pragma once
-#include "Structures.h"
+#include "Utils.h"
 
 
 template<class Interface>
@@ -21,12 +21,34 @@ public:
     Graphics() {}
     ~Graphics() {
         teardownAllImages();
+        teardownAllTextFormats();
         SafeRelease(&D2DFactory);
         //SafeRelease(&IWICFactory);
         SafeRelease(&DWriteFactory);
         SafeRelease(&hwndRenderTarget);
     }
-	class Image {
+    class Drawable {
+    public:
+        D2D1_RECT_F getRect(pair<int, int> position, D2D1_SIZE_F size) {
+            if (anchorStyle == "TOPLEFT") {
+                return D2D1::RectF(position.first, position.second, position.first + size.width, position.second + size.height);
+            }
+            else {
+                return D2D1::RectF(
+                    position.first - (size.width / 2),
+                    position.second - (size.height / 2),
+                    position.first + (size.width / 2),
+                    position.second + (size.height / 2));
+            }
+        }
+        pair<int, int> getAbsolutePosition(D2D1_SIZE_F renderTargetSize) {
+            return { renderTargetSize.width * positionAsPercentage.first / 100, renderTargetSize.height * positionAsPercentage.second / 100 };
+        }
+        pair<int, int> positionAsPercentage = { 0,0 };
+        string anchorStyle;
+        string unique_ID;
+    };
+	class Image : public Drawable {
 	public:
         Image() {}
         Image(int src) {
@@ -41,19 +63,26 @@ public:
             positionAsPercentage = position;
             anchorStyle = anchorStyle;
 		}
-        Image(int src, pair<int, int> position, string anchorStyle, float opacity) {
+        Image(int src, pair<int, int> position, string _anchorStyle, float _opacity, string _uniqueID) {
             source = src;
             positionAsPercentage = position;
-            anchorStyle = anchorStyle;
-            opacity = opacity;
+            anchorStyle = _anchorStyle;
+            opacity = _opacity;
+            unique_ID = _uniqueID;
         }
 		~Image() {
-			SafeRelease(&texture);
+                while (not textures.empty()) {
+                    ID2D1Bitmap * toDelete = textures.front();
+                    SafeRelease(& toDelete);
+                    textures.front() = NULL;
+                    textures.pop_front();
+                }
 		}
 		bool isLoaded() {
-			return texture != NULL;
+			return getWhichTexture() != NULL;
 		}
         HRESULT loadTexture(Graphics & graphics) {
+            ID2D1Bitmap* texture = getWhichTexture();
             HRESULT hr = S_OK;
             IWICBitmapDecoder* pDecoder = NULL;
             IWICBitmapFrameDecode* pSource = NULL;
@@ -174,6 +203,7 @@ public:
                     &texture
                 );
             }
+            textures.at(frame) = texture;
 
             SafeRelease(&pDecoder);
             SafeRelease(&pSource);
@@ -183,41 +213,77 @@ public:
 
             return hr;
         }
+        ID2D1Bitmap* getWhichTexture() {
+            if (textures.empty()) {
+                textures.push_back(NULL);
+            }
+            if (frame >= textures.size()) {
+                frame = 0;
+            }
+            return textures.at(frame);
+        }
         void draw(Graphics & graphics) {
+            ID2D1Bitmap* texture = getWhichTexture();
             if (texture == NULL) {
                 loadTexture(*&graphics);
             }
+            texture = textures.at(frame);
+            D2D1_SIZE_F size = texture->GetSize();
             D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
             pair<int, int> position = getAbsolutePosition(renderTargetSize);
-            D2D1_RECT_F rect = getRect(position);
+            D2D1_RECT_F rect = getRect(position, size);
             graphics.hwndRenderTarget->DrawBitmap(
                 texture,
                 rect, 
                 opacity);
         }
-        D2D1_RECT_F getRect(pair<int, int> position) {
-            D2D1_SIZE_F size = texture->GetSize();
-            if (anchorStyle == "TOPLEFT") {
-                return D2D1::RectF(position.first, position.second, position.first+size.width, position.second + size.height);
-            }
-            else {
-                return D2D1::RectF(
-                    position.first - (size.width / 2),
-                    position.second - (size.height / 2),
-                    position.first + (size.width / 2),
-                    position.second + (size.height / 2));
-            }
-        }
-        pair<int, int> getAbsolutePosition(D2D1_SIZE_F renderTargetSize) {
-            return { renderTargetSize.width * positionAsPercentage.first / 100, renderTargetSize.height * positionAsPercentage.second / 100 };
-        }
 
         int source;
+        int frame = 0;
+        bool animated = false;
         float opacity = 1.0;
-		ID2D1Bitmap  * texture = NULL;
-        pair<int, int> positionAsPercentage = {0,0};
-        string anchorStyle;
+		List<ID2D1Bitmap  *> textures;
 	};
+    class Text : public Drawable {
+    public:
+        Text() {}
+        Text(string message) {
+            message = message;
+        }
+        Text(string _message, string _format, pair<int, int> _positionAsPercentage, string _anchorStyle, pair<int, int> _size, vector<float> _colour) {
+            message = _message;
+            format = _format;
+            positionAsPercentage = _positionAsPercentage;
+            anchorStyle = _anchorStyle;
+            size = _size;
+            colour = _colour;
+        }
+        void draw(Graphics& graphics) {
+            D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
+            pair<int, int> position = getAbsolutePosition(renderTargetSize);
+            D2D_SIZE_F size_as_d2d = D2D_SIZE_F();
+            size_as_d2d.width = size.first;
+            size_as_d2d.height = size.second;
+            D2D1_RECT_F rect = getRect(position, size_as_d2d);
+            ID2D1SolidColorBrush* theBrush = NULL;
+            HRESULT hr = S_OK;
+            hr = graphics.hwndRenderTarget->CreateSolidColorBrush(
+                D2D1::ColorF(D2D1::ColorF(colour[0], colour[1], colour[2], colour[3])),
+                &theBrush);
+            graphics.hwndRenderTarget->DrawText(
+                wstring(message.begin(), message.end()).c_str(),
+                message.size(),
+                graphics.WriteTextFormats[format],
+                rect,
+                theBrush);
+            SafeRelease(&theBrush);
+        }
+
+        string message;
+        string format;
+        pair<int, int> size;
+        vector<float> colour = {0.0,0.0,0.0,1.0};
+    };
     void setup(HWND * hwnd) {
         hwnd = hwnd;
         CreateDeviceIndependentResources();
@@ -237,6 +303,18 @@ public:
             __uuidof(DWriteFactory),
             reinterpret_cast<IUnknown**>(&DWriteFactory)
         );
+        IDWriteTextFormat* textFormat = NULL;
+        hr = DWriteFactory->CreateTextFormat(L"Times New Roman",
+            NULL,
+            DWRITE_FONT_WEIGHT_NORMAL,
+            DWRITE_FONT_STYLE_NORMAL,
+            DWRITE_FONT_STRETCH_NORMAL,
+            20,
+            L"",
+            &textFormat);
+        if (SUCCEEDED(hr)) {
+            WriteTextFormats.add({ "DEFAULT", textFormat });
+        }
         return hr;
     }
     HRESULT CreateDeviceResources() {
@@ -265,9 +343,23 @@ public:
 
             hwndRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
 
+            int latest_layer = -999;
+
+            // draw layer x's texture after drawing layer x's images
             for (auto const& [key, val] : ImageMap.internalMap) {
+                if (latest_layer < key) { latest_layer = key; }
                 for (auto const& value : ImageMap[key].internalList) {
                     value->draw(*this);
+                }
+                for (auto & value : TextMap[key].internalList) {
+                    value.draw(*this);
+                }
+            }
+            // draw any textures that are on higher layers than any existing images
+            for (auto const& [key, val] : TextMap.internalMap) {
+                if (key <= latest_layer) { continue; }
+                for (auto& value : TextMap[key].internalList) {
+                    value.draw(*this);
                 }
             }
 
@@ -281,49 +373,6 @@ public:
         return hr;
     }
 
-    HRESULT CreateGridPatternBrush(ID2D1RenderTarget* pRenderTarget, ID2D1BitmapBrush** ppBitmapBrush) {
-        HRESULT hr = S_OK;
-
-        // Create a compatible render target.
-        ID2D1BitmapRenderTarget* pCompatibleRenderTarget = NULL;
-        hr = pRenderTarget->CreateCompatibleRenderTarget(
-            D2D1::SizeF(10.0f, 10.0f),
-            &pCompatibleRenderTarget
-        );
-        if (SUCCEEDED(hr))
-        {
-            // Draw a pattern.
-            ID2D1SolidColorBrush* pGridBrush = NULL;
-            hr = pCompatibleRenderTarget->CreateSolidColorBrush(
-                D2D1::ColorF(D2D1::ColorF(0.93f, 0.94f, 0.96f, 1.0f)),
-                &pGridBrush
-            );
-            if (SUCCEEDED(hr))
-            {
-                pCompatibleRenderTarget->BeginDraw();
-                pCompatibleRenderTarget->FillRectangle(D2D1::RectF(0.0f, 0.0f, 10.0f, 1.0f), pGridBrush);
-                pCompatibleRenderTarget->FillRectangle(D2D1::RectF(0.0f, 0.1f, 1.0f, 10.0f), pGridBrush);
-                pCompatibleRenderTarget->EndDraw();
-
-                // Retrieve the bitmap from the render target.
-                ID2D1Bitmap* pGridBitmap = NULL;
-                hr = pCompatibleRenderTarget->GetBitmap(&pGridBitmap);
-                if (SUCCEEDED(hr)) {
-                    // Choose the tiling mode for the bitmap brush.
-                    D2D1_BITMAP_BRUSH_PROPERTIES brushProperties =
-                        D2D1::BitmapBrushProperties(D2D1_EXTEND_MODE_WRAP, D2D1_EXTEND_MODE_WRAP);
-
-                    // Create the bitmap brush.
-                    hr = hwndRenderTarget->CreateBitmapBrush(pGridBitmap, brushProperties, ppBitmapBrush);
-
-                    pGridBitmap->Release();
-                }
-
-                pGridBrush->Release();
-            }
-        }
-        return hr;
-    }
     void DiscardDeviceResources()
     {
         SafeRelease(&hwndRenderTarget);
@@ -334,11 +383,16 @@ public:
         }
         ImageMap[layer].push_back(image);
     }
+    void addText(Text text, int layer) {
+        if (not TextMap.hasKey(layer)) {
+            TextMap[layer] = List<Text>();
+        }
+        TextMap[layer].push_back(text);
+    }
     void teardownAllImages() {
         for (auto const & [key, val] : ImageMap.internalMap) {
             while (not ImageMap[key].empty()) {
                 Image* toDelete = ImageMap[key].front();
-                SafeRelease(&toDelete->texture);
                 delete ImageMap[key].front();
                 ImageMap[key].front() = NULL;
                 ImageMap[key].pop_front();
@@ -347,11 +401,20 @@ public:
         ImageMap.clear();
         
     }
+    void teardownAllTextFormats() {
+        for (auto const& [key, val] : WriteTextFormats.internalMap) {
+            SafeRelease(&WriteTextFormats[key]);
+        }
+    }
 
     HWND * hwnd;
 	ID2D1Factory * D2DFactory;
     IWICImagingFactory * IWICFactory;
+    Map<string, IDWriteTextFormat *> WriteTextFormats;
+
     IDWriteFactory* DWriteFactory;
     ID2D1HwndRenderTarget* hwndRenderTarget;
     Map<int, List<Image *>> ImageMap;
+    Map<int, List<Text>> TextMap;
 };
+Graphics graphics = Graphics();

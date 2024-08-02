@@ -1,32 +1,6 @@
 #pragma once
 #include "Error Helper.h"
 
-class Random {
-public:
-	Random() {
-#pragma warning (push)
-#pragma warning(disable: 4244)
-		srand(time(NULL));
-#pragma warning (pop)
-	}
-	static int getRandom(int lower, int higher) {
-		int result = rand() % (higher + 1) + lower;
-		if (result > higher) { result = higher; }
-		return result;
-	}
-	string createUniqueID() {
-		string result = to_string(nameGenerator);
-		nameGenerator++;
-		if (nameGenerator > 9999999) {
-			nameGenerator = 0;
-		}
-		return result;
-	}
-
-private:
-	unsigned int nameGenerator = 0;
-};
-Random RANDOM;
 
 template <typename T>
 struct List {
@@ -45,13 +19,6 @@ struct List {
 			x++;
 		}
 		return *it;
-	}
-	T getRandom() {
-		if (empty()) {
-			return T();
-		}
-		int index = RANDOM.getRandom(0, size() - 1);
-		return at(index);
 	}
 	bool contains(T item) {
 		for (T current : internalList) {
@@ -83,8 +50,10 @@ struct List {
 	void clear() {
 		internalList.clear();
 	}
-	void pop_front() {
+	T pop_front() {
+		T toReturn = internalList.front();
 		internalList.pop_front();
+		return toReturn;
 	}
 	void moveFrontToBack() {
 		if (empty()) { return; }
@@ -276,7 +245,16 @@ struct Map {
 	int size() {
 		return internalMap.size();
 	}
-
+	void add(pair<A, B> pair) {
+		internalMap[pair.first] = pair.second;
+	}
 	map<A, B> internalMap;
 };
 
+static string SReplace(string input, const char toFind, string toReplace) {
+	string toMod = input;
+	while (input.find(toFind) != -1) {
+		toMod.replace(input.find(toFind), toReplace.size(), toReplace);
+	}
+	return toMod;
+}

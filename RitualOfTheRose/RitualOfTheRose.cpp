@@ -15,9 +15,13 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
-int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow){
+int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow) {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
+    
+
+       
+    Args.parse_args(lpCmdLine);
 
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_RITUALOFTHEROSE, szWindowClass, MAX_LOADSTRING);
@@ -33,8 +37,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     MSG msg;
 
     graphics.setup(&window);
+    game.setup();
 
-    graphics.addImage(new Graphics::Image(IDB_PNG1, {50,50},"CENTER", 0.5f), 0);
+    LoadImageEvent example;
+
+    //graphics.addImage(new Graphics::Image(MAIN_MENU_BACKGROUND, { 50,50 }, "CENTER", 1.0f), 0);
+    //graphics.addImage(new Graphics::Image(IDB_PNG1, {50,40},"CENTER", 1.0f), 1);
+    //graphics.addText(Graphics::Text("example string", "DEFAULT", { 0, 0 }, "TOPLEFT", { 500, 500 }, { 0.0,0.0,0.0,1.0 }), 2);
+
 
     while (GetMessage(&msg, nullptr, 0, 0))
     {
@@ -42,6 +52,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
+            game.run();
             graphics.OnRender();
         }
     }
@@ -71,9 +82,10 @@ ATOM MyRegisterClass(HINSTANCE hInstance){
 
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    hInst = hInstance;
+   int titlebar_gap = 38;
 
    window = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_THICKFRAME,
-      CW_USEDEFAULT, 0, 1280, 720, nullptr, nullptr, hInstance, nullptr);
+      CW_USEDEFAULT, 0, 1280, 720 + titlebar_gap, nullptr, nullptr, hInstance, nullptr);
    graphics.hwnd = &window;
 
    if (!window)

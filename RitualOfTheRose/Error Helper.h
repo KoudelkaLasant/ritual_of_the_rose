@@ -15,7 +15,7 @@ public:
 			warning += s + ". ";
 		}
 		if (hasToCrash) {
-			warning += "\n\nHUNTERS will now need to close. Sorry.";
+			warning += "\n\nRitual of the Rose will now need to close. Sorry.";
 		}
 		else {
 			warning += "\n\nThe program will now try to continue.";
