@@ -44,7 +44,7 @@ public:
 		LocalFree(szArglist);
 		List<string> results;
 		for (int x = 0; x < args; x++) {
-			results.push_back(string(CW2A(szArglist[x])));
+			results.push_back(SReplace(string(CW2A(szArglist[x])), "-", ""));
 		}
 		return results;
 	}

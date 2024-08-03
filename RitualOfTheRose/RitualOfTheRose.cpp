@@ -39,19 +39,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     graphics.setup(&window);
     game.setup();
 
-    LoadImageEvent example;
-
     //graphics.addImage(new Graphics::Image(MAIN_MENU_BACKGROUND, { 50,50 }, "CENTER", 1.0f), 0);
     //graphics.addImage(new Graphics::Image(IDB_PNG1, {50,40},"CENTER", 1.0f), 1);
     //graphics.addText(Graphics::Text("example string", "DEFAULT", { 0, 0 }, "TOPLEFT", { 500, 500 }, { 0.0,0.0,0.0,1.0 }), 2);
 
 
-    while (GetMessage(&msg, nullptr, 0, 0))
+    while (!game.quit())
     {
-        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
+        }
+        if (CLOCK.hasEnoughTimePassed("FPS", 16)) {
             game.run();
             graphics.OnRender();
         }
@@ -101,18 +101,25 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
     switch (message){
+    case WM_SETCURSOR: {
+        HCURSOR hCursor = graphics.Cursors["DEFAULT"];
+        SetCursor(hCursor);
+        break;
+    }
     case WM_COMMAND:{
             int wmId = LOWORD(wParam);
             switch (wmId){
-            case IDM_EXIT: {
-                DestroyWindow(hWnd);
-                break;
-            }
+                case IDM_EXIT: {
+                    game.stateFlags["QUIT"] = "1";
+                    DestroyWindow(hWnd);
+                    break;
+                }
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }
         }
     case WM_DESTROY: {
+        game.stateFlags["QUIT"] = "1";
         PostQuitMessage(0);
         break;
     }

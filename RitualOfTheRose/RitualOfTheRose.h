@@ -1,4 +1,4 @@
 #pragma once
 
-#include "resource.h"
+#include "Resource.h"
 #include "GameEngine.h"

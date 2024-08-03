@@ -51,20 +51,8 @@ public:
 	class Image : public Drawable {
 	public:
         Image() {}
-        Image(int src) {
-            source = src;
-        }
-        Image(int src, pair<int, int> positionAsPercentage) {
-            source = src;
-            positionAsPercentage = positionAsPercentage;
-        }
-        Image(int src, pair<int, int> position, string anchorStyle) {
-			source = src;
-            positionAsPercentage = position;
-            anchorStyle = anchorStyle;
-		}
-        Image(int src, pair<int, int> position, string _anchorStyle, float _opacity, string _uniqueID) {
-            source = src;
+        Image(List<int> _sources, pair<int, int> position, string _anchorStyle, float _opacity, string _uniqueID) {
+            sources = _sources;
             positionAsPercentage = position;
             anchorStyle = _anchorStyle;
             opacity = _opacity;
@@ -96,7 +84,7 @@ public:
             DWORD imageFileSize = 0;
 
             // Locate the resource.
-            imageResHandle = FindResource(HINST_THISCOMPONENT, MAKEINTRESOURCE(source), L"PNG");
+            imageResHandle = FindResource(HINST_THISCOMPONENT, MAKEINTRESOURCE(sources.at(frame)), L"PNG");
 
             hr = imageResHandle ? S_OK : E_FAIL;
             if (SUCCEEDED(hr))
@@ -223,6 +211,7 @@ public:
             return textures.at(frame);
         }
         void draw(Graphics & graphics) {
+            animate();
             ID2D1Bitmap* texture = getWhichTexture();
             if (texture == NULL) {
                 loadTexture(*&graphics);
@@ -237,10 +226,23 @@ public:
                 rect, 
                 opacity);
         }
+        void animate() {
+            if (!animated) { return; }
+            if (animationStyles.contains("SINGLE") and frame<textures.size()-1) {
+                frame++;
+            }
+            if (animationStyles.contains("LOOP")) { frame++; }
+            if (animationStyles.contains("FADEOUT")) {
+                if (CLOCK.hasEnoughTimePassed(unique_ID + "_FADE", 100)) {
+                    opacity = TChange(opacity, -0.07f, 0.0f, 1.0f);
+                }
+            }
+        };
 
-        int source;
+        List<int> sources;
         int frame = 0;
         bool animated = false;
+        List<string> animationStyles;
         float opacity = 1.0;
 		List<ID2D1Bitmap  *> textures;
 	};
@@ -250,13 +252,14 @@ public:
         Text(string message) {
             message = message;
         }
-        Text(string _message, string _format, pair<int, int> _positionAsPercentage, string _anchorStyle, pair<int, int> _size, vector<float> _colour) {
+        Text(string _message, string _format, pair<int, int> _positionAsPercentage, string _anchorStyle, pair<int, int> _size, vector<float> _colour, string _unique_ID) {
             message = _message;
             format = _format;
             positionAsPercentage = _positionAsPercentage;
             anchorStyle = _anchorStyle;
             size = _size;
             colour = _colour;
+            unique_ID = _unique_ID;
         }
         void draw(Graphics& graphics) {
             D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
@@ -279,6 +282,7 @@ public:
             SafeRelease(&theBrush);
         }
 
+        string fullMessage;
         string message;
         string format;
         pair<int, int> size;
@@ -315,6 +319,11 @@ public:
         if (SUCCEEDED(hr)) {
             WriteTextFormats.add({ "DEFAULT", textFormat });
         }
+        filesystem::path path = filesystem::current_path() / "Cursor.cur";
+        HCURSOR default_cursor = LoadCursorFromFileA(path.string().c_str());
+        Cursors["DEFAULT"] = default_cursor;
+        Colours["BLACK"] = { 0.0,0.0,0.0,1.0 };
+
         return hr;
     }
     HRESULT CreateDeviceResources() {
@@ -406,6 +415,43 @@ public:
             SafeRelease(&WriteTextFormats[key]);
         }
     }
+    Image* accessImageViaUniqueID(string uniqueID) {
+        for (auto const& [key, val] : ImageMap.internalMap) {
+            for (int x = 0; x < ImageMap[key].internalList.size(); x++) {
+                if (ImageMap[key].at(x)->unique_ID == uniqueID) {
+                    return ImageMap[key].at(x);
+                }
+            }
+        }
+        ErrorHelper::warning({ uniqueID + " could not be found!" }, true);
+    }
+    void tearDownSpecifiedImage(string uniqueID) {
+        int index = -1;
+        int the_key = 0;
+        Image* theImage = NULL;
+        for (auto const& [key, val] : ImageMap.internalMap) {
+            for (int x = 0; x < ImageMap[key].internalList.size(); x++) {
+                if (ImageMap[key].at(x)->unique_ID == uniqueID) {
+                    theImage = ImageMap[key].at(x);
+                    index = x;
+                    the_key = key;
+                    break;
+                }
+            }
+            
+        }
+        if (index != -1) {
+            ImageMap[the_key].remove_at(index);
+            delete theImage;
+            theImage = NULL;
+        }
+    }
+    void tearDownAllCursors() {
+        for (auto const& [key, val]: Cursors.internalMap) {
+            DestroyCursor(val);
+        }
+        Cursors.clear();
+    }
 
     HWND * hwnd;
 	ID2D1Factory * D2DFactory;
@@ -416,5 +462,7 @@ public:
     ID2D1HwndRenderTarget* hwndRenderTarget;
     Map<int, List<Image *>> ImageMap;
     Map<int, List<Text>> TextMap;
+    Map<string, HCURSOR> Cursors;
+    Map<string, vector<float>> Colours;
 };
 Graphics graphics = Graphics();

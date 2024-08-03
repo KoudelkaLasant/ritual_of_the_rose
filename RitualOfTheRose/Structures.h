@@ -140,6 +140,11 @@ struct List {
 	T end() {
 		return internalList.end();
 	}
+	void remove_at(int index) {
+		typename list<T>::iterator it = internalList.begin();
+		advance(it, index);
+		internalList.erase(it);
+	}
 
 	// returns list that is x -> the end, empty if the end is bigger than the whole list
 	List<T> sublistXToEnd(int number) {
@@ -251,10 +256,32 @@ struct Map {
 	map<A, B> internalMap;
 };
 
-static string SReplace(string input, const char toFind, string toReplace) {
-	string toMod = input;
-	while (input.find(toFind) != -1) {
-		toMod.replace(input.find(toFind), toReplace.size(), toReplace);
+static string SReplace(string input, string toFind, string toReplace) {
+	size_t start_pos = 0;
+	while ((start_pos = input.find(toFind, start_pos)) != std::string::npos) {
+		input.replace(start_pos, toFind.length(), toReplace);
+		start_pos += toReplace.length();
 	}
-	return toMod;
+	return input;
+}
+
+static List<string> split(string input, string delimiter) {
+	size_t pos = 0;
+	List<string> results;
+	while ((pos = input.find(delimiter)) != string::npos) {
+		results.push_back(input.substr(0, pos));
+		input.erase(0, pos + delimiter.length());
+	}
+	if (results.empty()) {
+		results.push_back(input);
+	}
+	return results;
+}
+
+template <typename T>
+T TChange(T target, T amount, T lowerLimit, T upperLimit) {
+	target += amount;
+	if (target < lowerLimit) { target = lowerLimit; }
+	if (target > upperLimit) { target = upperLimit; }
+	return target;
 }

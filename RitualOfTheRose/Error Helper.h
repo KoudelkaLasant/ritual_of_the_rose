@@ -1,10 +1,6 @@
 #pragma once
 #include "framework.h"
 
-/* This class prints messages via win32 when things go wrong with as detailed a message as possible (either passed in or generated or whatever).
-I imagine it will either close the program or announce a fix the problem (like tell the player it's loading x default thing)
-Problems can't be fixed here because error helper has no visibility over classes in the program, it's just a messenger.
-*/
 class ErrorHelper {
 public:
 	// is called to print a warning message to the screen. It will either crash or do nothing once the player clicks ok.
