@@ -124,7 +124,7 @@ public:
 };
 Clock CLOCK;
 
-template <typename T>
+
 struct ThreadContainer {
 	struct threadManagement {
 		bool keepRunning = true;
@@ -138,8 +138,10 @@ struct ThreadContainer {
 };
 ThreadContainer THREAD;
 
-struct audioManager {
-	audioManager() {
+class audioManager {
+public:
+	audioManager() {}
+	void setup() {
 		setUpMappings();
 		THREAD.threads["AUDIO"] = thread([&]() {
 			runThread();
@@ -159,12 +161,15 @@ struct audioManager {
 	}
 	struct audioDataNode {
 		audioDataNode() {}
-		audioDataNode(int source, HWND hwnd, int loop) {
-			file = MAKEINTRESOURCE(source);
+		audioDataNode(int _source, string _uniqueID, HWND * hwnd, int loop) {
+			source = _source;
+			uniqueID = _uniqueID;
+			file = MAKEINTRESOURCEA(source);
 			sound = cs_load_wav(file.c_str());
 			s0 = cs_make_playing_sound(&sound);
 			cs_loop_sound(&s0, loop);
 			initialised = true;
+			window = hwnd;
 		}
 		~audioDataNode() {
 			cs_free_sound(&sound);
@@ -190,46 +195,39 @@ struct audioManager {
 		}
 
 		int source;
-		wstring file;
+		string file;
+		string uniqueID;
 		cs_loaded_sound_t sound;
 		cs_playing_sound_t s0;
 		bool initialised;
+		HWND* window;
 	};
 	void createContext(HWND * hwnd) {
 		int frequency = 22000;
 		int buffered_samples = 8192; // number of samples internal buffers can hold at once
 		ctx = cs_make_context(hwnd, frequency, buffered_samples, 0, NULL);
 	}
-
-	/// returns false if no file was found / there's a problem
-	bool setUpAudioDataNode(string proxyName, string type) {
-		int repeat = 0;
+	void setUpAudioDataNode(string uniqueID, int source, string type) {
+		Map<string, audioDataNode*>* theLib = &soundLibrary;
+		string volume = soundVolume;
 		if (type == "MUSIC") {
-			repeat = 1;
+			theLib = &musicLibrary;
+			volume = musicVolume;
 		}
-		if (!AUDIOBANK.audioMappings.getKeys().contains(proxyName)) {
-			ErrorHelper::warning({ "Tried to play a song, but it does not exist.", proxyName.internalString }, false);
-			return false;
+		if (theLib->getKeys().contains(uniqueID)) {
+			return;
 		}
-		String fileName = AUDIOBANK.getAudioPath(proxyName);
-
-		audioDataNode* result = new audioDataNode(fileName, WIN32RESOURCES.theWindow, repeat);
+		
+		audioDataNode* result = new audioDataNode(source, uniqueID, hwnd, true);
 
 		// failed to create song
 		if (result->sound.sample_rate == 0) {
-			ErrorHelper::warning({ "Something is wrong with this audio file.", fileName.internalString }, false);
-			return false;
+			ErrorHelper::warning({ "Something is wrong with this audio file.",uniqueID }, false);
+			return;
 		}
 
-		if (type == "MUSIC") {
-			musicLibrary[proxyName] = result;
-			musicLibrary[proxyName]->setVolume(musicVolume);
-		}
-		else {
-			soundLibrary[proxyName] = result;
-			soundLibrary[proxyName]->setVolume(soundVolume);
-		}
-		return true;
+		theLib->internalMap[uniqueID] = result;
+		theLib->internalMap[uniqueID]->setVolume(volume);
 	}
 	void playActiveSounds() {
 		if (loaded) {
@@ -243,9 +241,6 @@ struct audioManager {
 		}
 	}
 	void startPlayingThisSong(string song) {
-		if (!musicLibrary.getKeys().contains(song)) {
-			if (!setUpAudioDataNode(song, String{ "","MUSIC" })) { return; }
-		}
 		musicLibrary[song]->s0.paused = 0;
 		musicLibrary[song]->setVolume(musicVolume);
 		cs_insert_sound(ctx, &musicLibrary[song]->s0);
@@ -257,11 +252,6 @@ struct audioManager {
 		musicLibrary[song]->s0.paused = 1;
 	}
 	void makeThisSound(string sound) {
-		if (!soundLibrary.getKeys().contains(sound)) {
-			if (!setUpAudioDataNode(sound, String{ "","SOUND" })) {
-				return;
-			}
-		}
 		soundLibrary[sound]->s0.paused = 0;
 		cs_insert_sound(ctx, &soundLibrary[sound]->s0);
 	}
@@ -290,13 +280,13 @@ struct audioManager {
 		soundVolume = previousSV;
 	}
 	void setMusicVolume(string input) {
-		musicVolume = input.internalString;
+		musicVolume = input;
 		for (auto y : musicLibrary.internalMap) {
 			y.second->setVolume(musicVolume);
 		}
 	}
 	void setSoundVolume(string input) {
-		soundVolume = input.internalString;
+		soundVolume = input;
 		for (auto y : soundLibrary.internalMap) {
 			y.second->setVolume(soundVolume);
 		}
@@ -306,7 +296,7 @@ struct audioManager {
 	}
 	void executeFadeOuts() {
 		if (!CLOCK.hasEnoughTimePassed("FadeOutSongsClock", 10)) { return; }
-		List<String> toRemove;
+		List<string> toRemove;
 		for (auto x : songsThatAreFadingOut.internalList) {
 			musicLibrary[x]->volumeDown();
 			if (musicLibrary[x]->s0.volume0 < 0.1) {
@@ -344,18 +334,7 @@ struct audioManager {
 			y.second->s0.paused = 0;
 		}
 	}
-	List<string> provideTheCurrentAudioSettings(string menuName) {
-		List<String> result;
-		result.push_back(String{ menuName.internalString, musicVolumeMappingsReversed[musicVolume].internalString });
-		result.push_back(String{ menuName.internalString, soundVolumeMappingsReversed[soundVolume].internalString });
-		return result;
-	}
-	Map<string, string> provideIniSettings() {
-		Map<String, String> result;
-		result[String{ "","MUSICVOLUME" }] = String{ "",to_string((int)(stod(musicVolume) * 100)) };
-		result[String{ "","SOUNDVOLUME" }] = String{ "", to_string((int)(stod(soundVolume) * 200)) };
-		return result;
-	}
+
 
 	map<string, string> musicVolumeMappings;
 	map<string, string> musicVolumeMappingsReversed;
@@ -363,7 +342,8 @@ struct audioManager {
 	map<string, string> soundVolumeMappingsReversed;
 	List<string> songsThatAreFadingOut;
 
-private:
+	HWND * hwnd;
+
 	Map<string, audioDataNode*> musicLibrary;
 	Map<string, audioDataNode*> soundLibrary;
 	string clockName = string{ "","AUDIOMANAGERCLOCK" };
@@ -373,5 +353,5 @@ private:
 	string previousMV = musicVolume; // used if player cancels changes in audio menu
 	string previousSV = soundVolume;
 };
-audioManager AUDIOMANAGER;
+audioManager audio;
 

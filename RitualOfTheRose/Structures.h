@@ -285,8 +285,3 @@ T TChange(T target, T amount, T lowerLimit, T upperLimit) {
 	if (target > upperLimit) { target = upperLimit; }
 	return target;
 }
-
-const char* convertWstrToChar(wstring input) {
-	const wchar_t* input_as_wchar = input.c_str();
-	size_t size = (wcslen(input_as_wchar) + 1) * sizeof(wchar_t);
-}

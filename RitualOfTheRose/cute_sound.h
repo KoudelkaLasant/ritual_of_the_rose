@@ -2209,31 +2209,13 @@ void cs_mix(cs_context_t* ctx)
 {
 	cs_lock(ctx);
 
-#if CUTE_SOUND_PLATFORM == CUTE_SOUND_WINDOWS
-
 	int byte_to_lock;
 	int bytes_to_write;
 	cs_position(ctx, &byte_to_lock, &bytes_to_write);
 
-	if (!bytes_to_write) goto unlock;
+	if (!bytes_to_write) { cs_unlock(ctx); }
 	int samples_to_write = bytes_to_write / ctx->bps;
 
-#elif CUTE_SOUND_PLATFORM == CUTE_SOUND_APPLE || CUTE_SOUND_PLATFORM == CUTE_SOUND_SDL
-
-	int samples_to_write = cs_samples_to_mix(ctx);
-	if (!samples_to_write) goto unlock;
-	int bytes_to_write = samples_to_write * ctx->bps;
-
-#elif CUTE_SOUND_PLATFORM == CUTE_SOUND_LINUX
-
-	snd_pcm_sframes_t frames = ctx->fns.snd_pcm_avail(ctx->pcm_handle);
-	if (frames == -EAGAIN) goto unlock; // No data yet.
-	else if (frames < 0) { /* Fatal error... How should this be handled? */ }
-	else if (frames == 0) goto unlock;
-	int samples_to_write = (int)frames;
-	if (samples_to_write > ctx->latency_samples) samples_to_write = ctx->latency_samples;
-
-#endif
 
 	// clear mixer buffers
 	int wide_count = samples_to_write / 4;
@@ -2425,37 +2407,6 @@ void cs_mix(cs_context_t* ctx)
 		samples[i] = _mm_packs_epi32(a0b0a1b1, a2b2a3b3);
 	}
 	cs_memcpy_to_directsound(ctx, (int16_t*)samples, byte_to_lock, bytes_to_write);
-
-#elif CUTE_SOUND_PLATFORM == CUTE_SOUND_APPLE || CUTE_SOUND_PLATFORM == CUTE_SOUND_SDL || CUTE_SOUND_PLATFORM == CUTE_SOUND_LINUX
-
-	// Since the ctx->samples array is already in use as a ring buffer
-	// reusing floatA to store output is a good way to temporarly store
-	// the final samples. Then a single ring buffer push can be used
-	// afterwards. Pretty hacky, but whatever :)
-	__m128i* samples = (__m128i*)floatA;
-	for (int i = 0; i < wide_count; ++i)
-	{
-		__m128i a = _mm_cvtps_epi32(floatA[i]);
-		__m128i b = _mm_cvtps_epi32(floatB[i]);
-		__m128i a0b0a1b1 = _mm_unpacklo_epi32(a, b);
-		__m128i a2b2a3b3 = _mm_unpackhi_epi32(a, b);
-		samples[i] = _mm_packs_epi32(a0b0a1b1, a2b2a3b3);
-	}
-
-	// SDL/CoreAudio use a callback mechanism communicating with cute sound
-	// over a ring buffer (accessed by cs_push_bytes and cs_pull_bytes), but
-	// ALSA on Linux has their own memcpy-style function to use... So we don't
-	// need a local ring buffer at all, and can directly hand over the samples.
-	#if CUTE_SOUND_PLATFORM != CUTE_SOUND_LINUX
-		cs_push_bytes(ctx, samples, bytes_to_write);
-	#else
-		int ret = ctx->fns.snd_pcm_writei(ctx->pcm_handle, samples, (snd_pcm_sframes_t)samples_to_write);
-		if (ret < 0) ret = ctx->fns.snd_pcm_recover(ctx->pcm_handle, ret, 0);
-		if (ret < 0) {
-			// A fatal error occured.
-			ctx->separate_thread = 0;
-		}
-	#endif
 
 #endif
 

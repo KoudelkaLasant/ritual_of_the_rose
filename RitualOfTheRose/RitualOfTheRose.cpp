@@ -38,6 +38,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
     graphics.setup(&window);
     game.setup();
+    audio.setup();
 
     //graphics.addImage(new Graphics::Image(MAIN_MENU_BACKGROUND, { 50,50 }, "CENTER", 1.0f), 0);
     //graphics.addImage(new Graphics::Image(IDB_PNG1, {50,40},"CENTER", 1.0f), 1);
