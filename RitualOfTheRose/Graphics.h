@@ -47,6 +47,9 @@ public:
         pair<int, int> positionAsPercentage = { 0,0 };
         string anchorStyle;
         string unique_ID;
+        bool operator==(const Drawable& rhs) const {
+            return unique_ID == rhs.unique_ID;
+        }
     };
 	class Image : public Drawable {
 	public:
@@ -252,7 +255,7 @@ public:
         Text(string message) {
             message = message;
         }
-        Text(string _message, string _format, pair<int, int> _positionAsPercentage, string _anchorStyle, pair<int, int> _size, vector<float> _colour, string _unique_ID) {
+        Text(wstring _message, string _format, pair<int, int> _positionAsPercentage, string _anchorStyle, pair<int, int> _size, vector<float> _colour, string _unique_ID) {
             message = _message;
             format = _format;
             positionAsPercentage = _positionAsPercentage;
@@ -274,16 +277,20 @@ public:
                 D2D1::ColorF(D2D1::ColorF(colour[0], colour[1], colour[2], colour[3])),
                 &theBrush);
             graphics.hwndRenderTarget->DrawText(
-                wstring(message.begin(), message.end()).c_str(),
+                message.c_str(),
                 message.size(),
                 graphics.WriteTextFormats[format],
                 rect,
                 theBrush);
             SafeRelease(&theBrush);
         }
+        void startTypewriter() {
+            fullMessage = message;
+            message = L"";
+        }
 
-        string fullMessage;
-        string message;
+        wstring fullMessage;
+        wstring message;
         string format;
         pair<int, int> size;
         vector<float> colour = {0.0,0.0,0.0,1.0};
@@ -323,6 +330,7 @@ public:
         HCURSOR default_cursor = LoadCursorFromFileA(path.string().c_str());
         Cursors["DEFAULT"] = default_cursor;
         Colours["BLACK"] = { 0.0,0.0,0.0,1.0 };
+        Colours["WHITE"] = { 1.0,1.0,1.0,1.0 };
 
         return hr;
     }
@@ -360,15 +368,15 @@ public:
                 for (auto const& value : ImageMap[key].internalList) {
                     value->draw(*this);
                 }
-                for (auto & value : TextMap[key].internalList) {
-                    value.draw(*this);
+                for (auto & [subkey, subval] : TextMap[key].internalMap) {
+                    subval.draw(*this);
                 }
             }
             // draw any textures that are on higher layers than any existing images
             for (auto const& [key, val] : TextMap.internalMap) {
                 if (key <= latest_layer) { continue; }
-                for (auto& value : TextMap[key].internalList) {
-                    value.draw(*this);
+                for (auto& [subkey, subval] : TextMap[key].internalMap) {
+                    subval.draw(*this);
                 }
             }
 
@@ -394,9 +402,9 @@ public:
     }
     void addText(Text text, int layer) {
         if (not TextMap.hasKey(layer)) {
-            TextMap[layer] = List<Text>();
+            TextMap[layer] = Map<string, Text>();
         }
-        TextMap[layer].push_back(text);
+        TextMap[layer][text.unique_ID] = text;
     }
     void teardownAllImages() {
         for (auto const & [key, val] : ImageMap.internalMap) {
@@ -446,11 +454,27 @@ public:
             theImage = NULL;
         }
     }
+    void tearDownSpecifiedText(string uniqueID) {
+        for (auto const& [key, val] : TextMap.internalMap) {
+            if (TextMap[key].getKeys().contains(uniqueID)) {
+                TextMap[key].internalMap.erase(uniqueID);
+            }
+        }
+    }
     void tearDownAllCursors() {
         for (auto const& [key, val]: Cursors.internalMap) {
             DestroyCursor(val);
         }
         Cursors.clear();
+    }
+
+    bool does_this_text_already_exist(string uniqueID) {
+        for (auto const& [key, val] : TextMap.internalMap) {
+            if (TextMap[key].getKeys().contains(uniqueID)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     HWND * hwnd;
@@ -461,7 +485,7 @@ public:
     IDWriteFactory* DWriteFactory;
     ID2D1HwndRenderTarget* hwndRenderTarget;
     Map<int, List<Image *>> ImageMap;
-    Map<int, List<Text>> TextMap;
+    Map<int, Map<string, Text>> TextMap;
     Map<string, HCURSOR> Cursors;
     Map<string, vector<float>> Colours;
 };

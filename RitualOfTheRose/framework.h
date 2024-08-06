@@ -31,6 +31,9 @@ using namespace std;
 #include "atlstr.h"
 #include <chrono>
 #include <filesystem>
+#include <thread>
+#define CUTE_SOUND_IMPLEMENTATION
+#include "cute_sound.h"
 
 
 

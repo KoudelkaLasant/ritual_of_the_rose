@@ -272,7 +272,7 @@ static List<string> split(string input, string delimiter) {
 		results.push_back(input.substr(0, pos));
 		input.erase(0, pos + delimiter.length());
 	}
-	if (results.empty()) {
+	if (input.size() > 0) {
 		results.push_back(input);
 	}
 	return results;
@@ -284,4 +284,9 @@ T TChange(T target, T amount, T lowerLimit, T upperLimit) {
 	if (target < lowerLimit) { target = lowerLimit; }
 	if (target > upperLimit) { target = upperLimit; }
 	return target;
+}
+
+const char* convertWstrToChar(wstring input) {
+	const wchar_t* input_as_wchar = input.c_str();
+	size_t size = (wcslen(input_as_wchar) + 1) * sizeof(wchar_t);
 }

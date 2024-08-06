@@ -36,12 +36,19 @@ public:
 				string imageHandle = data["uniqueID"];
 				List<string> styles = split(data["styles"], ",");
 				Graphics::Image* theImage = graphics.accessImageViaUniqueID(imageHandle);
-				theImage->animated = true;
-				theImage->animationStyles = styles;
+				if (!theImage->animated) {
+					theImage->animated = true;
+					theImage->animationStyles = styles;
+				}
+				bool wait = data["wait"] == "TRUE";
+				if (wait and styles.contains("FADEOUT") and theImage->opacity != 0.0f) {
+					return false;
+				}
 				return true;
 			}
 			if (type == "DRAWTEXT") {
-				string message = data["message"];
+				List<string> mp = split(data["message"], " ");
+				wstring message = strings[mp.at(0)][mp.at(1)][mp.at(2)];
 				string format = data["format"];
 				pair<int, int> position = { stoi(data["x"]), stoi(data["y"]) };
 				string anchorStyle = data["anchorStyle"];
@@ -49,7 +56,44 @@ public:
 				vector<float> colour = graphics.Colours[data["colour"]];
 				int layer = stoi(data["layer"]);
 				string uniqueID = data["uniqueID"];
-				graphics.addText(Graphics::Text(message, format, position, anchorStyle, size, colour, unique_ID), layer);
+				List<string> styles = split(data["styles"], ",");
+				bool animated = data["animated"] == "TRUE";
+				if (!graphics.does_this_text_already_exist(uniqueID)) {
+					graphics.addText(Graphics::Text(message, format, position, anchorStyle, size, colour, uniqueID), layer);
+					if (animated) {
+						if (styles.contains("TYPEWRITER")) {
+							graphics.TextMap[layer].internalMap[uniqueID].startTypewriter();
+						}
+					}
+				}
+				else {
+					if (animated and styles.contains("TYPEWRITER")) {
+						int typewriterSpeed = 5;
+						wstring full = graphics.TextMap[layer].internalMap[uniqueID].fullMessage;
+						bool finished = graphics.TextMap[layer].internalMap[uniqueID].message == full;
+						if (CLOCK.hasEnoughTimePassed("TYPEWRITER", typewriterSpeed)) {
+							if (finished) {
+								return true;
+							}
+							else {
+								int size = graphics.TextMap[layer].internalMap[uniqueID].message.size();
+								graphics.TextMap[layer].internalMap[uniqueID].message += full[size];
+							}
+						}
+					}
+				}
+				if (!animated) {
+					return true;
+				}
+				
+				return false;
+			}
+			if (type == "TEARDOWNIMAGE") {
+				graphics.tearDownSpecifiedImage(data["uniqueID"]);
+				return true;
+			}
+			if (type == "TEARDOWNTEXT") {
+				graphics.tearDownSpecifiedText(data["uniqueID"]);
 				return true;
 			}
 		}
@@ -100,7 +144,29 @@ public:
 					pair<string, string>("waitDuration", "1000"),}))),
 				Event("FadeoutLogo", "ANIMATEIMAGE", Map<string, string>(List<pair<string,string>>({
 					pair<string, string>("uniqueID", "debugmenulogo"),
-					pair<string, string>("styles", "FADEOUT"),}))),
+					pair<string, string>("styles", "FADEOUT"),
+					pair<string, string>("wait", "TRUE"),}))),
+				Event("TeardownImage", "TEARDOWNIMAGE", Map<string, string>(List<pair<string,string>>({
+					pair<string, string>("uniqueID", "debugmenulogo"),}))),
+				Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string,string>>({
+					pair<string, string>("message","ENG DEBUG TestString"),
+					pair<string, string>("format", "DEFAULT"),
+					pair<string, string>("anchorStyle", "TOPLEFT"),
+					pair<string, string>("x", "0"),
+					pair<string, string>("y", "0"),
+					pair<string, string>("w", "250"),
+					pair<string, string>("h", "500"),
+					pair<string, string>("colour", "WHITE"),
+					pair<string, string>("layer", "10"),
+					pair<string, string>("uniqueID", "debugText1"),
+					pair<string, string>("animated", "TRUE"),
+					pair<string, string>("styles", "TYPEWRITER"),
+					}))),
+				Event("Wait", "WAIT", Map<string, string>(List<pair<string,string>>({
+					pair<string, string>("clockID", "DEBUGCLOCK2"),
+					pair<string, string>("waitDuration", "1000"),}))),
+				Event("TeardownText", "TEARDOWNTEXT", Map<string, string>(List<pair<string,string>>({
+					pair<string, string>("uniqueID", "debugText1"),}))),
 				}));
 		}
 		else {

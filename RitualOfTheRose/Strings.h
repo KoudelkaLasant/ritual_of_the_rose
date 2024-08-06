@@ -1,7 +1,7 @@
 #pragma once
 
-map<string, map<string, map<string, string>>> strings = {
+map<string, map<string, map<string, wstring>>> strings = {
 	{"ENG", {
 		{"DEBUG", {
-			{"Test String", "Test String יםףףםףםףבתייייייייייייייייייייייייייייי."},
+			{"TestString", L"Test String יםףףםףםףבתייייייייייייייייייייייייייייי hello I am a long string used to test the cropping of text boxes."},
 }}}}};
