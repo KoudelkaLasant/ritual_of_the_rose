@@ -26,14 +26,21 @@ using namespace std;
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "windowscodecs.lib")
 #pragma comment(lib, "dwrite.lib")
+#pragma comment(lib, "Winmm.lib")
+#pragma comment(lib, "soloud_static.lib")
 #include "CImg.h"
 #include "shellapi.h"
 #include "atlstr.h"
 #include <chrono>
 #include <filesystem>
 #include <thread>
-#define CUTE_SOUND_IMPLEMENTATION
-#include "cute_sound.h"
+#include "Mmsystem.h"
+#include "soloud.h"
+#include "soloud_wav.h"
+#include "soloud_fader.h"
+#include <mutex>
+
+
 
 #ifndef HINST_THISCOMPONENT
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;

@@ -1,6 +1,36 @@
 #pragma once
 #include "Structures.h"
 
+static string SReplace(string input, string toFind, string toReplace) {
+	size_t start_pos = 0;
+	while ((start_pos = input.find(toFind, start_pos)) != std::string::npos) {
+		input.replace(start_pos, toFind.length(), toReplace);
+		start_pos += toReplace.length();
+	}
+	return input;
+}
+
+static List<string> split(string input, string delimiter) {
+	size_t pos = 0;
+	List<string> results;
+	while ((pos = input.find(delimiter)) != string::npos) {
+		results.push_back(input.substr(0, pos));
+		input.erase(0, pos + delimiter.length());
+	}
+	if (input.size() > 0) {
+		results.push_back(input);
+	}
+	return results;
+}
+
+template <typename T>
+T TChange(T target, T amount, T lowerLimit, T upperLimit) {
+	target += amount;
+	if (target < lowerLimit) { target = lowerLimit; }
+	if (target > upperLimit) { target = upperLimit; }
+	return target;
+}
+
 class Random {
 public:
 	Random() {
@@ -22,11 +52,17 @@ public:
 		}
 		return result;
 	}
+	template <typename T> T getRandom(List<T> theList) {
+		int index = Random::getRandom(0, theList.size() - 1);
+		return theList.at(index);
+	}
 
 private:
 	unsigned int nameGenerator = 0;
 };
 Random RANDOM;
+
+
 
 class RuntimeArgs {
 public:
@@ -124,234 +160,121 @@ public:
 };
 Clock CLOCK;
 
-
-struct ThreadContainer {
-	struct threadManagement {
-		bool keepRunning = true;
-		Map<string, thread> T;
-	};
-
+struct ThreadManager {
 	Map<string, thread> threads;
-	bool run = true;
-
-	Map<string, threadManagement> specialisedThreads;
 };
-ThreadContainer THREAD;
+ThreadManager threads;
 
 class audioManager {
 public:
-	audioManager() {}
-	void setup() {
-		setUpMappings();
-		THREAD.threads["AUDIO"] = thread([&]() {
-			runThread();
-			});
-	}
-	void setUpMappings() {
-		for (double x = 1.0; x > 0.0; x -= 0.1) {
-			string result = to_string(x);
-			string result2 = to_string(stod(result) / 2.0);
-			string key1 = to_string(stod(result));
-			string key2 = to_string(stod(result2));
-			musicVolumeMappings[key1] = result;
-			musicVolumeMappingsReversed[result] = key1;
-			soundVolumeMappings[key2] = result2;
-			soundVolumeMappingsReversed[result2] = key2;
-		}
-	}
-	struct audioDataNode {
-		audioDataNode() {}
-		audioDataNode(int _source, string _uniqueID, HWND * hwnd, int loop) {
-			source = _source;
-			uniqueID = _uniqueID;
-			file = MAKEINTRESOURCEA(source);
-			sound = cs_load_wav(file.c_str());
-			s0 = cs_make_playing_sound(&sound);
-			cs_loop_sound(&s0, loop);
-			initialised = true;
-			window = hwnd;
-		}
-		~audioDataNode() {
-			cs_free_sound(&sound);
-		}
-		void setVolume(string input) {
-			if (!initialised) { return; }
-			double x = stod(input);
-			if (x < 0) { x = 0.0; }
-			s0.volume0 = x;
-			s0.volume1 = x;
-		}
-		void volumeUp() {
-			if (!initialised) { return; }
-			if (s0.volume0 + 0.1 > 1.0) { return; }
-			s0.volume0 += 0.1f;
-			s0.volume1 += 0.1f;
-		}
-		void volumeDown() {
-			if (!initialised) { return; }
-			if (s0.volume0 <= 0) { return; }
-			s0.volume0 -= 0.1f;
-			s0.volume1 -= 0.1f;
-		}
-
-		int source;
-		string file;
-		string uniqueID;
-		cs_loaded_sound_t sound;
-		cs_playing_sound_t s0;
-		bool initialised;
-		HWND* window;
-	};
-	void createContext(HWND * hwnd) {
-		int frequency = 22000;
-		int buffered_samples = 8192; // number of samples internal buffers can hold at once
-		ctx = cs_make_context(hwnd, frequency, buffered_samples, 0, NULL);
-	}
-	void setUpAudioDataNode(string uniqueID, int source, string type) {
-		Map<string, audioDataNode*>* theLib = &soundLibrary;
-		string volume = soundVolume;
-		if (type == "MUSIC") {
-			theLib = &musicLibrary;
-			volume = musicVolume;
-		}
-		if (theLib->getKeys().contains(uniqueID)) {
-			return;
-		}
+	audioManager() {
+		SFXCollections["PARCHMENT"] = List<int>({ 
+			PARCHMENT_WAV_1,
+			PARCHMENT_WAV_2,
+			PARCHMENT_WAV_3,
+			PARCHMENT_WAV_4,
+			PARCHMENT_WAV_5,
+			PARCHMENT_WAV_6,
+			PARCHMENT_WAV_7,
+			PARCHMENT_WAV_8,
+			PARCHMENT_WAV_9,
+			PARCHMENT_WAV_10,
+			PARCHMENT_WAV_11,
+			PARCHMENT_WAV_12,
+			PARCHMENT_WAV_13,
 		
-		audioDataNode* result = new audioDataNode(source, uniqueID, hwnd, true);
+		});
+		preloadSFX();
+		threads.threads["AUDIO"] = thread([&]() {playSound(PARCHMENT_WAV_1, 1.0f, false, false); });
+		threads.threads["AUDIO2"] = thread([&]() {playSound(PARCHMENT_WAV_2, 1.0f,false, false); });
+		threads.threads["AUDIO3"] = thread([&]() {playSound(TOWN_WAV_1, 1.0f,true,true); });
+	}
+	~audioManager() {
+		unloadAllAudio();
+	}
+	void preloadSFX() {
+		for (auto const & x : SFXCollections["PARCHMENT"].internalList) {
+			loadAudio(x, 2.0f);
+		}
+	}
 
-		// failed to create song
-		if (result->sound.sample_rate == 0) {
-			ErrorHelper::warning({ "Something is wrong with this audio file.",uniqueID }, false);
+
+	void playSound(int resource, float volume, bool loop, bool fadein) {
+		if (inTheLoadingQueue.contains(resource)) {
+			// stop the game from trying to load the same audio twice into the same array leading to a data race
 			return;
 		}
+		inTheLoadingQueue.push_back(resource);
+		if (!loadedResources.internalMap[resource]) {
+			loadAudio(resource, volume);
+		}
+		inTheLoadingQueue.internalList.remove(resource);
+		
+		
+		SoLoud::Soloud soloud;
+		soloud.init();
+		loadedSFX[resource].setVolume(volume);
+		if (!fadein) {
+			loadedSFX[resource].setVolume(volume);
+		}
+		else {
+			loadedSFX[resource].setVolume(0);
+		}
+		loadedSFX[resource].setLooping(loop);
+		int handle = soloud.play(loadedSFX[resource]);
+		if (fadein) {
+			soloud.fadeVolume(handle, volume, 5.0f);
+		}
 
-		theLib->internalMap[uniqueID] = result;
-		theLib->internalMap[uniqueID]->setVolume(volume);
-	}
-	void playActiveSounds() {
-		if (loaded) {
-			cs_mix(ctx);
-			executeFadeOuts();
+		while (soloud.getWave()) {
+			Sleep(100);
 		}
+		Sleep(1000);
+		soloud.deinit();
 	}
-	void stopPlayingAllMusic() {
-		for (auto x : musicLibrary.internalMap) {
-			stopPlayingThisSong(x.first);
+	void loadAudio(int resource, float volume) {
+		HRSRC hResInfo = FindResource(NULL, MAKEINTRESOURCE(resource), L"WAVE");
+		HGLOBAL hResData = LoadResource(NULL, hResInfo);
+		LPVOID lpAddress = LockResource(hResData);
+		LPBYTE lpData = (LPBYTE)LockResource(hResData);
+		DWORD dwSize = SizeofResource(NULL, hResInfo);
+
+		audio_mutex.lock();
+		loadedBytes[resource] = new unsigned char[dwSize];
+		sizeOfLoadedBytes[resource] = dwSize;
+		for (int x = 0; x < dwSize; x++) {
+			loadedBytes[resource][x] = lpData[x];
 		}
+		int example = sizeof(loadedBytes[resource]) * sizeof(unsigned char);
+
+		loadedSFX[resource] = SoLoud::Wav();
+		loadedSFX[resource].loadMem(loadedBytes[resource], sizeOfLoadedBytes[resource], true, true);
+		loadedResources[resource] = true;
+		audio_mutex.unlock();
 	}
-	void startPlayingThisSong(string song) {
-		musicLibrary[song]->s0.paused = 0;
-		musicLibrary[song]->setVolume(musicVolume);
-		cs_insert_sound(ctx, &musicLibrary[song]->s0);
-	}
-	void stopPlayingThisSong(string song) {
-		if (!musicLibrary.hasKey(song)) {
-			return;
+	void unloadAllAudio() {
+		loadedSFX.clear();
+		for (auto const& [key, val] : loadedSFX.internalMap) {
+			delete loadedBytes[key];
+			loadedBytes[key] = 0;
 		}
-		musicLibrary[song]->s0.paused = 1;
+		loadedBytes.clear();
+		sizeOfLoadedBytes.clear();
+		loadedResources.clear();
 	}
-	void makeThisSound(string sound) {
-		soundLibrary[sound]->s0.paused = 0;
-		cs_insert_sound(ctx, &soundLibrary[sound]->s0);
-	}
-	void stopMakingThisSound(string song) {
-		if (!soundLibrary.hasKey(song)) {
-			return;
-		}
-		soundLibrary[song]->s0.paused = 1;
-	}
-	void shutDown() {
-		for (auto x : musicLibrary.internalMap) {
-			cs_free_sound(&x.second->sound);
-		}
-		for (auto x : soundLibrary.internalMap) {
-			cs_free_sound(&x.second->sound);
-		}
-		cs_shutdown_context(ctx);
-	}
-	// used for leaving the audio menu
-	void tempSaveCurrentAudioSettings() {
-		previousMV = musicVolume;
-		previousSV = soundVolume;
-	}
-	void restoreTempAudioSettings() {
-		musicVolume = previousMV;
-		soundVolume = previousSV;
-	}
-	void setMusicVolume(string input) {
-		musicVolume = input;
-		for (auto y : musicLibrary.internalMap) {
-			y.second->setVolume(musicVolume);
-		}
-	}
-	void setSoundVolume(string input) {
-		soundVolume = input;
-		for (auto y : soundLibrary.internalMap) {
-			y.second->setVolume(soundVolume);
-		}
-	}
-	void startMakingSongFadeOut(string song) {
-		songsThatAreFadingOut.addToBackIfNotAlreadyInList(song);
-	}
-	void executeFadeOuts() {
-		if (!CLOCK.hasEnoughTimePassed("FadeOutSongsClock", 10)) { return; }
-		List<string> toRemove;
-		for (auto x : songsThatAreFadingOut.internalList) {
-			musicLibrary[x]->volumeDown();
-			if (musicLibrary[x]->s0.volume0 < 0.1) {
-				stopPlayingThisSong(x);
-				toRemove.push_back(x);
-			}
-		}
-		songsThatAreFadingOut -= toRemove;
-	}
-	void runThread() {
-		while (true) {
-			if (!THREAD.run) {
-				return;
-			}
-			if (CLOCK.hasEnoughTimePassed("AUDIOCLOCK", 50)) {
-				playActiveSounds();
-			}
-		}
+	void playRandomSFXFromThisCollection(string colName) {
+		int resource = RANDOM.getRandom(SFXCollections[colName]);
+
 	}
 
-	bool loaded = false;
-	void temporarilySilence() {
-		for (auto y : musicLibrary.internalMap) {
-			y.second->s0.paused = 1;
-		}
-		for (auto y : soundLibrary.internalMap) {
-			y.second->s0.paused = 1;
-		}
-	}
-	void restoreMusic() {
-		for (auto y : musicLibrary.internalMap) {
-			y.second->s0.paused = 0;
-		}
-		for (auto y : soundLibrary.internalMap) {
-			y.second->s0.paused = 0;
-		}
-	}
+	Map<int, bool> loadedResources;
+	List<int> inTheLoadingQueue;
+	Map<int, unsigned char*> loadedBytes;
+	Map<int, DWORD> sizeOfLoadedBytes;
+	Map<int, SoLoud::Wav> loadedSFX;
+	Map<string, List<int>> SFXCollections;
 
-
-	map<string, string> musicVolumeMappings;
-	map<string, string> musicVolumeMappingsReversed;
-	map<string, string> soundVolumeMappings;
-	map<string, string> soundVolumeMappingsReversed;
-	List<string> songsThatAreFadingOut;
-
-	HWND * hwnd;
-
-	Map<string, audioDataNode*> musicLibrary;
-	Map<string, audioDataNode*> soundLibrary;
-	string clockName = string{ "","AUDIOMANAGERCLOCK" };
-	cs_context_t* ctx;
-	string musicVolume = to_string(1.0);
-	string soundVolume = to_string(stod(musicVolume) / 2); // sounds seem to be really loud, making them half whatever music is as a maximum
-	string previousMV = musicVolume; // used if player cancels changes in audio menu
-	string previousSV = soundVolume;
+	mutex audio_mutex;
 };
 audioManager audio;
 

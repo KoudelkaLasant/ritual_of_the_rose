@@ -16,6 +16,21 @@
 #define MAIN_MENU_BACKGROUND            130
 #define IDI_ICON1                       131
 #define IDC_STATIC                      -1
+#define PARCHMENT_WAV_1 1001
+#define PARCHMENT_WAV_2 1002
+#define PARCHMENT_WAV_3 1003
+#define PARCHMENT_WAV_4 1004
+#define PARCHMENT_WAV_5 1005
+#define PARCHMENT_WAV_6 1006
+#define PARCHMENT_WAV_7 1007
+#define PARCHMENT_WAV_8 1008
+#define PARCHMENT_WAV_9 1009
+#define PARCHMENT_WAV_10 1010
+#define PARCHMENT_WAV_11 1011
+#define PARCHMENT_WAV_12 1012
+#define PARCHMENT_WAV_13 1013
+#define TOWN_WAV_1 2000
+
 
 // Next default values for new objects
 // 

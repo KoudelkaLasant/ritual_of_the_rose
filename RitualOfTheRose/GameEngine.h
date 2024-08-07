@@ -78,6 +78,9 @@ public:
 							else {
 								int size = graphics.TextMap[layer].internalMap[uniqueID].message.size();
 								graphics.TextMap[layer].internalMap[uniqueID].message += full[size];
+								if (styles.contains("PARCHMENT")) {
+									
+								}
 							}
 						}
 					}

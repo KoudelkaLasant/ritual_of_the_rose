@@ -255,33 +255,3 @@ struct Map {
 	}
 	map<A, B> internalMap;
 };
-
-static string SReplace(string input, string toFind, string toReplace) {
-	size_t start_pos = 0;
-	while ((start_pos = input.find(toFind, start_pos)) != std::string::npos) {
-		input.replace(start_pos, toFind.length(), toReplace);
-		start_pos += toReplace.length();
-	}
-	return input;
-}
-
-static List<string> split(string input, string delimiter) {
-	size_t pos = 0;
-	List<string> results;
-	while ((pos = input.find(delimiter)) != string::npos) {
-		results.push_back(input.substr(0, pos));
-		input.erase(0, pos + delimiter.length());
-	}
-	if (input.size() > 0) {
-		results.push_back(input);
-	}
-	return results;
-}
-
-template <typename T>
-T TChange(T target, T amount, T lowerLimit, T upperLimit) {
-	target += amount;
-	if (target < lowerLimit) { target = lowerLimit; }
-	if (target > upperLimit) { target = upperLimit; }
-	return target;
-}

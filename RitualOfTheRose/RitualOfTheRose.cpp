@@ -38,12 +38,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
     graphics.setup(&window);
     game.setup();
-    audio.setup();
-
-    //graphics.addImage(new Graphics::Image(MAIN_MENU_BACKGROUND, { 50,50 }, "CENTER", 1.0f), 0);
-    //graphics.addImage(new Graphics::Image(IDB_PNG1, {50,40},"CENTER", 1.0f), 1);
-    //graphics.addText(Graphics::Text("example string", "DEFAULT", { 0, 0 }, "TOPLEFT", { 500, 500 }, { 0.0,0.0,0.0,1.0 }), 2);
-
+    HICON theIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));
+    SendMessage(window, WM_SETICON, ICON_BIG, (LPARAM)theIcon);
 
     while (!game.quit())
     {
@@ -76,7 +72,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance){
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
     wcex.lpszMenuName   = NULL;
     wcex.lpszClassName  = szWindowClass;
-    wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+    wcex.hIconSm        = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_RITUALOFTHEROSE));
 
     return RegisterClassExW(&wcex);
 }
