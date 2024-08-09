@@ -386,36 +386,37 @@ public:
         if (SUCCEEDED(hr)) {
             WriteTextFormats.add({ "DEFAULT", textFormat });
         }
-        IDWriteInMemoryFontFileLoader* InMemoryFontFileLoader;
-        hr = DWriteFactory->CreateInMemoryFontFileLoader(&InMemoryFontFileLoader);
-        hr = DWriteFactory->RegisterFontFileLoader(InMemoryFontFileLoader);
-        fonts["Centaur"] = NULL;
+        idwriteinmemoryfontfileloaders["Centaur"] = NULL;
+        hr = DWriteFactory->CreateInMemoryFontFileLoader(&idwriteinmemoryfontfileloaders["Centaur"]);
+        hr = DWriteFactory->RegisterFontFileLoader(idwriteinmemoryfontfileloaders["Centaur"]);
+        idwritefontfiles["Centaur"] = NULL;
         HINSTANCE hInstance = ::GetModuleHandle(nullptr);
         HRSRC  hFntRes = FindResource(hInstance, MAKEINTRESOURCE(IDF_CENTAUR), L"BINARY");
         HGLOBAL hFntMem = LoadResource(hInstance, hFntRes);
         void* FntData = LockResource(hFntMem);
         DWORD nFonts = 0, len = SizeofResource(hInstance, hFntRes);
-        loadedFonts["Centaur"] = AddFontMemResourceEx(FntData, len, nullptr, &nFonts);
+        addfontmemresourcefonts["Centaur"] = AddFontMemResourceEx(FntData, len, nullptr, &nFonts);
 
-        IDWriteFontFile * fontFileReference = NULL;
-        hr = InMemoryFontFileLoader->CreateInMemoryFontFileReference(
+        idwritefontfiles["Centaur"] = NULL;
+        hr = idwriteinmemoryfontfileloaders["Centaur"]->CreateInMemoryFontFileReference(
             DWriteFactory,
             FntData,
             len,
             NULL,
-            &fontFileReference);
+            &idwritefontfiles["Centaur"]);
 
-        IDWriteFontSetBuilder1* fontSetBuilder = NULL;
         hr = DWriteFactory->CreateFontSetBuilder(&fontSetBuilder);
-        IDWriteFontFaceReference* fontFaceReference = NULL;
-        DWriteFactory->CreateFontFaceReference(fontFileReference, 0, DWRITE_FONT_SIMULATIONS_NONE, &fontFaceReference);
-        fontSetBuilder->AddFontFaceReference(fontFaceReference);
-        IDWriteFontSet* customFontSet;
-        fontSetBuilder->CreateFontSet(&customFontSet);
+        idwritefontfacereferences["Centaur"] = NULL;
+        DWriteFactory->CreateFontFaceReference(idwritefontfiles["Centaur"], 0, DWRITE_FONT_SIMULATIONS_NONE, &idwritefontfacereferences["Centaur"]);
+        fontSetBuilder->AddFontFaceReference(idwritefontfacereferences["Centaur"]);
+
+        hr = fontSetBuilder->CreateFontSet(&customFontSet);
+
+        hr = DWriteFactory->CreateFontCollectionFromFontSet(customFontSet, &fontCollection);
 
 
         hr = DWriteFactory->CreateTextFormat(L"TestFont1",
-            NULL,
+            fontCollection,
             DWRITE_FONT_WEIGHT_NORMAL,
             DWRITE_FONT_STYLE_NORMAL,
             DWRITE_FONT_STRETCH_NORMAL,
@@ -565,7 +566,7 @@ public:
         Cursors.clear();
     }
     void tearDownAllLoadedFonts() {
-        for (auto const& [key, val] : loadedFonts.internalMap) {
+        for (auto const& [key, val] : addfontmemresourcefonts.internalMap) {
             RemoveFontMemResourceEx(val);
         }
     }
@@ -582,9 +583,15 @@ public:
     HWND * hwnd;
 	ID2D1Factory * D2DFactory;
     IWICImagingFactory * IWICFactory;
+    IDWriteFontSetBuilder1* fontSetBuilder;
+    IDWriteFontSet* customFontSet;
+    IDWriteFontCollection1* fontCollection;
     Map<string, IDWriteTextFormat *> WriteTextFormats;
-    Map<string, IDWriteFontFile*> fonts;
-    Map<string, HANDLE> loadedFonts;
+    Map<string, IDWriteInMemoryFontFileLoader*> idwriteinmemoryfontfileloaders;
+    Map<string, IDWriteFontFile*> idwritefontfiles;
+    Map<string, HANDLE> addfontmemresourcefonts;
+    Map<string, IDWriteFontSetBuilder1*> idwritefontsetbuilders;
+    Map<string, IDWriteFontFaceReference*> idwritefontfacereferences;
     IDWriteFactory5* DWriteFactory;
     ID2D1HwndRenderTarget* hwndRenderTarget;
     Map<int, List<Image *>> ImageMap;
