@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Utils.h"
 
 
@@ -18,10 +18,16 @@ SafeRelease(
 
 class Graphics {
 public:
-    Graphics() {}
+    Graphics() {
+        colourTagLookupTable[wchar_t(10112)] = "BLUE";
+        Colours["BLACK"] = { 0.0,0.0,0.0,1.0 };
+        Colours["WHITE"] = { 1.0,1.0,1.0,1.0 };
+        Colours["BLUE"] = { 0.0,0.0,1.0,1.0 };
+    }
     ~Graphics() {
         teardownAllImages();
         teardownAllTextFormats();
+        tearDownAllLoadedFonts();
         SafeRelease(&D2DFactory);
         //SafeRelease(&IWICFactory);
         SafeRelease(&DWriteFactory);
@@ -252,10 +258,7 @@ public:
     class Text : public Drawable {
     public:
         Text() {}
-        Text(string message) {
-            message = message;
-        }
-        Text(wstring _message, string _format, pair<int, int> _positionAsPercentage, string _anchorStyle, pair<int, int> _size, vector<float> _colour, string _unique_ID) {
+        Text(wstring _message, string _format, pair<int, int> _positionAsPercentage, string _anchorStyle, pair<int, int> _size, vector<float> _colour, vector<float> _shadowColour, string _unique_ID) {
             message = _message;
             format = _format;
             positionAsPercentage = _positionAsPercentage;
@@ -263,6 +266,7 @@ public:
             size = _size;
             colour = _colour;
             unique_ID = _unique_ID;
+            shadowColour = _shadowColour;
         }
         void draw(Graphics& graphics) {
             D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
@@ -271,18 +275,72 @@ public:
             size_as_d2d.width = size.first;
             size_as_d2d.height = size.second;
             D2D1_RECT_F rect = getRect(position, size_as_d2d);
+            D2D1_RECT_F shadowRect = getRect({ position.first - 5, position.second - 5 }, size_as_d2d);
             ID2D1SolidColorBrush* theBrush = NULL;
+            ID2D1SolidColorBrush* shadowBrush = NULL;
             HRESULT hr = S_OK;
             hr = graphics.hwndRenderTarget->CreateSolidColorBrush(
                 D2D1::ColorF(D2D1::ColorF(colour[0], colour[1], colour[2], colour[3])),
                 &theBrush);
+            hr = graphics.hwndRenderTarget->CreateSolidColorBrush(
+                D2D1::ColorF(D2D1::ColorF(shadowColour[0], shadowColour[1], shadowColour[2], shadowColour[3])),
+                &shadowBrush);
             graphics.hwndRenderTarget->DrawText(
-                message.c_str(),
+                removeTagsBeforePrinting(graphics, message).c_str(),
                 message.size(),
                 graphics.WriteTextFormats[format],
                 rect,
-                theBrush);
+                shadowBrush);
+            IDWriteTextLayout * textLayout = NULL;
+            graphics.DWriteFactory->CreateTextLayout(removeTagsBeforePrinting(graphics, message).c_str(), message.size(), graphics.WriteTextFormats[format], size_as_d2d.width, size_as_d2d.height, &textLayout);
+            D2D1_POINT_2F P; P.x = rect.top; P.y = rect.left;
+            Map<string, List<DWRITE_TEXT_RANGE>> subcolours = interpret_subcolours(graphics);
+            Map<string, ID2D1SolidColorBrush*> extraBrushes;
+            for (auto const& [key, value] : subcolours.internalMap) {
+                extraBrushes[key] = NULL;
+                graphics.hwndRenderTarget->CreateSolidColorBrush(
+                    D2D1::ColorF(D2D1::ColorF(graphics.Colours[key][0], graphics.Colours[key][1], graphics.Colours[key][2], graphics.Colours[key][3])),
+                    &extraBrushes[key]);
+                for (auto const& range : subcolours[key].internalList) {
+                    textLayout->SetDrawingEffect(extraBrushes[key], range);
+                }
+            }
+            graphics.hwndRenderTarget->DrawTextLayout(P, textLayout, theBrush);
             SafeRelease(&theBrush);
+            SafeRelease(&shadowBrush);
+            SafeRelease(&textLayout);
+            for (string x : extraBrushes.getKeys().internalList) {
+                SafeRelease(&extraBrushes[x]);
+            }
+        }
+        wstring removeTagsBeforePrinting(Graphics & graphics, wstring input_string) {
+            for (int x = 0; x < input_string.size(); x++) {
+                if (graphics.colourTagLookupTable.getKeys().contains(input_string[x])) {
+                    input_string[x] = wchar_t(32);
+                }
+            }
+            return input_string;
+        }
+        Map<string, List<DWRITE_TEXT_RANGE>> interpret_subcolours(Graphics & graphics) {
+            Map<string, List<DWRITE_TEXT_RANGE>> results;
+            for (auto const& colour : graphics.colourTagLookupTable.getKeys().internalList) {
+                int current_start = -1;
+                bool seekingEnd = false;
+                for (int x = 0; x < fullMessage.size(); x++) {
+                    if (seekingEnd and current_start != -1 and List<wchar_t>({ wchar_t("."), wchar_t(" "), wchar_t("!"), wchar_t("?"), colour }).contains(fullMessage[x])) {
+                        int current_end = x;
+                        results[graphics.colourTagLookupTable[colour]].push_back({unsigned(current_start), unsigned(current_end-1)});
+                        current_start = -1;
+                        seekingEnd = false;
+                    }
+                    if (fullMessage[x] == colour) {
+                        current_start = x;
+                        seekingEnd = true;
+                    }
+                    
+                }
+                }
+            return results;
         }
         void startTypewriter() {
             fullMessage = message;
@@ -294,6 +352,8 @@ public:
         string format;
         pair<int, int> size;
         vector<float> colour = {0.0,0.0,0.0,1.0};
+        vector<float> shadowColour = { 0.0,0.0,0.0,1.0 };
+        int tagLimit = 10;
     };
     void setup(HWND * hwnd) {
         hwnd = hwnd;
@@ -326,12 +386,49 @@ public:
         if (SUCCEEDED(hr)) {
             WriteTextFormats.add({ "DEFAULT", textFormat });
         }
+        IDWriteInMemoryFontFileLoader* InMemoryFontFileLoader;
+        hr = DWriteFactory->CreateInMemoryFontFileLoader(&InMemoryFontFileLoader);
+        hr = DWriteFactory->RegisterFontFileLoader(InMemoryFontFileLoader);
+        fonts["Centaur"] = NULL;
+        HINSTANCE hInstance = ::GetModuleHandle(nullptr);
+        HRSRC  hFntRes = FindResource(hInstance, MAKEINTRESOURCE(IDF_CENTAUR), L"BINARY");
+        HGLOBAL hFntMem = LoadResource(hInstance, hFntRes);
+        void* FntData = LockResource(hFntMem);
+        DWORD nFonts = 0, len = SizeofResource(hInstance, hFntRes);
+        loadedFonts["Centaur"] = AddFontMemResourceEx(FntData, len, nullptr, &nFonts);
+
+        IDWriteFontFile * fontFileReference = NULL;
+        hr = InMemoryFontFileLoader->CreateInMemoryFontFileReference(
+            DWriteFactory,
+            FntData,
+            len,
+            NULL,
+            &fontFileReference);
+
+        IDWriteFontSetBuilder1* fontSetBuilder = NULL;
+        hr = DWriteFactory->CreateFontSetBuilder(&fontSetBuilder);
+        IDWriteFontFaceReference* fontFaceReference = NULL;
+        DWriteFactory->CreateFontFaceReference(fontFileReference, 0, DWRITE_FONT_SIMULATIONS_NONE, &fontFaceReference);
+        fontSetBuilder->AddFontFaceReference(fontFaceReference);
+        IDWriteFontSet* customFontSet;
+        fontSetBuilder->CreateFontSet(&customFontSet);
+
+
+        hr = DWriteFactory->CreateTextFormat(L"TestFont1",
+            NULL,
+            DWRITE_FONT_WEIGHT_NORMAL,
+            DWRITE_FONT_STYLE_NORMAL,
+            DWRITE_FONT_STRETCH_NORMAL,
+            40,
+            L"",
+            &textFormat);
+        if (SUCCEEDED(hr)) {
+            WriteTextFormats.add({ "TESTFONT1", textFormat });
+        }
+
         filesystem::path path = filesystem::current_path() / "Cursor.cur";
         HCURSOR default_cursor = LoadCursorFromFileA(path.string().c_str());
         Cursors["DEFAULT"] = default_cursor;
-        Colours["BLACK"] = { 0.0,0.0,0.0,1.0 };
-        Colours["WHITE"] = { 1.0,1.0,1.0,1.0 };
-
         return hr;
     }
     HRESULT CreateDeviceResources() {
@@ -467,6 +564,11 @@ public:
         }
         Cursors.clear();
     }
+    void tearDownAllLoadedFonts() {
+        for (auto const& [key, val] : loadedFonts.internalMap) {
+            RemoveFontMemResourceEx(val);
+        }
+    }
 
     bool does_this_text_already_exist(string uniqueID) {
         for (auto const& [key, val] : TextMap.internalMap) {
@@ -481,12 +583,14 @@ public:
 	ID2D1Factory * D2DFactory;
     IWICImagingFactory * IWICFactory;
     Map<string, IDWriteTextFormat *> WriteTextFormats;
-
-    IDWriteFactory* DWriteFactory;
+    Map<string, IDWriteFontFile*> fonts;
+    Map<string, HANDLE> loadedFonts;
+    IDWriteFactory5* DWriteFactory;
     ID2D1HwndRenderTarget* hwndRenderTarget;
     Map<int, List<Image *>> ImageMap;
     Map<int, Map<string, Text>> TextMap;
     Map<string, HCURSOR> Cursors;
     Map<string, vector<float>> Colours;
+    Map<wchar_t, string> colourTagLookupTable;
 };
 Graphics graphics = Graphics();

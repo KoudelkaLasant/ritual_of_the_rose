@@ -31,6 +31,15 @@ T TChange(T target, T amount, T lowerLimit, T upperLimit) {
 	return target;
 }
 
+wstring StringToWString(const string& str)
+{
+	wstring wstr;
+	size_t size;
+	wstr.resize(str.length());
+	mbstowcs_s(&size, &wstr[0], wstr.size() + 1, str.c_str(), str.size());
+	return wstr;
+}
+
 class Random {
 public:
 	Random() {
@@ -61,8 +70,6 @@ private:
 	unsigned int nameGenerator = 0;
 };
 Random RANDOM;
-
-
 
 class RuntimeArgs {
 public:
@@ -161,7 +168,21 @@ public:
 Clock CLOCK;
 
 struct ThreadManager {
+	void detachFinishedThreads() {
+		thread_mutex.lock();
+		for (auto const& [key, val] : canBeDetached.internalMap) {
+			if (canBeDetached[key]) {
+				threads[key].detach();
+				canBeDetached[key] = false;
+			}
+		}
+		thread_mutex.unlock();
+	}
+
+	Map<string, bool> canBeDetached;
 	Map<string, thread> threads;
+	Map<string, bool> isThreadFinished;
+	mutex thread_mutex;
 };
 ThreadManager threads;
 
@@ -185,12 +206,14 @@ public:
 		
 		});
 		preloadSFX();
-		threads.threads["AUDIO"] = thread([&]() {playSound(PARCHMENT_WAV_1, 1.0f, false, false); });
-		threads.threads["AUDIO2"] = thread([&]() {playSound(PARCHMENT_WAV_2, 1.0f,false, false); });
-		threads.threads["AUDIO3"] = thread([&]() {playSound(TOWN_WAV_1, 1.0f,true,true); });
+		soloud.init();
+		threads.threads["AUDIO"] = thread([&]() {playSound(PARCHMENT_WAV_1, 1.0f, false, false, "AUDIO"); });
+		threads.threads["AUDIO1"] = thread([&]() {playSound(PARCHMENT_WAV_9, 1.0f, false, false, "AUDIO1"); });
+		threads.threads["AUDIO3"] = thread([&]() {playSound(TOWN_WAV_1, 1.0f,true,true, "AUDIO3"); });
 	}
 	~audioManager() {
 		unloadAllAudio();
+		soloud.deinit();
 	}
 	void preloadSFX() {
 		for (auto const & x : SFXCollections["PARCHMENT"].internalList) {
@@ -198,8 +221,7 @@ public:
 		}
 	}
 
-
-	void playSound(int resource, float volume, bool loop, bool fadein) {
+	void playSound(int resource, float volume, bool loop, bool fadein, string threadName) {
 		if (inTheLoadingQueue.contains(resource)) {
 			// stop the game from trying to load the same audio twice into the same array leading to a data race
 			return;
@@ -211,8 +233,6 @@ public:
 		inTheLoadingQueue.internalList.remove(resource);
 		
 		
-		SoLoud::Soloud soloud;
-		soloud.init();
 		loadedSFX[resource].setVolume(volume);
 		if (!fadein) {
 			loadedSFX[resource].setVolume(volume);
@@ -225,12 +245,7 @@ public:
 		if (fadein) {
 			soloud.fadeVolume(handle, volume, 5.0f);
 		}
-
-		while (soloud.getWave()) {
-			Sleep(100);
-		}
-		Sleep(1000);
-		soloud.deinit();
+		threads.canBeDetached[threadName] = true;
 	}
 	void loadAudio(int resource, float volume) {
 		HRSRC hResInfo = FindResource(NULL, MAKEINTRESOURCE(resource), L"WAVE");
@@ -273,7 +288,7 @@ public:
 	Map<int, DWORD> sizeOfLoadedBytes;
 	Map<int, SoLoud::Wav> loadedSFX;
 	Map<string, List<int>> SFXCollections;
-
+	SoLoud::Soloud soloud;
 	mutex audio_mutex;
 };
 audioManager audio;

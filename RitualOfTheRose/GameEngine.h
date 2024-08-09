@@ -54,12 +54,13 @@ public:
 				string anchorStyle = data["anchorStyle"];
 				pair<int, int> size = { stoi(data["w"]), stoi(data["h"]) };
 				vector<float> colour = graphics.Colours[data["colour"]];
+				vector<float> shadowColour = graphics.Colours[data["shadowColour"]];
 				int layer = stoi(data["layer"]);
 				string uniqueID = data["uniqueID"];
 				List<string> styles = split(data["styles"], ",");
 				bool animated = data["animated"] == "TRUE";
 				if (!graphics.does_this_text_already_exist(uniqueID)) {
-					graphics.addText(Graphics::Text(message, format, position, anchorStyle, size, colour, uniqueID), layer);
+					graphics.addText(Graphics::Text(message, format, position, anchorStyle, size, colour, shadowColour, uniqueID), layer);
 					if (animated) {
 						if (styles.contains("TYPEWRITER")) {
 							graphics.TextMap[layer].internalMap[uniqueID].startTypewriter();
@@ -153,13 +154,14 @@ public:
 					pair<string, string>("uniqueID", "debugmenulogo"),}))),
 				Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string,string>>({
 					pair<string, string>("message","ENG DEBUG TestString"),
-					pair<string, string>("format", "DEFAULT"),
+					pair<string, string>("format", "TESTFONT1"),
 					pair<string, string>("anchorStyle", "TOPLEFT"),
 					pair<string, string>("x", "0"),
 					pair<string, string>("y", "0"),
-					pair<string, string>("w", "250"),
+					pair<string, string>("w", "500"),
 					pair<string, string>("h", "500"),
 					pair<string, string>("colour", "WHITE"),
+					pair<string, string>("shadowColour", "BLACK"),
 					pair<string, string>("layer", "10"),
 					pair<string, string>("uniqueID", "debugText1"),
 					pair<string, string>("animated", "TRUE"),
@@ -167,7 +169,7 @@ public:
 					}))),
 				Event("Wait", "WAIT", Map<string, string>(List<pair<string,string>>({
 					pair<string, string>("clockID", "DEBUGCLOCK2"),
-					pair<string, string>("waitDuration", "1000"),}))),
+					pair<string, string>("waitDuration", "5000"),}))),
 				Event("TeardownText", "TEARDOWNTEXT", Map<string, string>(List<pair<string,string>>({
 					pair<string, string>("uniqueID", "debugText1"),}))),
 				}));

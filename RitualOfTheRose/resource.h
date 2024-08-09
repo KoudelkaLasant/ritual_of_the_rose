@@ -30,6 +30,7 @@
 #define PARCHMENT_WAV_12 1012
 #define PARCHMENT_WAV_13 1013
 #define TOWN_WAV_1 2000
+#define IDF_CENTAUR 3000
 
 
 // Next default values for new objects

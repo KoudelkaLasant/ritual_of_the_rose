@@ -1,7 +1,7 @@
-#pragma once
+ï»¿#pragma once
 
 map<string, map<string, map<string, wstring>>> strings = {
 	{"ENG", {
 		{"DEBUG", {
-			{"TestString", L"Test String éíóóíóíóáúééééééééééééééééééééééééééééé hello I am a long string used to test the cropping of text boxes."},
+			{"TestString", L"Test String â€Ã©Ã­Ã³Ã³Ã­Ã³Ã­Ã³Ã¡ÃºÃ©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã©Ã© hello I am a long string used to test the cropping of text boxes. â€Thisâ€shouldâ€beâ€blue."},
 }}}}};
