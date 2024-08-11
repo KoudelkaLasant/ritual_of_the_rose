@@ -40,6 +40,9 @@ using namespace std;
 #include "soloud_wav.h"
 #include "soloud_fader.h"
 #include <mutex>
+#include "json.hpp"
+using json = nlohmann::json;
+#include <fstream>
 
 
 

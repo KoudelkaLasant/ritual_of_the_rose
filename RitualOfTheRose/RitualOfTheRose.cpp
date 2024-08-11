@@ -19,9 +19,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
     
-
-       
     Args.parse_args(lpCmdLine);
+    json result = jsonio.read_file(filesystem::path("G:\\Code\\C++\\C++ Json Example\\example.json"));
+
 
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_RITUALOFTHEROSE, szWindowClass, MAX_LOADSTRING);
@@ -51,7 +51,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
         if (CLOCK.hasEnoughTimePassed("FPS", 16)) {
             game.run();
             graphics.OnRender();
-            threads.detachFinishedThreads();
         }
     }
 
@@ -98,9 +97,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
+    controller.acceptAllInput(message, wParam, lParam);
     switch (message){
     case WM_SETCURSOR: {
-        HCURSOR hCursor = graphics.Cursors["DEFAULT"];
+        HCURSOR hCursor = graphics.Cursors[graphics.CurrentCursor];
         SetCursor(hCursor);
         break;
     }

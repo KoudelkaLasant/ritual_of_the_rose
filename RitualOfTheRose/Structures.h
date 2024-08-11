@@ -103,7 +103,7 @@ struct List {
 			return internalList.front();
 		}
 		catch (exception ex) {
-			ErrorHelper::warning({ "This list has nothing in it, can't get anything out of it!" }, true);
+			ErrorHelper::warning("This list has nothing in it, can't get anything out of it!", true);
 		}
 		return internalList.front();
 	}

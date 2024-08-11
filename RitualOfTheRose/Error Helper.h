@@ -1,5 +1,5 @@
 #pragma once
-#include "framework.h"
+#include "Strings.h"
 
 class ErrorHelper {
 public:
@@ -21,6 +21,9 @@ public:
 		if (hasToCrash) {
 			exit(EXIT_FAILURE);
 		}
+	}
+	static void warning(string reason, bool hasToCrash) {
+		ErrorHelper::warning({ reason }, hasToCrash);
 	}
 
 	// used for debugging occasionally, just produces a box which says a message
