@@ -501,7 +501,7 @@ class Explorer {
 public:
 	// map positions start at 0,0 = top left
 	struct mapObject {
-		pair<int, int> position;
+		string name = "";
 	};
 	struct playerObject {
 		pair<int, int> position;
@@ -509,15 +509,19 @@ public:
 	struct camera {
 		pair<int, int> position;
 	};
-	pair<int, int> getMapImagePosition() {
-		pair<int, int> result;
+	map<string, pair<int, int>> getUpdatedMapImagePositions() {
+		map<string, pair<int, int>> result;
 		if (perspective == "FOLLOW_PLAYER") {
-			activeCamera.position == playerOnMap.position;
+			activeCamera.position = playerOnMap.position;
 		}
-		result = { activeCamera.position.first * -1, activeCamera.position.second * -1 };
-		// calculate offset
+		result["player image position"] = { 50,50 };
+		result["player position on map"] = playerOnMap.position;
+		pair<float, float> resOffsets = { 1.953125 , 3.47222 };
+		result["map position"] = { ((50 - playerOnMap.position.first) * resOffsets.first) + 50 * resOffsets.first, (50 - playerOnMap.position.second * resOffsets.second) + 50 * resOffsets.second };
+
 		return result;
 	}
+
 	void tryToMovePlayer(string direction) {
 		// don't move if destination isn't acceptable
 		pair<int, int> toMove;
@@ -526,12 +530,16 @@ public:
 		if (direction == "FRONT") { toMove.second += unit; }
 		if (direction == "LEFT") { toMove.first -= unit; }
 		if (direction == "RIGHT") { toMove.first += unit; }
-		//TChange();
+		playerOnMap.position.first = TChange(playerOnMap.position.first, toMove.first, 0, 100);
+		playerOnMap.position.second = TChange(playerOnMap.position.second, toMove.second, 0, 100);
 	}
 
 	int resource;
 	camera activeCamera;
 	playerObject playerOnMap;
+	mapObject currentMap;
 	string perspective = "FOLLOW_PLAYER";
+	pair<int, int> resolution = { 1280, 720 };
+	pair<int, int> mapSize = { 2500,2500 };
 };
 Explorer explorer;

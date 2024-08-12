@@ -46,6 +46,13 @@ public:
             if (anchorStyle == "TOPLEFT") {
                 return D2D1::RectF(position.first, position.second, position.first + size.width, position.second + size.height);
             }
+            if (anchorStyle == "BOTTOMMIDDLE") {
+                return D2D1::RectF(
+                    position.first - (size.width / 2),
+                    position.second - size.height,
+                    position.first + (size.width / 2),
+                    position.second);
+            }
             else {
                 return D2D1::RectF(
                     position.first - (size.width / 2),

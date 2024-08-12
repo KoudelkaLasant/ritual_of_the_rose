@@ -15,6 +15,8 @@ public:
 			if (type == "LOADIMAGE") {
 				List<string> sources = split(data["sources"], " ");
 				List<int> intSources;
+				bool isTheMap = data["map"] == "1";
+				bool isExplorer = data["explorer"] == "1";
 				if (sources.size() == 0) {
 					ErrorHelper::warning("Can't have an image with no sources.", true);
 				}
@@ -27,6 +29,12 @@ public:
 				int layer = stoi(data["layer"]);
 				string uniqueID = data["uniqueID"];
 				graphics.addImage(new Graphics::Image(intSources, position, anchor, opacity, uniqueID), layer);
+				if (isTheMap) {
+					explorer.currentMap.name = data["uniqueID"];
+				}
+				if (isExplorer) {
+					explorer.playerOnMap.position = { stoi(data["mapx"]), stoi(data["mapy"]) };
+				}
 				return true;
 			}
 			if (type == "WAIT") {
@@ -172,7 +180,7 @@ public:
 				bool need_to_reset_image_sources = true;
 				string direction = "";
 				string action = "STAND";
-				map<string, int> exploreAnimationSpeeds = { {"WALK",200} , {"STAND" ,500 }};
+				map<string, int> exploreAnimationSpeeds = { {"WALK",200} , {"STAND" ,500 }, {"MOVE", 10}};
 				int animationSpeed = 500;
 				if (controller.userPressedOneOfThese({ VK_UP, 0x57 })) {
 					moving = true;
@@ -196,7 +204,9 @@ public:
 				}
 				string character = saveContainer.getCurrentMainCharacter();
 				string uniqueID = split(character, " ").front() + "_Explore";
+				string shadowID = split(character, " ").front() + "_Shadow";
 				Graphics::Image* image = graphics.accessImageViaUniqueID(uniqueID);
+				Graphics::Image* shadowImage = graphics.accessImageViaUniqueID(shadowID);
 				if (direction != "") {
 					image->direction = direction;
 				}
@@ -212,14 +222,23 @@ public:
 				}
 				if (need_to_reset_image_sources) {
 					if (action == "WALK") {
-						animationSpeed = 200;
+						animationSpeed = exploreAnimationSpeeds["WALK"];
+					}
+					if (action == "STAND") {
+						animationSpeed = exploreAnimationSpeeds["STAND"];
 					}
 					sources = imageLookup.animationFrames[character][action + "_" + direction];
 					image->resetSources(*&graphics, sources);
 					image->action = action;
+					image->animationSpeed = animationSpeed;
 				}
-				if (moving and CLOCK.hasEnoughTimePassed("EXPLORE",exploreAnimationSpeeds["WALK"])) {
-					
+				if (moving and CLOCK.hasEnoughTimePassed("EXPLORE",exploreAnimationSpeeds["MOVE"])) {
+					explorer.tryToMovePlayer(direction);
+					map<string, pair<int, int>> imagePositions = explorer.getUpdatedMapImagePositions();
+					Graphics::Image* mapImage = graphics.accessImageViaUniqueID(explorer.currentMap.name);
+					mapImage->positionAsPercentage = imagePositions["map position"];
+					image->positionAsPercentage = imagePositions["player image position"];
+					shadowImage->positionAsPercentage = imagePositions["player image position"];
 				}
 
 
@@ -369,28 +388,35 @@ public:
 				pair<string, string>("sources", to_string(MAP_DEBUG)),
 				pair<string, string>("x", "0"),
 				pair<string, string>("y", "0"),
-				pair<string, string>("anchor", "TOPLEFT"),
+				pair<string, string>("anchor", "CENTRE"),
 				pair<string, string>("opacity", "1.0"),
 				pair<string, string>("layer", "0"),
+				pair<string, string>("map", "1"),
 				pair<string, string>("uniqueID", "debugmap"),
 			}))),
 			Event("Load Angela", "LOADIMAGE", Map<string,string>(List<pair<string,string>>({
 				pair<string, string>("sources", imageLookup.getSequenceAsString("Angela Fleuret", "STAND_FRONT")),
-				pair<string, string>("x", "0"),
-				pair<string, string>("y", "0"),
-				pair<string, string>("anchor", "TOPLEFT"),
+				pair<string, string>("x", "50"),
+				pair<string, string>("y", "50"),
+				pair<string, string>("anchor", "BOTTOMMIDDLE"),
 				pair<string, string>("opacity", "1.0"),
 				pair<string, string>("layer", "2"),
 				pair<string, string>("uniqueID", "Angela_Explore"),
+				pair<string, string>("explorer", "1"),
+				pair<string, string>("mapx", "50"),
+				pair<string, string>("mapy", "50"),
 			}))),
 			Event("Load Angela", "LOADIMAGE", Map<string,string>(List<pair<string,string>>({
 				pair<string, string>("sources", to_string(ANGELA_SHADOW)),
-				pair<string, string>("x", "0"),
-				pair<string, string>("y", "0"),
-				pair<string, string>("anchor", "TOPLEFT"),
+				pair<string, string>("x", "50"),
+				pair<string, string>("y", "50"),
+				pair<string, string>("anchor", "BOTTOMMIDDLE"),
 				pair<string, string>("opacity", "1.0"),
 				pair<string, string>("layer", "1"),
 				pair<string, string>("uniqueID", "Angela_Shadow"),
+				pair<string, string>("explorer", "1"),
+				pair<string, string>("mapx", "50"),
+				pair<string, string>("mapy", "50"),
 			}))),
 			Event("Animate Angela", "ANIMATEIMAGE", Map<string,string>(List<pair<string,string>>({
 				pair<string, string>("uniqueID", "Angela_Explore"),

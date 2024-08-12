@@ -82,7 +82,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    int titlebar_gap = 38;
 
    window = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_THICKFRAME,
-      CW_USEDEFAULT, 0, 1280, 720 + titlebar_gap, nullptr, nullptr, hInstance, nullptr);
+      CW_USEDEFAULT, 0, explorer.resolution.first, explorer.resolution.second + titlebar_gap, nullptr, nullptr, hInstance, nullptr);
    graphics.hwnd = &window;
 
    if (!window)
