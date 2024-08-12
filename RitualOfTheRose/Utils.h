@@ -509,15 +509,13 @@ public:
 	struct camera {
 		pair<int, int> position;
 	};
-	map<string, pair<int, int>> getUpdatedMapImagePositions() {
-		map<string, pair<int, int>> result;
+	map<string, pair<float, float>> getUpdatedMapImagePositions() {
+		map<string, pair<float, float>> result;
 		if (perspective == "FOLLOW_PLAYER") {
 			activeCamera.position = playerOnMap.position;
 		}
 		result["player image position"] = { 50,50 };
-		result["player position on map"] = playerOnMap.position;
-		pair<float, float> resOffsets = { 1.953125 , 3.47222 };
-		result["map position"] = { ((50 - playerOnMap.position.first) * resOffsets.first) + 50 * resOffsets.first, (50 - playerOnMap.position.second * resOffsets.second) + 50 * resOffsets.second };
+		result["map position"] = { 50 + (50 - playerOnMap.position.first) * resolutionAsFloat.first / 100.0f , 50 + (50 - playerOnMap.position.second) * resolutionAsFloat.second / 100.0f };
 
 		return result;
 	}
@@ -539,6 +537,7 @@ public:
 	playerObject playerOnMap;
 	mapObject currentMap;
 	string perspective = "FOLLOW_PLAYER";
+	pair<float, float> resolutionAsFloat = { 195.3125f, 347.2222f};
 	pair<int, int> resolution = { 1280, 720 };
 	pair<int, int> mapSize = { 2500,2500 };
 };

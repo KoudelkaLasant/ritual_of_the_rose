@@ -42,16 +42,17 @@ public:
     }
     class Drawable {
     public:
-        D2D1_RECT_F getRect(pair<int, int> position, D2D1_SIZE_F size) {
+        D2D1_RECT_F getRect(pair<float, float> position, D2D1_SIZE_F size) {
             if (anchorStyle == "TOPLEFT") {
                 return D2D1::RectF(position.first, position.second, position.first + size.width, position.second + size.height);
             }
-            if (anchorStyle == "BOTTOMMIDDLE") {
+            if (anchorStyle == "BOTTOMMIDDLE") { // slightly offset from bottom to look like origin is at player's feet
+                float smallD = size.height / 4;
                 return D2D1::RectF(
                     position.first - (size.width / 2),
-                    position.second - size.height,
+                    position.second - size.height + smallD,
                     position.first + (size.width / 2),
-                    position.second);
+                    position.second + smallD);
             }
             else {
                 return D2D1::RectF(
@@ -61,16 +62,16 @@ public:
                     position.second + (size.height / 2));
             }
         }
-        pair<int, int> getAbsolutePosition(D2D1_SIZE_F renderTargetSize) {
-            return { renderTargetSize.width * positionAsPercentage.first / 100, renderTargetSize.height * positionAsPercentage.second / 100 };
+        pair<float, float> getAbsolutePosition(D2D1_SIZE_F renderTargetSize) {
+            return { renderTargetSize.width * positionAsPercentage.first / 100.0f, renderTargetSize.height * positionAsPercentage.second / 100.0f };
         }
-        pair<int, int> convertPercentToActual(D2D1_SIZE_F renderTargetSize, pair<int, int> RHS) {
-            return { renderTargetSize.width * RHS.first / 100, renderTargetSize.height * RHS.second / 100 };
+        pair<float, float> convertPercentToActual(D2D1_SIZE_F renderTargetSize, pair<int, int> RHS) {
+            return { renderTargetSize.width * RHS.first / 100.0f, renderTargetSize.height * RHS.second / 100.0f };
         }
-        pair<int, int> convertActualToPercent(D2D1_SIZE_F renderTargetSize, pair<int, int> RHS) {
-            return { RHS.first * 100 / renderTargetSize.width, RHS.second * 100 / renderTargetSize.height };
+        pair<float, float> convertActualToPercent(D2D1_SIZE_F renderTargetSize, pair<int, int> RHS) {
+            return { RHS.first * 100.0f / renderTargetSize.width, RHS.second * 100.0f / renderTargetSize.height };
         }
-        pair<int, int> positionAsPercentage = { 0,0 };
+        pair<float, float> positionAsPercentage = { 0.0f,0.0f };
         string anchorStyle;
         string unique_ID;
         bool operator==(const Drawable& rhs) const {
@@ -80,7 +81,7 @@ public:
 	class Image : public Drawable {
 	public:
         Image() {}
-        Image(List<int> _sources, pair<int, int> position, string _anchorStyle, float _opacity, string _uniqueID) {
+        Image(List<int> _sources, pair<float, float > position, string _anchorStyle, float _opacity, string _uniqueID) {
             sources = _sources;
             positionAsPercentage = position;
             anchorStyle = _anchorStyle;

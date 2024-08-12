@@ -234,7 +234,7 @@ public:
 				}
 				if (moving and CLOCK.hasEnoughTimePassed("EXPLORE",exploreAnimationSpeeds["MOVE"])) {
 					explorer.tryToMovePlayer(direction);
-					map<string, pair<int, int>> imagePositions = explorer.getUpdatedMapImagePositions();
+					map<string, pair<float, float>> imagePositions = explorer.getUpdatedMapImagePositions();
 					Graphics::Image* mapImage = graphics.accessImageViaUniqueID(explorer.currentMap.name);
 					mapImage->positionAsPercentage = imagePositions["map position"];
 					image->positionAsPercentage = imagePositions["player image position"];
@@ -386,8 +386,8 @@ public:
 			Event("Debug Loading", "DEBUGLOAD", Map<string,string>(List<pair<string,string>>({}))),
 			Event("Load Map", "LOADIMAGE", Map<string,string>(List<pair<string,string>>({
 				pair<string, string>("sources", to_string(MAP_DEBUG)),
-				pair<string, string>("x", "0"),
-				pair<string, string>("y", "0"),
+				pair<string, string>("x", "50"),
+				pair<string, string>("y", "50"),
 				pair<string, string>("anchor", "CENTRE"),
 				pair<string, string>("opacity", "1.0"),
 				pair<string, string>("layer", "0"),
