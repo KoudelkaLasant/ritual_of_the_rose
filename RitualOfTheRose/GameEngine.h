@@ -15,10 +15,8 @@ public:
 			if (type == "LOADIMAGE") {
 				List<string> sources = split(data["sources"], " ");
 				List<int> intSources;
-				bool isTheMap = data["map"] == "1";
-				bool isExplorer = data["explorer"] == "1";
 				if (sources.size() == 0) {
-					ErrorHelper::warning("Can't have an image with no sources.", true);
+					ErrorHelper::warning("Can't have an image with no sources.", false);
 				}
 				for (int x = 0; x < sources.size(); x++) {
 					intSources.push_back(stoi(sources.at(x)));
@@ -28,14 +26,86 @@ public:
 				float opacity = stof(data["opacity"]);
 				int layer = stoi(data["layer"]);
 				string uniqueID = data["uniqueID"];
-				graphics.addImage(new Graphics::Image(intSources, position, anchor, opacity, uniqueID), layer);
-				if (isTheMap) {
-					explorer.currentMap.name = data["uniqueID"];
+				Graphics::Image * image = graphics.addImage(new Graphics::Image(intSources, position, anchor, opacity, uniqueID), layer);
+				bool animated = data.getKeys().contains("animated");
+				int animationSpeed = 0;
+				if (animated) {
+					animationSpeed = stoi(data["animation_speed"]);
+					image->animated = true;
+					image->animationSpeed = animationSpeed;
+					image->animationStyles = data["styles"];
 				}
-				if (isExplorer) {
-					explorer.playerOnMap.position = { stoi(data["mapx"]), stoi(data["mapy"]) };
+				if (data.getKeys().contains("scale")) {
+					image->scale = stof(data["scale"]); // make maps x2 the size by default
 				}
 				return true;
+			}
+			if (type == "LOADMAP") {
+				string mapName = data["uniqueID"];
+				string explorerName = saveContainer.getCurrentMainCharacter();
+				explorer.loadMap(mapName);
+				Event("Load" + explorerName, "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+					pair<string, string>("sources", to_string(explorer.currentMap.source)),
+					pair<string, string>("x", "50"),
+					pair<string, string>("y", "50"),
+					pair<string, string>("anchor", "CENTRE"),
+					pair<string, string>("opacity", "1.0"),
+					pair<string, string>("layer", "0"),
+					pair<string, string>("scale", "2.0"),
+					pair<string, string>("uniqueID", mapName), }))).run();
+				Event("Load" + explorerName, "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+					pair<string, string>("sources", imageLookup.getSequenceAsString(explorerName, "STAND_FRONT")),
+					pair<string, string>("x", "50"),
+					pair<string, string>("y", "50"),
+					pair<string, string>("anchor", "BOTTOMMIDDLE"),
+					pair<string, string>("opacity", "1.0"),
+					pair<string, string>("layer", "2"),
+					pair<string, string>("animated", "1"),
+					pair<string, string>("animation_speed", "500"),
+					pair<string, string>("styles", "LOOP"),
+					pair<string, string>("uniqueID", explorerName + "_Explore"), }))).run();
+				Event("Load Shadow", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+					pair<string, string>("sources", imageLookup.getSequenceAsString("Shadow " + explorerName, "STAND_FRONT")),
+					pair<string, string>("x", "50"),
+					pair<string, string>("y", "50"),
+					pair<string, string>("anchor", "BOTTOMMIDDLE"),
+					pair<string, string>("opacity", "0.5"),
+					pair<string, string>("layer", "1"),
+					pair<string, string>("animated", "1"),
+					pair<string, string>("animation_speed", "500"),
+					pair<string, string>("styles", "LOOP"),
+					pair<string, string>("uniqueID", explorerName + "_Shadow")}))).run();
+				for (auto const& x : explorer.currentMap.objects.internalList) {
+					Event("Load" + x.name, "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", x.imageSources),
+						pair<string, string>("x", "50"),
+						pair<string, string>("y", "50"),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", x.opacity),
+						pair<string, string>("layer", to_string(x.layer)),
+						pair<string, string>("animated", x.animated),
+						pair<string, string>("animation_speed", to_string(x.animationSpeed)),
+						pair<string, string>("styles", "LOOP"),
+						pair<string, string>("uniqueID", x.name), }))).run();
+				}
+				Event("", "MAPMOVE", {}).run();
+				return true;
+			}
+			if (type == "MAPMOVE") {
+				string explorerName = saveContainer.getCurrentMainCharacter() + "_Explore";
+				string shadowName = saveContainer.getCurrentMainCharacter() + "_Shadow";
+				map<string, pair<float, float>> imagePositions = explorer.getUpdatedMapImagePositions();
+				Graphics::Image* mapImage = graphics.accessImageViaUniqueID(explorer.currentMap.name);
+				Graphics::Image* image = graphics.accessImageViaUniqueID(explorerName);
+				Graphics::Image* shadowImage = graphics.accessImageViaUniqueID(shadowName);
+				mapImage->positionAsPercentage = imagePositions["map position"];
+				image->positionAsPercentage = imagePositions["player image position"];
+				shadowImage->positionAsPercentage = imagePositions["player image position"];
+				for (auto const& x : explorer.currentMap.objects.internalList) {
+					if (!x.visible) { continue; }
+					Graphics::Image* objectImage = graphics.accessImageViaUniqueID(x.name);
+					objectImage->positionAsPercentage = imagePositions[x.name];
+				}
 			}
 			if (type == "WAIT") {
 				string clock_id = data["clockID"];
@@ -178,73 +248,82 @@ public:
 			if (type == "DEBUGEXPLORE") {
 				bool moving = false;
 				bool need_to_reset_image_sources = true;
-				string direction = "";
-				string action = "STAND";
-				map<string, int> exploreAnimationSpeeds = { {"WALK",200} , {"STAND" ,500 }, {"MOVE", 10}};
+				string newDirection = "";
+				string newAction = "STAND";
+				map<string, int> exploreAnimationSpeeds = { {"WALK",200} , {"STAND" ,500 }, {"MOVE", 20}};
 				int animationSpeed = 500;
-				if (controller.userPressedOneOfThese({ VK_UP, 0x57 })) {
-					moving = true;
-					direction = "BACK";
-					action = "WALK";
+				for (auto const& x : controller.keysPressedInOrderAsInts.internalList) {
+					if (controller.up.contains(x)) {
+						moving = true;
+						newDirection = "BACK";
+						newAction = "WALK";
+						break;
+					}
+					if (controller.down.contains(x)) {
+						moving = true;
+						newDirection = "FRONT";
+						newAction = "WALK";
+						break;
+					}
+					if (controller.left .contains(x)) {
+						moving = true;
+						newDirection = "LEFT";
+						newAction = "WALK";
+						break;
+					}
+					if (controller.right.contains(x)) {
+						moving = true;
+						newDirection = "RIGHT";
+						newAction = "WALK";
+						break;
+					}
 				}
-				if (controller.userPressedOneOfThese({ VK_LEFT, 0x41 })) {
-					moving = true;
-					direction = "LEFT";
-					action = "WALK";
-				}
-				if (controller.userPressedOneOfThese({ VK_RIGHT, 0x44 })) {
-					moving = true;
-					direction = "RIGHT";
-					action = "WALK";
-				}
-				if (controller.userPressedOneOfThese({ VK_DOWN, 0x53 })) {
-					moving = true;
-					direction = "FRONT";
-					action = "WALK";
-				}
+
 				string character = saveContainer.getCurrentMainCharacter();
-				string uniqueID = split(character, " ").front() + "_Explore";
-				string shadowID = split(character, " ").front() + "_Shadow";
+				string uniqueID = character + "_Explore";
+				string shadowID = character + "_Shadow";
 				Graphics::Image* image = graphics.accessImageViaUniqueID(uniqueID);
 				Graphics::Image* shadowImage = graphics.accessImageViaUniqueID(shadowID);
-				if (direction != "") {
-					image->direction = direction;
+				string currentDirection = image->direction;
+				string currentAction = image->action;
+				if (currentDirection == newDirection and currentAction == newAction) {
+					need_to_reset_image_sources = false;
 				}
 				else {
-					direction = image->direction;
+					if (newDirection == "") {
+						newDirection = currentDirection;
+					}
+					image->direction = newDirection;
+					shadowImage->direction = newDirection;
+					image->action = newAction;
+					shadowImage->action = newAction;
 				}
 				List<int> sources;
-				if (!moving and image->action == "STAND") { // continue standing
-					need_to_reset_image_sources = false;
-				}
-				if (moving and image->action == "WALK") { // continue walking
-					need_to_reset_image_sources = false;
-				}
+				List<int> shadowSources;
+
 				if (need_to_reset_image_sources) {
-					if (action == "WALK") {
+					if (newAction == "WALK") {
 						animationSpeed = exploreAnimationSpeeds["WALK"];
 					}
-					if (action == "STAND") {
+					if (newAction == "STAND") {
 						animationSpeed = exploreAnimationSpeeds["STAND"];
 					}
-					sources = imageLookup.animationFrames[character][action + "_" + direction];
+					sources = imageLookup.animationFrames[character][newAction + "_" + newDirection];
+					shadowSources = imageLookup.animationFrames["Shadow " + character][newAction + "_" + newDirection];
 					image->resetSources(*&graphics, sources);
-					image->action = action;
-					image->animationSpeed = animationSpeed;
+					shadowImage->resetSources(*&graphics, shadowSources);
+					for (auto const& x : { image, shadowImage }) {
+						x->action = newAction;
+						x->animationSpeed = animationSpeed;
+					}
 				}
 				if (moving and CLOCK.hasEnoughTimePassed("EXPLORE",exploreAnimationSpeeds["MOVE"])) {
-					explorer.tryToMovePlayer(direction);
-					map<string, pair<float, float>> imagePositions = explorer.getUpdatedMapImagePositions();
-					Graphics::Image* mapImage = graphics.accessImageViaUniqueID(explorer.currentMap.name);
-					mapImage->positionAsPercentage = imagePositions["map position"];
-					image->positionAsPercentage = imagePositions["player image position"];
-					shadowImage->positionAsPercentage = imagePositions["player image position"];
+					explorer.tryToMovePlayer(newDirection);
+					Event("Map Move", "MAPMOVE", {}).run();
 				}
-
-
-
 				return false;
 			}
+
 }
 		string name;
 		string type;
@@ -381,47 +460,12 @@ public:
 			}))),
 			}))
 			}),
-			pair<string, Procedure>({ "DEBUG3",
+		pair<string, Procedure>({ "DEBUG3",
 			Procedure("SaveAndLoad", List<Event>({
 			Event("Debug Loading", "DEBUGLOAD", Map<string,string>(List<pair<string,string>>({}))),
-			Event("Load Map", "LOADIMAGE", Map<string,string>(List<pair<string,string>>({
+			Event("Load Map", "LOADMAP", Map<string,string>(List<pair<string,string>>({
 				pair<string, string>("sources", to_string(MAP_DEBUG)),
-				pair<string, string>("x", "50"),
-				pair<string, string>("y", "50"),
-				pair<string, string>("anchor", "CENTRE"),
-				pair<string, string>("opacity", "1.0"),
-				pair<string, string>("layer", "0"),
-				pair<string, string>("map", "1"),
 				pair<string, string>("uniqueID", "debugmap"),
-			}))),
-			Event("Load Angela", "LOADIMAGE", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("sources", imageLookup.getSequenceAsString("Angela Fleuret", "STAND_FRONT")),
-				pair<string, string>("x", "50"),
-				pair<string, string>("y", "50"),
-				pair<string, string>("anchor", "BOTTOMMIDDLE"),
-				pair<string, string>("opacity", "1.0"),
-				pair<string, string>("layer", "2"),
-				pair<string, string>("uniqueID", "Angela_Explore"),
-				pair<string, string>("explorer", "1"),
-				pair<string, string>("mapx", "50"),
-				pair<string, string>("mapy", "50"),
-			}))),
-			Event("Load Angela", "LOADIMAGE", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("sources", to_string(ANGELA_SHADOW)),
-				pair<string, string>("x", "50"),
-				pair<string, string>("y", "50"),
-				pair<string, string>("anchor", "BOTTOMMIDDLE"),
-				pair<string, string>("opacity", "1.0"),
-				pair<string, string>("layer", "1"),
-				pair<string, string>("uniqueID", "Angela_Shadow"),
-				pair<string, string>("explorer", "1"),
-				pair<string, string>("mapx", "50"),
-				pair<string, string>("mapy", "50"),
-			}))),
-			Event("Animate Angela", "ANIMATEIMAGE", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("uniqueID", "Angela_Explore"),
-				pair<string, string>("speed", "200"),
-				pair<string, string>("styles", "LOOP"),
 			}))),
 			Event("Debug Exploring", "DEBUGEXPLORE", Map<string,string>(List<pair<string,string>>({}))),
 			})) }),

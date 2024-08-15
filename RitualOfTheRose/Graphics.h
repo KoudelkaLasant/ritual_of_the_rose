@@ -43,6 +43,8 @@ public:
     class Drawable {
     public:
         D2D1_RECT_F getRect(pair<float, float> position, D2D1_SIZE_F size) {
+            size.height *= scale;
+            size.width *= scale;
             if (anchorStyle == "TOPLEFT") {
                 return D2D1::RectF(position.first, position.second, position.first + size.width, position.second + size.height);
             }
@@ -56,10 +58,10 @@ public:
             }
             else {
                 return D2D1::RectF(
-                    position.first - (size.width / 2),
-                    position.second - (size.height / 2),
-                    position.first + (size.width / 2),
-                    position.second + (size.height / 2));
+                    position.first - (size.width / 2.0f),
+                    position.second - (size.height / 2.0f),
+                    position.first + (size.width / 2.0f),
+                    position.second + (size.height / 2.0f));
             }
         }
         pair<float, float> getAbsolutePosition(D2D1_SIZE_F renderTargetSize) {
@@ -74,9 +76,16 @@ public:
         pair<float, float> positionAsPercentage = { 0.0f,0.0f };
         string anchorStyle;
         string unique_ID;
+        float scale = 1.0f;
         bool operator==(const Drawable& rhs) const {
             return unique_ID == rhs.unique_ID;
         }
+        bool operator<(const Drawable & RHS) const {
+            return positionAsPercentage.second < RHS.positionAsPercentage.second;
+        };
+        bool operator>(const Drawable& RHS) const {
+            return positionAsPercentage.second > RHS.positionAsPercentage.second;
+        };
     };
 	class Image : public Drawable {
 	public:
@@ -271,7 +280,7 @@ public:
             ID2D1Bitmap* texture = getWhichTexture();
             D2D1_SIZE_F size = texture->GetSize();
             D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
-            pair<int, int> position = getAbsolutePosition(renderTargetSize);
+            pair<float, float> position = getAbsolutePosition(renderTargetSize);
             D2D1_RECT_F rect = getRect(position, size);
             return rect;
         }
@@ -291,7 +300,7 @@ public:
                 }
             }
         };
-        bool hasThisBeenClickedOn(Graphics & graphics, pair<int, int> click) {
+        bool hasThisBeenClickedOn(Graphics & graphics, pair<float, float> click) {
             D2D1_RECT_F position = getPosition(graphics);
             bool insideX = position.left <= click.first and position.right >= click.first;
             bool insideY = position.top <= click.second and position.bottom >= click.second;
@@ -542,9 +551,10 @@ public:
 
             int latest_layer = -999;
 
-            // draw layer x's texture after drawing layer x's images
+            // draw layer x's text after drawing layer x's images
             for (auto const& [key, val] : ImageMap.internalMap) {
                 if (latest_layer < key) { latest_layer = key; }
+                ImageMap[key].internalList.sort([](const Image* LHS, const Image* RHS) {return LHS < RHS; });
                 for (auto const& value : ImageMap[key].internalList) {
                     value->draw(*this);
                 }
@@ -574,11 +584,12 @@ public:
     {
         SafeRelease(&hwndRenderTarget);
     }
-    void addImage(Image * image, int layer) {
+    Image * addImage(Image * image, int layer) {
         if (not ImageMap.hasKey(layer)) {
             ImageMap[layer] = List<Image *>();
         }
         ImageMap[layer].push_back(image);
+        return image;
     }
     void addText(Text text, int layer) {
         if (not TextMap.hasKey(layer)) {

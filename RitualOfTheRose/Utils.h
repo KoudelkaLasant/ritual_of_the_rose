@@ -297,14 +297,20 @@ public:
 		upperToLowerCase.internalMap = {{"A","a"},{"B","b"},{"C","c"},{"D","d"},{"E","e"},{"F","f"},{"G","g"},{"H","h"},{"I","i"},{"J","j"},{"K","k"},{"L","l"},{"M","m"},{"N","n"},{"O","o"},{"P","p"},{"Q","q"},{"R","r"},{"S","s"},{"T","t"},{"U","u"},{"V","v"},{"W","w"},{"X","x"},{"Y","y"},{"Z","z"} };
 		allPossibleMouseStatuses.internalList = {WM_LBUTTONDOWN, WM_LBUTTONDBLCLK, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_MOUSEHWHEEL, WM_MOUSEMOVE, WM_MOUSEWHEEL };
 		allPossibleMouseInputs.internalList = {MK_CONTROL, MK_LBUTTON, MK_MBUTTON, MK_RBUTTON, MK_SHIFT, MK_XBUTTON1, MK_XBUTTON2};
+		up = List<int>({VK_UP, 0x57});
+		left = List<int>({ VK_LEFT, 0x41 });
+		right = List<int>({ VK_RIGHT, 0x44 });
+		down = List<int>({ VK_DOWN, 0x53 });
 	}
 	void acceptAllInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 		mouseInstructionsInOrder.clear();
 		keysPressedInOrder.clear();
+		keysPressedInOrderAsInts.clear();
 		acceptMousePosition(msg, lParam);
 		for (auto const &  [key, value] : allKeyboardButtons.internalMap) {
 			if (hasThisBeenPressed(key)) {
 				keysPressedInOrder.addToBackIfNotAlreadyInList(to_string(key));
+				keysPressedInOrderAsInts.push_front(key);
 			}
 		}
 	}
@@ -331,8 +337,8 @@ public:
 	void acceptMouseUnclickPosition(LPARAM lParam) {
 		mouseUnclickPosition = whereIsCursor(lParam);
 	}
-	pair<int, int> whereIsCursor(LPARAM lParam) {
-		pair<int, int> results;
+	pair<float, float> whereIsCursor(LPARAM lParam) {
+		pair<float, float> results;
 		results.first = LOWORD(lParam);
 		results.second = HIWORD(lParam);
 		return results;
@@ -368,14 +374,19 @@ public:
 		return (GetKeyState(code) & 0x8000) || (1 << 15) & GetAsyncKeyState(code);
 	}
 	List<string> keysPressedInOrder;
+	List<int> keysPressedInOrderAsInts;
 	List<string> mouseInstructionsInOrder;
 	Map<int, WPARAM> allKeyboardButtons;
 	Map<string, string> upperToLowerCase;
 	List<int> allPossibleMouseInputs;
 	List<int> allPossibleMouseStatuses;
-	pair<int, int> mouseMovePosition;
-	pair<int, int> mouseClickPosition;
-	pair<int, int> mouseUnclickPosition;
+	pair<float, float> mouseMovePosition;
+	pair<float, float> mouseClickPosition;
+	pair<float, float> mouseUnclickPosition;
+	List<int> up;
+	List<int> left;
+	List<int> right;
+	List<int> down;
 };
 UserInput controller;
 
@@ -483,14 +494,34 @@ public:
 		animationFrames["Angela Fleuret"]["WALK_FRONT"].internalList = { ANGELA_WALK_FRONT_1, ANGELA_WALK_FRONT_2, ANGELA_WALK_FRONT_3, ANGELA_WALK_FRONT_2, };
 		animationFrames["Angela Fleuret"]["WALK_LEFT"].internalList = { ANGELA_WALK_LEFT_1, ANGELA_WALK_LEFT_2, ANGELA_WALK_LEFT_3, ANGELA_WALK_LEFT_2, };
 		animationFrames["Angela Fleuret"]["WALK_RIGHT"].internalList = { ANGELA_WALK_RIGHT_1, ANGELA_WALK_RIGHT_2, ANGELA_WALK_RIGHT_3, ANGELA_WALK_RIGHT_2 };
+		animationFrames["Shadow Angela Fleuret"]["STAND_FRONT"].internalList = { SHADOW_ANGELA_STAND_FRONT_1, SHADOW_ANGELA_STAND_FRONT_2 };
+		animationFrames["Shadow Angela Fleuret"]["STAND_BACK"].internalList = { SHADOW_ANGELA_STAND_BACK_1, SHADOW_ANGELA_STAND_BACK_2 };
+		animationFrames["Shadow Angela Fleuret"]["STAND_LEFT"].internalList = { SHADOW_ANGELA_STAND_LEFT_1, SHADOW_ANGELA_STAND_LEFT_2 };
+		animationFrames["Shadow Angela Fleuret"]["STAND_RIGHT"].internalList = { SHADOW_ANGELA_STAND_RIGHT_1, SHADOW_ANGELA_STAND_RIGHT_2 };
+		animationFrames["Shadow Angela Fleuret"]["WALK_BACK"].internalList = { SHADOW_ANGELA_WALK_BACK_1, SHADOW_ANGELA_WALK_BACK_2, SHADOW_ANGELA_WALK_BACK_3, SHADOW_ANGELA_WALK_BACK_2, };
+		animationFrames["Shadow Angela Fleuret"]["WALK_FRONT"].internalList = { SHADOW_ANGELA_WALK_FRONT_1, SHADOW_ANGELA_WALK_FRONT_2, SHADOW_ANGELA_WALK_FRONT_3, SHADOW_ANGELA_WALK_FRONT_2, };
+		animationFrames["Shadow Angela Fleuret"]["WALK_LEFT"].internalList = { SHADOW_ANGELA_WALK_LEFT_1, SHADOW_ANGELA_WALK_LEFT_2, SHADOW_ANGELA_WALK_LEFT_3, SHADOW_ANGELA_WALK_LEFT_2, };
+		animationFrames["Shadow Angela Fleuret"]["WALK_RIGHT"].internalList = { SHADOW_ANGELA_WALK_RIGHT_1, SHADOW_ANGELA_WALK_RIGHT_2, SHADOW_ANGELA_WALK_RIGHT_3, SHADOW_ANGELA_WALK_RIGHT_2 };
+		animationFrames["LampLight1"]["STAND_FRONT"].internalList = { 
+			LAMPLIGHT1 , LAMPLIGHT2, LAMPLIGHT3, LAMPLIGHT4, LAMPLIGHT5, LAMPLIGHT6, LAMPLIGHT7, LAMPLIGHT8, LAMPLIGHT9, LAMPLIGHT10, LAMPLIGHT11,LAMPLIGHT12,LAMPLIGHT13,LAMPLIGHT14,LAMPLIGHT15,LAMPLIGHT16,LAMPLIGHT17,LAMPLIGHT18
+		};
 	}
 	string getSequenceAsString(string character, string action) {
 		// get it as one string so it can be used in event data
+		if (!animationFrames.getKeys().contains(character)) {
+			ErrorHelper::warning(character + " does not exist.", true);
+		}
 		string result;
 		for (auto const& x : animationFrames[character][action].internalList) {
 			result += to_string(x) + " ";
 		}
 		return result;
+	}
+	List<int> getSequence(string character, string action) {
+		if (!animationFrames.getKeys().contains(character)) {
+			ErrorHelper::warning(character + " does not exist.", true);
+		}
+		return animationFrames["character"]["action"];
 	}
 
 	Map <string, Map<string, List<int>>> animationFrames;
@@ -499,46 +530,148 @@ ImageLookup imageLookup;
 
 class Explorer {
 public:
-	// map positions start at 0,0 = top left
-	struct mapObject {
+	Explorer() {
+		maps["debugmap"] = mapInstance("debugmap", MAP_DEBUG, { 50,50 }, {
+			mapObject("Lamp1", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",100,5,"0.5","CENTRE",{77.7f, 39.3f}),
+			}, {}, {}, {5000,5000});
+	}
+	class mapWalkable {
+		pair<float, float> topLeftAsPercentage;
+		pair<float, float> bottomRightAsPercentage;
+	};
+	class mapObject {
+	public:
+		mapObject() {};
+		mapObject(string _name, bool _canInteract, bool _visible, bool _tracksToPlayer, string _imageSources, string _animated, int _animationSpeed, int _layer, string _opacity, string _anchor, pair<float, float> _positionOnMap) {
+			name = _name;
+			canInteract = _canInteract;
+			visible = _visible;
+			tracksToPlayer = _tracksToPlayer;
+			imageSources = _imageSources;
+			animationSpeed = _animationSpeed;
+			positionOnMap = _positionOnMap;
+			anchor = _anchor;
+			layer = _layer;
+			opacity = _opacity;
+			animated = _animated;
+		}
 		string name = "";
+		string anchor;
+		bool canInteract = false;
+		bool visible = false;
+		bool tracksToPlayer = false; // if true it follows the player around the map, i.e. fog or light effect
+		string animated = "0";
+		string imageSources;
+		int animationSpeed = 1;
+		pair<float, float> positionOnMap;
+		int layer = 1;
+		string opacity = "1.0f";
+	};
+	class mapInstance {
+	public:
+		mapInstance() {}
+		mapInstance(string _name, int _source, pair<float, float> _playerStartPosition, List<mapObject> _objects, List<mapWalkable> _walkables, Map<string, bool> _flags, pair<float, float> _imageSize) {
+			name = _name;
+			source = _source;
+			playerStartPosition = _playerStartPosition;
+			objects = _objects;
+			walkables = _walkables;
+			flags = _flags;
+			imageSize = _imageSize;
+		}
+
+		string name = "";
+		int source;
+		pair<float, float> playerStartPosition;
+		List<mapObject> objects;
+		List<mapWalkable> walkables;
+		Map<string, bool> flags; // can influence what gets drawn and how
+		pair<float, float> imageSize;
 	};
 	struct playerObject {
-		pair<int, int> position;
+		pair<float, float> position;
 	};
 	struct camera {
 		pair<int, int> position;
 	};
+	void loadMap(string mapName) {
+		currentMap = maps["debugmap"];
+		playerOnMap.position = currentMap.playerStartPosition;
+		mapSize = currentMap.imageSize;
+		resolutionAsFloat = { mapSize.first * 100.0f / actualRenderSizeAsFloat.first, mapSize.second * 100.0f / actualRenderSizeAsFloat.second };
+	}
+	
 	map<string, pair<float, float>> getUpdatedMapImagePositions() {
 		map<string, pair<float, float>> result;
 		if (perspective == "FOLLOW_PLAYER") {
 			activeCamera.position = playerOnMap.position;
 		}
-		result["player image position"] = { 50,50 };
-		result["map position"] = { 50 + (50 - playerOnMap.position.first) * resolutionAsFloat.first / 100.0f , 50 + (50 - playerOnMap.position.second) * resolutionAsFloat.second / 100.0f };
+		result["player image position"] = { 50.0f,50.0f };
+		result["map position"] = { 50.0f + (50.0f - playerOnMap.position.first) * resolutionAsFloat.first / 100.0f , 50.0f + (50.0f - playerOnMap.position.second) * resolutionAsFloat.second / 100.0f };
+
+		float xLimitMax = 98.6f;
+		float xLimitMin = 1.6f;
+		float yLimitMax = 173.6f;
+		float yLimitMin = -73.6f;
+
+		if (result["map position"].first > xLimitMax) {
+			float difference = result["map position"].first - 98.6f;
+			result["map position"].first = xLimitMax;
+			result["player image position"].first = 50.0f - difference;
+		}
+		if (result["map position"].first < xLimitMin) {
+			float difference = result["map position"].first;
+			result["map position"].first = xLimitMin;
+			result["player image position"].first = 50.0f - difference;
+		}
+		if (result["map position"].second > yLimitMax) {
+			float difference = result["map position"].second;
+			result["map position"].second = yLimitMax;
+			result["player image position"].second = 50 + (yLimitMax - difference);
+		}
+		if (result["map position"].second < yLimitMin) {
+			float difference = result["map position"].second;
+			result["map position"].second = yLimitMin;
+			result["player image position"].second = 50 - (yLimitMin * -1 + difference);
+		}
+
+		for (auto const& x : currentMap.objects.internalList) {
+			if (!x.visible) { continue; }
+			if (x.tracksToPlayer) { result[x.name] = { 50.0f, 50.0f }; }
+			if (!x.tracksToPlayer) {
+				result[x.name] = {
+					// fix this
+					50.0f + result["map position"].first - x.positionOnMap.first,
+					50.0f + result["map position"].second - x.positionOnMap.second,
+				};
+			}
+		}
 
 		return result;
 	}
 
 	void tryToMovePlayer(string direction) {
 		// don't move if destination isn't acceptable
-		pair<int, int> toMove;
-		int unit = 1;
+		pair<float, float> toMove;
+		float unit = 0.5;
 		if (direction == "BACK") { toMove.second -= unit; }
 		if (direction == "FRONT") { toMove.second += unit; }
 		if (direction == "LEFT") { toMove.first -= unit; }
 		if (direction == "RIGHT") { toMove.first += unit; }
-		playerOnMap.position.first = TChange(playerOnMap.position.first, toMove.first, 0, 100);
-		playerOnMap.position.second = TChange(playerOnMap.position.second, toMove.second, 0, 100);
+		playerOnMap.position.first = TChange(playerOnMap.position.first, toMove.first, 0.0f, 100.0f);
+		playerOnMap.position.second = TChange(playerOnMap.position.second, toMove.second, 0.0f, 100.0f);
 	}
 
 	int resource;
 	camera activeCamera;
 	playerObject playerOnMap;
-	mapObject currentMap;
+	mapInstance currentMap;
 	string perspective = "FOLLOW_PLAYER";
-	pair<float, float> resolutionAsFloat = { 195.3125f, 347.2222f};
+	Map<string, mapInstance> maps;
 	pair<int, int> resolution = { 1280, 720 };
+	pair<int, int> actualRenderSize = { 1264, 719 };
+	pair<float, float> actualRenderSizeAsFloat = { 1264.0f, 719.0f };
 	pair<int, int> mapSize = { 2500,2500 };
+	pair<float, float> resolutionAsFloat = {mapSize.first * 100.0f / actualRenderSizeAsFloat.first, mapSize.second * 100.0f / actualRenderSizeAsFloat.second };
 };
 Explorer explorer;

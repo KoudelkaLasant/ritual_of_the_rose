@@ -19,6 +19,7 @@ public:
 		MessageBox(NULL, wstring(warning.begin(), warning.end()).c_str(), wstring(title.begin(), title.end()).c_str(),
 			MB_ICONQUESTION | MB_OK);
 		if (hasToCrash) {
+			throw;
 			exit(EXIT_FAILURE);
 		}
 	}
