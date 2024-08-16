@@ -8,12 +8,18 @@ SafeRelease(
 	Interface** ppInterfaceToRelease
 )
 {
-	if (*ppInterfaceToRelease != NULL)
-	{
-		(*ppInterfaceToRelease)->Release();
+    try {
+        if (*ppInterfaceToRelease != NULL)
+        {
+            (*ppInterfaceToRelease)->Release();
 
-		(*ppInterfaceToRelease) = NULL;
-	}
+            (*ppInterfaceToRelease) = NULL;
+        }
+    }
+    catch (...) {
+        return;
+    }
+
 }
 
 class Graphics {

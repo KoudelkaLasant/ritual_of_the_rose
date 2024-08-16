@@ -250,34 +250,8 @@ public:
 				bool need_to_reset_image_sources = true;
 				string newDirection = "";
 				string newAction = "STAND";
-				map<string, int> exploreAnimationSpeeds = { {"WALK",200} , {"STAND" ,500 }, {"MOVE", 20}};
+				map<string, int> exploreAnimationSpeeds = { {"WALK",200} , {"STAND" ,500 }, {"MOVE", explorer.mapSize.first / 50}};
 				int animationSpeed = 500;
-				for (auto const& x : controller.keysPressedInOrderAsInts.internalList) {
-					if (controller.up.contains(x)) {
-						moving = true;
-						newDirection = "BACK";
-						newAction = "WALK";
-						break;
-					}
-					if (controller.down.contains(x)) {
-						moving = true;
-						newDirection = "FRONT";
-						newAction = "WALK";
-						break;
-					}
-					if (controller.left .contains(x)) {
-						moving = true;
-						newDirection = "LEFT";
-						newAction = "WALK";
-						break;
-					}
-					if (controller.right.contains(x)) {
-						moving = true;
-						newDirection = "RIGHT";
-						newAction = "WALK";
-						break;
-					}
-				}
 
 				string character = saveContainer.getCurrentMainCharacter();
 				string uniqueID = character + "_Explore";
@@ -286,6 +260,16 @@ public:
 				Graphics::Image* shadowImage = graphics.accessImageViaUniqueID(shadowID);
 				string currentDirection = image->direction;
 				string currentAction = image->action;
+
+				List<string> directionsPressed = controller.getDirectionKeysPressed();
+				if (directionsPressed.size() > 0) {
+					moving = true;
+					if (directionsPressed.size() > 1) {
+						directionsPressed.forcibleRemove(currentDirection);
+					}
+					newAction = "WALK";
+					newDirection = directionsPressed.front();
+				}
 				if (currentDirection == newDirection and currentAction == newAction) {
 					need_to_reset_image_sources = false;
 				}
@@ -321,6 +305,14 @@ public:
 					explorer.tryToMovePlayer(newDirection);
 					Event("Map Move", "MAPMOVE", {}).run();
 				}
+				
+				string textUniqueID = "DEBUGWALKING";
+				int layer = 10;
+				if (!graphics.does_this_text_already_exist(textUniqueID)) {
+					graphics.addText(Graphics::Text(L"", "Centaur_25", { 2,90 }, "TOPLEFT", { 100,100 }, graphics.Colours["WHITE"], graphics.Colours["BLACK"], textUniqueID), layer);
+				}
+				graphics.TextMap[layer].internalMap[textUniqueID].message = StringToWString(explorer.debug());
+				Event("userInput", "DEBUGUSERINPUT", { }).run();
 				return false;
 			}
 

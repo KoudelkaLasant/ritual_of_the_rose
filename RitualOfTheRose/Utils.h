@@ -301,16 +301,19 @@ public:
 		left = List<int>({ VK_LEFT, 0x41 });
 		right = List<int>({ VK_RIGHT, 0x44 });
 		down = List<int>({ VK_DOWN, 0x53 });
+		directionalKeys = List<int>({ VK_UP, 0x57, VK_LEFT, 0x41,VK_RIGHT, 0x44, VK_DOWN, 0x53 });
 	}
 	void acceptAllInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 		mouseInstructionsInOrder.clear();
-		keysPressedInOrder.clear();
-		keysPressedInOrderAsInts.clear();
 		acceptMousePosition(msg, lParam);
 		for (auto const &  [key, value] : allKeyboardButtons.internalMap) {
 			if (hasThisBeenPressed(key)) {
 				keysPressedInOrder.addToBackIfNotAlreadyInList(to_string(key));
 				keysPressedInOrderAsInts.push_front(key);
+			}
+			else {
+				keysPressedInOrder.forcibleRemove(to_string(key));
+				keysPressedInOrderAsInts.forcibleRemove(key);
 			}
 		}
 	}
@@ -373,6 +376,29 @@ public:
 	bool hasThisBeenPressed(int code) {
 		return (GetKeyState(code) & 0x8000) || (1 << 15) & GetAsyncKeyState(code);
 	}
+	List<string> getDirectionKeysPressed() {
+		List<string> result;
+		if (haveOneOfTheseBeenPressed(up)) {
+			result.push_back("BACK");
+		}
+		if (haveOneOfTheseBeenPressed(down)) {
+			result.push_back("FRONT");
+		}
+		if (haveOneOfTheseBeenPressed(left)) {
+			result.push_back("LEFT");
+		}
+		if (haveOneOfTheseBeenPressed(right)) {
+			result.push_back("RIGHT");
+		}
+		return result;
+	}
+	bool haveOneOfTheseBeenPressed(List<int> keys) {
+		for (auto const& x : keysPressedInOrderAsInts.internalList) {
+			if (keys.contains(x)) { return true; }
+		}
+		return false;
+	}
+
 	List<string> keysPressedInOrder;
 	List<int> keysPressedInOrderAsInts;
 	List<string> mouseInstructionsInOrder;
@@ -383,6 +409,7 @@ public:
 	pair<float, float> mouseMovePosition;
 	pair<float, float> mouseClickPosition;
 	pair<float, float> mouseUnclickPosition;
+	List<int> directionalKeys;
 	List<int> up;
 	List<int> left;
 	List<int> right;
@@ -533,11 +560,30 @@ public:
 	Explorer() {
 		maps["debugmap"] = mapInstance("debugmap", MAP_DEBUG, { 50,50 }, {
 			mapObject("Lamp1", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",100,5,"0.5","CENTRE",{77.7f, 39.3f}),
-			}, {}, {}, {5000,5000});
+			}, { mapFloor("BigTriangle", List<pair<float, float>>({{0,0}, {100,0}, {50,100}}),true, {}), }, {}, { 5000, 5000 });
 	}
-	class mapWalkable {
-		pair<float, float> topLeftAsPercentage;
-		pair<float, float> bottomRightAsPercentage;
+	class mapFloor {
+	public:
+		mapFloor() {}
+		mapFloor(string _uniqueID, List<pair<float, float>> _points, bool _isTraversable, Map<string, string> _data) {
+			uniqueID = _uniqueID;
+			points = _points;
+			traversable = _isTraversable;
+			data = _data;
+		}
+
+		string uniqueID;
+		List <pair<float, float>> points;
+		bool traversable = true;
+		Map<string, string> data;
+		bool isSteppedOn(pair<float, float> playerPosition) {
+			float denominator = ((points.at(1).second - points.at(2).second) * (points.at(0).first - points.at(2).first) + (points.at(2).first - points.at(1).first) * (points.at(0).second - points.at(2).second));
+			float a = ((points.at(1).second - points.at(2).second) * (playerPosition.first - points.at(2).first) + (points.at(2).first - points.at(1).first) * (playerPosition.second - points.at(2).second)) / denominator;
+			float b = ((points.at(2).second - points.at(0).second) * (playerPosition.first - points.at(2).first) + (points.at(0).first - points.at(2).first) * (playerPosition.second - points.at(2).second)) / denominator;
+			float c = 1 - a - b;
+			return ((0 <= a && a <= 1) && (0 <= b && b <= 1) && (0 <= c && c <= 1));
+		}
+
 	};
 	class mapObject {
 	public:
@@ -570,7 +616,7 @@ public:
 	class mapInstance {
 	public:
 		mapInstance() {}
-		mapInstance(string _name, int _source, pair<float, float> _playerStartPosition, List<mapObject> _objects, List<mapWalkable> _walkables, Map<string, bool> _flags, pair<float, float> _imageSize) {
+		mapInstance(string _name, int _source, pair<float, float> _playerStartPosition, List<mapObject> _objects, List<mapFloor> _walkables, Map<string, bool> _flags, pair<float, float> _imageSize) {
 			name = _name;
 			source = _source;
 			playerStartPosition = _playerStartPosition;
@@ -584,7 +630,7 @@ public:
 		int source;
 		pair<float, float> playerStartPosition;
 		List<mapObject> objects;
-		List<mapWalkable> walkables;
+		List<mapFloor> walkables;
 		Map<string, bool> flags; // can influence what gets drawn and how
 		pair<float, float> imageSize;
 	};
@@ -609,20 +655,30 @@ public:
 		result["player image position"] = { 50.0f,50.0f };
 		result["map position"] = { 50.0f + (50.0f - playerOnMap.position.first) * resolutionAsFloat.first / 100.0f , 50.0f + (50.0f - playerOnMap.position.second) * resolutionAsFloat.second / 100.0f };
 
-		float xLimitMax = 98.6f;
-		float xLimitMin = 1.6f;
-		float yLimitMax = 173.6f;
-		float yLimitMin = -73.6f;
+		float xLimitMax; float xLimitMin; float yLimitMax; float yLimitMin;
+
+		if (mapSize.first == 5000) {
+			xLimitMax = 0.03944 * mapSize.first;
+			xLimitMin = -97.5;
+			yLimitMax = 0.06944 * mapSize.second;
+			yLimitMin = -245.549377;
+		}
+		else {
+			xLimitMax = 98.6f;
+			xLimitMin = 1.6f;
+			yLimitMax = 173.6f;
+			yLimitMin = -73.6f;
+		}
 
 		if (result["map position"].first > xLimitMax) {
-			float difference = result["map position"].first - 98.6f;
+			float difference = result["map position"].first - xLimitMax;
 			result["map position"].first = xLimitMax;
 			result["player image position"].first = 50.0f - difference;
 		}
 		if (result["map position"].first < xLimitMin) {
 			float difference = result["map position"].first;
 			result["map position"].first = xLimitMin;
-			result["player image position"].first = 50.0f - difference;
+			result["player image position"].first = (difference + 50.0f) * -1;
 		}
 		if (result["map position"].second > yLimitMax) {
 			float difference = result["map position"].second;
@@ -649,7 +705,6 @@ public:
 
 		return result;
 	}
-
 	void tryToMovePlayer(string direction) {
 		// don't move if destination isn't acceptable
 		pair<float, float> toMove;
@@ -660,6 +715,24 @@ public:
 		if (direction == "RIGHT") { toMove.first += unit; }
 		playerOnMap.position.first = TChange(playerOnMap.position.first, toMove.first, 0.0f, 100.0f);
 		playerOnMap.position.second = TChange(playerOnMap.position.second, toMove.second, 0.0f, 100.0f);
+	}
+	string debug() {
+		string result = "Player Position On Map: " + to_string(playerOnMap.position.first) + ", " + to_string(playerOnMap.position.second);
+		result += "\nStepped On: ";
+		List<mapFloor> steppedOn = currentlySteppedOn();
+		for (auto const& x : steppedOn.internalList) {
+			result += x.uniqueID;
+		}
+		return result;
+	}
+	List<mapFloor> currentlySteppedOn() {
+		List<mapFloor> result;
+		for (auto x : currentMap.walkables.internalList) {
+			if (x.isSteppedOn(playerOnMap.position)) {
+				result.push_back(x);
+			}
+		}
+		return result;
 	}
 
 	int resource;
