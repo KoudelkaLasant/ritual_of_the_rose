@@ -98,6 +98,11 @@ struct List {
 			push_back(item);
 		}
 	}
+	void addToFrontIfNotAlreadyInList(T item) {
+		if (!contains(item)) {
+			push_front(item);
+		}
+	}
 	T& front() {
 		try {
 			return internalList.front();
@@ -189,6 +194,11 @@ struct Map {
 		return internalMap[RHS];
 	}
 	Map() {}
+	Map (list<pair<A, B>> pairs){
+		for (auto const& x : pairs) {
+			internalMap[x.first] = x.second;
+		}
+	}
 	Map(List<pair<A, B>> pairs) {
 		for (auto x : pairs.internalList) {
 			internalMap[x.first] = x.second;

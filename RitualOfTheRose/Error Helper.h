@@ -4,7 +4,7 @@
 class ErrorHelper {
 public:
 	// is called to print a warning message to the screen. It will either crash or do nothing once the player clicks ok.
-	static void warning(list<string> reasons, bool hasToCrash) {
+	static void warning(string reasons, bool hasToCrash) {
 		string title = "Something bad has happened.";
 		string warning;
 		for (auto s : reasons) {
@@ -22,9 +22,6 @@ public:
 			throw;
 			exit(EXIT_FAILURE);
 		}
-	}
-	static void warning(string reason, bool hasToCrash) {
-		ErrorHelper::warning({ reason }, hasToCrash);
 	}
 
 	// used for debugging occasionally, just produces a box which says a message

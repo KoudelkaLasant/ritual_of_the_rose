@@ -303,13 +303,16 @@ public:
 		down = List<int>({ VK_DOWN, 0x53 });
 		directionalKeys = List<int>({ VK_UP, 0x57, VK_LEFT, 0x41,VK_RIGHT, 0x44, VK_DOWN, 0x53 });
 	}
+	void setup(HWND* _hwnd) {
+		hwnd = _hwnd;
+	}
 	void acceptAllInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 		mouseInstructionsInOrder.clear();
 		acceptMousePosition(msg, lParam);
 		for (auto const &  [key, value] : allKeyboardButtons.internalMap) {
 			if (hasThisBeenPressed(key)) {
-				keysPressedInOrder.addToBackIfNotAlreadyInList(to_string(key));
-				keysPressedInOrderAsInts.push_front(key);
+				keysPressedInOrder.addToFrontIfNotAlreadyInList(to_string(key));
+				keysPressedInOrderAsInts.addToFrontIfNotAlreadyInList(key);
 			}
 			else {
 				keysPressedInOrder.forcibleRemove(to_string(key));
@@ -344,7 +347,20 @@ public:
 		pair<float, float> results;
 		results.first = LOWORD(lParam);
 		results.second = HIWORD(lParam);
-		return results;
+		RECT rect;
+		GetWindowRect(*hwnd, &rect);
+		pair<int, int> normalHwndSize = { actualRenderSizeAsFloat.first, actualRenderSizeAsFloat.second + 38};
+		pair<int, int> normalClickableRange = { normalHwndSize.first - 17,normalHwndSize.second - 40};
+		pair<int, int> currentHwndSize = { rect.right - rect.left, rect.bottom - rect.top };
+		pair<int, int> currentClickableRange = { currentHwndSize.first -17, currentHwndSize.second - 40};
+		
+		pair<float, float> scaledResults = {
+			results.first / currentClickableRange.first * normalClickableRange.first,
+			results.second / currentClickableRange.second * normalClickableRange.second
+		};
+		scaledResults.first -= 13;
+		scaledResults.second -= 13;
+		return scaledResults;
 	}
 	bool userPressedOneOfThese(list<int> codes) {
 		bool result = false;
@@ -374,7 +390,7 @@ public:
 		return result;
 	}
 	bool hasThisBeenPressed(int code) {
-		return (GetKeyState(code) & 0x8000) || (1 << 15) & GetAsyncKeyState(code);
+		return (GetKeyState(code) & 0x8000);
 	}
 	List<string> getDirectionKeysPressed() {
 		List<string> result;
@@ -399,6 +415,7 @@ public:
 		return false;
 	}
 
+	HWND* hwnd;
 	List<string> keysPressedInOrder;
 	List<int> keysPressedInOrderAsInts;
 	List<string> mouseInstructionsInOrder;
@@ -414,6 +431,8 @@ public:
 	List<int> left;
 	List<int> right;
 	List<int> down;
+	pair<float, float> actualRenderSizeAsFloat = { 1264.0f, 719.0f };
+	bool cursorHotspotInCentre = true; // I couldn't fix this :( 
 };
 UserInput controller;
 
@@ -558,9 +577,12 @@ ImageLookup imageLookup;
 class Explorer {
 public:
 	Explorer() {
-		maps["debugmap"] = mapInstance("debugmap", MAP_DEBUG, { 50,50 }, {
-			mapObject("Lamp1", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",100,5,"0.5","CENTRE",{77.7f, 39.3f}),
-			}, { mapFloor("BigTriangle", List<pair<float, float>>({{0,0}, {100,0}, {50,100}}),true, {}), }, {}, { 5000, 5000 });
+		maps["debugmap"] = mapInstance("debugmap", MAP_DEBUG, { 50,50 }, List<mapObject>({
+			mapObject("Lamp1", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,5,"1.0","CENTRE",{60.5f, 20.0f}),
+			mapObject("Lamp2", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,5,"1.0","CENTRE",{49.3, 29.7}),
+			mapObject("Lamp3", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,5,"1.0","CENTRE",{34.9, 18.0}),
+			mapObject("Lamp4", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,5,"1.0","CENTRE",{46.8, 10.8}),
+			}), { mapFloor("BigTriangle", List<pair<float, float>>({{0,0}, {100,0}, {50,100}}),true, {}), }, {}, { 5000, 5000 });
 	}
 	class mapFloor {
 	public:
@@ -588,7 +610,8 @@ public:
 	class mapObject {
 	public:
 		mapObject() {};
-		mapObject(string _name, bool _canInteract, bool _visible, bool _tracksToPlayer, string _imageSources, string _animated, int _animationSpeed, int _layer, string _opacity, string _anchor, pair<float, float> _positionOnMap) {
+		mapObject(string _name, bool _canInteract, bool _visible, bool _tracksToPlayer, string _imageSources, string _animated, int _animationSpeed,
+			int _layer, string _opacity, string _anchor, pair<float, float> _positionOnMap) {
 			name = _name;
 			canInteract = _canInteract;
 			visible = _visible;
@@ -670,36 +693,52 @@ public:
 			yLimitMin = -73.6f;
 		}
 
-		if (result["map position"].first > xLimitMax) {
-			float difference = result["map position"].first - xLimitMax;
-			result["map position"].first = xLimitMax;
-			result["player image position"].first = 50.0f - difference;
-		}
-		if (result["map position"].first < xLimitMin) {
-			float difference = result["map position"].first;
-			result["map position"].first = xLimitMin;
-			result["player image position"].first = (difference + 50.0f) * -1;
-		}
-		if (result["map position"].second > yLimitMax) {
-			float difference = result["map position"].second;
-			result["map position"].second = yLimitMax;
-			result["player image position"].second = 50 + (yLimitMax - difference);
-		}
-		if (result["map position"].second < yLimitMin) {
-			float difference = result["map position"].second;
-			result["map position"].second = yLimitMin;
-			result["player image position"].second = 50 - (yLimitMin * -1 + difference);
-		}
+		bool hold = true;
 
+		if (hold) {
+			if (result["map position"].first > xLimitMax) {
+				float difference = result["map position"].first - xLimitMax;
+				result["map position"].first = xLimitMax;
+				result["player image position"].first = 50.0f - difference;
+			}
+			if (result["map position"].first < xLimitMin) {
+				float difference = result["map position"].first;
+				result["map position"].first = xLimitMin;
+				result["player image position"].first = (difference + 50.0f) * -1;
+			}
+			if (result["map position"].second > yLimitMax) {
+				float difference = result["map position"].second;
+				result["map position"].second = yLimitMax;
+				result["player image position"].second = 50 + (yLimitMax - difference);
+			}
+			if (result["map position"].second < yLimitMin) {
+				float difference = result["map position"].second;
+				result["map position"].second = yLimitMin;
+				result["player image position"].second = 50 - (yLimitMin * -1 + difference);
+			}
+		}
+		result["absolute map position"] = {
+			actualRenderSizeAsFloat.first * result["map position"].first / 100.0f,
+			actualRenderSizeAsFloat.second * result["map position"].second / 100.0f,
+		};
+		result["absolute map top left"] = {
+			result["absolute map position"].second - (mapSize.second / 2),
+			result["absolute map position"].first - (mapSize.first / 2),
+		};
 		for (auto const& x : currentMap.objects.internalList) {
 			if (!x.visible) { continue; }
 			if (x.tracksToPlayer) { result[x.name] = { 50.0f, 50.0f }; }
 			if (!x.tracksToPlayer) {
-				result[x.name] = {
-					// fix this
-					50.0f + result["map position"].first - x.positionOnMap.first,
-					50.0f + result["map position"].second - x.positionOnMap.second,
+				float absoluteXPos = result["absolute map top left"].second + (mapSize.first / 100 * x.positionOnMap.first);
+				float absoluteYPos = result["absolute map top left"].first + (mapSize.second / 100 * x.positionOnMap.second);
+				float percentXPos = absoluteXPos * 100.0f / actualRenderSizeAsFloat.first;
+				float percentYPos = absoluteYPos * 100.0f / actualRenderSizeAsFloat.second;
+				pair<float, float> objectPosition = {
+					percentXPos,
+					percentYPos,
 				};
+
+				result[x.name] = objectPosition;
 			}
 		}
 
@@ -717,12 +756,14 @@ public:
 		playerOnMap.position.second = TChange(playerOnMap.position.second, toMove.second, 0.0f, 100.0f);
 	}
 	string debug() {
+		map<string, pair<float, float>> updatedImagePositions = getUpdatedMapImagePositions();
 		string result = "Player Position On Map: " + to_string(playerOnMap.position.first) + ", " + to_string(playerOnMap.position.second);
 		result += "\nStepped On: ";
 		List<mapFloor> steppedOn = currentlySteppedOn();
 		for (auto const& x : steppedOn.internalList) {
 			result += x.uniqueID;
 		}
+		result += "\nMap Image Position: " + to_string(updatedImagePositions["map position"].first) + " " + to_string(updatedImagePositions["map position"].second);
 		return result;
 	}
 	List<mapFloor> currentlySteppedOn() {
@@ -741,9 +782,8 @@ public:
 	mapInstance currentMap;
 	string perspective = "FOLLOW_PLAYER";
 	Map<string, mapInstance> maps;
-	pair<int, int> resolution = { 1280, 720 };
-	pair<int, int> actualRenderSize = { 1264, 719 };
-	pair<float, float> actualRenderSizeAsFloat = { 1264.0f, 719.0f };
+	pair<int, int> resolution = controller.actualRenderSizeAsFloat;
+	pair<float, float> actualRenderSizeAsFloat = controller.actualRenderSizeAsFloat;
 	pair<int, int> mapSize = { 2500,2500 };
 	pair<float, float> resolutionAsFloat = {mapSize.first * 100.0f / actualRenderSizeAsFloat.first, mapSize.second * 100.0f / actualRenderSizeAsFloat.second };
 };

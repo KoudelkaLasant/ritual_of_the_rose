@@ -16,6 +16,8 @@
 #define MAIN_MENU_BACKGROUND            130
 #define IDI_ICON1                       131
 #define IDC_STATIC                      -1
+#define CURSOR_DEFAULT 132
+#define CURSOR_SELECTED 133
 #define PARCHMENT_WAV_1 1001
 #define PARCHMENT_WAV_2 1002
 #define PARCHMENT_WAV_3 1003

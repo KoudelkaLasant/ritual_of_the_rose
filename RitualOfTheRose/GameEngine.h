@@ -190,7 +190,7 @@ public:
 				string uniqueID = "DEBUGTEXT";
 				int layer = 10;
 				if (!graphics.does_this_text_already_exist(uniqueID)) {
-					graphics.addText(Graphics::Text(L"", "Centaur_25", { 50,50 }, "CENTER", { 100,100 }, graphics.Colours["WHITE"], graphics.Colours["BLACK"], uniqueID), layer);
+					graphics.addText(Graphics::Text(L"", "Centaur_25", { 50,50 }, "CENTRE", { 100,100 }, graphics.Colours["WHITE"], graphics.Colours["BLACK"], uniqueID), layer);
 				}
 				graphics.TextMap[layer].internalMap[uniqueID].message = StringToWString(controller.controllerDebug());
 				if (controller.hasThisBeenPressed(27)) {
@@ -199,6 +199,12 @@ public:
 				return false;
 			}
 			if (type == "DEBUGCLICKANDDRAG") {
+				string uniqueID = "DEBUGCLICKANDDRAG";
+				int layer = 10;
+				if (!graphics.does_this_text_already_exist(uniqueID)) {
+					graphics.addText(Graphics::Text(L"", "Centaur_25", { 10,90 }, "TOPLEFT", { 100,100 }, graphics.Colours["BLACK"], graphics.Colours["BLACK"], uniqueID), layer);
+				}
+				string clickAndDragMessage = "Images Hovered Over: ";
 				List<string> draggable = split(data["objects"], ",");
 				if (controller.mouseInstructionsInOrder.contains("LButtonDown")) {
 					graphics.beingDragged.clear();
@@ -218,6 +224,7 @@ public:
 						if (theImage->hasThisBeenClickedOn(*&graphics, move)) {
 							hoveringOverSomethingDraggable = true;
 							graphics.changeCursor("SELECTED");
+							clickAndDragMessage += theImage->unique_ID + " ";
 						}
 					}
 					for (auto const& x : graphics.beingDragged.internalList) {
@@ -233,8 +240,8 @@ public:
 					graphics.beingDragged.clear();
 				}
 
-
-				
+				graphics.TextMap[layer].internalMap[uniqueID].message = StringToWString(clickAndDragMessage);
+				Event("", "DEBUGUSERINPUT", {}).run();
 				return false;
 			};
 			if (type == "DEBUGLOAD") {
@@ -250,7 +257,10 @@ public:
 				bool need_to_reset_image_sources = true;
 				string newDirection = "";
 				string newAction = "STAND";
-				map<string, int> exploreAnimationSpeeds = { {"WALK",200} , {"STAND" ,500 }, {"MOVE", explorer.mapSize.first / 50}};
+				map<string, int> exploreAnimationSpeeds = { {"WALK",200} , {"STAND" ,500 }, {"MOVE", explorer.mapSize.first / 50} };
+				if (Args.get("mode") == "DEBUG") {
+					exploreAnimationSpeeds["MOVE"] = 10;
+				}
 				int animationSpeed = 500;
 
 				string character = saveContainer.getCurrentMainCharacter();
@@ -261,15 +271,29 @@ public:
 				string currentDirection = image->direction;
 				string currentAction = image->action;
 
-				List<string> directionsPressed = controller.getDirectionKeysPressed();
-				if (directionsPressed.size() > 0) {
-					moving = true;
-					if (directionsPressed.size() > 1) {
-						directionsPressed.forcibleRemove(currentDirection);
+				for (auto const& x : controller.keysPressedInOrderAsInts.internalList) {
+					if (controller.up.contains(x) or controller.down.contains(x) or controller.left.contains(x) or controller.right.contains(x)) {
+						moving = true;
+						newAction = "WALK";
 					}
-					newAction = "WALK";
-					newDirection = directionsPressed.front();
+					if (controller.up.contains(x)) {
+						newDirection = "BACK";
+						break;
+					}
+					if (controller.down.contains(x)) {
+						newDirection = "FRONT";
+						break;
+					}
+					if (controller.left.contains(x)) {
+						newDirection = "LEFT";
+						break;
+					}
+					if (controller.right.contains(x)) {
+						newDirection = "RIGHT";
+						break;
+					}
 				}
+
 				if (currentDirection == newDirection and currentAction == newAction) {
 					need_to_reset_image_sources = false;
 				}
@@ -309,7 +333,7 @@ public:
 				string textUniqueID = "DEBUGWALKING";
 				int layer = 10;
 				if (!graphics.does_this_text_already_exist(textUniqueID)) {
-					graphics.addText(Graphics::Text(L"", "Centaur_25", { 2,90 }, "TOPLEFT", { 100,100 }, graphics.Colours["WHITE"], graphics.Colours["BLACK"], textUniqueID), layer);
+					graphics.addText(Graphics::Text(L"", "Centaur_25", { 2,80 }, "TOPLEFT", { 100,100 }, graphics.Colours["WHITE"], graphics.Colours["BLACK"], textUniqueID), layer);
 				}
 				graphics.TextMap[layer].internalMap[textUniqueID].message = StringToWString(explorer.debug());
 				Event("userInput", "DEBUGUSERINPUT", { }).run();

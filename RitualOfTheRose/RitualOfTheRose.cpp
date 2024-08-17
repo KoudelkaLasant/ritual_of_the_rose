@@ -35,8 +35,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
     MSG msg;
 
-    graphics.setup(&window);
+    graphics.setup(&window, hInstance);
     game.setup();
+    controller.setup(&window);
+
     HICON theIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));
     SendMessage(window, WM_SETICON, ICON_BIG, (LPARAM)theIcon);
 

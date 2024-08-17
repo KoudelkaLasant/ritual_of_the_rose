@@ -4,8 +4,7 @@
 
 template<class Interface>
 inline void
-SafeRelease(
-	Interface** ppInterfaceToRelease
+SafeRelease(string ID, Interface** ppInterfaceToRelease
 )
 {
     try {
@@ -41,34 +40,36 @@ public:
         teardownAllImages();
         teardownAllTextFormats();
         tearDownAllLoadedFonts();
-        SafeRelease(&D2DFactory);
-        //SafeRelease(&IWICFactory);
-        SafeRelease(&DWriteFactory);
-        SafeRelease(&hwndRenderTarget);
+        SafeRelease("Releasing D2D Factory.", & D2DFactory);
+        SafeRelease("Releasing IWICFactory", & IWICFactory);
+        SafeRelease("Releasing DWrite Factory.", & DWriteFactory);
+        SafeRelease("Releasing hwndRenderTarget.", & hwndRenderTarget);
     }
     class Drawable {
     public:
         D2D1_RECT_F getRect(pair<float, float> position, D2D1_SIZE_F size) {
             size.height *= scale;
             size.width *= scale;
+            D2D1_RECT_F result;
             if (anchorStyle == "TOPLEFT") {
-                return D2D1::RectF(position.first, position.second, position.first + size.width, position.second + size.height);
+                result = D2D1::RectF(position.first, position.second, position.first + size.width, position.second + size.height);
             }
             if (anchorStyle == "BOTTOMMIDDLE") { // slightly offset from bottom to look like origin is at player's feet
                 float smallD = size.height / 4;
-                return D2D1::RectF(
+                result = D2D1::RectF(
                     position.first - (size.width / 2),
                     position.second - size.height + smallD,
                     position.first + (size.width / 2),
                     position.second + smallD);
             }
-            else {
-                return D2D1::RectF(
+            if (anchorStyle == "CENTRE") {
+                result = D2D1::RectF(
                     position.first - (size.width / 2.0f),
                     position.second - (size.height / 2.0f),
                     position.first + (size.width / 2.0f),
                     position.second + (size.height / 2.0f));
             }
+            return result;
         }
         pair<float, float> getAbsolutePosition(D2D1_SIZE_F renderTargetSize) {
             return { renderTargetSize.width * positionAsPercentage.first / 100.0f, renderTargetSize.height * positionAsPercentage.second / 100.0f };
@@ -107,7 +108,7 @@ public:
 		~Image() {
                 while (not textures.empty()) {
                     ID2D1Bitmap * toDelete = textures.front();
-                    SafeRelease(& toDelete);
+                    SafeRelease("Releasing " + unique_ID, & toDelete);
                     textures.front() = NULL;
                     textures.pop_front();
                 }
@@ -124,7 +125,7 @@ public:
             int source = sources.at(frame);
             ID2D1Bitmap* texture = getWhichTexture();
             HRESULT hr = S_OK;
-            if (texture == NULL and graphics.TextureMemory.getKeys().contains(source)) {
+            if (texture == NULL and graphics.TextureMemory.getKeys().contains(source) and graphics.TextureMemory[source] != NULL) {
                 texture = graphics.TextureMemory[source];
             }
             if (texture == NULL) {
@@ -247,14 +248,14 @@ public:
                         &texture
                     );
                 }
-                SafeRelease(&pDecoder);
-                SafeRelease(&pSource);
-                SafeRelease(&pStream);
-                SafeRelease(&pConverter);
-                SafeRelease(&pScaler);
+                SafeRelease("Releasing decoder." + unique_ID, & pDecoder);
+                SafeRelease("Releasing source for " + unique_ID, & pSource);
+                SafeRelease("Releasing stream for " + unique_ID, & pStream);
+                SafeRelease("Releasing converter for " + unique_ID, & pConverter);
+                SafeRelease("Releasing scaler for " + unique_ID, & pScaler);
             }
             textures.at(frame) = texture;
-
+            storeTexturesInMemory(graphics);
             return hr;
         }
         ID2D1Bitmap* getWhichTexture() {
@@ -388,11 +389,11 @@ public:
                 }
             }
             graphics.hwndRenderTarget->DrawTextLayout(P, textLayout, theBrush);
-            SafeRelease(&theBrush);
-            SafeRelease(&shadowBrush);
-            SafeRelease(&textLayout);
+            SafeRelease("Releasing the brush", & theBrush);
+            SafeRelease("Releasing the shadow brush", & shadowBrush);
+            SafeRelease("Releasing text layout", & textLayout);
             for (string x : extraBrushes.getKeys().internalList) {
-                SafeRelease(&extraBrushes[x]);
+                SafeRelease("Releasing extra brush " + x, & extraBrushes[x]);
             }
         }
         wstring removeTagsBeforePrinting(Graphics & graphics, wstring input_string) {
@@ -441,8 +442,9 @@ public:
         vector<float> shadowColour = { 0.0,0.0,0.0,1.0 };
         int tagLimit = 10;
     };
-    void setup(HWND * hwnd) {
+    void setup(HWND * hwnd, HINSTANCE _hInstance) {
         hwnd = hwnd;
+        hinstance = _hInstance;
         CreateDeviceIndependentResources();
     }
     HRESULT CreateDeviceIndependentResources() {
@@ -517,16 +519,9 @@ public:
                     }
                 }
             }
-            
         
+       loadCursors();
 
-        filesystem::path path = filesystem::current_path() / "Cursor.cur";
-        HCURSOR default_cursor = LoadCursorFromFileA(path.string().c_str());
-        Cursors["DEFAULT"] = default_cursor;
-
-        filesystem::path path2 = filesystem::current_path() / "Cursor Select.cur";
-        HCURSOR selected_cursor = LoadCursorFromFileA(path2.string().c_str());
-        Cursors["SELECTED"] = selected_cursor;
         return hr;
     }
     HRESULT CreateDeviceResources() {
@@ -586,9 +581,21 @@ public:
         return hr;
     }
 
+    void loadCursors() {
+        Map<string, int> cursorsToLoad = list <pair<string, int>>({ {"DEFAULT", CURSOR_DEFAULT}, {"SELECTED", CURSOR_SELECTED} });
+        for (auto const& [key, value] :cursorsToLoad.internalMap) {
+            HICON defaultCursor = LoadIcon(hinstance, MAKEINTRESOURCE(value));
+            ICONINFO iconinfo;
+            GetIconInfo(defaultCursor, &iconinfo);
+            iconinfo.xHotspot = 0;
+            iconinfo.yHotspot = 0;
+            Cursors[key] = CreateIconIndirect(&iconinfo);
+            DeleteObject(defaultCursor);
+        }
+    }
     void DiscardDeviceResources()
     {
-        SafeRelease(&hwndRenderTarget);
+        SafeRelease("Releasing hwnd render target ", & hwndRenderTarget);
     }
     Image * addImage(Image * image, int layer) {
         if (not ImageMap.hasKey(layer)) {
@@ -614,13 +621,13 @@ public:
         }
         ImageMap.clear();
         for (auto const & [key, val] : TextureMemory.internalMap) {
-            SafeRelease(&TextureMemory[key]);
+            SafeRelease("Releasing this texture in the texture memory: " + key, & TextureMemory[key]);
         }
         TextureMemory.clear();
     }
     void teardownAllTextFormats() {
         for (auto const& [key, val] : WriteTextFormats.internalMap) {
-            SafeRelease(&WriteTextFormats[key]);
+            SafeRelease("Releasing this write text format: " + key, & WriteTextFormats[key]);
         }
     }
     Image* accessImageViaUniqueID(string uniqueID) {
@@ -688,6 +695,7 @@ public:
 
 
     HWND * hwnd;
+    HINSTANCE hinstance;
 	ID2D1Factory * D2DFactory;
     IWICImagingFactory * IWICFactory;
     IDWriteFontSetBuilder1* fontSetBuilder;
