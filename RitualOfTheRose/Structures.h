@@ -204,6 +204,9 @@ struct Map {
 			internalMap[x.first] = x.second;
 		}
 	}
+	Map(pair<A, B> aPair) {
+		internalMap[aPair.first] = aPair.second;
+	}
 	Map<A, B>& operator=(const Map<A, B>& RHS) {
 		internalMap = RHS.internalMap;
 		return *this;

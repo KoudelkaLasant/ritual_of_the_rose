@@ -105,14 +105,7 @@ public:
             unique_ID = _uniqueID;
             resetTextures();
         }
-		~Image() {
-                while (not textures.empty()) {
-                    ID2D1Bitmap * toDelete = textures.front();
-                    SafeRelease("Releasing " + unique_ID, & toDelete);
-                    textures.front() = NULL;
-                    textures.pop_front();
-                }
-		}
+		~Image() {}
         void resetTextures() {
             for (int x = 0; x < sources.size(); x++) {
                 textures.push_back(NULL);
@@ -555,10 +548,7 @@ public:
             // draw layer x's text after drawing layer x's images
             for (auto const& [key, val] : ImageMap.internalMap) {
                 if (latest_layer < key) { latest_layer = key; }
-                ImageMap[key].internalList.sort([](const Image* LHS, const Image* RHS) {return LHS < RHS; });
-                for (auto const& value : ImageMap[key].internalList) {
-                    value->draw(*this);
-                }
+                drawTheseImagesByYOrder(ImageMap[key]);
                 for (auto & [subkey, subval] : TextMap[key].internalMap) {
                     subval.draw(*this);
                 }
@@ -581,6 +571,21 @@ public:
         return hr;
     }
 
+    void drawTheseImagesByYOrder(List<Image *> images) {
+        while (!images.empty()) {
+            float max = 999;
+            Image* drawThisOne = NULL;
+            for (auto const& value : images.internalList) {
+                if (value->positionAsPercentage.second < max) {
+                    max = value->positionAsPercentage.second;
+                    drawThisOne = value;
+                }
+            }
+            drawThisOne->draw(*this);
+            images.forcibleRemove(drawThisOne);
+        }
+        
+    }
     void loadCursors() {
         Map<string, int> cursorsToLoad = list <pair<string, int>>({ {"DEFAULT", CURSOR_DEFAULT}, {"SELECTED", CURSOR_SELECTED} });
         for (auto const& [key, value] :cursorsToLoad.internalMap) {
@@ -611,6 +616,10 @@ public:
         TextMap[layer][text.unique_ID] = text;
     }
     void teardownAllImages() {
+        for (auto const& [key, val] : TextureMemory.internalMap) {
+            SafeRelease("Releasing this texture in the texture memory: " + key, &TextureMemory[key]);
+        }
+        TextureMemory.clear();
         for (auto const & [key, val] : ImageMap.internalMap) {
             while (not ImageMap[key].empty()) {
                 Image* toDelete = ImageMap[key].front();
@@ -620,10 +629,6 @@ public:
             }
         }
         ImageMap.clear();
-        for (auto const & [key, val] : TextureMemory.internalMap) {
-            SafeRelease("Releasing this texture in the texture memory: " + key, & TextureMemory[key]);
-        }
-        TextureMemory.clear();
     }
     void teardownAllTextFormats() {
         for (auto const& [key, val] : WriteTextFormats.internalMap) {

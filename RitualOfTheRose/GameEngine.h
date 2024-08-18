@@ -11,7 +11,7 @@ public:
 			type = _type;
 			data = _data;
 		}
-		bool run() {
+		bool run(GameEngine& gameEngine) {
 			if (type == "LOADIMAGE") {
 				List<string> sources = split(data["sources"], " ");
 				List<int> intSources;
@@ -52,30 +52,31 @@ public:
 					pair<string, string>("opacity", "1.0"),
 					pair<string, string>("layer", "0"),
 					pair<string, string>("scale", "2.0"),
-					pair<string, string>("uniqueID", mapName), }))).run();
+					pair<string, string>("uniqueID", mapName), }))).run(*&gameEngine);
 				Event("Load" + explorerName, "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 					pair<string, string>("sources", imageLookup.getSequenceAsString(explorerName, "STAND_FRONT")),
 					pair<string, string>("x", "50"),
 					pair<string, string>("y", "50"),
 					pair<string, string>("anchor", "BOTTOMMIDDLE"),
 					pair<string, string>("opacity", "1.0"),
-					pair<string, string>("layer", "2"),
+					pair<string, string>("layer", to_string(imageLookup.layerDefaults["PLAYER"])),
 					pair<string, string>("animated", "1"),
 					pair<string, string>("animation_speed", "500"),
 					pair<string, string>("styles", "LOOP"),
-					pair<string, string>("uniqueID", explorerName + "_Explore"), }))).run();
+					pair<string, string>("uniqueID", explorerName + "_Explore"), }))).run(*&gameEngine);
 				Event("Load Shadow", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 					pair<string, string>("sources", imageLookup.getSequenceAsString("Shadow " + explorerName, "STAND_FRONT")),
 					pair<string, string>("x", "50"),
 					pair<string, string>("y", "50"),
 					pair<string, string>("anchor", "BOTTOMMIDDLE"),
 					pair<string, string>("opacity", "0.5"),
-					pair<string, string>("layer", "1"),
+					pair<string, string>("layer", to_string(imageLookup.layerDefaults["PLAYERSHADOW"])),
 					pair<string, string>("animated", "1"),
 					pair<string, string>("animation_speed", "500"),
 					pair<string, string>("styles", "LOOP"),
-					pair<string, string>("uniqueID", explorerName + "_Shadow")}))).run();
+					pair<string, string>("uniqueID", explorerName + "_Shadow")}))).run(*&gameEngine);
 				for (auto const& x : explorer.currentMap.objects.internalList) {
+					if (x.imageSources == "") { continue; }
 					Event("Load" + x.name, "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 						pair<string, string>("sources", x.imageSources),
 						pair<string, string>("x", "50"),
@@ -86,9 +87,9 @@ public:
 						pair<string, string>("animated", x.animated),
 						pair<string, string>("animation_speed", to_string(x.animationSpeed)),
 						pair<string, string>("styles", "LOOP"),
-						pair<string, string>("uniqueID", x.name), }))).run();
+						pair<string, string>("uniqueID", x.name), }))).run(*&gameEngine);
 				}
-				Event("", "MAPMOVE", {}).run();
+				Event("", "MAPMOVE", {}).run(*&gameEngine);
 				return true;
 			}
 			if (type == "MAPMOVE") {
@@ -105,6 +106,10 @@ public:
 					if (!x.visible) { continue; }
 					Graphics::Image* objectImage = graphics.accessImageViaUniqueID(x.name);
 					objectImage->positionAsPercentage = imagePositions[x.name];
+				}
+				if (graphics.does_this_text_already_exist(explorer.mapPopupTextID) and data.getKeys().contains("copy")) {
+					int layer = imageLookup.layerDefaults["TEXTONMAP"];
+					graphics.TextMap[layer][explorer.mapPopupTextID].positionAsPercentage = imagePositions[data["copy"]];
 				}
 			}
 			if (type == "WAIT") {
@@ -131,7 +136,7 @@ public:
 			if (type == "DRAWTEXT") {
 				List<string> mp = split(data["message"], " ");
 				wstring message = wstring(data["message"].begin(), data["message"].end());
-				if (!data.getKeys().contains("direct")) {
+				if (data["direct"] != "1") {
 					message = strings[mp.at(0)][mp.at(1)][mp.at(2)];
 				}
 				string format = data["format"];
@@ -241,9 +246,18 @@ public:
 				}
 
 				graphics.TextMap[layer].internalMap[uniqueID].message = StringToWString(clickAndDragMessage);
-				Event("", "DEBUGUSERINPUT", {}).run();
+				Event("", "DEBUGUSERINPUT", {}).run(*&gameEngine);
 				return false;
 			};
+			if (type == "DEBUGWALKING") {
+				string textUniqueID = "DEBUGWALKING";
+				int layer = 10;
+				if (!graphics.does_this_text_already_exist(textUniqueID)) {
+					graphics.addText(Graphics::Text(L"", "Centaur_25", { 2,80 }, "TOPLEFT", { 100,100 }, graphics.Colours["WHITE"], graphics.Colours["BLACK"], textUniqueID), layer);
+				}
+				graphics.TextMap[layer].internalMap[textUniqueID].message = StringToWString(explorer.debug());
+				return false;
+			}
 			if (type == "DEBUGLOAD") {
 				filesystem::path defaultSavePath = filesystem::current_path() / "slot_0";
 				filesystem::path debugSavePath = filesystem::current_path() / "slot_-1";
@@ -259,7 +273,12 @@ public:
 				string newAction = "STAND";
 				map<string, int> exploreAnimationSpeeds = { {"WALK",200} , {"STAND" ,500 }, {"MOVE", explorer.mapSize.first / 50} };
 				if (Args.get("mode") == "DEBUG") {
-					exploreAnimationSpeeds["MOVE"] = 10;
+					if (controller.hasThisBeenPressed(VK_F1)) {
+						Args.toggle("SPEEDCHEAT");
+					}
+					if (Args.get("SPEEDCHEAT") == "1") {
+						exploreAnimationSpeeds["MOVE"] = 10;
+					}
 				}
 				int animationSpeed = 500;
 
@@ -325,21 +344,112 @@ public:
 						x->animationSpeed = animationSpeed;
 					}
 				}
+				bool stopExploringStartCutscene = false;
+				bool popUpTextNeedsToBeDrawn = false;
+				bool mapPopUpTextExists = false;
+				string whichCutscene = "";
 				if (moving and CLOCK.hasEnoughTimePassed("EXPLORE",exploreAnimationSpeeds["MOVE"])) {
 					explorer.tryToMovePlayer(newDirection);
-					Event("Map Move", "MAPMOVE", {}).run();
+					Event("Map Move", "MAPMOVE", {}).run(*&gameEngine);
+					image->opacity = 1.0;
+					shadowImage->opacity = 0.5;
+					mapPopUpTextExists = graphics.does_this_text_already_exist(explorer.mapPopupTextID);
+					popUpTextNeedsToBeDrawn = false;
+					for (auto walkable : explorer.getCurrentlySteppedOn().internalList) {
+						if (walkable.data["trans"] == "1") {
+							image->opacity = 0.5;
+							shadowImage->opacity = 0;
+						}
+					}
+					for (auto walkable : explorer.getObjectsInRange().internalList) {
+						if (walkable.data.getKeys().contains("message")) {
+							popUpTextNeedsToBeDrawn = true;
+							if (!mapPopUpTextExists) {
+								Event("PopUpTextOnMap", "DRAWTEXT", walkable.data).run(*&gameEngine);
+								mapPopUpTextExists = true;
+							}
+							Event("Map Move", "MAPMOVE", { pair<string, string>("copy",walkable.data["copy"]) }).run(*&gameEngine); // call again to move text to right position
+						}
+						// put trigger here
+					}
+				}
+				// user has pressed space on an interactable object
+				for (auto walkable : explorer.getObjectsInRange().internalList) {
+					if (walkable.data.getKeys().contains("cutscene") and controller.haveOneOfTheseBeenPressed(VK_SPACE)) {
+						whichCutscene = walkable.data["cutscene"];
+						stopExploringStartCutscene = true;
+						popUpTextNeedsToBeDrawn = false;
+					}
+				}
+
+				if (!popUpTextNeedsToBeDrawn and mapPopUpTextExists) {
+					Event("TearDownPopUpText", "TEARDOWNTEXT", Map<string, string>(pair<string, string>{"uniqueID", explorer.mapPopupTextID})).run(*&gameEngine);
 				}
 				
-				string textUniqueID = "DEBUGWALKING";
-				int layer = 10;
-				if (!graphics.does_this_text_already_exist(textUniqueID)) {
-					graphics.addText(Graphics::Text(L"", "Centaur_25", { 2,80 }, "TOPLEFT", { 100,100 }, graphics.Colours["WHITE"], graphics.Colours["BLACK"], textUniqueID), layer);
+				Event("userInput", "DEBUGWALKING", { }).run(*&gameEngine);
+				Event("userInput", "DEBUGUSERINPUT", { }).run(*&gameEngine);
+				if (stopExploringStartCutscene) {
+					gameEngine.activeProcedure = gameEngine.storedProcedures[whichCutscene];
+					return false;
 				}
-				graphics.TextMap[layer].internalMap[textUniqueID].message = StringToWString(explorer.debug());
-				Event("userInput", "DEBUGUSERINPUT", { }).run();
 				return false;
 			}
-
+			if (type == "DIALOGUESTART") {
+				string speakerID = data["speaker"];
+				string line = data["line"];
+				string direct = data["direct"]; // 1 = use string here 0 = get string from Strings.h
+				if (speakerID == "PLAYER") {
+					string speakerID = saveContainer.getCurrentMainCharacter();
+				}
+				string speakerImageID = imageLookup.getSequenceAsString(speakerID, "SPEAKER");
+				Event("Load TextBox", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("sources", to_string(TEXTBOX)),
+				pair<string, string>("x", "50"),
+				pair<string, string>("y", "86"),
+				pair<string, string>("anchor", "CENTRE"),
+				pair<string, string>("opacity", "1.0"),
+				pair<string, string>("layer", "1"),
+				pair<string, string>("uniqueID", "TEXTBOX"), }))).run(*&gameEngine);
+				Event("Load Speaker", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("sources", speakerImageID),
+				pair<string, string>("x", "0"),
+				pair<string, string>("y", "65"),
+				pair<string, string>("anchor", "TOPLEFT"),
+				pair<string, string>("opacity", "1.0"),
+				pair<string, string>("layer", "2"),
+				pair<string, string>("uniqueID", "SPEAKER"), }))).run(*&gameEngine);
+				Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("message",speakerID),
+				pair<string, string>("direct", "1"),
+				pair<string, string>("format", "LightText_40"),
+				pair<string, string>("anchorStyle", "TOPLEFT"),
+				pair<string, string>("x", "16"),
+				pair<string, string>("y", "72"),
+				pair<string, string>("w", "50"),
+				pair<string, string>("h", "50"),
+				pair<string, string>("colour", "BLACK"),
+				pair<string, string>("shadowColour", "DARKBROWN"),
+				pair<string, string>("layer", "15"),
+				pair<string, string>("uniqueID", "debugText2"),
+				}))).run(*&gameEngine);
+				bool finishedWriting = Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("message",line),
+				pair<string, string>("format", "Centaur_25"),
+				pair<string, string>("anchorStyle", "TOPLEFT"),
+				pair<string, string>("x", "20"),
+				pair<string, string>("y", "79"),
+				pair<string, string>("w", "78"),
+				pair<string, string>("h", "33"),
+				pair<string, string>("direct",direct),
+				pair<string, string>("colour", "BLACK"),
+				pair<string, string>("shadowColour", "DARKBROWN"),
+				pair<string, string>("layer", "15"),
+				pair<string, string>("uniqueID", "debugText1"),
+				pair<string, string>("animated", "TRUE"),
+				pair<string, string>("styles", "TYPEWRITER,PARCHMENT"),
+					}))).run(*&gameEngine);
+				return finishedWriting;
+			}
 }
 		string name;
 		string type;
@@ -352,8 +462,8 @@ public:
 			name = _name;
 			eventList = _eventList;
 		}
-		bool run() {
-			while (!eventList.empty() and eventList.front().run()) {
+		bool run(GameEngine & gameEngine) {
+			while (!eventList.empty() and eventList.front().run(*&gameEngine)) {
 				eventList.pop_front();
 			}
 			return false;
@@ -485,7 +595,11 @@ public:
 			}))),
 			Event("Debug Exploring", "DEBUGEXPLORE", Map<string,string>(List<pair<string,string>>({}))),
 			})) }),
-
+		pair<string, Procedure>({ "DeadHorse", Procedure("Cutscene", List<Event>({Event("Line1", "DIALOGUESTART", {Map<string, string>(List<pair<string,string>>({
+				pair<string, string>({"speaker", "EXPLORER"}),
+				pair<string, string>({"line", "example text."}),
+				pair<string, string>({"direct", "1"}),
+			}))})}))}),
 		});
 
 	GameEngine() {}
@@ -504,10 +618,10 @@ public:
 		return stateFlags["QUIT"] == "1";
 	}
 	void run() {
-		activeProcedure.run();
+		activeProcedure.run(*this);
 	}
 
-		Procedure activeProcedure;
-		Map<string, string> stateFlags;
+	Procedure activeProcedure;
+	Map<string, string> stateFlags;
 };
 GameEngine game;

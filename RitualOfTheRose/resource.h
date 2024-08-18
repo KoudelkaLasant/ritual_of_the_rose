@@ -31,6 +31,14 @@
 #define PARCHMENT_WAV_11 1011
 #define PARCHMENT_WAV_12 1012
 #define PARCHMENT_WAV_13 1013
+#define GRASS_WAV_1 1014
+#define GRASS_WAV_2 1015
+#define GRASS_WAV_3 1016
+#define GRASS_WAV_4 1017
+#define STONE_WAV_1 1018
+#define STONE_WAV_2 1019
+#define STONE_WAV_3 1020
+#define STONE_WAV_4 1021
 #define TOWN_WAV_1 2000
 #define IDF_CENTAUR 3000
 #define IDF_GOUDYMEDIEVAL 3001
@@ -99,6 +107,8 @@
 #define LAMPLIGHT16 4062
 #define LAMPLIGHT17 4063
 #define LAMPLIGHT18 4064
+#define WELL 4065
+#define ANGELA_SPEAKER 4066
 
 // Next default values for new objects
 // 
