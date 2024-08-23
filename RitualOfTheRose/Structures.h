@@ -1,6 +1,6 @@
 #pragma once
-#include "Error Helper.h"
-
+#include "framework.h"
+#include "Strings.h"
 
 template <typename T>
 struct List {
@@ -80,6 +80,12 @@ struct List {
 		}
 		return *this;
 	}
+	List<T> operator+(const List<T>& RHS) {
+		for (auto x : RHS.internalList) {
+			internalList.push_back(x);
+		}
+		return *this;
+	}
 	bool operator==(List<T>& RHS) {
 		return sameContents(RHS);
 		return true;
@@ -108,7 +114,7 @@ struct List {
 			return internalList.front();
 		}
 		catch (exception ex) {
-			ErrorHelper::warning("This list has nothing in it, can't get anything out of it!", true);
+			throw runtime_error("This list has nothing in it, can't get anything out of it!");
 		}
 		return internalList.front();
 	}
@@ -117,7 +123,7 @@ struct List {
 			return internalList.back();
 		}
 		catch (exception ex) {
-			ErrorHelper::warning({ "This list has nothing in it, can't get anything out of it!" }, true);
+			throw runtime_error({ "This list has nothing in it, can't get anything out of it!" });
 		}
 		return internalList.front();
 	}
@@ -238,7 +244,7 @@ struct Map {
 				return x.first;
 			}
 		}
-		ErrorHelper::warning({ "getKeyAssociatedWithThisValue found no key. Please check." }, false);
+		throw runtime_error("getKeyAssociatedWithThisValue found no key. Please check.");
 		return A();
 	}
 	B getAnything() {

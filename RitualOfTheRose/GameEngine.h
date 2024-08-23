@@ -16,12 +16,12 @@ public:
 				List<string> sources = split(data["sources"], " ");
 				List<int> intSources;
 				if (sources.size() == 0) {
-					ErrorHelper::warning("Can't have an image with no sources.", false);
+					throw runtime_error("Can't have an image with no sources.");
 				}
 				for (int x = 0; x < sources.size(); x++) {
 					intSources.push_back(stoi(sources.at(x)));
 				}
-				pair<int, int> position = { stoi(data["x"]), stoi(data["y"]) };
+				pair<float, float> position = { stoi(data["x"]), stoi(data["y"]) };
 				string anchor = data["anchor"];
 				float opacity = stof(data["opacity"]);
 				int layer = stoi(data["layer"]);
@@ -40,10 +40,84 @@ public:
 				}
 				return true;
 			}
+			if (type == "MANAGEAUDIOSWAP") {
+				string previousMap = explorer.currentMap.name;
+				string targetMap = data["targetMap"];
+				bool unloadAudio = data.hasKey("unloadAudio");
+				
+				List<string> existingSongs = explorer.currentMap.getSongNames();
+				List<string> upcomingSongs = explorer.maps[targetMap].getSongNames();
+				for (auto song : existingSongs.internalList) {
+					string songName = split(song, " ").at(0);
+					if (!upcomingSongs.contains(songName)) {
+						audio.fadeOutAndStopThis(stoi(songName), 3);
+						if (unloadAudio) {
+							audio.unloadThisAudio(stoi(songName));
+						}
+					}
+				}
+
+				for (auto song : upcomingSongs.internalList) {
+					string songName = split(song, " ").at(0);
+					string volume = split(song, " ").at(1);
+					if (!existingSongs.contains(songName)) {
+						if (!audio.isThisAudioLoaded(stoi(songName))) {
+							audio.loadAudio(stoi(songName));
+						}
+						audio.playSound(stoi(songName), stof(volume), true, true);
+					}
+				}
+				return true;
+			}
+			if (type == "SHOWMAPLOADINGSCREEN") {
+				string mapName = data["targetMap"];
+				string uniqueID = "LoadingScreen";
+				string loadingScreenSource = explorer.maps[mapName].data["LoadingScreenImage"];
+				if (!graphics.doesThisImageAlreadyExist(uniqueID)) {
+					Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", loadingScreenSource),
+						pair<string, string>("x", "50"),
+						pair<string, string>("y", "50"),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", "0.0"),
+						pair<string, string>("layer",to_string(imageLookup.layerDefaults["LOADINGSCREEN"])),
+						pair<string, string>("scale", "1.0"),
+						pair<string, string>("uniqueID", uniqueID), }))).run(*&gameEngine);
+					return false;
+				}
+				if (!CLOCK.hasEnoughTimePassed("loadingscreenmapfade", 10)) {
+					return false;
+				}
+				Graphics::Image* theImage = graphics.accessImageViaUniqueID(uniqueID);
+				theImage->opacity = TChange(theImage->opacity,0.1f,0.0f,1.0f);
+				if (theImage->opacity == 1.0f) {
+					return true;
+				}
+				return false;
+			}
+			if (type == "UNLOADIMAGESFORMAPCHANGE") {
+				for (auto layer : graphics.ImageMap.getKeys().internalList) {
+					if (layer == imageLookup.layerDefaults["LOADINGSCREEN"]) { continue; }
+					graphics.teardownAllImagesOnThisLayer(layer);
+				}
+				graphics.tearDownAllText();
+				return true;
+			}
+			if (type == "PLAYSFX") {
+				audio.playRandomSFXFromThisCollection(data["audio"],1.0);
+				return true;
+			}
 			if (type == "LOADMAP") {
-				string mapName = data["uniqueID"];
+				string mapName = data["targetMap"];
 				string explorerName = saveContainer.getCurrentMainCharacter();
 				explorer.loadMap(mapName);
+				if (data.hasKey("putPlayerHere")) {
+					explorer.playerOnMap.position = { stoi(data["x"]), stoi(data["y"]) };
+				}
+				string direction = "STAND_FRONT";
+				if (data.hasKey("direction")) {
+					direction = data["direction"];
+				}
 				Event("Load" + explorerName, "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 					pair<string, string>("sources", to_string(explorer.currentMap.source)),
 					pair<string, string>("x", "50"),
@@ -54,7 +128,7 @@ public:
 					pair<string, string>("scale", "2.0"),
 					pair<string, string>("uniqueID", mapName), }))).run(*&gameEngine);
 				Event("Load" + explorerName, "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
-					pair<string, string>("sources", imageLookup.getSequenceAsString(explorerName, "STAND_FRONT")),
+					pair<string, string>("sources", imageLookup.getSequenceAsString(explorerName, direction)),
 					pair<string, string>("x", "50"),
 					pair<string, string>("y", "50"),
 					pair<string, string>("anchor", "BOTTOMMIDDLE"),
@@ -65,7 +139,7 @@ public:
 					pair<string, string>("styles", "LOOP"),
 					pair<string, string>("uniqueID", explorerName + "_Explore"), }))).run(*&gameEngine);
 				Event("Load Shadow", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
-					pair<string, string>("sources", imageLookup.getSequenceAsString("Shadow " + explorerName, "STAND_FRONT")),
+					pair<string, string>("sources", imageLookup.getSequenceAsString("Shadow " + explorerName, direction)),
 					pair<string, string>("x", "50"),
 					pair<string, string>("y", "50"),
 					pair<string, string>("anchor", "BOTTOMMIDDLE"),
@@ -77,12 +151,16 @@ public:
 					pair<string, string>("uniqueID", explorerName + "_Shadow")}))).run(*&gameEngine);
 				for (auto const& x : explorer.currentMap.objects.internalList) {
 					if (x.imageSources == "") { continue; }
+					string opacity = x.opacity;
+					if (!x.visible) {
+						opacity = "0.0";
+					}
 					Event("Load" + x.name, "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 						pair<string, string>("sources", x.imageSources),
 						pair<string, string>("x", "50"),
 						pair<string, string>("y", "50"),
 						pair<string, string>("anchor", "CENTRE"),
-						pair<string, string>("opacity", x.opacity),
+						pair<string, string>("opacity", opacity),
 						pair<string, string>("layer", to_string(x.layer)),
 						pair<string, string>("animated", x.animated),
 						pair<string, string>("animation_speed", to_string(x.animationSpeed)),
@@ -90,6 +168,7 @@ public:
 						pair<string, string>("uniqueID", x.name), }))).run(*&gameEngine);
 				}
 				Event("", "MAPMOVE", {}).run(*&gameEngine);
+				CLOCK.startClock("DialogueEnded"); // wait short time once a cutscene ends before moving on
 				return true;
 			}
 			if (type == "MAPMOVE") {
@@ -107,9 +186,9 @@ public:
 					Graphics::Image* objectImage = graphics.accessImageViaUniqueID(x.name);
 					objectImage->positionAsPercentage = imagePositions[x.name];
 				}
-				if (graphics.does_this_text_already_exist(explorer.mapPopupTextID) and data.getKeys().contains("copy")) {
+				if (graphics.doesThisTextAlreadyExist(explorer.mapPopupTextID) and data.getKeys().contains("copy")) {
 					int layer = imageLookup.layerDefaults["TEXTONMAP"];
-					graphics.TextMap[layer][explorer.mapPopupTextID].positionAsPercentage = imagePositions[data["copy"]];
+					graphics.TextMap[layer][explorer.mapPopupTextID].positionAsPercentage = imagePositions[data["copy"] + "_text"];
 				}
 			}
 			if (type == "WAIT") {
@@ -134,7 +213,7 @@ public:
 				return true;
 			}
 			if (type == "DRAWTEXT") {
-				List<string> mp = split(data["message"], " ");
+				List<string> mp = split(data["message"], "_");
 				wstring message = wstring(data["message"].begin(), data["message"].end());
 				if (data["direct"] != "1") {
 					message = strings[mp.at(0)][mp.at(1)][mp.at(2)];
@@ -149,7 +228,7 @@ public:
 				string uniqueID = data["uniqueID"];
 				List<string> styles = split(data["styles"], ",");
 				bool animated = data["animated"] == "TRUE";
-				if (!graphics.does_this_text_already_exist(uniqueID)) {
+				if (!graphics.doesThisTextAlreadyExist(uniqueID)) {
 					graphics.addText(Graphics::Text(message, format, position, anchorStyle, size, colour, shadowColour, uniqueID), layer);
 					if (animated) {
 						if (styles.contains("TYPEWRITER")) {
@@ -158,7 +237,16 @@ public:
 					}
 				}
 				else {
+					if (!animated) {
+						if (graphics.TextMap[layer][uniqueID].message != message) {
+							graphics.TextMap[layer][uniqueID].message = message;
+						}
+					}
 					if (animated and styles.contains("TYPEWRITER")) {
+						if (graphics.TextMap[layer][uniqueID].fullMessage != message) {
+							graphics.TextMap[layer][uniqueID].message = message;
+							graphics.TextMap[layer][uniqueID].startTypewriter();
+						}
 						int typewriterSpeed = 5;
 						wstring full = graphics.TextMap[layer].internalMap[uniqueID].fullMessage;
 						bool finished = graphics.TextMap[layer].internalMap[uniqueID].message == full;
@@ -194,7 +282,7 @@ public:
 			if (type == "DEBUGUSERINPUT") {
 				string uniqueID = "DEBUGTEXT";
 				int layer = 10;
-				if (!graphics.does_this_text_already_exist(uniqueID)) {
+				if (!graphics.doesThisTextAlreadyExist(uniqueID)) {
 					graphics.addText(Graphics::Text(L"", "Centaur_25", { 50,50 }, "CENTRE", { 100,100 }, graphics.Colours["WHITE"], graphics.Colours["BLACK"], uniqueID), layer);
 				}
 				graphics.TextMap[layer].internalMap[uniqueID].message = StringToWString(controller.controllerDebug());
@@ -206,7 +294,7 @@ public:
 			if (type == "DEBUGCLICKANDDRAG") {
 				string uniqueID = "DEBUGCLICKANDDRAG";
 				int layer = 10;
-				if (!graphics.does_this_text_already_exist(uniqueID)) {
+				if (!graphics.doesThisTextAlreadyExist(uniqueID)) {
 					graphics.addText(Graphics::Text(L"", "Centaur_25", { 10,90 }, "TOPLEFT", { 100,100 }, graphics.Colours["BLACK"], graphics.Colours["BLACK"], uniqueID), layer);
 				}
 				string clickAndDragMessage = "Images Hovered Over: ";
@@ -252,7 +340,7 @@ public:
 			if (type == "DEBUGWALKING") {
 				string textUniqueID = "DEBUGWALKING";
 				int layer = 10;
-				if (!graphics.does_this_text_already_exist(textUniqueID)) {
+				if (!graphics.doesThisTextAlreadyExist(textUniqueID)) {
 					graphics.addText(Graphics::Text(L"", "Centaur_25", { 2,80 }, "TOPLEFT", { 100,100 }, graphics.Colours["WHITE"], graphics.Colours["BLACK"], textUniqueID), layer);
 				}
 				graphics.TextMap[layer].internalMap[textUniqueID].message = StringToWString(explorer.debug());
@@ -264,9 +352,10 @@ public:
 				SaveContainer::SaveFile save(defaultSavePath);
 				save.saveToDisk(debugSavePath);
 				saveContainer.load(debugSavePath);
+				saveContainer.current.party = {data["uniqueID"]};
 				return true;
 			}
-			if (type == "DEBUGEXPLORE") {
+			if (type == "EXPLORE") {
 				bool moving = false;
 				bool need_to_reset_image_sources = true;
 				string newDirection = "";
@@ -345,15 +434,21 @@ public:
 					}
 				}
 				bool stopExploringStartCutscene = false;
+				bool stopExploringChangeArea = false;
 				bool popUpTextNeedsToBeDrawn = false;
 				bool mapPopUpTextExists = false;
 				string whichCutscene = "";
+				string currentMap = explorer.currentMap.name;
+				string targetMap = "";
+				pair<float, float> futurePlayerPosition = {0,0};
+				string futurePlayerDirection = "FRONT";
+				Map<string, string> walkableDataToMoveOn; // send this to function that deals with next step
 				if (moving and CLOCK.hasEnoughTimePassed("EXPLORE",exploreAnimationSpeeds["MOVE"])) {
 					explorer.tryToMovePlayer(newDirection);
 					Event("Map Move", "MAPMOVE", {}).run(*&gameEngine);
 					image->opacity = 1.0;
 					shadowImage->opacity = 0.5;
-					mapPopUpTextExists = graphics.does_this_text_already_exist(explorer.mapPopupTextID);
+					mapPopUpTextExists = graphics.doesThisTextAlreadyExist(explorer.mapPopupTextID);
 					popUpTextNeedsToBeDrawn = false;
 					for (auto walkable : explorer.getCurrentlySteppedOn().internalList) {
 						if (walkable.data["trans"] == "1") {
@@ -373,12 +468,24 @@ public:
 						// put trigger here
 					}
 				}
-				// user has pressed space on an interactable object
+				// user has walked in range of an interactible object
+				bool userInput = controller.haveOneOfTheseBeenPressed(VK_SPACE) and CLOCK.hasEnoughTimePassed("DialogueEnded", 1000);
 				for (auto walkable : explorer.getObjectsInRange().internalList) {
-					if (walkable.data.getKeys().contains("cutscene") and controller.haveOneOfTheseBeenPressed(VK_SPACE)) {
+					if (walkable.data.getKeys().contains("message")) {
+						popUpTextNeedsToBeDrawn = true;
+					}
+					if (walkable.data.getKeys().contains("cutscene") and userInput) {
 						whichCutscene = walkable.data["cutscene"];
 						stopExploringStartCutscene = true;
 						popUpTextNeedsToBeDrawn = false;
+					}
+					if (walkable.data.getKeys().contains("areaTransition") and userInput) {
+						currentMap = explorer.currentMap.name;
+						targetMap = walkable.data["areaTransition"];
+						futurePlayerPosition = { stof(walkable.data["playerPosX"]), stof(walkable.data["playerPosY"]) };
+						futurePlayerDirection = "BACK";
+						walkableDataToMoveOn = walkable.data;
+						stopExploringChangeArea = true;
 					}
 				}
 
@@ -386,52 +493,72 @@ public:
 					Event("TearDownPopUpText", "TEARDOWNTEXT", Map<string, string>(pair<string, string>{"uniqueID", explorer.mapPopupTextID})).run(*&gameEngine);
 				}
 				
-				Event("userInput", "DEBUGWALKING", { }).run(*&gameEngine);
-				Event("userInput", "DEBUGUSERINPUT", { }).run(*&gameEngine);
 				if (stopExploringStartCutscene) {
-					gameEngine.activeProcedure = gameEngine.storedProcedures[whichCutscene];
-					return false;
+					if (!gameEngine.storedProcedures.getKeys().contains(whichCutscene)) {
+						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, whichCutscene, saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					}
+					else {
+						gameEngine.activeProcedure = gameEngine.storedProcedures[whichCutscene];
+					}
+				}
+				if (stopExploringChangeArea) {
+					gameEngine.activeProcedure = gameEngine.makeAreaTransitionProcedure(currentMap, targetMap, futurePlayerPosition, futurePlayerDirection, walkableDataToMoveOn);
 				}
 				return false;
 			}
-			if (type == "DIALOGUESTART") {
+			if (type == "DEBUGEXPLORE") {
+				Event("userInput", "DEBUGWALKING", { }).run(*&gameEngine);
+				Event("userInput", "DEBUGUSERINPUT", { }).run(*&gameEngine);
+				return Event("Explore", "EXPLORE", {}).run(*&gameEngine);
+			}
+			if (type == "DIALOGUE") {
+				string cutscene = data["cutscene"];
 				string speakerID = data["speaker"];
-				string line = data["line"];
+				string line = name;
 				string direct = data["direct"]; // 1 = use string here 0 = get string from Strings.h
 				if (speakerID == "PLAYER") {
-					string speakerID = saveContainer.getCurrentMainCharacter();
+					speakerID = saveContainer.getCurrentMainCharacter();
+				}
+				if (direct != "1") {
+					line = gameEngine.language + "_" + cutscene + "_" + line + " " + speakerID;
 				}
 				string speakerImageID = imageLookup.getSequenceAsString(speakerID, "SPEAKER");
-				Event("Load TextBox", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+				if (!graphics.doesThisImageAlreadyExist("TEXTBOX")) {
+					Event("Load TextBox", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 				pair<string, string>("sources", to_string(TEXTBOX)),
 				pair<string, string>("x", "50"),
 				pair<string, string>("y", "86"),
 				pair<string, string>("anchor", "CENTRE"),
 				pair<string, string>("opacity", "1.0"),
-				pair<string, string>("layer", "1"),
+				pair<string, string>("layer", to_string(imageLookup.layerDefaults["UI"] + 1)),
 				pair<string, string>("uniqueID", "TEXTBOX"), }))).run(*&gameEngine);
-				Event("Load Speaker", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
-				pair<string, string>("sources", speakerImageID),
-				pair<string, string>("x", "0"),
-				pair<string, string>("y", "65"),
-				pair<string, string>("anchor", "TOPLEFT"),
-				pair<string, string>("opacity", "1.0"),
-				pair<string, string>("layer", "2"),
-				pair<string, string>("uniqueID", "SPEAKER"), }))).run(*&gameEngine);
+					Event("Load Speaker", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+					pair<string, string>("sources", speakerImageID),
+					pair<string, string>("x", "0"),
+					pair<string, string>("y", "65"),
+					pair<string, string>("anchor", "TOPLEFT"),
+					pair<string, string>("opacity", "1.0"),
+					pair<string, string>("layer", to_string(imageLookup.layerDefaults["UI"] + 2)),
+					pair<string, string>("uniqueID", "SPEAKER"), }))).run(*&gameEngine);
+				}
 				Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
-				pair<string, string>("message",speakerID),
-				pair<string, string>("direct", "1"),
-				pair<string, string>("format", "LightText_40"),
-				pair<string, string>("anchorStyle", "TOPLEFT"),
-				pair<string, string>("x", "16"),
-				pair<string, string>("y", "72"),
-				pair<string, string>("w", "50"),
-				pair<string, string>("h", "50"),
-				pair<string, string>("colour", "BLACK"),
-				pair<string, string>("shadowColour", "DARKBROWN"),
-				pair<string, string>("layer", "15"),
-				pair<string, string>("uniqueID", "debugText2"),
-				}))).run(*&gameEngine);
+					pair<string, string>("message",speakerID),
+					pair<string, string>("direct", "1"),
+					pair<string, string>("format", "LightText_40"),
+					pair<string, string>("anchorStyle", "TOPLEFT"),
+					pair<string, string>("x", "18"),
+					pair<string, string>("y", "72"),
+					pair<string, string>("w", "50"),
+					pair<string, string>("h", "50"),
+					pair<string, string>("colour", "BLACK"),
+					pair<string, string>("shadowColour", "DARKBROWN"),
+					pair<string, string>("layer",  to_string(imageLookup.layerDefaults["UI"] + 3)),
+					pair<string, string>("uniqueID", "speakerNameText"),
+					}))).run(*&gameEngine);
+				Graphics::Image * speaker = graphics.accessImageViaUniqueID("SPEAKER");
+				if (!speaker->sources.contains(stoi(speakerImageID))) {
+					speaker->resetSources(*&graphics, { stoi(speakerImageID) });
+				}
 				bool finishedWriting = Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
 				pair<string, string>("message",line),
 				pair<string, string>("format", "Centaur_25"),
@@ -443,13 +570,26 @@ public:
 				pair<string, string>("direct",direct),
 				pair<string, string>("colour", "BLACK"),
 				pair<string, string>("shadowColour", "DARKBROWN"),
-				pair<string, string>("layer", "15"),
-				pair<string, string>("uniqueID", "debugText1"),
+				pair<string, string>("layer", to_string(imageLookup.layerDefaults["UI"] + 3)),
+				pair<string, string>("uniqueID", "speakerDialogueText"),
 				pair<string, string>("animated", "TRUE"),
 				pair<string, string>("styles", "TYPEWRITER,PARCHMENT"),
 					}))).run(*&gameEngine);
-				return finishedWriting;
+				return (finishedWriting and controller.haveOneOfTheseBeenPressed({ VK_SPACE }));
 			}
+			if (type == "TEARDOWNDIALOGUE") {
+				Event("TeardownImage", "TEARDOWNIMAGE", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("uniqueID", "TEXTBOX"), }))).run(*&gameEngine);
+				Event("TeardownImage", "TEARDOWNIMAGE", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("uniqueID", "SPEAKER"), }))).run(*&gameEngine);
+				Event("TeardownText", "TEARDOWNTEXT", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("uniqueID", "speakerNameText"), }))).run(*&gameEngine);
+				Event("TeardownText", "TEARDOWNTEXT", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("uniqueID", "speakerDialogueText"), }))).run(*&gameEngine);
+				CLOCK.startClock("DialogueEnded");
+				return true;
+			}
+
 }
 		string name;
 		string type;
@@ -518,7 +658,7 @@ public:
 				pair<string, string>("layer", "2"),
 				pair<string, string>("uniqueID", "SPEAKER"),}))),
 			Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string,string>>({
-				pair<string, string>("message","ENG NAMES Angela"),
+				pair<string, string>("message","ENG_NAMES_Angela"),
 				pair<string, string>("format", "LightText_40"),
 				pair<string, string>("anchorStyle", "TOPLEFT"),
 				pair<string, string>("x", "16"),
@@ -531,7 +671,7 @@ public:
 				pair<string, string>("uniqueID", "debugText2"),
 				}))),
 			Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string,string>>({
-				pair<string, string>("message","ENG DEBUG TestString"),
+				pair<string, string>("message","ENG_DEBUG_TestString"),
 				pair<string, string>("format", "Centaur_25"),
 				pair<string, string>("anchorStyle", "TOPLEFT"),
 				pair<string, string>("x", "20"),
@@ -588,20 +728,96 @@ public:
 			}),
 		pair<string, Procedure>({ "DEBUG3",
 			Procedure("SaveAndLoad", List<Event>({
-			Event("Debug Loading", "DEBUGLOAD", Map<string,string>(List<pair<string,string>>({}))),
-			Event("Load Map", "LOADMAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("sources", to_string(MAP_DEBUG)),
-				pair<string, string>("uniqueID", "debugmap"),
+			Event("Debug Loading", "DEBUGLOAD", Map<string,string>(List<pair<string,string>>({
+				pair<string, string>("uniqueID", "Olyver Sumner")
+				}))),
+			Event("Load Map", "MANAGEAUDIOSWAP", Map<string,string>(List<pair<string,string>>({
+				pair<string, string>("targetMap", "RoadToBénouville"),
 			}))),
-			Event("Debug Exploring", "DEBUGEXPLORE", Map<string,string>(List<pair<string,string>>({}))),
+			Event("Load Map", "LOADMAP", Map<string,string>(List<pair<string,string>>({
+				pair<string, string>("targetMap", "RoadToBénouville"),
+			}))),
+			Event("Debug Exploring", "EXPLORE", Map<string,string>(List<pair<string,string>>({}))),
 			})) }),
-		pair<string, Procedure>({ "DeadHorse", Procedure("Cutscene", List<Event>({Event("Line1", "DIALOGUESTART", {Map<string, string>(List<pair<string,string>>({
-				pair<string, string>({"speaker", "EXPLORER"}),
-				pair<string, string>({"line", "example text."}),
-				pair<string, string>({"direct", "1"}),
-			}))})}))}),
+		pair<string, Procedure>({ "Test", Procedure("Cutscene", List<Event>({
+			Event("1", "DIALOGUE", {Map<string, string>(List<pair<string,string>>({
+				pair<string, string>({"cutscene", "DeadHorse"}),
+				pair<string, string>({"speaker", "PLAYER"}),
+				}))}),
+			Event("2", "DIALOGUE", {Map<string, string>(List<pair<string,string>>({
+				pair<string, string>({"cutscene", "DeadHorse"}),
+				pair<string, string>({"speaker", "PLAYER"}),
+				}))}),
+				Event("Line2", "TEARDOWNDIALOGUE",{}),
+				Event("Explore", "EXPLORE",{}),
+}))}),
 		});
-
+	Procedure makeDynamicCutsceneProcedure(string language, string cutsceneName, string player, string postProcedure) {
+			return Procedure("Cutscene", List<Event>(convertDynamicStringsToDialogue(language, cutsceneName, player) + 
+				List<Event>(Event("PostCutscene", "TEARDOWNDIALOGUE", {})) + List<Event>(Event("PostCutscene", postProcedure, {}))
+			));
+	}
+	Procedure makeAreaTransitionProcedure(string fromMap, string toMap, pair<float, float> playerPosition, string playerDirection, Map<string,string> walkableData) {
+		List<Event> events;
+		if (walkableData.hasKey("audio")) {
+			events.push_back(Event("Play AT Audio", "PLAYSFX", Map<string, string>({
+				pair<string, string>("audio",walkableData["audio"]),
+				})));
+		}
+		events.push_back(Event("ShowLoadingScreen", "SHOWMAPLOADINGSCREEN", Map<string, string>({
+			pair<string, string>("targetMap",toMap),
+			})));
+		events.push_back(Event("TearDownOtherImages", "UNLOADIMAGESFORMAPCHANGE", {}));
+		events.push_back(Event("WaitASec", "WAIT", Map<string, string>({
+			pair<string, string>("clockID","AreaTransitionWait"),
+			pair<string, string>("waitDuration","50"),
+			})));
+		events.push_back(Event("SwapAudio", "MANAGEAUDIOSWAP", {
+			pair<string, string>("targetMap",toMap),
+			}));
+		events.push_back(Event("LoadNewMap", "LOADMAP", Map<string, string>({
+			pair<string, string>("targetMap",toMap),
+			pair<string, string>("putPlayerHere", "1"),
+			pair<string, string>("x",to_string(playerPosition.first)),
+			pair<string, string>("y",to_string(playerPosition.second)),
+			pair<string, string>("direction", walkableData["direction"]),
+			})));
+		events.push_back(Event("FadeOut", "ANIMATEIMAGE", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("uniqueID", "LoadingScreen"),
+				pair<string, string>("styles", "FADEOUT"),
+				pair<string, string>("speed", "100"),
+				pair<string, string>("wait", "TRUE"), }))));
+		events.push_back(Event("TeardownImage", "TEARDOWNIMAGE", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("uniqueID", "LoadingScreen"), }))));
+		events.push_back(Event("Explore", "EXPLORE", {}));
+		return Procedure("AreaTransition", events);
+	}
+	List<Event> convertDynamicStringsToDialogue(string language, string cutsceneName, string player) {
+		// dynamic as in, the line changes depending on who the player is
+		// for example, player interacting with something on the map
+		// other cutscenes have all hardcoded speakers
+		List<Event> results;
+		List<string> acceptedLines;
+		Map<string, wstring> lines; lines.internalMap = strings[language][cutsceneName];
+		for (auto const [key, val] : strings[language][cutsceneName]) {
+			string thisLine = split(key, " ").at(0);
+			if (acceptedLines.contains(thisLine)) { continue; }
+			string thisSpeaker = split(key, " ").at(1);
+			if (thisSpeaker.find("+") != -1) {
+				// add something where the line itself must change according to the player
+			}
+			string speaker = thisSpeaker;
+			if (lines.getKeys().contains(thisLine + " " + player)) {
+				speaker = "PLAYER";
+			}
+			results.push_back(Event(thisLine, "DIALOGUE", { Map<string, string>(List<pair<string,string>>({
+				pair<string, string>({"cutscene", cutsceneName}),
+				pair<string, string>({"speaker", "PLAYER"}),
+				})) }));
+			acceptedLines.push_back(thisLine);
+		}
+		return results;
+	}
 	GameEngine() {}
 	void setup() {
 		string mode = Args.get("mode");
@@ -609,7 +825,7 @@ public:
 			activeProcedure = storedProcedures["DEBUG3"];
 		}
 		else {
-			ErrorHelper::warning("Not Implemented yet" , true);
+			throw runtime_error("Not Implemented yet");
 		}
 		CLOCK.startClock("FPS");
 		stateFlags["QUIT"] = "0";
@@ -623,5 +839,6 @@ public:
 
 	Procedure activeProcedure;
 	Map<string, string> stateFlags;
+	string language = "ENG";
 };
 GameEngine game;

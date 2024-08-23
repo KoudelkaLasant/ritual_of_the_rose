@@ -547,7 +547,7 @@ public:
 
             // draw layer x's text after drawing layer x's images
             for (auto const& [key, val] : ImageMap.internalMap) {
-                if (latest_layer < key) { latest_layer = key; }
+                if (latest_layer < key and not ImageMap[key].empty()) { latest_layer = key; }
                 drawTheseImagesByYOrder(ImageMap[key]);
                 for (auto & [subkey, subval] : TextMap[key].internalMap) {
                     subval.draw(*this);
@@ -615,19 +615,28 @@ public:
         }
         TextMap[layer][text.unique_ID] = text;
     }
+    void teardownAllImagesOnThisLayer(int layer) {
+        while (not ImageMap[layer].empty()) {
+            Image* toDelete = ImageMap[layer].front();
+            for (auto source : toDelete->sources.internalList) {
+                if (TextureMemory.getKeys().contains(source) and TextureMemory[source] != NULL) {
+                    SafeRelease("Releasing this texture in the texture memory: " + to_string(source), &TextureMemory[source]);
+                }
+            }
+            delete ImageMap[layer].front();
+            ImageMap[layer].front() = NULL;
+            ImageMap[layer].pop_front();
+            ImageMap.internalMap.erase(layer);
+        }
+    }
     void teardownAllImages() {
+        for (auto const & [key, val] : ImageMap.internalMap) {
+            teardownAllImagesOnThisLayer(key);
+        }
         for (auto const& [key, val] : TextureMemory.internalMap) {
-            SafeRelease("Releasing this texture in the texture memory: " + key, &TextureMemory[key]);
+            SafeRelease("Releasing this texture in the texture memory: " + to_string(key), &TextureMemory[key]);
         }
         TextureMemory.clear();
-        for (auto const & [key, val] : ImageMap.internalMap) {
-            while (not ImageMap[key].empty()) {
-                Image* toDelete = ImageMap[key].front();
-                delete ImageMap[key].front();
-                ImageMap[key].front() = NULL;
-                ImageMap[key].pop_front();
-            }
-        }
         ImageMap.clear();
     }
     void teardownAllTextFormats() {
@@ -643,7 +652,7 @@ public:
                 }
             }
         }
-        ErrorHelper::warning({ uniqueID + " could not be found!" }, true);
+        return NULL;
     }
     void tearDownSpecifiedImage(string uniqueID) {
         int index = -1;
@@ -673,6 +682,9 @@ public:
             }
         }
     }
+    void tearDownAllText() {
+        TextMap.clear();
+    }
     void tearDownAllCursors() {
         for (auto const& [key, val]: Cursors.internalMap) {
             DestroyCursor(val);
@@ -684,13 +696,16 @@ public:
             RemoveFontMemResourceEx(val);
         }
     }
-    bool does_this_text_already_exist(string uniqueID) {
+    bool doesThisTextAlreadyExist(string uniqueID) {
         for (auto const& [key, val] : TextMap.internalMap) {
             if (TextMap[key].getKeys().contains(uniqueID)) {
                 return true;
             }
         }
         return false;
+    }
+    bool doesThisImageAlreadyExist(string uniqueID) {
+        return accessImageViaUniqueID(uniqueID) != NULL;
     }
     void changeCursor(string name) {
         CurrentCursor = name;
