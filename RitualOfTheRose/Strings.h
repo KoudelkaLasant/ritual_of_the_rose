@@ -15,7 +15,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"1 Gihat al-Din Jaqmaq", L"Whoever killed this horse had no interest in sparing her any pain. Such an inefficient and barbaric wound would have greatly extended her suffering."},
 			{"2 Gihat al-Din Jaqmaq", L"The madman who did this may still be close. I must proceed carefully."},
 }},
-	{"DeadWoman", {
+		{"DeadWoman", {
 				{"1 Angela Fleuret", L"This trail of carnage is an insult to the civilised world."},
 				{"2 Angela Fleuret", L"Jesus give me the strength to extinguish this evil."},
 				{"1 Tianshun Song", L"Another life destroyed with no rhyme or reason. How odd. Even the most barbaric Mongol invader kills with some goal in mind. To conquer a town, scare the weak peasants, or even just for the pleasure of killing."},
@@ -38,6 +38,13 @@ map<string, map<string, map<string, wstring>>> strings = {
 				{"2 Hernando Pizarro", L"No matter. If I find the man responsible for this, I will bring swift justice to him, or my name isn't Hernando Pizarro!"},
 				{"1 Gihat al-Din Jaqmaq", L"These wounds are fresh. This can't have happened that long ago."},
 				{"2 Gihat al-Din Jaqmaq", L"I must keep my wits about me in this town. As long as I maintain my composure, this carnage won't become a distraction."},
+	}},
+	{"Fireplace1", {
+				{"1 Angela Fleuret", L"My journey here from the Vatican was one of speed rather than comfort. 'Tis a welcome change of pace to finally be somewhere warm and dry with a simple fireplace and the smell of cooking."},
+				{"1 Tianshun Song", L"I felt the pull of this town's negative energy all the way from Paris and I haven't rested since. Perhaps I could close my eyes just for a moment..."},
+				{"1 Olyver Sumner", L"What a lovely hearth. If I wasn't haunted by the idea of a psycho killer hiding upstairs I'd probably lie down and rest my eyes."},
+				{"1 Hernando Pizarro", L"Ah... to lay by such a fire with a glass of wine, a good friend and passionate conversation... maybe another time."},
+				{"1 Gihat al-Din Jaqmaq", L"I shouldn't be wasting any more time standing in this dead peasant's house!"},
 	}},
 		{"DEBUG", {
 			{"TestString", L".!?Test String➀é hello I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes."},

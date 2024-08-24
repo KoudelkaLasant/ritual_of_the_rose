@@ -2,6 +2,57 @@
 
 #include "Graphics.h"
 
+class Menu {
+public:
+	Menu() {}
+	class Button {
+	public:
+		Button() {}
+		Button(string _textID, string _buttonContent, string _imageID, List<int> _sources, int _audioClick, int _audioHover, pair<float, float> _position, bool _visible, bool _clickable) {
+			textID = _textID;
+			imageID = _imageID;
+			sources = _sources;
+			audioClick = _audioClick;
+			audioHover = _audioHover;
+			visible = _visible;
+			position = _position;
+			buttonContent = _buttonContent;
+			clickable = _clickable;
+		}
+		string textID;
+		string imageID;
+		string buttonContent;
+		List<int> sources;
+		pair<float, float> position;
+		string anchorStyle = "CENTRE";
+		int audioClick;
+		int audioHover;
+		bool visible;
+		bool clickable;
+	};
+	Menu(string uniqueID, List<Button> _buttons) {
+			buttons = _buttons;
+		}
+
+	static Button standardButton(string baseID, string buttonMessage, pair<float, float> position) {
+		Button result;
+		result.textID = baseID + "_TEXT";
+		result.imageID = baseID + "_IMAGE";
+		result.sources = { BUTTON1_DEFAULT, BUTTON1_HOVERED, BUTTON1_PRESSED };
+		result.audioClick = BUTTON_CLICK_WAV;
+		result.audioHover = BUTTON_HOVER_WAV;
+		result.buttonContent = buttonMessage;
+		result.position = position;
+		result.visible = true;
+		result.clickable = true;
+		result.anchorStyle = "CENTRE";
+		return result;
+
+	}
+	string uniqueID;
+	List<Button> buttons;
+};
+
 class GameEngine {
 public:
 	class Event {
@@ -504,6 +555,9 @@ public:
 				if (stopExploringChangeArea) {
 					gameEngine.activeProcedure = gameEngine.makeAreaTransitionProcedure(currentMap, targetMap, futurePlayerPosition, futurePlayerDirection, walkableDataToMoveOn);
 				}
+				if (controller.haveOneOfTheseBeenPressed(VK_ESCAPE)) {
+					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("DEBUG");
+				}
 				return false;
 			}
 			if (type == "DEBUGEXPLORE") {
@@ -589,7 +643,43 @@ public:
 				CLOCK.startClock("DialogueEnded");
 				return true;
 			}
-
+			if (type == "LOADMENU") {
+				string menuName = data["uniqueID"];
+				Menu menu= gameEngine.storedMenus[menuName];
+				for (auto button : menu.buttons.internalList) {
+					if (!button.visible) { continue; }
+					if (button.sources.size() > 0) { // no sources = no images needed
+						Event("LoadThisButtonImage", "LOADIMAGE", Map<string, string>({
+							pair<string, string>("sources", to_string(button.sources.at(0))),
+							pair<string, string>("x", to_string(button.position.first)),
+							pair<string, string>("y", to_string(button.position.second)),
+							pair<string, string>("anchor", button.anchorStyle),
+							pair<string, string>("opacity", "1.0"),
+							pair<string, string>("layer",to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("scale", "1.0"),
+							pair<string, string>("uniqueID", button.imageID),
+							})).run(*&gameEngine);
+					}
+					Event("LoadThisButtonText", "DRAWTEXT", Map<string, string>({
+						pair<string, string>("message",button.buttonContent),
+						pair<string, string>("direct", "1"),
+						pair<string, string>("format", "Centaur_25"),
+						pair<string, string>("anchorStyle", button.anchorStyle),
+						pair<string, string>("x", to_string(button.position.first)),
+						pair<string, string>("y", to_string(button.position.second)),
+						pair<string, string>("w", "100"),
+						pair<string, string>("h", "0"),
+						pair<string, string>("colour", "WHITE"),
+						pair<string, string>("shadowColour", "DARKBROWN"),
+						pair<string, string>("layer",  to_string(imageLookup.layerDefaults["BUTTONS"])),
+						pair<string, string>("uniqueID", button.textID),
+						})).run(*&gameEngine);
+				}
+				return true;
+			}
+			if (type == "HANDLEMENU") {
+				return false;
+			}
 }
 		string name;
 		string type;
@@ -732,10 +822,10 @@ public:
 				pair<string, string>("uniqueID", "Olyver Sumner")
 				}))),
 			Event("Load Map", "MANAGEAUDIOSWAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "RoadToBénouville"),
+				pair<string, string>("targetMap", "House1Inside1"),
 			}))),
 			Event("Load Map", "LOADMAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "RoadToBénouville"),
+				pair<string, string>("targetMap", "House1Inside1"),
 			}))),
 			Event("Debug Exploring", "EXPLORE", Map<string,string>(List<pair<string,string>>({}))),
 			})) }),
@@ -752,6 +842,11 @@ public:
 				Event("Explore", "EXPLORE",{}),
 }))}),
 		});
+	Map<string, Menu> storedMenus = List<pair<string, Menu>>({
+		pair<string, Menu>("DEBUG", Menu("DEBUGMENU", List<Menu::Button>({
+			Menu::standardButton("DEBUGBUTTON1", "Example Button", {50,50}),
+			}))),
+	});
 	Procedure makeDynamicCutsceneProcedure(string language, string cutsceneName, string player, string postProcedure) {
 			return Procedure("Cutscene", List<Event>(convertDynamicStringsToDialogue(language, cutsceneName, player) + 
 				List<Event>(Event("PostCutscene", "TEARDOWNDIALOGUE", {})) + List<Event>(Event("PostCutscene", postProcedure, {}))
@@ -791,6 +886,16 @@ public:
 				pair<string, string>("uniqueID", "LoadingScreen"), }))));
 		events.push_back(Event("Explore", "EXPLORE", {}));
 		return Procedure("AreaTransition", events);
+	}
+	Procedure makeLoadMenuProcedure(string whichMenu) {
+		List<Event> events;
+		events.push_back(Event("LoadAMenu", "LOADMENU", Map<string, string>({
+			pair<string, string>("uniqueID", whichMenu),
+			})));
+		events.push_back(Event("HandleMenu", "HANDLEMENU", Map<string, string>({
+			pair<string, string>("uniqueID", whichMenu),
+			})));
+		return Procedure("MenuProcedure", events);
 	}
 	List<Event> convertDynamicStringsToDialogue(string language, string cutsceneName, string player) {
 		// dynamic as in, the line changes depending on who the player is

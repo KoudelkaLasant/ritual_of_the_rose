@@ -28,7 +28,8 @@ public:
         customFonts = { 
             pair<string, int>({"Centaur", IDF_CENTAUR}), 
             pair<string,int>({ "GoudyMedieval", IDF_GOUDYMEDIEVAL }),
-            pair<string,int>({ "LightText", IDF_LIGHT })
+            pair<string,int>({ "LightText", IDF_LIGHT }),
+            pair<string,int>({ "Tower", IDF_TOWER }),
         };
         customFontSizes = {5,10,15,20,25,30,35,37,40};
         Colours["BLACK"] = { 0.0,0.0,0.0,1.0 };
@@ -361,15 +362,18 @@ public:
             hr = graphics.hwndRenderTarget->CreateSolidColorBrush(
                 D2D1::ColorF(D2D1::ColorF(shadowColour[0], shadowColour[1], shadowColour[2], shadowColour[3])),
                 &shadowBrush);
-            graphics.hwndRenderTarget->DrawText(
-                removeTagsBeforePrinting(graphics, message).c_str(),
-                message.size(),
-                graphics.WriteTextFormats[format],
-                shadowRect,
-                shadowBrush);
             IDWriteTextLayout * textLayout = NULL;
             graphics.DWriteFactory->CreateTextLayout(removeTagsBeforePrinting(graphics, message).c_str(), message.size(), graphics.WriteTextFormats[format], size_as_d2d.width, size_as_d2d.height, &textLayout);
-            D2D1_POINT_2F P; P.x = rect.left; P.y = rect.top;
+            D2D1_POINT_2F P;
+            P.x = rect.left; P.y = rect.top;
+            if (anchorStyle == "CENTRE") {
+                hr = textLayout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                hr = textLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+            }
+            D2D1_POINT_2F shadowP = P;
+            shadowP.x -= 1;
+            shadowP.y += 1;
+            graphics.hwndRenderTarget->DrawTextLayout(shadowP, textLayout, shadowBrush);
             Map<string, List<DWRITE_TEXT_RANGE>> subcolours = interpret_subcolours(graphics);
             Map<string, ID2D1SolidColorBrush*> extraBrushes;
             for (auto const& [key, value] : subcolours.internalMap) {
@@ -380,7 +384,7 @@ public:
                 for (auto const& range : subcolours[key].internalList) {
                     textLayout->SetDrawingEffect(extraBrushes[key], range);
                 }
-            }
+            } 
             graphics.hwndRenderTarget->DrawTextLayout(P, textLayout, theBrush);
             SafeRelease("Releasing the brush", & theBrush);
             SafeRelease("Releasing the shadow brush", & shadowBrush);
@@ -626,7 +630,6 @@ public:
             delete ImageMap[layer].front();
             ImageMap[layer].front() = NULL;
             ImageMap[layer].pop_front();
-            ImageMap.internalMap.erase(layer);
         }
     }
     void teardownAllImages() {

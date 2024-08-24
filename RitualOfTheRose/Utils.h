@@ -598,6 +598,7 @@ public:
 		layerDefaults["WEATHER"] = 11;
 		layerDefaults["TEXTONMAP"] = 12;
 		layerDefaults["UI"] = 15;
+		layerDefaults["BUTTONS"] = 20;
 		layerDefaults["LOADINGSCREEN"] = 25;
 
 		animationFrames["Angela Fleuret"]["SPEAKER"].internalList = { ANGELA_SPEAKER };
@@ -901,8 +902,7 @@ mapFloor::triangle({{46.79390788078308,13.37292343378067}, {46.32799029350281,15
 					}));
 		maps["House1Inside1"] = mapInstance("House1Inside1", EMPTYMAP, { 46,53 }, List<mapObject>({
 			mapObject("House1Inside1AsObject", false, true, false, imageLookup.getSequenceAsString("House1Inside1AsObject","STAND_FRONT"),"0",0,imageLookup.layerDefaults["Map"]+1,"1.0","CENTRE",{50, 50}, false, {}, {}),
-			mapObject("Fireplace1", false, true, false, imageLookup.getSequenceAsString("Fireplace1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["Map"] + 2,"1.0","CENTRE",{53.6, 49.2}, false, {}, {}),
-			mapObject("AT_Door", true, false, false, "","0",0,0,"1","CENTRE",{45, 55}, false, List<mapFloor::triangle>({mapFloor::triangle({{44.78374421596527,54.089611768722534}, {46.707287430763245,51.44556760787964}, {47.589874267578125,53.23103070259094}}),mapFloor::triangle({{44.78374421596527,54.089611768722534}, {43.931591510772705,52.344727516174316}, {46.707287430763245,51.44556760787964}}),}), Map<string, string>({
+			mapObject("AT_Door", true, false, false, "","0",0,0,"1","CENTRE",{46, 54}, false, List<mapFloor::triangle>({mapFloor::triangle({{44.78374421596527,54.089611768722534}, {46.707287430763245,51.44556760787964}, {47.589874267578125,53.23103070259094}}),mapFloor::triangle({{44.78374421596527,54.089611768722534}, {43.931591510772705,52.344727516174316}, {46.707287430763245,51.44556760787964}}),}), Map<string, string>({
 											pair<string, string>({"message","Leave House"}),
 											pair<string, string>({"copy","AT_Door"}),
 											pair<string, string>({"areaTransition","RoadToBénouville"}),
@@ -922,6 +922,21 @@ mapFloor::triangle({{46.79390788078308,13.37292343378067}, {46.32799029350281,15
 											pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
 											pair<string, string>({"format","LightText_20"}),
 				})),
+			mapObject("Fireplace", false, true, false, imageLookup.getSequenceAsString("Fireplace1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["Map"] + 2,"1.0","CENTRE",{53.6, 49.2}, false, List<mapFloor::triangle>({mapFloor::triangle({{52.78176665306091,47.05861508846283}, {52.88730263710022,51.08172297477722}, {50.99630951881409,47.94119894504547}}),mapFloor::triangle({{52.78176665306091,47.05861508846283}, {54.733604192733765,50.480109453201294}, {52.88730263710022,51.08172297477722}}),}), Map<string, string>({
+											pair<string, string>({"message","A roaring fireplace"}),
+											pair<string, string>({"copy","Fireplace"}),
+											pair<string, string>({"cutscene","Fireplace1"}),
+											pair<string, string>({"x","5"}),
+											pair<string, string>({"y","0"}),
+											pair<string, string>({"h","50"}),
+											pair<string, string>({"w","50"}),
+											pair<string, string>("colour", "WHITE"),
+											pair<string, string>("direct", "1"),
+											pair<string, string>("uniqueID", mapPopupTextID),
+											pair<string, string>("anchorStyle", "TOPLEFT"),
+											pair<string, string>("shadowColour", "BLACK"),
+											pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+											pair<string, string>({"format","LightText_20"})})),
 			}), List<mapFloor>({
 			mapFloor("Walkable", List<mapFloor::triangle>({mapFloor::triangle({{45.79947292804718,51.260411739349365}, {44.93342936038971,53.57964038848877}, {46.94136381149292,52.92918682098389}}),mapFloor::triangle({{47.162121534347534,46.98895812034607}, {45.80681324005127,50.14413595199585}, {44.362592697143555,47.89978265762329}}),mapFloor::triangle({{46.94136381149292,52.92918682098389}, {46.95880115032196,50.853925943374634}, {45.79947292804718,51.260411739349365}}),
 mapFloor::triangle({{48.06930422782898,52.55924463272095}, {48.11813235282898,50.4474401473999}, {46.95880115032196,50.853925943374634}}),mapFloor::triangle({{49.1972416639328,52.18930244445801}, {49.27746057510376,50.04095435142517}, {48.11813235282898,50.4474401473999}}),mapFloor::triangle({{50.3251850605011,51.81936025619507}, {51.59047245979309,49.22996759414673}, {49.27746057510376,50.04095435142517}}),
@@ -942,7 +957,7 @@ mapFloor::triangle({{47.162121534347534,46.98895812034607}, {47.90157377719879,4
 mapFloor::triangle({{49.1972416639328,52.18930244445801}, {50.3251850605011,51.81936025619507}, {49.27746057510376,50.04095435142517}}),mapFloor::triangle({{50.3251850605011,51.81936025619507}, {52.57557034492493,51.08126401901245}, {51.59047245979309,49.22996759414673}}),mapFloor::triangle({{52.57557034492493,51.08126401901245}, {53.8967490196228,50.61107873916626}, {52.7554452419281,48.821502923965454}}),
 mapFloor::triangle({{46.95880115032196,50.853925943374634}, {47.90157377719879,48.25414419174194}, {45.80681324005127,50.14413595199585}}),mapFloor::triangle({{47.90157377719879,48.25414419174194}, {46.95880115032196,50.853925943374634}, {48.11813235282898,50.4474401473999}}),mapFloor::triangle({{49.41757321357727,47.47089147567749}, {48.11813235282898,50.4474401473999}, {49.27746057510376,50.04095435142517}}),
 mapFloor::triangle({{49.83961284160614,47.57797718048096}, {49.27746057510376,50.04095435142517}, {51.59047245979309,49.22996759414673}}),mapFloor::triangle({{51.19330286979675,47.28615880012512}, {51.59047245979309,49.22996759414673}, {52.7554452419281,48.821502923965454}}),mapFloor::triangle({{47.162121534347534,46.98895812034607}, {51.98596715927124,42.42135286331177}, {52.725422382354736,43.473583459854126}}),
-mapFloor::triangle({{46.94136381149292,52.92918682098389}, {44.93342936038971,53.57964038848877}, {45.05603313446045,53.894245624542236}}),}),false,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "FLOORBOARD"})}))
+mapFloor::triangle({{46.94136381149292,52.92918682098389}, {44.93342936038971,53.57964038848877}, {45.05603313446045,53.894245624542236}}),}),false,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "FLOORBOARD"})})),
 				}), {}, { 5000,5000 }, { Map<string, string>({
 					pair<string,string>({"song1",to_string(FIREPLACE_WAV_1) + " 1.0"}),
 					pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
