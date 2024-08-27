@@ -3,6 +3,58 @@
 
 map<string, map<string, map<string, wstring>>> strings = {
 	{"ENG", {
+		{"Skill Tree Names", {
+			{"Cleromancy", L"Cleromancy"},
+			{"Heliomancy", L"Heliomancy"},
+			{"Necromancy", L"Necromancy"},
+			{"Sangromancy", L"Sangromancy"},
+			{"Meteomancy", L"Meteomancy"},
+			{"Electromancy", L"Electromancy"},
+			{"1H Weapon Mastery", L"1H Wep Mastery"},
+			{"Wayfaring", L"Wayfaring"},
+			{"Umbromancy", L"Umbromancy"},
+			{"Dual Weapon Mastery", L"D Wep Mastery"},
+}},
+		{"Skill Names", {
+			{"Attack", L"Attack"},
+			{"Wait", L"Wait"},
+}},
+		{"Skill Descriptions", {
+			{"DEFAULT_ATTACK", L"Perform a physical attack against target foe that deals ②$DAMAGE1$ damage."},
+			{"WAIT", L"Skip this current turn." }
+}},
+		{"Attribute Names", {
+			{"STRENGTH", L"Strength"},
+			{"INTELLIGENCE", L"Intelligence"},
+			{"VITALITY", L"Vitality"},
+			{"PIETY", L"Piety"},
+			{"AGILITY", L"Agility"},
+			{"LUCK", L"Luck"},
+}},
+		{"Stat Names", {
+			{"LIFE", L"Life"},
+			{"ENERGY", L"Energy"},
+			{"ENERGYREGEN", L"Energy Regen"},
+			{"SPEED", L"Speed"},
+}},
+		{"GUI", {
+			{"SFXVolume", L"SFX Volume"},
+			{"AmbienceVolume", L"Ambience Volume"},
+			{"MusicVolume", L"Music Volume"},
+			{"MANAGEPARTYBUTTON", L"Manage Party"},
+			{"RESUMEEXPLOREBUTTON", L"Resume"},
+			{"AUDIOOPTIONS", L"Audio Settings"},
+			{"QUITBUTTON", L"Quit"},
+			{"CANCELBUTTON", L"Cancel"},
+			{"FROMAUDIOTOPAUSEBUTTON", L"Return"},
+			{"QUITTEXT", L"Are you sure you want to quit? \n\n (Ritual of the Rose automatically saves your progress for when you return)"},
+			{"FROMPARTYTOPAUSE", L"Return"},
+			{"PARTYMANAGEHELP", L"Help"},
+			{"XPOINTSLEFT", L" points left to spend."},
+			{"1POINTLEFT", L" point left to spend."},
+			{"PHYSICALPOWER", L"Physical Power:\t②"},
+			{"MAGICALPOWER", L"Magical Power:\t②"},
+}},
 		{"DeadHorse", {
 			{"1 Angela Fleuret", L"Hmph. I see the situation in Bénouville has become far worse than the one described in the letter."},
 			{"2 Angela Fleuret", L"I must find my way into town... and pray I have not arrived too late to stop this."},
@@ -39,7 +91,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 				{"1 Gihat al-Din Jaqmaq", L"These wounds are fresh. This can't have happened that long ago."},
 				{"2 Gihat al-Din Jaqmaq", L"I must keep my wits about me in this town. As long as I maintain my composure, this carnage won't become a distraction."},
 	}},
-	{"Fireplace1", {
+		{"Fireplace1", {
 				{"1 Angela Fleuret", L"My journey here from the Vatican was one of speed rather than comfort. 'Tis a welcome change of pace to finally be somewhere warm and dry with a simple fireplace and the smell of cooking."},
 				{"1 Tianshun Song", L"I felt the pull of this town's negative energy all the way from Paris and I haven't rested since. Perhaps I could close my eyes just for a moment..."},
 				{"1 Olyver Sumner", L"What a lovely hearth. If I wasn't haunted by the idea of a psycho killer hiding upstairs I'd probably lie down and rest my eyes."},

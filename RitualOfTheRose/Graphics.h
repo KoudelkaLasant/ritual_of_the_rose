@@ -25,17 +25,22 @@ class Graphics {
 public:
     Graphics() {
         colourTagLookupTable[wchar_t(10112)] = "BLUE";
+        shadowColourTagLookupTable[wchar_t(10112)] = "BLUE";
+        colourTagLookupTable[wchar_t(9313)] = "SKILLTEXTBLUE";
+        shadowColourTagLookupTable[wchar_t(9313)] = "SKILLTEXTBLUEBACKDROP";
         customFonts = { 
             pair<string, int>({"Centaur", IDF_CENTAUR}), 
             pair<string,int>({ "GoudyMedieval", IDF_GOUDYMEDIEVAL }),
             pair<string,int>({ "LightText", IDF_LIGHT }),
             pair<string,int>({ "Tower", IDF_TOWER }),
         };
-        customFontSizes = {5,10,15,20,25,30,35,37,40};
+        customFontSizes = {5,10,12,13,14,15,16,17,18,19,20,25,30,35,37,40};
         Colours["BLACK"] = { 0.0,0.0,0.0,1.0 };
         Colours["WHITE"] = { 1.0,1.0,1.0,1.0 };
         Colours["BLUE"] = { 0.0,0.0,1.0,1.0 };
         Colours["DARKBROWN"] = convertIntColour({100,35,0,255});
+        Colours["SKILLTEXTBLUE"] = convertIntColour({ 0,246,255,255 });
+        Colours["SKILLTEXTBLUEBACKDROP"] = convertIntColour({ 0,6,255,255 });
     }
     ~Graphics() {
         teardownAllImages();
@@ -279,6 +284,10 @@ public:
         }
         D2D1_RECT_F getPosition(Graphics & graphics) {
             ID2D1Bitmap* texture = getWhichTexture();
+            if (texture == NULL) {
+                loadTexture(*&graphics);
+                texture = getWhichTexture();
+            }
             D2D1_SIZE_F size = texture->GetSize();
             D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
             pair<float, float> position = getAbsolutePosition(renderTargetSize);
@@ -334,7 +343,7 @@ public:
     class Text : public Drawable {
     public:
         Text() {}
-        Text(wstring _message, string _format, pair<int, int> _positionAsPercentage, string _anchorStyle, pair<int, int> _size, vector<float> _colour, vector<float> _shadowColour, string _unique_ID) {
+        Text(wstring _message, string _format, pair<float, float> _positionAsPercentage, string _anchorStyle, pair<int, int> _size, vector<float> _colour, vector<float> _shadowColour, string _unique_ID) {
             message = _message;
             format = _format;
             positionAsPercentage = _positionAsPercentage;
@@ -346,8 +355,8 @@ public:
         }
         void draw(Graphics& graphics) {
             D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
-            pair<int, int> position = getAbsolutePosition(renderTargetSize);
-            pair<int, int> trueSize = convertPercentToActual(renderTargetSize, size);
+            pair<float, float> position = getAbsolutePosition(renderTargetSize);
+            pair<float, float> trueSize = convertPercentToActual(renderTargetSize, size);
             D2D_SIZE_F size_as_d2d = D2D_SIZE_F();
             size_as_d2d.width = trueSize.first;
             size_as_d2d.height = trueSize.second;
@@ -364,18 +373,23 @@ public:
                 &shadowBrush);
             IDWriteTextLayout * textLayout = NULL;
             graphics.DWriteFactory->CreateTextLayout(removeTagsBeforePrinting(graphics, message).c_str(), message.size(), graphics.WriteTextFormats[format], size_as_d2d.width, size_as_d2d.height, &textLayout);
+            IDWriteTextLayout* shadowTextLayout = NULL;
+            graphics.DWriteFactory->CreateTextLayout(removeTagsBeforePrinting(graphics, message).c_str(), message.size(), graphics.WriteTextFormats[format], size_as_d2d.width, size_as_d2d.height, &shadowTextLayout);
             D2D1_POINT_2F P;
             P.x = rect.left; P.y = rect.top;
             if (anchorStyle == "CENTRE") {
                 hr = textLayout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
                 hr = textLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+                hr = shadowTextLayout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                hr = shadowTextLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
             }
             D2D1_POINT_2F shadowP = P;
             shadowP.x -= 1;
             shadowP.y += 1;
-            graphics.hwndRenderTarget->DrawTextLayout(shadowP, textLayout, shadowBrush);
-            Map<string, List<DWRITE_TEXT_RANGE>> subcolours = interpret_subcolours(graphics);
+            Map<string, List<DWRITE_TEXT_RANGE>> subcolours = interpret_subcolours(graphics, graphics.colourTagLookupTable);
+            Map<string, List<DWRITE_TEXT_RANGE>> shadowSubColours = interpret_subcolours(graphics, graphics.shadowColourTagLookupTable);
             Map<string, ID2D1SolidColorBrush*> extraBrushes;
+            Map<string, ID2D1SolidColorBrush*> extraShadowBrushes;
             for (auto const& [key, value] : subcolours.internalMap) {
                 extraBrushes[key] = NULL;
                 graphics.hwndRenderTarget->CreateSolidColorBrush(
@@ -385,12 +399,27 @@ public:
                     textLayout->SetDrawingEffect(extraBrushes[key], range);
                 }
             } 
+            for (auto const& [key, value] : shadowSubColours.internalMap) {
+                extraShadowBrushes[key] = NULL;
+                graphics.hwndRenderTarget->CreateSolidColorBrush(
+                    D2D1::ColorF(D2D1::ColorF(graphics.Colours[key][0], graphics.Colours[key][1], graphics.Colours[key][2], graphics.Colours[key][3])),
+                    &extraShadowBrushes[key]);
+                for (auto const& range : shadowSubColours[key].internalList) {
+                    shadowTextLayout->SetDrawingEffect(extraShadowBrushes[key], range);
+                }
+            }
+
+            graphics.hwndRenderTarget->DrawTextLayout(shadowP, shadowTextLayout, shadowBrush);
             graphics.hwndRenderTarget->DrawTextLayout(P, textLayout, theBrush);
             SafeRelease("Releasing the brush", & theBrush);
             SafeRelease("Releasing the shadow brush", & shadowBrush);
             SafeRelease("Releasing text layout", & textLayout);
+            SafeRelease("Releasing shadow text layout", &shadowTextLayout);
             for (string x : extraBrushes.getKeys().internalList) {
                 SafeRelease("Releasing extra brush " + x, & extraBrushes[x]);
+            }
+            for (string x : extraShadowBrushes.getKeys().internalList) {
+                SafeRelease("Releasing extra brush " + x, &extraShadowBrushes[x]);
             }
         }
         wstring removeTagsBeforePrinting(Graphics & graphics, wstring input_string) {
@@ -401,19 +430,23 @@ public:
             }
             return input_string;
         }
-        Map<string, List<DWRITE_TEXT_RANGE>> interpret_subcolours(Graphics & graphics) {
+        Map<string, List<DWRITE_TEXT_RANGE>> interpret_subcolours(Graphics & graphics, Map<wchar_t, string> tableToUse) {
             Map<string, List<DWRITE_TEXT_RANGE>> results;
             for (auto const& colour : graphics.colourTagLookupTable.getKeys().internalList) {
                 int current_start = -1;
                 bool seekingEnd = false;
-                for (int x = 0; x < fullMessage.size(); x++) {
-                    if (seekingEnd and current_start != -1 and List<wchar_t>({ wchar_t(46), wchar_t(32), wchar_t(33), wchar_t(63), colour }).contains(fullMessage[x])) {
+                wstring toAnalyse = fullMessage;
+                if (toAnalyse == L"") {
+                    toAnalyse = message;
+                }
+                for (int x = 0; x < toAnalyse.size(); x++) {
+                    if (seekingEnd and current_start != -1 and List<wchar_t>({ wchar_t(46), wchar_t(32), wchar_t(33), wchar_t(63), colour }).contains(toAnalyse[x])) {
                         int current_end = x;
-                        results[graphics.colourTagLookupTable[colour]].push_back({unsigned(current_start), unsigned(current_end - current_start)});
+                        results[tableToUse[colour]].push_back({unsigned(current_start), unsigned(current_end - current_start)});
                         current_start = -1;
                         seekingEnd = false;
                     }
-                    if (fullMessage[x] == colour) {
+                    if (toAnalyse[x] == colour) {
                         current_start = x;
                         seekingEnd = true;
                     }
@@ -434,7 +467,7 @@ public:
         wstring fullMessage;
         wstring message;
         string format;
-        pair<int, int> size;
+        pair<float, float> size;
         vector<float> colour = {0.0,0.0,0.0,1.0};
         vector<float> shadowColour = { 0.0,0.0,0.0,1.0 };
         int tagLimit = 10;
@@ -557,7 +590,7 @@ public:
                     subval.draw(*this);
                 }
             }
-            // draw any textures that are on higher layers than any existing images
+            // draw any text that are on higher layers than any existing images
             for (auto const& [key, val] : TextMap.internalMap) {
                 if (key <= latest_layer) { continue; }
                 for (auto& [subkey, subval] : TextMap[key].internalMap) {
@@ -565,7 +598,6 @@ public:
                 }
             }
 
-            // add code here to draw every image 
         }
         hr = hwndRenderTarget->EndDraw();
         if (hr == D2DERR_RECREATE_TARGET){
@@ -657,6 +689,19 @@ public:
         }
         return NULL;
     }
+    void bumpLayer(Image * theImage, int amount) {
+        int current = whichLayerIsThisImageOn(theImage);
+        ImageMap[current].forcibleRemove(theImage);
+        ImageMap[current + amount].push_front(theImage);
+    }
+    int whichLayerIsThisImageOn(Image* theImage) {
+        for (auto layer : ImageMap.getKeys().internalList) {
+            if (ImageMap[layer].contains(theImage)) {
+                return layer;
+            }
+        }
+        return 0;
+    }
     void tearDownSpecifiedImage(string uniqueID) {
         int index = -1;
         int the_key = 0;
@@ -739,7 +784,9 @@ public:
     Map<string, HCURSOR> Cursors;
     Map<string, vector<float>> Colours;
     Map<wchar_t, string> colourTagLookupTable;
+    Map<wchar_t, string> shadowColourTagLookupTable;
     List<Image*> beingDragged;
+    List<string> recentlyFinishedBeingDragged;
     Map<int, ID2D1Bitmap*> TextureMemory;
     string CurrentCursor = "DEFAULT";
 };

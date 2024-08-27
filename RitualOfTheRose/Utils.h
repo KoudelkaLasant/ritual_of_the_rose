@@ -40,6 +40,10 @@ wstring StringToWString(const string& str)
 	return wstr;
 }
 
+string WStringToString(wstring str) {
+	return string(str.begin(), str.end());
+}
+
 vector<float> convertIntColour(vector<int> colour) {
 	float factor = 255.0f;
 	vector<float> result = { 
@@ -127,6 +131,15 @@ public:
 	Map<string, string> parsed_args = List<pair<string,string>>({pair<string, string>("mode","game")});
 };
 RuntimeArgs Args;
+
+class JSONIO {
+public:
+	json read_file(filesystem::path path) {
+		ifstream f(path);
+		return json::parse(f);
+	}
+};
+JSONIO jsonio;
 
 class Clock {
 public:
@@ -233,9 +246,13 @@ public:
 			WOODENDOOR_WAV_3,
 			});
 
+		volumes["SFXVolume"] = 1.0;
+		volumes["AmbienceVolume"] = 1.0;
+		volumes["MusicVolume"] = 1.0;
 
 		preloadSFX();
 		soloud.init();
+		tryToLoadAudioSettings();
 	}
 	~audioManager() {
 		unloadAllAudio();
@@ -326,12 +343,60 @@ public:
 		loadSound(resource);
 		playSound(resource, volume, false, false);
 	}
+	void changeTheVolumeOfThis(int resource, float volume) {
+		for (auto handle : resourceToHandleLookup[resource].internalList) {
+			soloud.setVolume(handle, volume);
+		}
+	}
 	void fadeOutAndStopThis(int resource, int speed) {
 		for (auto handle: resourceToHandleLookup[resource].internalList) {
 			soloud.fadeVolume(handle, 0, speed);
 		}
 		
 	}
+	filesystem::path getPathToAudioSettings() {
+		TCHAR lpTempPathBuffer[MAX_PATH];
+		GetTempPath(MAX_PATH, lpTempPathBuffer);
+		filesystem::path filepath = lpTempPathBuffer;
+		filepath.append("RitualOfTheRoseAudioSettings.json");
+		return filepath;
+	}
+	void tryToSaveAudioSettings() {
+		filesystem::path filepath = getPathToAudioSettings();
+		json data;
+		data["audio"] = volumes.internalMap;
+		ofstream file(filepath);
+		file << data;
+	}
+	void tryToLoadAudioSettings() {
+		filesystem::path filepath = getPathToAudioSettings();
+		if (!filesystem::exists(filepath)) { return; }
+		try {
+			json data = jsonio.read_file(filepath);
+			volumes.internalMap = data["audio"];
+		}
+		catch (...) {
+			return; // failed to load audio settings so use default
+		}
+	}
+
+	float convertAudioSliderOptionToVolume(float XPos) {
+		float range = VolumeSliderMax.first - VolumeSliderMin.first;
+		if (XPos < VolumeSliderMin.first) {
+			return VolumeSliderMin.second;
+		}
+		if (XPos > VolumeSliderMax.first) {
+			return VolumeSliderMax.second;
+		}
+		return (XPos - VolumeSliderMin.first) / range;
+	}
+	float convertVolumeToAudioSliderPosition(float volume) {
+		float range = VolumeSliderMax.first - VolumeSliderMin.first;
+		float result = VolumeSliderMin.first + (range * volume);
+		result = TChange(result, 0.0f, VolumeSliderMin.first, VolumeSliderMax.first);
+		return result;
+	}
+
 
 	Map<int, bool> loadedResources;
 	List<int> inTheLoadingQueue;
@@ -346,6 +411,9 @@ public:
 	mutex loading_mutex;
 	mutex soloud_mutex;
 	int currentSongResource;
+	Map<string, float> volumes;
+	pair<float, float> VolumeSliderMin = { 40,0 };
+	pair<float, float> VolumeSliderMax = { 60, 1 };
 };
 audioManager audio;
 
@@ -368,15 +436,20 @@ public:
 	void acceptAllInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 		mouseInstructionsInOrder.clear();
 		acceptMousePosition(msg, lParam);
+		bool hasAnyKeyBeenPressed = false;
 		for (auto const &  [key, value] : allKeyboardButtons.internalMap) {
 			if (hasThisBeenPressed(key)) {
 				keysPressedInOrder.addToFrontIfNotAlreadyInList(to_string(key));
 				keysPressedInOrderAsInts.addToFrontIfNotAlreadyInList(key);
+				hasAnyKeyBeenPressed = true;
 			}
 			else {
 				keysPressedInOrder.forcibleRemove(to_string(key));
 				keysPressedInOrderAsInts.forcibleRemove(key);
 			}
+		}
+		if (!hasAnyKeyBeenPressed) {
+			menuItemCooldown = false;
 		}
 	}
 	void acceptMousePosition(UINT msg, LPARAM lParam) {
@@ -433,6 +506,9 @@ public:
 
 	string controllerDebug() {
 		string result = "Keys Pressed: ";
+		if (keysPressedInOrder.empty()) {
+			result += "Nothing is pressed.";
+		}
 		for (auto const& x : keysPressedInOrder.internalList) {
 			result += x + " ";
 		}
@@ -491,18 +567,11 @@ public:
 	List<int> right;
 	List<int> down;
 	pair<float, float> actualRenderSizeAsFloat = { 1264.0f, 719.0f };
+	string latestMenuItemHovered = "";
+	bool menuItemCooldown = false; // set this to true if a keyboard button was recently pressed and wait until nothing is pressed
 	bool cursorHotspotInCentre = true; // I couldn't fix this :( 
 };
 UserInput controller;
-
-class JSONIO {
-public:
-	json read_file(filesystem::path path){
-		ifstream f(path);
-		return json::parse(f);
-	}
-};
-JSONIO jsonio;
 
 class SaveContainer {
 public:
@@ -516,8 +585,10 @@ public:
 		knownSkills = data["known skills"];
 		equippedSkills = data["equipped skills"];
 		equippedItems = data["equipped items"];
+		equippedSkillTrees = data["equipped skilltrees"];
 		inventory = data["inventory"];
 		itemsSold = data["items sold"];
+		allCharacters = data["all characters"];
 		attributeInvestments = data["attribute investments"];
 		stats = data["stats"];
 		money = data["money"];
@@ -535,6 +606,8 @@ public:
 			data["attribute investments"] = attributeInvestments;
 			data["stats"] = stats;
 			data["money"] = money;
+			data["equipped skilltrees"] = equippedSkillTrees;
+			data["all characters"] = allCharacters;
 			
 			ofstream file(filepath);
 			file << data;
@@ -548,6 +621,8 @@ public:
 			inventory = RHS.inventory;
 			itemsSold = RHS.itemsSold;
 			attributeInvestments = RHS.attributeInvestments;
+			equippedSkillTrees = RHS.equippedSkillTrees;
+			allCharacters = RHS.allCharacters;
 			stats = RHS.stats;
 			money = RHS.money;
 			loaded = true;
@@ -558,13 +633,14 @@ public:
 		map<string, bool> flags;
 		map<string, map<string, string>> equippedItems;
 		map<string, map<string, string>> equippedSkills;
+		map<string, map<string, string>> equippedSkillTrees;
 		map<string, list<string>> knownSkills;
 		list<string> inventory;
 		list<string> itemsSold;
+		list<string> allCharacters;
 		map<string, map<string, int>> attributeInvestments;
 		map<string, int> stats;
 		int money;
-		const int partyLimit = 4;
 		bool loaded = false;
 	};
 
@@ -580,10 +656,59 @@ public:
 		}
 		return current.party.front();
 	}
+	void tryToChangeInvestmentByOnePoint(string who, string attribute, bool goingUp) {
+		int pointsLeft = getRemainingPoints(who);
+		if (pointsLeft == 0 and goingUp) {
+			return;
+		}
+		if (pointsLeft == attributeInvestmentLimit and !goingUp) {
+			return;
+		}
+		if (!goingUp and current.attributeInvestments[who][attribute] == 0) { 
+			return;
+		}
+		if (goingUp) {
+			current.attributeInvestments[who][attribute] += 1;
+		}
+		if (!goingUp) {
+			current.attributeInvestments[who][attribute] -= 1;
+		}
+	}
+	int getRemainingPoints(string who) {
+		int maxPoints = attributeInvestmentLimit;
+		int currentPoints = getPointsThatHaveBeenSpent(who);
+		int pointsLeft = maxPoints - currentPoints;
+		return pointsLeft;
+	}
+	int getPointsThatHaveBeenSpent(string who) {
+		int result = 0;
+		for (auto [key, val] : strings["ENG"]["Attribute Names"]) {
+			result += current.attributeInvestments[who][key];
+		}
+		return result;
+	}
+	void rearrangeTheseCharactersInParty(string lhs, string rhs) {
+		List<string> characters; characters.internalList = current.party;
+		int firstIndex = 0;
+		int secondIndex = 0;
+		for (int x = 0; x < characters.size(); x++) {
+			if (characters.at(x) == lhs) {
+				firstIndex = x;
+			}
+			if (characters.at(x) == rhs) {
+				secondIndex = x;
+			}
+		}
+		characters.at(firstIndex) = rhs;
+		characters.at(secondIndex) = lhs;
+		current.party = characters.internalList;
+	}
 
 	SaveFile current;
 	Map<int, SaveFile> slots;
 	const int slotLimit = 9;
+	const int partyLimit = 4;
+	const int attributeInvestmentLimit = 20;
 };
 SaveContainer saveContainer;
 
@@ -600,8 +725,10 @@ public:
 		layerDefaults["UI"] = 15;
 		layerDefaults["BUTTONS"] = 20;
 		layerDefaults["LOADINGSCREEN"] = 25;
+		layerDefaults["DEBUGUSERINPUT"] = 100;
 
 		animationFrames["Angela Fleuret"]["SPEAKER"].internalList = { ANGELA_SPEAKER };
+		animationFrames["Angela Fleuret"]["CARD"].internalList = { CARD_ANGELA };
 		animationFrames["Angela Fleuret"]["STAND_FRONT"].internalList = { ANGELA_STAND_FRONT_1, ANGELA_STAND_FRONT_2 };
 		animationFrames["Angela Fleuret"]["STAND_BACK"].internalList = { ANGELA_STAND_BACK_1, ANGELA_STAND_BACK_2 };
 		animationFrames["Angela Fleuret"]["STAND_LEFT"].internalList = { ANGELA_STAND_LEFT_1, ANGELA_STAND_LEFT_2 };
@@ -619,6 +746,7 @@ public:
 		animationFrames["Shadow Angela Fleuret"]["WALK_LEFT"].internalList = { SHADOW_ANGELA_WALK_LEFT_1, SHADOW_ANGELA_WALK_LEFT_2, SHADOW_ANGELA_WALK_LEFT_3, SHADOW_ANGELA_WALK_LEFT_2, };
 		animationFrames["Shadow Angela Fleuret"]["WALK_RIGHT"].internalList = { SHADOW_ANGELA_WALK_RIGHT_1, SHADOW_ANGELA_WALK_RIGHT_2, SHADOW_ANGELA_WALK_RIGHT_3, SHADOW_ANGELA_WALK_RIGHT_2 };
 		animationFrames["Tianshun Song"]["SPEAKER"].internalList = { TIANSHUN_SPEAKER };
+		animationFrames["Tianshun Song"]["CARD"].internalList = { CARD_TIANSHUN };
 		animationFrames["Tianshun Song"]["STAND_FRONT"].internalList = { TIANSHUN_STAND_FRONT_1, TIANSHUN_STAND_FRONT_2 };
 		animationFrames["Tianshun Song"]["STAND_BACK"].internalList = { TIANSHUN_STAND_BACK_1, TIANSHUN_STAND_BACK_2 };
 		animationFrames["Tianshun Song"]["STAND_LEFT"].internalList = { TIANSHUN_STAND_LEFT_1, TIANSHUN_STAND_LEFT_2 };
@@ -636,6 +764,7 @@ public:
 		animationFrames["Shadow Tianshun Song"]["WALK_LEFT"].internalList = { SHADOW_TIANSHUN_WALK_LEFT_1, SHADOW_TIANSHUN_WALK_LEFT_2, SHADOW_TIANSHUN_WALK_LEFT_3, SHADOW_TIANSHUN_WALK_LEFT_2, };
 		animationFrames["Shadow Tianshun Song"]["WALK_RIGHT"].internalList = { SHADOW_TIANSHUN_WALK_RIGHT_1, SHADOW_TIANSHUN_WALK_RIGHT_2, SHADOW_TIANSHUN_WALK_RIGHT_3, SHADOW_TIANSHUN_WALK_RIGHT_2 };
 		animationFrames["Olyver Sumner"]["SPEAKER"].internalList = { OLYVER_SPEAKER };
+		animationFrames["Olyver Sumner"]["CARD"].internalList = { CARD_OLYVER };
 		animationFrames["Olyver Sumner"]["STAND_FRONT"].internalList = { OLYVER_STAND_FRONT_1, OLYVER_STAND_FRONT_2 };
 		animationFrames["Olyver Sumner"]["STAND_BACK"].internalList = { OLYVER_STAND_BACK_1, OLYVER_STAND_BACK_2 };
 		animationFrames["Olyver Sumner"]["STAND_LEFT"].internalList = { OLYVER_STAND_LEFT_1, OLYVER_STAND_LEFT_2 };
@@ -653,6 +782,7 @@ public:
 		animationFrames["Shadow Olyver Sumner"]["WALK_LEFT"].internalList = { SHADOW_OLYVER_WALK_LEFT_1, SHADOW_OLYVER_WALK_LEFT_2, SHADOW_OLYVER_WALK_LEFT_3, SHADOW_OLYVER_WALK_LEFT_2, };
 		animationFrames["Shadow Olyver Sumner"]["WALK_RIGHT"].internalList = { SHADOW_OLYVER_WALK_RIGHT_1, SHADOW_OLYVER_WALK_RIGHT_2, SHADOW_OLYVER_WALK_RIGHT_3, SHADOW_OLYVER_WALK_RIGHT_2 };
 		animationFrames["Hernando Pizarro"]["SPEAKER"].internalList = { HERNANDO_SPEAKER };
+		animationFrames["Hernando Pizarro"]["CARD"].internalList = { CARD_HERNANDO };
 		animationFrames["Hernando Pizarro"]["STAND_FRONT"].internalList = { HERNANDO_STAND_FRONT_1, HERNANDO_STAND_FRONT_2 };
 		animationFrames["Hernando Pizarro"]["STAND_BACK"].internalList = { HERNANDO_STAND_BACK_1, HERNANDO_STAND_BACK_2 };
 		animationFrames["Hernando Pizarro"]["STAND_LEFT"].internalList = { HERNANDO_STAND_LEFT_1, HERNANDO_STAND_LEFT_2 };
@@ -670,6 +800,7 @@ public:
 		animationFrames["Shadow Hernando Pizarro"]["WALK_LEFT"].internalList = { SHADOW_HERNANDO_WALK_LEFT_1, SHADOW_HERNANDO_WALK_LEFT_2, SHADOW_HERNANDO_WALK_LEFT_3, SHADOW_HERNANDO_WALK_LEFT_2, };
 		animationFrames["Shadow Hernando Pizarro"]["WALK_RIGHT"].internalList = { SHADOW_HERNANDO_WALK_RIGHT_1, SHADOW_HERNANDO_WALK_RIGHT_2, SHADOW_HERNANDO_WALK_RIGHT_3, SHADOW_HERNANDO_WALK_RIGHT_2 };
 		animationFrames["Gihat al-Din Jaqmaq"]["SPEAKER"].internalList = { GIHAT_SPEAKER };
+		animationFrames["Gihat al-Din Jaqmaq"]["CARD"].internalList = { CARD_GIHAT };
 		animationFrames["Gihat al-Din Jaqmaq"]["STAND_FRONT"].internalList = { GIHAT_STAND_FRONT_1, GIHAT_STAND_FRONT_2 };
 		animationFrames["Gihat al-Din Jaqmaq"]["STAND_BACK"].internalList = { GIHAT_STAND_BACK_1, GIHAT_STAND_BACK_2 };
 		animationFrames["Gihat al-Din Jaqmaq"]["STAND_LEFT"].internalList = { GIHAT_STAND_LEFT_1, GIHAT_STAND_LEFT_2 };
@@ -712,7 +843,7 @@ public:
 		if (!animationFrames.getKeys().contains(character)) {
 			throw runtime_error(character + " does not exist.");
 		}
-		return animationFrames["character"]["action"];
+		return animationFrames[character][action];
 	}
 
 	Map <string, Map<string, List<int>>> animationFrames;
@@ -897,7 +1028,7 @@ mapFloor::triangle({{35.56315898895264,26.070070266723633}, {35.535699129104614,
 			mapFloor("Trans", List<mapFloor::triangle>({mapFloor::triangle({{43.38904917240143,7.563062757253647}, {31.48369789123535,15.224528312683105}, {44.944414496421814,16.091090440750122}}),mapFloor::triangle({{46.79390788078308,13.37292343378067}, {45.05474865436554,16.049426794052124}, {44.831475615501404,12.381072342395782}}),mapFloor::triangle({{43.38904917240143,7.563062757253647}, {31.43555521965027,11.303985118865967}, {31.48369789123535,15.224528312683105}}),
 mapFloor::triangle({{46.79390788078308,13.37292343378067}, {46.32799029350281,15.946558117866516}, {45.05474865436554,16.049426794052124}}),}), false, Map<string, string>({{"trans","1"}})),
 				}), {}, { 5000, 5000 }, Map<string, string>({
-					pair<string,string>({"song1",to_string(WINDOUTSIDE1_WAV) + " 1.0"}),
+					pair<string,string>({"song1",to_string(WINDOUTSIDE1_WAV) + " " + "AmbienceVolume"}),
 					pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
 					}));
 		maps["House1Inside1"] = mapInstance("House1Inside1", EMPTYMAP, { 46,53 }, List<mapObject>({
@@ -959,7 +1090,7 @@ mapFloor::triangle({{46.95880115032196,50.853925943374634}, {47.90157377719879,4
 mapFloor::triangle({{49.83961284160614,47.57797718048096}, {49.27746057510376,50.04095435142517}, {51.59047245979309,49.22996759414673}}),mapFloor::triangle({{51.19330286979675,47.28615880012512}, {51.59047245979309,49.22996759414673}, {52.7554452419281,48.821502923965454}}),mapFloor::triangle({{47.162121534347534,46.98895812034607}, {51.98596715927124,42.42135286331177}, {52.725422382354736,43.473583459854126}}),
 mapFloor::triangle({{46.94136381149292,52.92918682098389}, {44.93342936038971,53.57964038848877}, {45.05603313446045,53.894245624542236}}),}),false,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "FLOORBOARD"})})),
 				}), {}, { 5000,5000 }, { Map<string, string>({
-					pair<string,string>({"song1",to_string(FIREPLACE_WAV_1) + " 1.0"}),
+					pair<string,string>({"song1",to_string(FIREPLACE_WAV_1) + " " + "AmbienceVolume"}),
 					pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
 					})});
 }
@@ -1076,6 +1207,15 @@ mapFloor::triangle({{46.94136381149292,52.92918682098389}, {44.93342936038971,53
 			List<string> result;
 			for (auto x : data.getKeys().internalList) {
 				if (x.find("song") != -1) {
+					result.push_back(data[x]);
+				}
+			}
+			return result;
+		}
+		List<string> getAmbienceNames() {
+			List<string> result;
+			for (auto x : data.getKeys().internalList) {
+				if (x.find("ambience") != -1) {
 					result.push_back(data[x]);
 				}
 			}

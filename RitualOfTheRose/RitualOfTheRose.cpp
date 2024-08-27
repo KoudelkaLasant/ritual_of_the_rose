@@ -1,4 +1,4 @@
-
+﻿
 #include "framework.h"
 #include "RitualOfTheRose.h"
 
@@ -20,7 +20,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     UNREFERENCED_PARAMETER(lpCmdLine);
     
     Args.parse_args(lpCmdLine);
-
 
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_RITUALOFTHEROSE, szWindowClass, MAX_LOADSTRING);
