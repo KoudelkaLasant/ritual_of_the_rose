@@ -5,7 +5,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 	{"ENG", {
 		{"Skill Tree Names", {
 			{"Cleromancy", L"Cleromancy"},
-			{"Heliomancy", L"Heliomancy"},
+			{"Hagiomancy", L"Hagiomancy"},
 			{"Necromancy", L"Necromancy"},
 			{"Sangromancy", L"Sangromancy"},
 			{"Meteomancy", L"Meteomancy"},
@@ -14,6 +14,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Wayfaring", L"Wayfaring"},
 			{"Umbromancy", L"Umbromancy"},
 			{"Dual Weapon Mastery", L"D Wep Mastery"},
+			{"DEFAULT", L""},
 }},
 		{"Skill Names", {
 			{"DEFAULT_ATTACK", L"Attack"},
@@ -23,6 +24,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Light of Day", L"Light of Day"},
 			{"Exile", L"Exile"},
 			{"Strength of Reason", L"Strength of Reason"},
+			{"Life Drain", L"Life Drain"},
 }},
 		{"Skill Descriptions", {
 			{"DEFAULT_ATTACK", L"Perform a physical attack against target foe that deals②$POWER1$ damage."},
@@ -32,6 +34,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Light of Day", L"Deal②$POWER1$ holy damage to all undead or demonic foes." },
 			{"Strength of Reason", L"Enchant target ally with Strength of Reason for②$POWER1$ rounds. Their physical attacks deal an extra②$POWER2$ holy damage." },
 			{"Exile", L"Destroy target summoned creature. Exile takes an additional②$POWER1$ rounds to recharge." },
+			{"Life Drain", L"Curse target foe for②$POWER1$ rounds. Every round, you steal②$POWER2$ life from target foe."},
 }},
 		{"Skill Actions", {
 			{"Wait", L"$WHO$ is waiting..."},

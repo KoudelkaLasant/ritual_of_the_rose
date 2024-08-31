@@ -167,18 +167,15 @@ public:
 		}
 		return result;
 	}
-	static DropDownMenu SkillTreeSelection(int which, bool visible) {
+	static DropDownMenu SkillTreeSelection(int which, bool visible, pair<float, float> position) {
 		DropDownMenu result;
-		Map<int, pair<float, float>> positionLookup;
-		positionLookup[1] = { 50,10 };
-		positionLookup[2] = {75, 10};
 		string baseID = to_string(which);
-		Button hook = Menu::standardButton("SKILLTREESELECTION_" + baseID, "GUI_SKILLTREESELECTION" + baseID, positionLookup[which]);
+		Button hook = Menu::standardButton("SKILLTREESELECTION_" + baseID, "GUI_SKILLTREESELECTION" + baseID, position);
 		hook.extras["getStringFromCombatant"] = "skillTree" + to_string(which);
 		hook.extras["combatant"] = "PARTYEDITSELECTED";
 		result.hook = hook;
 		result.hook.visible = visible;
-		result.position = positionLookup[which];
+		result.position = position;
 		return result;
 	}
 
@@ -630,10 +627,12 @@ public:
 			list<string>({"ENCHANTSELF","ENCHANTALLY", "PHYSICALBUFFSELF","PHYSICALBUFFALLY"}));
 	
 		// SANGROMANCY
-		skillDefinitions["Life Drain"] = Skill("Life Drain", "Life Drain", "Sanfromancy", SKILLICON_LIFEDRAIN, 10, 0, 1,
+		skillDefinitions["Life Drain"] = Skill("Life Drain", "Life Drain", "Sangromancy", SKILLICON_LIFEDRAIN, 10, 0, 1,
 			list<string>({ "LIFEDRAIN" }),
 			list<string>({ "MAGICAL","BLOOD", }),
-			Map<string, PowerValue>({ pair<string, PowerValue>("POWER1", PowerValue("POWER1", 10, 1, 10, false, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))) }),
+			Map<string, PowerValue>({ pair<string, PowerValue>("POWER1", PowerValue("POWER1", 5, 5, 8, false, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				pair<string, PowerValue>("POWER2", PowerValue("POWER2", 5, 1, 10, false, list<string>({ "INTELLIGENCE", "BLOODBOOST"})))
+				}),
 			list<string>({ "DEALDAMAGE", "INEEDHEALING"}));
 	}
 	void defineAllEquipment() {
@@ -862,6 +861,9 @@ public:
 				shadow->resetSources(*&graphics, newShadowSources);
 				explorer->unique_ID = newExplorerImageID;
 				shadow->unique_ID = newExplorerShadowImageID;
+				controller.mouseClickPosition = {-1,-1};
+				controller.mouseMovePosition = { -1,-1 };
+				controller.mouseUnclickPosition = { -1,-1 };
 				return true;
 			}
 			if (type == "MAPMOVE") {
@@ -1226,13 +1228,13 @@ public:
 					}
 				}
 				if (forceRedraw and data["mode"] == "reform") {
-						Event("LoadPartyGrid", "LOADCHARACTERCARDSINAGRID", Map<string, string>({
+						Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 						pair<string, string>("offsetX", "32"),
 						pair<string, string>("offsetY", "25"),
 						pair<string, string>("what", "PARTY"),
 						pair<string, string>("moveExisting", "1"),
 							})).run(*&gameEngine);
-						Event("LoadPartyGrid", "LOADCHARACTERCARDSINAGRID", Map<string, string>({
+						Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 							pair<string, string>("offsetX", "67"),
 							pair<string, string>("offsetY", "25"),
 							pair<string, string>("what", "RESERVES"),
@@ -1580,19 +1582,19 @@ public:
 					}
 				}
 				if (menu.data.hasKey("PARTYREFORM")) {
-					Event("LoadPartyGrid", "LOADCHARACTERCARDSINAGRID", Map<string, string>({
+					Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 						pair<string, string>("offsetX", "32"),
 						pair<string, string>("offsetY", "25"),
 						pair<string, string>("what", "PARTY"),
 						})).run(*&gameEngine);
-					Event("LoadPartyGrid", "LOADCHARACTERCARDSINAGRID", Map<string, string>({
+					Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 						pair<string, string>("offsetX", "67"),
 						pair<string, string>("offsetY", "25"),
 						pair<string, string>("what", "RESERVES"),
 						})).run(*&gameEngine);
 				}
 				if (menu.data.hasKey("SELECTCHARACTERTOEDIT")) {
-					Event("LoadPartyGrid", "LOADCHARACTERCARDSINAGRID", Map<string, string>({
+					Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 						pair<string, string>("offsetX", "5"),
 						pair<string, string>("offsetY", "20"),
 						pair<string, string>("what", "EVERYONE"),
@@ -1639,21 +1641,68 @@ public:
 					}) + button.extras).run(*&gameEngine);
 				return true;
 			}
-			if (type == "LOADCHARACTERCARDSINAGRID") {
+			if (type == "LOADXINAGRID") {
 				float offsetX = stof(data["offsetX"]);
 				float offsetY = stof(data["offsetY"]);
 				string what = data["what"];
-				List<string> toDraw = saveContainer.current.party;
+				string imageIDSuffix = "";
+				Map<string, int> toDraw;
+				float scale = 0.25;
+
+				if (what == "PARTY") {
+					for (auto x : saveContainer.current.party) {
+						toDraw[x] = imageLookup.animationFrames[x]["CARD"].front();
+					}
+					imageIDSuffix = "_CARD";
+				}
 				if (what == "RESERVES") {
-					toDraw = saveContainer.getCharactersInReserve();
+					for (auto x : saveContainer.getCharactersInReserve().internalList) {
+						toDraw[x] = imageLookup.animationFrames[x]["CARD"].front();
+					}
+					imageIDSuffix = "_CARD";
 				}
 				if (what == "EVERYONE") {
-					toDraw += saveContainer.getCharactersInReserve();
+					for (auto x : saveContainer.current.allCharacters) {
+						toDraw[x] = imageLookup.animationFrames[x]["CARD"].front();
+					}
+					imageIDSuffix = "_CARD";
+				}
+				if (what == "SKILLS") {
+					string skillTreeName = data["skillTreeName"];
+					string who = data["who"];
+					Combat::Combatant theCharacter = combat.loadPartyMemberAsCombatant(who);
+
+					List<string> knownSkillNames = saveContainer.current.knownSkills[who];
+					knownSkillNames.internalList.sort();
+					for (auto knownSkill : knownSkillNames.internalList) {
+						Combat::Skill theSkill = combat.skillDefinitions[knownSkill];
+						if (theSkill.skillTree == skillTreeName) {
+							toDraw[knownSkill] = theSkill.imageSource;
+						}
+					}
+					imageIDSuffix = "_" + who + "_SKILLSELECTIONGRID";
+					scale = 0.5;
+				}
+				if (what == "SKILLBORDERS") {
+					string skillTreeName = data["skillTreeName"];
+					string who = data["who"];
+					Combat::Combatant theCharacter = combat.loadPartyMemberAsCombatant(who);
+
+					List<string> knownSkillNames = saveContainer.current.knownSkills[who];
+					knownSkillNames.internalList.sort();
+					for (auto knownSkill : knownSkillNames.internalList) {
+						Combat::Skill theSkill = combat.skillDefinitions[knownSkill];
+						if (theSkill.skillTree == skillTreeName) {
+							toDraw[knownSkill] = theSkill.getBorderSource();
+						}
+					}
+					imageIDSuffix = "_" + who + "_SKILLSELECTIONBORDER";
+					scale = 0.5;
 				}
 				Map<int, List<pair<float, float>>> positions = Menu::getPlayerCardReformGridPositions(offsetX, offsetY);
 				int rowSize = positions[0].size();
 				int currentRow = 0;
-				for (int x = 0; x < toDraw.size(); x++) {
+				for (int x = 0; x < toDraw.getKeys().size(); x++) {
 					if (x != 0 and x % rowSize == 0) {
 						currentRow += 1;
 						if (!positions.getKeys().contains(currentRow)) {
@@ -1661,18 +1710,18 @@ public:
 						}
 					}
 					if (data["moveExisting"] == "1") {
-						graphics.accessImageViaUniqueID(toDraw.at(x) + "_CARD")->positionAsPercentage = positions[currentRow].at(x);
+						graphics.accessImageViaUniqueID(toDraw.getKeys().at(x) + imageIDSuffix)->positionAsPercentage = positions[currentRow].at(x);
 					}
 					else {
 					Event("LoadThisCharacter'sCard", "LOADIMAGE", List <pair<string, string>>({
-						pair<string, string>("sources", to_string(imageLookup.animationFrames[toDraw.at(x)]["CARD"].front())),
+						pair<string, string>("sources", to_string(toDraw[toDraw.getKeys().at(x)])),
 						pair<string, string>("x", to_string(positions[currentRow].at(x).first)),
 						pair<string, string>("y", to_string(positions[currentRow].at(x).second)),
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
-						pair<string, string>("scale", "0.25"),
+						pair<string, string>("scale", to_string(scale)),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-						pair<string, string>("uniqueID", toDraw.at(x) + "_CARD"),
+						pair<string, string>("uniqueID", toDraw.getKeys().at(x) + imageIDSuffix),
 						})).run(*&gameEngine);
 					}
 				}
@@ -1767,6 +1816,32 @@ public:
 						if (previousSelected != who) {
 							if (previousSelected != "") {
 								Event("RemoveExistingIfNecessary", "TEARDOWNTHISSKILLBAR", Map<string, string>({ pair<string, string>("who", previousSelected) })).run(*&gameEngine);
+								Map<string, string> equippedSkillTrees; equippedSkillTrees.internalMap = saveContainer.current.equippedSkillTrees[previousSelected];
+								for (auto knownSkill : saveContainer.current.knownSkills[previousSelected]) {
+									string toTeardown = knownSkill + "_" + previousSelected + "_SKILLSELECTIONGRID";
+									string toTearDown2 = knownSkill + "_" + previousSelected + "_SKILLSELECTIONBORDER";
+									if (graphics.doesThisImageAlreadyExist(toTeardown));
+									Event("Teardown", "TEARDOWNIMAGE", Map<string, string>({ pair<string, string>("uniqueID", toTeardown) })).run(*&gameEngine);
+									Event("Teardown", "TEARDOWNIMAGE", Map<string, string>({ pair<string, string>("uniqueID", toTearDown2) })).run(*&gameEngine);
+								}
+							}
+							Map<string, string> equippedSkillTrees; equippedSkillTrees.internalMap = saveContainer.current.equippedSkillTrees[who];
+							Map<string, string> xPositions; xPositions["1"] = "35"; xPositions["2"] = "65";
+							for (auto whichTree : equippedSkillTrees.getKeys().internalList) {
+								Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
+									pair<string, string>("offsetX", xPositions[whichTree]),
+									pair<string, string>("offsetY", "18"),
+									pair<string, string>("what", "SKILLS"),
+									pair<string, string>("skillTreeName",equippedSkillTrees[whichTree]),
+									pair<string, string>("who", who),
+									})).run(*&gameEngine);
+								Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
+									pair<string, string>("offsetX", xPositions[whichTree]),
+									pair<string, string>("offsetY", "18"),
+									pair<string, string>("what", "SKILLBORDERS"),
+									pair<string, string>("skillTreeName",equippedSkillTrees[whichTree]),
+									pair<string, string>("who", who),
+									})).run(*&gameEngine);
 							}
 							Event("LoadSkillBar", "LOADSKILLBARHERE", Map<string, string>({
 								pair<string, string>("who", who),
@@ -1782,11 +1857,9 @@ public:
 										gameEngine.storedMenus[menuName].dropdownMenus[dropdown].hook.visible = true;
 									}
 									else {
-									// already is visible, reload the text
 										string textID = gameEngine.storedMenus[menuName].dropdownMenus[dropdown].hook.textID;
 										string imageID = gameEngine.storedMenus[menuName].dropdownMenus[dropdown].hook.imageID;
 										Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({pair<string, string>("uniqueID",textID),})).run(*&gameEngine);
-										//Event("TearDownImage", "TEARDOWNIMAGE", Map<string, string>({ pair<string, string>("uniqueID",imageID), })).run(*&gameEngine);
 									}
 								}
 							}
@@ -1796,7 +1869,7 @@ public:
 				return false;
 			}
 			if (type == "HANDLEMENU") {
-				Event("Debug", "DEBUGUSERINPUT", {}).run(*&gameEngine);
+				//Event("Debug", "DEBUGUSERINPUT", {}).run(*&gameEngine);
 				string whichMenu = data["uniqueID"];
 				List<Menu::Button> clickables = gameEngine.storedMenus[whichMenu].getButtonsToLoad();
 				for (int x = 0; x < clickables.size(); x++) {
@@ -2006,6 +2079,7 @@ public:
 			}
 			if (type == "HANDLEBUTTON") {
 				string buttonLogic = data["uniqueID"];
+				controller.mouseClickPosition = { -1,-1 };
 				if (buttonLogic.find("PLUSBUTTON") != -1) {
 					string who = split(buttonLogic, "_").at(0);
 					string attribute = split(buttonLogic, "_").at(1);
@@ -2115,16 +2189,25 @@ public:
 					return true;
 				}
 				if (buttonLogic == "FROMSKILLMANAGETOPARTYMANAGE") {
+					string whoWasLastPlayer = gameEngine.stateFlags["PARTYEDITSELECTED"];
 					gameEngine.stateFlags["PARTYEDITSELECTED"] = "";
 					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "SKILLMANAGEMENT")).run(*&gameEngine);
 					for (auto dropdown : gameEngine.storedMenus["SKILLMANAGEMENT"].dropdownMenus.getKeys().internalList) {
 						gameEngine.storedMenus["SKILLMANAGEMENT"].dropdownMenus[dropdown].hook.visible = false;
 					}
+					if (whoWasLastPlayer != "") {
+						for (auto knownSkill : saveContainer.current.knownSkills[whoWasLastPlayer]) {
+							string toTeardown = knownSkill + "_" + whoWasLastPlayer + "_SKILLSELECTIONGRID";
+							if (graphics.doesThisImageAlreadyExist(toTeardown));
+							Event("Teardown", "TEARDOWNIMAGE", Map<string, string>({ pair<string, string>("uniqueID", toTeardown) })).run(*&gameEngine);
+						}
+					}
 					saveContainer.save();
 					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("PARTYMANAGEMENT");
 					return true;
 				}
-			}
+				return true;
+}
 			if (type == "LOADSKILLBARHERE") {
 				bool drawFullSkillbar = data["full"] == "1"; // draw background and default skills
 				string who = data["who"];
@@ -2201,6 +2284,8 @@ public:
 				string who = "";
 				string skill_slot = "";
 				string whichSkill = "";
+				string textColour = "WHITE";
+				bool isElite = false;
 				Map<string, string> skills;
 				float textWidth = 24;
 				Map<string, pair<string, string>> desc;
@@ -2208,17 +2293,34 @@ public:
 				desc["cost"] = { to_string(centreAnchor.first + 6), to_string(centreAnchor.second - 5.2) };
 				desc["activation"] = { to_string(centreAnchor.first + 11), to_string(centreAnchor.second - 5.2) };
 				desc["recharge"] = { to_string(centreAnchor.first + 16), to_string(centreAnchor.second - 5.2) };
+				desc["skillTree"] = { to_string(centreAnchor.first + 4.5), to_string(centreAnchor.second - 2.5) };
 				desc["description"] = { to_string(centreAnchor.first - 4), to_string(centreAnchor.second + 7) };
 				for (Graphics::Image* theImage : graphics.ImageMap[imageLookup.layerDefaults["BUTTONS"]].internalList) {
-					if (theImage->unique_ID.find("_SKILLSLOT_") != -1 and theImage->hasThisBeenClickedOn(*&graphics, controller.mouseMovePosition)) {
+					bool hoveredOver = false;
+					bool hoverable = false;
+					string namingStyle = "SKILLSLOT";
+
+					if (theImage->unique_ID.find("_SKILLSLOT_") != -1) { hoverable = true;}
+					if (theImage->unique_ID.find("_SKILLSELECTIONGRID") != -1) {hoverable = true; namingStyle = "GRID";}
+
+					if (theImage->hasThisBeenClickedOn(*&graphics, controller.mouseMovePosition)) {hoveredOver = true;}
+
+					if (hoverable and hoveredOver) {
 						isMouseHoveredOverAnySkill = true;
-						hoveredOverSkillSlot = theImage->unique_ID;
-						who = split(hoveredOverSkillSlot, "_").at(0);
-						skill_slot = split(hoveredOverSkillSlot, "_").at(2);
-						skills = saveContainer.getNamesOfCurrentEquippedSkills(who, full);
-						whichSkill = skills[skill_slot];
+						if (namingStyle == "SKILLSLOT") {
+							
+							hoveredOverSkillSlot = theImage->unique_ID;
+							who = split(hoveredOverSkillSlot, "_").at(0);
+							skill_slot = split(hoveredOverSkillSlot, "_").at(2);
+							skills = saveContainer.getNamesOfCurrentEquippedSkills(who, full);
+							whichSkill = skills[skill_slot];
+						}
+						if (namingStyle == "GRID") {
+							whichSkill = split(theImage->unique_ID, "_").at(0);
+						}
+
+						}
 					}
-				}
 				if (!isMouseHoveredOverAnySkill and graphics.doesThisImageAlreadyExist(skillExplainID)) {
 					Event("TearDownImage", "TEARDOWNIMAGE", Map<string, string>({
 						pair<string, string>("uniqueID", skillExplainID)})).run(*&gameEngine);
@@ -2237,6 +2339,9 @@ public:
 						pair<string, string>("uniqueID","skillExplainText_Name"),
 						})).run(*&gameEngine);
 					Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+						pair<string, string>("uniqueID","skillExplainText_skillTreeName"),
+						})).run(*&gameEngine);
+					Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
 						pair<string, string>("uniqueID","skillExplainText_Cost"),
 						})).run(*&gameEngine);
 					Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
@@ -2248,166 +2353,16 @@ public:
 
 					return true;
 				}
-				if (isMouseHoveredOverAnySkill and !graphics.doesThisImageAlreadyExist(skillExplainID)) {
-					Combat::SkillBar skillBar = Combat::SkillBar(skills, *&combat);
-					Combat::Skill toDraw = skillBar.getVisibleSkillbar(*&combat, full)[stoi(skill_slot)];
+				if (isMouseHoveredOverAnySkill) {
+					Combat::Skill toDraw = combat.skillDefinitions[whichSkill];
+					string textColour = "WHITE";
 					int border = toDraw.getBorderSource();
-					Event("DrawText", "DRAWTEXT", Map<string, string>({
-						pair<string, string>("message",who),
-						pair<string, string>("skill",whichSkill),
-						pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-						pair<string, string>("format", "LightText_20"),
-						pair<string, string>("anchorStyle", "TOPLEFT"),
-						pair<string, string>("x", desc["description"].first),
-						pair<string, string>("y", desc["description"].second),
-						pair<string, string>("w", to_string(textWidth)),
-						pair<string, string>("h", "60"),
-						pair<string, string>("colour", "WHITE"),
-						pair<string, string>("shadowColour", "DARKBROWN"),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-						pair<string, string>("uniqueID", "skillExplainText"),
-						pair<string, string>("direct", "1"),
-						pair<string, string>("getStringFromCombatant", "skillprintout"),
-						})).run(*&gameEngine);
-					Event("DrawText", "DRAWTEXT", Map<string, string>({
-						pair<string, string>("message",who),
-						pair<string, string>("skill",whichSkill),
-						pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-						pair<string, string>("format", "LightText_20"),
-						pair<string, string>("anchorStyle", "TOPLEFT"),
-						pair<string, string>("x", desc["name"].first),
-						pair<string, string>("y", desc["name"].second),
-						pair<string, string>("w", to_string(textWidth)),
-						pair<string, string>("h", "60"),
-						pair<string, string>("colour", "WHITE"),
-						pair<string, string>("shadowColour", "DARKBROWN"),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-						pair<string, string>("uniqueID", "skillExplainText_Name"),
-						pair<string, string>("direct", "1"),
-						pair<string, string>("getStringFromCombatant", "skillName"),
-						})).run(*&gameEngine);
-					Event("DrawText", "DRAWTEXT", Map<string, string>({
-						pair<string, string>("message",to_string(toDraw.baseCost)),
-						pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-						pair<string, string>("format", "LightText_20"),
-						pair<string, string>("anchorStyle", "TOPLEFT"),
-						pair<string, string>("x", desc["cost"].first),
-						pair<string, string>("y", desc["cost"].second),
-						pair<string, string>("w", to_string(textWidth)),
-						pair<string, string>("h", "60"),
-						pair<string, string>("colour", "WHITE"),
-						pair<string, string>("shadowColour", "DARKBROWN"),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-						pair<string, string>("uniqueID", "skillExplainText_Cost"),
-						pair<string, string>("direct", "1"),
-						})).run(*&gameEngine);
-					Event("DrawText", "DRAWTEXT", Map<string, string>({
-						pair<string, string>("message",to_string(toDraw.baseCastingTime)),
-						pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-						pair<string, string>("format", "LightText_20"),
-						pair<string, string>("anchorStyle", "TOPLEFT"),
-						pair<string, string>("x", desc["activation"].first),
-						pair<string, string>("y", desc["activation"].second),
-						pair<string, string>("w", to_string(textWidth)),
-						pair<string, string>("h", "60"),
-						pair<string, string>("colour", "WHITE"),
-						pair<string, string>("shadowColour", "DARKBROWN"),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-						pair<string, string>("uniqueID", "skillExplainText_Activation"),
-						pair<string, string>("direct", "1"),
-						})).run(*&gameEngine);
-					Event("DrawText", "DRAWTEXT", Map<string, string>({
-						pair<string, string>("message",to_string(toDraw.baseRecharge)),
-						pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-						pair<string, string>("format", "LightText_20"),
-						pair<string, string>("anchorStyle", "TOPLEFT"),
-						pair<string, string>("x", desc["recharge"].first),
-						pair<string, string>("y", desc["recharge"].second),
-						pair<string, string>("w", to_string(textWidth)),
-						pair<string, string>("h", "60"),
-						pair<string, string>("colour", "WHITE"),
-						pair<string, string>("shadowColour", "DARKBROWN"),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-						pair<string, string>("uniqueID", "skillExplainText_Recharge"),
-						pair<string, string>("direct", "1"),
-						})).run(*&gameEngine);
-					Event("LoadImage", "LOADIMAGE", Map<string, string>({
-						pair<string, string>("sources", to_string(toDraw.imageSource)),
-						pair<string, string>("x", data["x"]),
-						pair<string, string>("y", data["y"]),
-						pair<string, string>("anchor", "CENTRE"),
-						pair<string, string>("opacity", "1.0"),
-						pair<string, string>("scale", data["scale"]),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-						pair<string, string>("uniqueID", skillExplainID)
-							})).run(*&gameEngine);
-					Event("LoadImage", "LOADIMAGE", Map<string, string>({
-						pair<string, string>("sources", to_string(border)),
-						pair<string, string>("x", data["x"]),
-						pair<string, string>("y", data["y"]),
-						pair<string, string>("anchor", "CENTRE"),
-						pair<string, string>("opacity", "1.0"),
-						pair<string, string>("scale", data["scale"]),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-						pair<string, string>("uniqueID", skillExplainBorderID)
-						})).run(*&gameEngine);
-					Event("LoadImage", "LOADIMAGE", Map<string, string>({
-						pair<string, string>("sources", to_string(MANA_COST_ICON)),
-						pair<string, string>("x", to_string(centreAnchor.first + 5)),
-						pair<string, string>("y", to_string(centreAnchor.second - 3.3)),
-						pair<string, string>("anchor", "CENTRE"),
-						pair<string, string>("opacity", "1.0"),
-						pair<string, string>("scale", data["scale"]),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-						pair<string, string>("uniqueID", skillExplainID + "COST")
-						})).run(*&gameEngine);
-					Event("LoadImage", "LOADIMAGE", Map<string, string>({
-						pair<string, string>("sources", to_string(ACTIVATION_ICON)),
-						pair<string, string>("x", to_string(centreAnchor.first + 10)),
-						pair<string, string>("y", to_string(centreAnchor.second - 3.3)),
-						pair<string, string>("anchor", "CENTRE"),
-						pair<string, string>("opacity", "1.0"),
-						pair<string, string>("scale", data["scale"]),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-						pair<string, string>("uniqueID", skillExplainID + "ACTIVATION")
-						})).run(*&gameEngine);
-					Event("LoadImage", "LOADIMAGE", Map<string, string>({
-						pair<string, string>("sources", to_string(RECHARGE_ICON)),
-						pair<string, string>("x", to_string(centreAnchor.first + 15)),
-						pair<string, string>("y", to_string(centreAnchor.second - 3.3)),
-						pair<string, string>("anchor", "CENTRE"),
-						pair<string, string>("opacity", "1.0"),
-						pair<string, string>("scale", data["scale"]),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-						pair<string, string>("uniqueID", skillExplainID + "RECHARGE")
-						})).run(*&gameEngine);
-					return true;
-				}
-				if (isMouseHoveredOverAnySkill and graphics.doesThisImageAlreadyExist(skillExplainID)) {
-					Combat::SkillBar skillBar = Combat::SkillBar(skills, *&combat);
-					Combat::Skill toDraw = skillBar.getVisibleSkillbar(*&combat, full)[stoi(skill_slot)];
-					Graphics::Image* theImage = graphics.accessImageViaUniqueID(skillExplainID);
-					Graphics::Image* theBorder = graphics.accessImageViaUniqueID(skillExplainBorderID);
-					if (theImage->sources.front() != toDraw.imageSource) {
-						theImage->resetSources(*&graphics, { toDraw.imageSource });
-						theBorder->resetSources(*&graphics, { toDraw.getBorderSource() });
+					isElite = toDraw.isElite();
+					if (isElite) {
+						textColour = "ELITESKILLYELLOW";
 					}
-					Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
-						pair<string, string>("uniqueID","skillExplainText"),
-						})).run(*&gameEngine);
-					Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
-						pair<string, string>("uniqueID","skillExplainText_Name"),
-						})).run(*&gameEngine);
-					Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
-						pair<string, string>("uniqueID","skillExplainText_Cost"),
-						})).run(*&gameEngine);
-					Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
-						pair<string, string>("uniqueID","skillExplainText_Activation"),
-						})).run(*&gameEngine);
-					Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
-						pair<string, string>("uniqueID","skillExplainText_Recharge"),
-						})).run(*&gameEngine);
-					Event("DrawText", "DRAWTEXT", Map<string, string>({
+					if (!graphics.doesThisImageAlreadyExist(skillExplainID)) {
+						Event("DrawText", "DRAWTEXT", Map<string, string>({
 						pair<string, string>("message",who),
 						pair<string, string>("skill",whichSkill),
 						pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
@@ -2417,77 +2372,263 @@ public:
 						pair<string, string>("y", desc["description"].second),
 						pair<string, string>("w", to_string(textWidth)),
 						pair<string, string>("h", "60"),
-						pair<string, string>("colour", "WHITE"),
+						pair<string, string>("colour", textColour),
 						pair<string, string>("shadowColour", "DARKBROWN"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
 						pair<string, string>("uniqueID", "skillExplainText"),
 						pair<string, string>("direct", "1"),
 						pair<string, string>("getStringFromCombatant", "skillprintout"),
-						})).run(*&gameEngine);
-					Event("DrawText", "DRAWTEXT", Map<string, string>({
-						pair<string, string>("message",who),
-						pair<string, string>("skill",whichSkill),
-						pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-						pair<string, string>("format", "LightText_20"),
-						pair<string, string>("anchorStyle", "TOPLEFT"),
-						pair<string, string>("x", desc["name"].first),
-						pair<string, string>("y", desc["name"].second),
-						pair<string, string>("w", to_string(textWidth)),
-						pair<string, string>("h", "60"),
-						pair<string, string>("colour", "WHITE"),
-						pair<string, string>("shadowColour", "DARKBROWN"),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-						pair<string, string>("uniqueID", "skillExplainText_Name"),
-						pair<string, string>("getStringFromCombatant", "skillName"),
-						pair<string, string>("direct", "1"),
-						})).run(*&gameEngine);
-					Event("DrawText", "DRAWTEXT", Map<string, string>({
-						pair<string, string>("message",to_string(toDraw.baseCost)),
-						pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-						pair<string, string>("format", "LightText_20"),
-						pair<string, string>("anchorStyle", "TOPLEFT"),
-						pair<string, string>("x", desc["cost"].first),
-						pair<string, string>("y", desc["cost"].second),
-						pair<string, string>("w", to_string(textWidth)),
-						pair<string, string>("h", "60"),
-						pair<string, string>("colour", "WHITE"),
-						pair<string, string>("shadowColour", "DARKBROWN"),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-						pair<string, string>("uniqueID", "skillExplainText_Cost"),
-						pair<string, string>("direct", "1"),
-						})).run(*&gameEngine);
-					Event("DrawText", "DRAWTEXT", Map<string, string>({
-						pair<string, string>("message",to_string(toDraw.baseCastingTime)),
-						pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-						pair<string, string>("format", "LightText_20"),
-						pair<string, string>("anchorStyle", "TOPLEFT"),
-						pair<string, string>("x", desc["activation"].first),
-						pair<string, string>("y", desc["activation"].second),
-						pair<string, string>("w", to_string(textWidth)),
-						pair<string, string>("h", "60"),
-						pair<string, string>("colour", "WHITE"),
-						pair<string, string>("shadowColour", "DARKBROWN"),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-						pair<string, string>("uniqueID", "skillExplainText_Activation"),
-						pair<string, string>("direct", "1"),
-						})).run(*&gameEngine);
-					Event("DrawText", "DRAWTEXT", Map<string, string>({
-						pair<string, string>("message",to_string(toDraw.baseRecharge)),
-						pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-						pair<string, string>("format", "LightText_20"),
-						pair<string, string>("anchorStyle", "TOPLEFT"),
-						pair<string, string>("x", desc["recharge"].first),
-						pair<string, string>("y", desc["recharge"].second),
-						pair<string, string>("w", to_string(textWidth)),
-						pair<string, string>("h", "60"),
-						pair<string, string>("colour", "WHITE"),
-						pair<string, string>("shadowColour", "DARKBROWN"),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-						pair<string, string>("uniqueID", "skillExplainText_Recharge"),
-						pair<string, string>("direct", "1"),
-						})).run(*&gameEngine);
-					return true;
-				}
+							})).run(*&gameEngine);
+						Event("DrawText", "DRAWTEXT", Map<string, string>({
+							pair<string, string>("message",who),
+							pair<string, string>("skill",whichSkill),
+							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
+							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("anchorStyle", "TOPLEFT"),
+							pair<string, string>("x", desc["name"].first),
+							pair<string, string>("y", desc["name"].second),
+							pair<string, string>("w", to_string(textWidth)),
+							pair<string, string>("h", "60"),
+							pair<string, string>("colour", textColour),
+							pair<string, string>("shadowColour", "DARKBROWN"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", "skillExplainText_Name"),
+							pair<string, string>("direct", "1"),
+							pair<string, string>("getStringFromCombatant", "skillName"),
+							})).run(*&gameEngine);
+						Event("DrawText", "DRAWTEXT", Map<string, string>({
+							pair<string, string>("message",gameEngine.language + "_Skill Tree Names_" + toDraw.skillTree),
+							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("anchorStyle", "TOPLEFT"),
+							pair<string, string>("x", desc["skillTree"].first),
+							pair<string, string>("y", desc["skillTree"].second),
+							pair<string, string>("w", to_string(textWidth)),
+							pair<string, string>("h", "60"),
+							pair<string, string>("colour", textColour),
+							pair<string, string>("shadowColour", "DARKBROWN"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", "skillExplainText_skillTreeName"),
+							pair<string, string>("getStringFromCombatant", "skillTreeName"),
+							})).run(*&gameEngine);
+						Event("DrawText", "DRAWTEXT", Map<string, string>({
+							pair<string, string>("message",to_string(toDraw.baseCost)),
+							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
+							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("anchorStyle", "TOPLEFT"),
+							pair<string, string>("x", desc["cost"].first),
+							pair<string, string>("y", desc["cost"].second),
+							pair<string, string>("w", to_string(textWidth)),
+							pair<string, string>("h", "60"),
+							pair<string, string>("colour", textColour),
+							pair<string, string>("shadowColour", "DARKBROWN"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", "skillExplainText_Cost"),
+							pair<string, string>("direct", "1"),
+							})).run(*&gameEngine);
+						Event("DrawText", "DRAWTEXT", Map<string, string>({
+							pair<string, string>("message",to_string(toDraw.baseCastingTime)),
+							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
+							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("anchorStyle", "TOPLEFT"),
+							pair<string, string>("x", desc["activation"].first),
+							pair<string, string>("y", desc["activation"].second),
+							pair<string, string>("w", to_string(textWidth)),
+							pair<string, string>("h", "60"),
+							pair<string, string>("colour", textColour),
+							pair<string, string>("shadowColour", "DARKBROWN"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", "skillExplainText_Activation"),
+							pair<string, string>("direct", "1"),
+							})).run(*&gameEngine);
+						Event("DrawText", "DRAWTEXT", Map<string, string>({
+							pair<string, string>("message",to_string(toDraw.baseRecharge)),
+							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
+							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("anchorStyle", "TOPLEFT"),
+							pair<string, string>("x", desc["recharge"].first),
+							pair<string, string>("y", desc["recharge"].second),
+							pair<string, string>("w", to_string(textWidth)),
+							pair<string, string>("h", "60"),
+							pair<string, string>("colour", textColour),
+							pair<string, string>("shadowColour", "DARKBROWN"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", "skillExplainText_Recharge"),
+							pair<string, string>("direct", "1"),
+							})).run(*&gameEngine);
+						Event("LoadImage", "LOADIMAGE", Map<string, string>({
+							pair<string, string>("sources", to_string(toDraw.imageSource)),
+							pair<string, string>("x", data["x"]),
+							pair<string, string>("y", data["y"]),
+							pair<string, string>("anchor", "CENTRE"),
+							pair<string, string>("opacity", "1.0"),
+							pair<string, string>("scale", data["scale"]),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", skillExplainID)
+							})).run(*&gameEngine);
+						Event("LoadImage", "LOADIMAGE", Map<string, string>({
+							pair<string, string>("sources", to_string(border)),
+							pair<string, string>("x", data["x"]),
+							pair<string, string>("y", data["y"]),
+							pair<string, string>("anchor", "CENTRE"),
+							pair<string, string>("opacity", "1.0"),
+							pair<string, string>("scale", data["scale"]),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", skillExplainBorderID)
+							})).run(*&gameEngine);
+						Event("LoadImage", "LOADIMAGE", Map<string, string>({
+							pair<string, string>("sources", to_string(MANA_COST_ICON)),
+							pair<string, string>("x", to_string(centreAnchor.first + 5)),
+							pair<string, string>("y", to_string(centreAnchor.second - 3.3)),
+							pair<string, string>("anchor", "CENTRE"),
+							pair<string, string>("opacity", "1.0"),
+							pair<string, string>("scale", data["scale"]),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", skillExplainID + "COST")
+							})).run(*&gameEngine);
+						Event("LoadImage", "LOADIMAGE", Map<string, string>({
+							pair<string, string>("sources", to_string(ACTIVATION_ICON)),
+							pair<string, string>("x", to_string(centreAnchor.first + 10)),
+							pair<string, string>("y", to_string(centreAnchor.second - 3.3)),
+							pair<string, string>("anchor", "CENTRE"),
+							pair<string, string>("opacity", "1.0"),
+							pair<string, string>("scale", data["scale"]),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", skillExplainID + "ACTIVATION")
+							})).run(*&gameEngine);
+						Event("LoadImage", "LOADIMAGE", Map<string, string>({
+							pair<string, string>("sources", to_string(RECHARGE_ICON)),
+							pair<string, string>("x", to_string(centreAnchor.first + 15)),
+							pair<string, string>("y", to_string(centreAnchor.second - 3.3)),
+							pair<string, string>("anchor", "CENTRE"),
+							pair<string, string>("opacity", "1.0"),
+							pair<string, string>("scale", data["scale"]),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", skillExplainID + "RECHARGE")
+							})).run(*&gameEngine);
+						return true;
+					}
+					else {
+						Combat::Skill toDraw = combat.skillDefinitions[whichSkill];
+						Graphics::Image* theImage = graphics.accessImageViaUniqueID(skillExplainID);
+						Graphics::Image* theBorder = graphics.accessImageViaUniqueID(skillExplainBorderID);
+						if (theImage->sources.front() != toDraw.imageSource) {
+							theImage->resetSources(*&graphics, { toDraw.imageSource });
+							theBorder->resetSources(*&graphics, { toDraw.getBorderSource() });
+						}
+						Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+							pair<string, string>("uniqueID","skillExplainText_skillTreeName"),
+							})).run(*&gameEngine);
+						Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+							pair<string, string>("uniqueID","skillExplainText"),
+							})).run(*&gameEngine);
+						Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+							pair<string, string>("uniqueID","skillExplainText_Name"),
+							})).run(*&gameEngine);
+						Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+							pair<string, string>("uniqueID","skillExplainText_Cost"),
+							})).run(*&gameEngine);
+						Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+							pair<string, string>("uniqueID","skillExplainText_Activation"),
+							})).run(*&gameEngine);
+						Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+							pair<string, string>("uniqueID","skillExplainText_Recharge"),
+							})).run(*&gameEngine);
+						Event("DrawText", "DRAWTEXT", Map<string, string>({
+							pair<string, string>("message",who),
+							pair<string, string>("skill",whichSkill),
+							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
+							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("anchorStyle", "TOPLEFT"),
+							pair<string, string>("x", desc["description"].first),
+							pair<string, string>("y", desc["description"].second),
+							pair<string, string>("w", to_string(textWidth)),
+							pair<string, string>("h", "60"),
+							pair<string, string>("colour", textColour),
+							pair<string, string>("shadowColour", "DARKBROWN"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", "skillExplainText"),
+							pair<string, string>("direct", "1"),
+							pair<string, string>("getStringFromCombatant", "skillprintout"),
+							})).run(*&gameEngine);
+						Event("DrawText", "DRAWTEXT", Map<string, string>({
+							pair<string, string>("message",gameEngine.language + "_Skill Tree Names_" + toDraw.skillTree),
+							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("anchorStyle", "TOPLEFT"),
+							pair<string, string>("x", desc["skillTree"].first),
+							pair<string, string>("y", desc["skillTree"].second),
+							pair<string, string>("w", to_string(textWidth)),
+							pair<string, string>("h", "60"),
+							pair<string, string>("colour", textColour),
+							pair<string, string>("shadowColour", "DARKBROWN"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", "skillExplainText_skillTreeName"),
+							pair<string, string>("getStringFromCombatant", "skillTreeName"),
+							})).run(*&gameEngine);
+						Event("DrawText", "DRAWTEXT", Map<string, string>({
+							pair<string, string>("message",who),
+							pair<string, string>("skill",whichSkill),
+							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
+							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("anchorStyle", "TOPLEFT"),
+							pair<string, string>("x", desc["name"].first),
+							pair<string, string>("y", desc["name"].second),
+							pair<string, string>("w", to_string(textWidth)),
+							pair<string, string>("h", "60"),
+							pair<string, string>("colour", textColour),
+							pair<string, string>("shadowColour", "DARKBROWN"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", "skillExplainText_Name"),
+							pair<string, string>("getStringFromCombatant", "skillName"),
+							pair<string, string>("direct", "1"),
+							})).run(*&gameEngine);
+						Event("DrawText", "DRAWTEXT", Map<string, string>({
+							pair<string, string>("message",to_string(toDraw.baseCost)),
+							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
+							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("anchorStyle", "TOPLEFT"),
+							pair<string, string>("x", desc["cost"].first),
+							pair<string, string>("y", desc["cost"].second),
+							pair<string, string>("w", to_string(textWidth)),
+							pair<string, string>("h", "60"),
+							pair<string, string>("colour", textColour),
+							pair<string, string>("shadowColour", "DARKBROWN"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", "skillExplainText_Cost"),
+							pair<string, string>("direct", "1"),
+							})).run(*&gameEngine);
+						Event("DrawText", "DRAWTEXT", Map<string, string>({
+							pair<string, string>("message",to_string(toDraw.baseCastingTime)),
+							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
+							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("anchorStyle", "TOPLEFT"),
+							pair<string, string>("x", desc["activation"].first),
+							pair<string, string>("y", desc["activation"].second),
+							pair<string, string>("w", to_string(textWidth)),
+							pair<string, string>("h", "60"),
+							pair<string, string>("colour", textColour),
+							pair<string, string>("shadowColour", "DARKBROWN"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", "skillExplainText_Activation"),
+							pair<string, string>("direct", "1"),
+							})).run(*&gameEngine);
+						Event("DrawText", "DRAWTEXT", Map<string, string>({
+							pair<string, string>("message",to_string(toDraw.baseRecharge)),
+							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
+							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("anchorStyle", "TOPLEFT"),
+							pair<string, string>("x", desc["recharge"].first),
+							pair<string, string>("y", desc["recharge"].second),
+							pair<string, string>("w", to_string(textWidth)),
+							pair<string, string>("h", "60"),
+							pair<string, string>("colour", textColour),
+							pair<string, string>("shadowColour", "DARKBROWN"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", "skillExplainText_Recharge"),
+							pair<string, string>("direct", "1"),
+							})).run(*&gameEngine);
+						return true;
+					}
+				}	
 			}
 			return false;
 }
@@ -2709,8 +2850,8 @@ public:
 				Menu::TextBox("TEXTBOX1", "GUI_SELECTCHARACTER", "VERY_SMALL", {15, 7}),
 				Menu::standardButton("FROMSKILLMANAGETOPARTYMANAGE", "GUI_FROMPARTYTOPAUSE", {12, 90}),
 			}), Map<string, Menu::DropDownMenu>({
-				pair<string, Menu::DropDownMenu> ("SkillTreeSelection1", Menu::SkillTreeSelection(1, false)),
-				pair<string, Menu::DropDownMenu>("SkillTreeSelection2", Menu::SkillTreeSelection(2, false)),
+				pair<string, Menu::DropDownMenu>("SkillTreeSelection1", Menu::SkillTreeSelection(1, false, {45,7})),
+				pair<string, Menu::DropDownMenu>("SkillTreeSelection2", Menu::SkillTreeSelection(2, false, {75,7})),
 				}),Map<string, string>({
 					pair<string, string>("SKILLEXPLAIN", "2"),
 					pair<string, string>("SELECTCHARACTERTOEDIT", "1"),
