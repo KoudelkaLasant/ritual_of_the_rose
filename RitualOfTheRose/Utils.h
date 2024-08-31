@@ -10,6 +10,15 @@ static string SReplace(string input, string toFind, string toReplace) {
 	return input;
 }
 
+static wstring WSReplace(wstring input, wstring toFind, wstring toReplace) {
+	size_t start_pos = 0;
+	while ((start_pos = input.find(toFind, start_pos)) != std::wstring::npos) {
+		input.replace(start_pos, toFind.length(), toReplace);
+		start_pos += toReplace.length();
+	}
+	return input;
+}
+
 static List<string> split(string input, string delimiter) {
 	size_t pos = 0;
 	List<string> results;
@@ -635,7 +644,7 @@ public:
 		map<string, map<string, string>> equippedSkills;
 		map<string, map<string, string>> equippedSkillTrees;
 		map<string, list<string>> knownSkills;
-		list<string> inventory;
+		map<string, int> inventory;
 		list<string> itemsSold;
 		list<string> allCharacters;
 		map<string, map<string, int>> attributeInvestments;
@@ -703,9 +712,37 @@ public:
 		characters.at(secondIndex) = lhs;
 		current.party = characters.internalList;
 	}
+	void save() {
+		filesystem::path savePath = filesystem::current_path() / "slot_" / to_string(activeSaveSlot);
+		current.saveToDisk(savePath);
+	}
+	List<string> getCharactersInReserve() {
+		// get list of characters who are not in the party
+		List<string> party = current.party;
+		List<string> reserves;
+		for (auto who : current.allCharacters) {
+			if (!party.contains(who)) {
+				reserves.push_back(who);
+			}
+		}
+		return reserves;
+	}
+	void swapPartyMembers(string lhs, string rhs) {
+		List<string> party = current.party;
+		party.swap(lhs, rhs);
+		current.party = party.internalList;
+	}
+	void movePlayerFromReserveIntoParty(string fromReserve, string fromParty) {
+		List<string> party = current.party;
+		List<string> reserves = getCharactersInReserve();
+		int partyPosition = party.find(fromParty);
+		party.at(partyPosition) = fromReserve;
+		current.party = party.internalList;
+	}
 
 	SaveFile current;
 	Map<int, SaveFile> slots;
+	int activeSaveSlot = 0;
 	const int slotLimit = 9;
 	const int partyLimit = 4;
 	const int attributeInvestmentLimit = 20;

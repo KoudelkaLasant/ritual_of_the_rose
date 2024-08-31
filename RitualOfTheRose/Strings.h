@@ -18,11 +18,36 @@ map<string, map<string, map<string, wstring>>> strings = {
 		{"Skill Names", {
 			{"Attack", L"Attack"},
 			{"Wait", L"Wait"},
+			{"Heal Wounds", L"Heal Wounds"},
+			{"Heavenstrike", L"Heavenstrike"},
+			{"Light of Day", L"Light of Day"},
+			{"Exile", L"Exile"},
+			{"Strength of Reason", L"Strength of Reason"},
 }},
 		{"Skill Descriptions", {
-			{"DEFAULT_ATTACK", L"Perform a physical attack against target foe that deals ②$DAMAGE1$ damage."},
-			{"WAIT", L"Skip this current turn." }
+			{"DEFAULT_ATTACK", L"Perform a physical attack against target foe that deals ②$POWER1$ damage."},
+			{"WAIT", L"Skip this current turn." },
+			{"Heal Wounds", L"Heal target ally for②$POWER1$ life." },
+			{"Heavenstrike", L"Deal②$POWER1$ holy damage to target foe. If the damage is fatal, all allies are healed for②$POWER2$ life and Heavenstrike takes an additional 4 rounds to recharge." },
+			{"Light of Day", L"Deal②$POWER1$ holy damage to all undead or demonic foes." },
+			{"Strength of Reason", L"Enchant target ally with Strength of Reason for②$POWER1$ rounds. Their physical attacks deal an extra②$POWER2$ holy damage." },
+			{"Exile", L"Destroy target summoned creature. Exile takes an additional②$POWER1$ rounds to recharge." },
 }},
+		{"Skill Actions", {
+			{"Wait", L"$WHO$ is waiting..."},
+			{"Default_Started", L"$WHO$ is using a skill..."},
+			{"Attack_Started", L"$WHO$ is preparing an attack..."},
+			{"Spell_Started", L"$WHO$ is casting a spell..."},
+			{"Default_Finished", L"$WHO$ uses $SKILLNAME$!"},
+			{"Attack_Finished", L"$WHO$ uses $SKILLNAME$!"},
+			{"Spell_Finished", L"$WHO$ casts $SKILLNAME$"},
+}},
+		{"Item Names", {
+					{"Withered Secespita", L"Withered Secespita"},
+		}},
+		{"Item Descriptions", {
+					{"Withered Secespita", L"A secespita is an iron-bladed knife ranging from 8 to 10 inches in length with a rounded ivory handle. It usage dates as far back as the 2nd Century AD,  where ritualists of the pre-Christian Roman Empire, known as Flamens and Flaminicae, would use the blade to kill animals as part of a sacrifice. Such an offering would have been made either to a certain God or Goddess, or as a plea for Rome to be victorious in a particular war, or saved from a particular threat. To complete the ritual, the Secespita would then be used to disembowel the victim.\n\nThis Secespita in particular seems to have been forged to have a thinner blade than usual, giving it a 'withered' look. In spite of this characteristic, as well as being well over a thousand years old, it looks to be uncannily well-preserved, as if an Ancient Roman had walked up to you in the street and dropped it calmly into your open palm before walking away."},
+		}},
 		{"Attribute Names", {
 			{"STRENGTH", L"Strength"},
 			{"INTELLIGENCE", L"Intelligence"},
@@ -54,6 +79,14 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"1POINTLEFT", L" point left to spend."},
 			{"PHYSICALPOWER", L"Physical Power:\t②"},
 			{"MAGICALPOWER", L"Magical Power:\t②"},
+			{"NOTEXT", L""},
+			{"equipmentToggleText", L"Show / Hide Equipment Effects"},
+			{"FROMPARTYTOREFORM", L"Reform Party"},
+			{"PARTYLABEL", L"Party"},
+			{"RESERVELABEL", L"Reserves"},
+			{"FROMPARTYMANAGEMENTTOSKILLMANAGE", L"Change Skills"},
+			{"FROMPARTYMANAGEMENTTOEQUIPMENT", L"Change Equipment"},
+			{"SELECTCHARACTER", L"Select Character:"},
 }},
 		{"DeadHorse", {
 			{"1 Angela Fleuret", L"Hmph. I see the situation in Bénouville has become far worse than the one described in the letter."},

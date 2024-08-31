@@ -607,6 +607,11 @@ public:
         return hr;
     }
 
+    bool isThisInsideRect(pair<float, float> click, RECT position) {
+        bool insideX = position.left <= click.first and position.right >= click.first;
+        bool insideY = position.top <= click.second and position.bottom >= click.second;
+        return insideX and insideY;
+    }
     void drawTheseImagesByYOrder(List<Image *> images) {
         while (!images.empty()) {
             float max = 999;

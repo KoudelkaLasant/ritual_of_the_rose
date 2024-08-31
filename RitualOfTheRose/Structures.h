@@ -156,6 +156,23 @@ struct List {
 		advance(it, index);
 		internalList.erase(it);
 	}
+	void swap(T lhs, T rhs) {
+		int first = find(lhs);
+		int second = find(rhs);
+		if (first == -1 or second == -1) { return; }
+		at(first) = rhs;
+		at(second) = lhs;
+	}
+	int find(T rhs) {
+		int index = -1;
+		for (T& lhs : internalList) {
+			index++;
+			if (rhs == lhs) {
+				break;
+			}
+		}
+		return index;
+	}
 
 	// returns list that is x -> the end, empty if the end is bigger than the whole list
 	List<T> sublistXToEnd(int number) {
