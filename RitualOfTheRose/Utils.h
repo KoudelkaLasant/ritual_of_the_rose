@@ -739,6 +739,14 @@ public:
 		party.at(partyPosition) = fromReserve;
 		current.party = party.internalList;
 	}
+	Map<string, string> getNamesOfCurrentEquippedSkills(string who, bool full) {
+		Map<string, string> results; results.internalMap = current.equippedSkills[who];
+		if (full) {
+			results["0"] = "DEFAULT_ATTACK";
+			results["6"] = "DEFAULT_WAIT";
+		}
+		return results;
+	}
 
 	SaveFile current;
 	Map<int, SaveFile> slots;

@@ -16,8 +16,8 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Dual Weapon Mastery", L"D Wep Mastery"},
 }},
 		{"Skill Names", {
-			{"Attack", L"Attack"},
-			{"Wait", L"Wait"},
+			{"DEFAULT_ATTACK", L"Attack"},
+			{"DEFAULT_WAIT", L"Wait"},
 			{"Heal Wounds", L"Heal Wounds"},
 			{"Heavenstrike", L"Heavenstrike"},
 			{"Light of Day", L"Light of Day"},
@@ -25,8 +25,8 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Strength of Reason", L"Strength of Reason"},
 }},
 		{"Skill Descriptions", {
-			{"DEFAULT_ATTACK", L"Perform a physical attack against target foe that deals ②$POWER1$ damage."},
-			{"WAIT", L"Skip this current turn." },
+			{"DEFAULT_ATTACK", L"Perform a physical attack against target foe that deals②$POWER1$ damage."},
+			{"DEFAULT_WAIT", L"Skip this current turn." },
 			{"Heal Wounds", L"Heal target ally for②$POWER1$ life." },
 			{"Heavenstrike", L"Deal②$POWER1$ holy damage to target foe. If the damage is fatal, all allies are healed for②$POWER2$ life and Heavenstrike takes an additional 4 rounds to recharge." },
 			{"Light of Day", L"Deal②$POWER1$ holy damage to all undead or demonic foes." },
@@ -87,6 +87,8 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"FROMPARTYMANAGEMENTTOSKILLMANAGE", L"Change Skills"},
 			{"FROMPARTYMANAGEMENTTOEQUIPMENT", L"Change Equipment"},
 			{"SELECTCHARACTER", L"Select Character:"},
+			{"SKILLTREESELECTION1", L"Select Skill Tree (Current: $REPLACE$)"},
+			{"SKILLTREESELECTION2", L"Select Skill Tree (Current: $REPLACE$)"},
 }},
 		{"DeadHorse", {
 			{"1 Angela Fleuret", L"Hmph. I see the situation in Bénouville has become far worse than the one described in the letter."},

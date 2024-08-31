@@ -378,6 +378,7 @@
 #define ACTIVATION_ICON 4316
 #define MANA_COST_ICON 4317
 #define RECHARGE_ICON 4318
+#define SKILLICON_LIFEDRAIN 4319
 
 // Next default values for new objects
 // 
