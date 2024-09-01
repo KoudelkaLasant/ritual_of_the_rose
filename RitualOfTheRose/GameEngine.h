@@ -197,7 +197,30 @@ public:
 		}
 		return results;
 	}
+	static const Map<string, string> getSkillGridPositions() {
+		Map<string, string> result = Map<string, string>({pair<string, string>("1","35"),pair<string, string>("2","65"),});
+		return result;
+	}
+	static const Map<string, RECT> getSkillBarEditPositions() {
+		Map<string, RECT> result;
+		float top = 560;
+		float bottom = 660;
+		//result["WHOLESKILLBAR"] = graphics.makeRect(top, 398, bottom,1098);
+		result["SKILLSLOT1"] = graphics.makeRect(top, 498, bottom, 598);
+		result["SKILLSLOT2"] = graphics.makeRect(top, 598, bottom, 698);
+		result["SKILLSLOT3"] = graphics.makeRect(top, 698, bottom, 798);
+		result["SKILLSLOT4"] = graphics.makeRect(top, 798, bottom, 898);
+		result["SKILLSLOT5"] = graphics.makeRect(top, 898, bottom, 998);
 
+		return result;
+	}
+	static const Map<string, string> getLocAndScaleOfSkillBarEdit() {
+		Map<string, string> result;
+		result["scale"] = "1.0";
+		result["x"] = "60";
+		result["y"] = "85";
+		return result;
+	}
 	string uniqueID;
 	List<Button> buttons;
 	Map<string, string> data;
@@ -594,7 +617,7 @@ public:
 		skillDefinitions["Heal Wounds"] = Skill("Heal Wounds", "Heal Wounds", "Cleromancy", SKILLICON_HEALWOUNDS, 5, 1, 1,
 			list<string>({"LIFEHEAL_SINGLE"}),
 			list<string>({"MAGICAL","HOLY", "HEAL","TARGETSALLIES"}),
-			Map<string, PowerValue>({ pair<string, PowerValue>("POWER1", PowerValue("POWER1", 30, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"})))}),
+			Map<string, PowerValue>({ pair<string, PowerValue>("POWER1", PowerValue("POWER1", 40, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"})))}),
 			list<string>({"ALLYNEEDSHEALING"}));
 
 		// HAGIOMANCY
@@ -1033,7 +1056,7 @@ public:
 				return false;
 			}
 			if (type == "CLICKANDDRAG") {				
-				Event("Debug", "DEBUGUSERINPUT", {}).run(*&gameEngine);
+				//Event("Debug", "DEBUGUSERINPUT", {}).run(*&gameEngine);
 				List<string> draggable = split(data["objects"], ",");
 				bool YLocked = data["YLock"] == "1";
 				float XMin = 0;
@@ -1046,10 +1069,8 @@ public:
 				}
 				if (controller.mouseInstructionsInOrder.contains("LButtonDown")) {
 					for (Graphics::Image* image : graphics.beingDragged.internalList) {
-						graphics.bumpLayer(image, -1);
+						graphics.bumpLayer(image, -2);
 					}
-					//graphics.beingDragged.clear();
-					//graphics.recentlyFinishedBeingDragged.clear();
 					pair<float, float> click = controller.mouseClickPosition;
 					for (auto const& ID : draggable.internalList) {
 						Graphics::Image* theImage = graphics.accessImageViaUniqueID(ID);
@@ -1059,7 +1080,7 @@ public:
 							}
 						}
 					for (Graphics::Image * image : graphics.beingDragged.internalList) {
-						graphics.bumpLayer(image, 1);
+						graphics.bumpLayer(image, 2);
 					}
 				}
 				if (controller.mouseInstructionsInOrder.contains("MouseMove")) {
@@ -1085,10 +1106,10 @@ public:
 						graphics.changeCursor("DEFAULT");
 					}
 				}
-				if (controller.mouseInstructionsInOrder.contains("LButtonUp")) {
+				if (controller.mouseInstructionsInOrder.contains("LButtonUp") or !controller.hasThisBeenPressed(1)) {
 					// call upon drag and drop logic depending on the event
 					for (Graphics::Image* image : graphics.beingDragged.internalList) {
-						graphics.bumpLayer(image, -1);
+						graphics.bumpLayer(image, -2);
 					}
 					for (Graphics::Image * image : graphics.beingDragged.internalList) {
 						graphics.recentlyFinishedBeingDragged.addToBackIfNotAlreadyInList(image->unique_ID);
@@ -1828,9 +1849,10 @@ public:
 				for (Graphics::Image* image : characterCards.internalList) {
 					if (image->hasThisBeenClickedOn(graphics, controller.mouseClickPosition) and purpose == "manageskills") {
 						string who = split(image->unique_ID, "_").at(0);
-						string scale = "1.0";
-						string x = "60";
-						string y = "85";
+						Map<string, string> locs = Menu::getLocAndScaleOfSkillBarEdit();
+						string scale = locs["scale"];
+						string x = locs["x"];
+						string y = locs["y"];
 						string previousSelected = gameEngine.stateFlags["PARTYEDITSELECTED"];
 						if (previousSelected != who) {
 							if (previousSelected != "") {
@@ -1845,7 +1867,7 @@ public:
 								}
 							}
 							Map<string, string> equippedSkillTrees; equippedSkillTrees.internalMap = saveContainer.current.equippedSkillTrees[who];
-							Map<string, string> xPositions; xPositions["1"] = "35"; xPositions["2"] = "65";
+							Map<string, string> xPositions = Menu::getSkillGridPositions();
 							for (auto whichTree : equippedSkillTrees.getKeys().internalList) {
 								Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 									pair<string, string>("offsetX", xPositions[whichTree]),
@@ -2658,10 +2680,17 @@ public:
 			if (type == "HANDLESKILLBAREDIT") {
 				string theObjects;
 				List<string> canBeDragged;
-				for (auto x : {20}) {
+				for (auto x : { 20,21,22,23 }) {
 					for (Graphics::Image* Image : graphics.ImageMap[x].internalList) {
+						if (Image->unique_ID.find("SKILLSLOT_0") != -1 or
+							Image->unique_ID.find("SKILLSLOT_6") != -1) {
+							continue;
+						}
 						if (Image->unique_ID.find("_SKILLSELECTIONGRID") != -1 or
-							Image->unique_ID.find("_SKILLSLOT_") != -1){
+							Image->unique_ID.find("_SKILLSLOT_") != -1 or
+							Image->unique_ID.find("_SKILLSLOTBORDER_") != -1 or
+							Image->unique_ID.find("_SKILLSELECTIONBORDER") != -1
+							) {
 							theObjects += Image->unique_ID + ",";
 						}
 					}
@@ -2669,14 +2698,113 @@ public:
 				Event("ClickAndDrag", "CLICKANDDRAG", Map<string, string>({
 					pair<string, string>("objects", theObjects),
 					})).run(*&gameEngine);
-				for (Graphics::Image* beingDragged : graphics.beingDragged.internalList) {
-					string theID = beingDragged->unique_ID;
-					string associatedBorder = SReplace(theID, "SELECTIONGRID", "SELECTIONBORDER");
-					associatedBorder = SReplace(associatedBorder, "SLOT_", "SLOTBORDER_");
-					Graphics::Image* associatedBorderImage = graphics.accessImageViaUniqueID(associatedBorder);
-					associatedBorderImage->positionAsPercentage = beingDragged->positionAsPercentage;
+
+				if (!graphics.recentlyFinishedBeingDragged.empty()) {
+					bool skillbarNeedsToBeRedrawn = false;
+					string who = gameEngine.stateFlags["PARTYEDITSELECTED"];
+					Combat::Combatant theCharacter = combat.loadPartyMemberAsCombatant(who);
+					Map<string, RECT> skillbarEditPositions = Menu::getSkillBarEditPositions();
+					Map<string, string> equippedSkills; equippedSkills.internalMap = saveContainer.current.equippedSkills[who];
+
+
+					string imageThatWasDragged = graphics.recentlyFinishedBeingDragged.front();
+					string associatedBorder = SReplace(imageThatWasDragged, "SELECTIONGRID", "SELECTIONBORDER");
+					string imageSource = "FROMGRID";
+					if (imageThatWasDragged.find("SKILLSLOT") != -1) {
+						imageSource = "FROMSKILLBAR";
+					}
+					Graphics::Image* draggedSkill = graphics.accessImageViaUniqueID(imageThatWasDragged);
+					Graphics::Image* draggedBorder = graphics.accessImageViaUniqueID(associatedBorder);
+
+					pair<float, float> whereDidUserUnclick = controller.mouseUnclickPosition;
+					string unclickLocation = "OUTSIDE"; // unclicked off the skillbar
+					for (auto [key, value] : skillbarEditPositions.internalMap) {
+						if (graphics.isThisInsideRect(whereDidUserUnclick, value)) {
+							unclickLocation = key;
+						}
+					}
+					// moving from grid to bar
+					if (imageSource == "FROMGRID" and unclickLocation != "OUTSIDE") {
+						string skillName = split(imageThatWasDragged, "_").at(0);
+						Combat::Skill skillDefinition = combat.skillDefinitions[skillName];
+						if (skillDefinition.isElite()) {
+							unclickLocation = "SKILLSLOT5";
+						}
+						if (skillDefinition.isElite() or (!skillDefinition.isElite() and unclickLocation != "SKILLSLOT5")) {
+							string whichTargetSlot = SReplace(unclickLocation, "SKILLSLOT", "");
+							if (!equippedSkills.getValues().contains(skillName)) {
+								// not on skillbar so just replace that slot
+								equippedSkills[whichTargetSlot] = skillName;
+							}
+							else {
+								// it was already on the skillbar so rearrange
+								string alreadyInWhichSlot = "";
+								for (auto slot : equippedSkills.getKeys().internalList) {
+									if (equippedSkills[slot] == skillName) { alreadyInWhichSlot = slot; break; }
+								}
+								equippedSkills.internalMap.erase(alreadyInWhichSlot);
+								equippedSkills[whichTargetSlot] = skillName;
+							}
+						}
+						skillbarNeedsToBeRedrawn = true;
+					}
+					// moving from skillbar to skillbar
+					if (imageSource == "FROMSKILLBAR" and unclickLocation != "OUTSIDE") {
+						string skillIndex = split(imageThatWasDragged, "_").at(2);
+						string skillName = saveContainer.current.equippedSkills[who][skillIndex];
+						string destinationSlot = SReplace(unclickLocation, "SKILLSLOT", "");
+						Combat::Skill skillDefinition = combat.skillDefinitions[skillName];
+						skillbarNeedsToBeRedrawn = true;
+						if (!skillDefinition.isElite() and destinationSlot != "5") {
+							equippedSkills.internalMap.erase(skillIndex);
+							equippedSkills[destinationSlot] = skillName;
+						}
+					}
+					if (imageSource == "FROMSKILLBAR" and unclickLocation == "OUTSIDE") {
+						string skillIndex = split(imageThatWasDragged, "_").at(2);
+						equippedSkills.internalMap.erase(skillIndex);
+						skillbarNeedsToBeRedrawn = true;
+					}
+					if (skillbarNeedsToBeRedrawn) {
+						Event("TeardownSkillBar", "TEARDOWNTHISSKILLBAR", Map<string, string>({pair<string, string>("who", who),})).run(*&gameEngine);
+						Map<string, string> locs = Menu::getLocAndScaleOfSkillBarEdit();
+						string scale = locs["scale"];
+						string x = locs["x"];
+						string y = locs["y"];
+						saveContainer.current.equippedSkills[who] = equippedSkills.internalMap;
+						Event("LoadSkillBar", "LOADSKILLBARHERE", Map<string, string>({
+								pair<string, string>("who", who),
+								pair<string, string>("scale", scale),
+								pair<string, string>("x", x),
+								pair<string, string>("y", y),
+								pair<string, string>("full", "1"),
+							})).run(*&gameEngine);
+					}
+					Map<string, string> equippedSkillTrees; equippedSkillTrees.internalMap = saveContainer.current.equippedSkillTrees[who];
+					Map<string, string> xPositions = Menu::getSkillGridPositions();
+					for (auto whichTree : equippedSkillTrees.getKeys().internalList) {
+						Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
+							pair<string, string>("offsetX", xPositions[whichTree]),
+							pair<string, string>("offsetY", "18"),
+							pair<string, string>("what", "SKILLS"),
+							pair<string, string>("skillTreeName",equippedSkillTrees[whichTree]),
+							pair<string, string>("who", who),
+							pair<string, string>("moveExisting", "1"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							})).run(*&gameEngine);
+						Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
+							pair<string, string>("offsetX", xPositions[whichTree]),
+							pair<string, string>("offsetY", "18"),
+							pair<string, string>("what", "SKILLBORDERS"),
+							pair<string, string>("skillTreeName",equippedSkillTrees[whichTree]),
+							pair<string, string>("who", who),
+							pair<string, string>("moveExisting", "1"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"] + 1)),
+							})).run(*&gameEngine);
+					}
 				}
 			}
+			graphics.recentlyFinishedBeingDragged.clear();
 			return false;
 }
 		string name;

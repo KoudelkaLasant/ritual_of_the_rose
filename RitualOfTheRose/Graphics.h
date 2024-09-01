@@ -767,7 +767,14 @@ public:
         HCURSOR hCursor = Cursors[CurrentCursor];
         SetCursor(hCursor);
     }
-
+    RECT makeRect(float top, float left, float bottom, float right) {
+        RECT result;
+        result.left = left;
+        result.top = top;
+        result.right = right;
+        result.bottom = bottom;
+        return result;
+    }
 
     HWND * hwnd;
     HINSTANCE hinstance;
