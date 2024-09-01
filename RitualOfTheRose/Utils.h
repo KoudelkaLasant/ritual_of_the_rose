@@ -783,6 +783,7 @@ public:
 		layerDefaults["UI"] = 15;
 		layerDefaults["BUTTONS"] = 20;
 		layerDefaults["LOADINGSCREEN"] = 25;
+		layerDefaults["DROPDOWNMENU"] = 30;
 		layerDefaults["DEBUGUSERINPUT"] = 100;
 
 		animationFrames["Angela Fleuret"]["SPEAKER"].internalList = { ANGELA_SPEAKER };

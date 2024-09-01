@@ -90,6 +90,8 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"FROMPARTYMANAGEMENTTOSKILLMANAGE", L"Change Skills"},
 			{"FROMPARTYMANAGEMENTTOEQUIPMENT", L"Change Equipment"},
 			{"SELECTCHARACTER", L"Select Character:"},
+			{"CANCELSKILLTREECHOICE", L"Cancel"},
+			{"SKILLTREESELECTIONEMPTY" , L"Skill Tree ↓"},
 			{"SKILLTREESELECTION1", L"Select Skill Tree (Current: $REPLACE$)"},
 			{"SKILLTREESELECTION2", L"Select Skill Tree (Current: $REPLACE$)"},
 }},

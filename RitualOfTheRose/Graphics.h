@@ -345,7 +345,7 @@ public:
     class Text : public Drawable {
     public:
         Text() {}
-        Text(wstring _message, string _format, pair<float, float> _positionAsPercentage, string _anchorStyle, pair<int, int> _size, vector<float> _colour, vector<float> _shadowColour, string _unique_ID) {
+        Text(wstring _message, string _format, pair<float, float> _positionAsPercentage, string _anchorStyle, pair<float, float> _size, vector<float> _colour, vector<float> _shadowColour, string _unique_ID) {
             message = _message;
             format = _format;
             positionAsPercentage = _positionAsPercentage;
@@ -588,15 +588,15 @@ public:
             for (auto const& [key, val] : ImageMap.internalMap) {
                 if (latest_layer < key and not ImageMap[key].empty()) { latest_layer = key; }
                 drawTheseImagesByYOrder(ImageMap[key]);
-                for (auto & [subkey, subval] : TextMap[key].internalMap) {
-                    subval.draw(*this);
+                for (Text * text : TextMap[key].internalList) {
+                    text->draw(*this);
                 }
             }
             // draw any text that are on higher layers than any existing images
             for (auto const& [key, val] : TextMap.internalMap) {
                 if (key <= latest_layer) { continue; }
-                for (auto& [subkey, subval] : TextMap[key].internalMap) {
-                    subval.draw(*this);
+                for (Text * toDraw : TextMap[key].internalList) {
+                    toDraw->draw(*this);
                 }
             }
 
@@ -652,11 +652,12 @@ public:
         ImageMap[layer].push_back(image);
         return image;
     }
-    void addText(Text text, int layer) {
+    Text * addText(Text * text, int layer) {
         if (not TextMap.hasKey(layer)) {
-            TextMap[layer] = Map<string, Text>();
+            TextMap[layer] = List<Text*>();
         }
-        TextMap[layer][text.unique_ID] = text;
+        TextMap[layer].push_back(text);
+        return text;
     }
     void teardownAllImagesOnThisLayer(int layer) {
         while (not ImageMap[layer].empty()) {
@@ -669,6 +670,14 @@ public:
             delete ImageMap[layer].front();
             ImageMap[layer].front() = NULL;
             ImageMap[layer].pop_front();
+        }
+    }
+    void tearDownAllTextOnThisLayer(int layer) {
+        while (not TextMap[layer].empty()) {
+            Text* toDelete = TextMap[layer].front();
+            delete TextMap[layer].front();
+            TextMap[layer].front() = NULL;
+            TextMap[layer].pop_front();
         }
     }
     void teardownAllImages() {
@@ -691,6 +700,16 @@ public:
             for (int x = 0; x < ImageMap[key].internalList.size(); x++) {
                 if (ImageMap[key].at(x)->unique_ID == uniqueID) {
                     return ImageMap[key].at(x);
+                }
+            }
+        }
+        return NULL;
+    }
+    Text * accessTextViaUniqueID(string uniqueID) {
+        for (auto const& [key, val] : TextMap.internalMap) {
+            for (int x = 0; x < TextMap[key].internalList.size(); x++) {
+                if (TextMap[key].at(x)->unique_ID == uniqueID) {
+                    return TextMap[key].at(x);
                 }
             }
         }
@@ -731,13 +750,30 @@ public:
         }
     }
     void tearDownSpecifiedText(string uniqueID) {
+        int index = -1;
+        int the_key = 0;
+        Text* theText = NULL;
         for (auto const& [key, val] : TextMap.internalMap) {
-            if (TextMap[key].getKeys().contains(uniqueID)) {
-                TextMap[key].internalMap.erase(uniqueID);
+            for (int x = 0; x < TextMap[key].internalList.size(); x++) {
+                if (TextMap[key].at(x)->unique_ID == uniqueID) {
+                    theText = TextMap[key].at(x);
+                    index = x;
+                    the_key = key;
+                    break;
+                }
             }
+
+        }
+        if (index != -1) {
+            TextMap[the_key].remove_at(index);
+            delete theText;
+            theText = NULL;
         }
     }
     void tearDownAllText() {
+        for (auto const& [key, val] : TextMap.internalMap) {
+            tearDownAllTextOnThisLayer(key);
+        }
         TextMap.clear();
     }
     void tearDownAllCursors() {
@@ -752,12 +788,7 @@ public:
         }
     }
     bool doesThisTextAlreadyExist(string uniqueID) {
-        for (auto const& [key, val] : TextMap.internalMap) {
-            if (TextMap[key].getKeys().contains(uniqueID)) {
-                return true;
-            }
-        }
-        return false;
+        return accessTextViaUniqueID(uniqueID) != NULL;
     }
     bool doesThisImageAlreadyExist(string uniqueID) {
         return accessImageViaUniqueID(uniqueID) != NULL;
@@ -794,7 +825,7 @@ public:
     IDWriteFactory5* DWriteFactory;
     ID2D1HwndRenderTarget* hwndRenderTarget;
     Map<int, List<Image *>> ImageMap;
-    Map<int, Map<string, Text>> TextMap;
+    Map<int, List<Text *>> TextMap;
     Map<string, HCURSOR> Cursors;
     Map<string, vector<float>> Colours;
     Map<wchar_t, string> colourTagLookupTable;
