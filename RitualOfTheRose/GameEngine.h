@@ -630,8 +630,8 @@ public:
 		skillDefinitions["Life Drain"] = Skill("Life Drain", "Life Drain", "Sangromancy", SKILLICON_LIFEDRAIN, 10, 0, 1,
 			list<string>({ "LIFEDRAIN" }),
 			list<string>({ "MAGICAL","BLOOD", }),
-			Map<string, PowerValue>({ pair<string, PowerValue>("POWER1", PowerValue("POWER1", 5, 5, 8, false, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
-				pair<string, PowerValue>("POWER2", PowerValue("POWER2", 5, 1, 10, false, list<string>({ "INTELLIGENCE", "BLOODBOOST"})))
+			Map<string, PowerValue>({ pair<string, PowerValue>("POWER1", PowerValue("POWER1", 5, 5, 8, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				pair<string, PowerValue>("POWER2", PowerValue("POWER2", 5, 1, 10, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"})))
 				}),
 			list<string>({ "DEALDAMAGE", "INEEDHEALING"}));
 	}
@@ -861,9 +861,9 @@ public:
 				shadow->resetSources(*&graphics, newShadowSources);
 				explorer->unique_ID = newExplorerImageID;
 				shadow->unique_ID = newExplorerShadowImageID;
-				controller.mouseClickPosition = {-1,-1};
-				controller.mouseMovePosition = { -1,-1 };
-				controller.mouseUnclickPosition = { -1,-1 };
+				controller.resetMouseClickPosition();
+				controller.resetMouseMovePosition();
+				controller.resetMouseUnclickPosition();
 				return true;
 			}
 			if (type == "MAPMOVE") {
@@ -1002,25 +1002,38 @@ public:
 				string uniqueID = "DEBUGTEXT";
 				int layer = imageLookup.layerDefaults["DEBUGUSERINPUT"];
 				if (!graphics.doesThisTextAlreadyExist(uniqueID)) {
-					graphics.addText(Graphics::Text(L"", "Centaur_25", { 0,0 }, "TOPLEFT", { 100,100 }, graphics.Colours["WHITE"], graphics.Colours["BLACK"], uniqueID), layer);
+					graphics.addText(Graphics::Text(L"", "Centaur_25", { 0,0 }, "TOPLEFT", { 100,100 }, graphics.Colours["OBVIOUSPINK"], graphics.Colours["BLACK"], uniqueID), layer);
 				}
-				graphics.TextMap[layer].internalMap[uniqueID].message = StringToWString(controller.controllerDebug());
+				string message = controller.controllerDebug() + "\nBeing Clicked and Dragged: ";
+				for (Graphics::Image* dragged : graphics.beingDragged.internalList) {
+					message += dragged->unique_ID;
+				}
+				message += "\n";
+
+				string hoverMessage = "Being Hovered: ";
+				string clickMessage = "Being Clicked On: ";
+
+				for (int layer : {20}) {
+					for (int x = 0; x < graphics.ImageMap[layer].size(); x++) {
+						if (graphics.ImageMap[layer].at(x)->hasThisBeenClickedOn(*&graphics, controller.mouseMovePosition)) {
+							hoverMessage += graphics.ImageMap[layer].at(x)->unique_ID + ",";
+						}
+						if (graphics.ImageMap[layer].at(x)->hasThisBeenClickedOn(*&graphics, controller.mouseClickPosition)) {
+							clickMessage += graphics.ImageMap[layer].at(x)->unique_ID + ",";
+						}
+					}
+				}
+
+				message += hoverMessage + "\n" + clickMessage + "\n";
+
+				graphics.TextMap[layer].internalMap[uniqueID].message = StringToWString(message);
 				if (controller.hasThisBeenPressed(27)) {
 					return true;
 				}
 				return false;
 			}
-			if (type == "DEBUGCLICKANDDRAG") {
-				string uniqueID = "DEBUGCLICKANDDRAG";
-				int layer = 10;
-				if (!graphics.doesThisTextAlreadyExist(uniqueID)) {
-					graphics.addText(Graphics::Text(L"", "Centaur_25", { 10,90 }, "TOPLEFT", { 100,100 }, graphics.Colours["BLACK"], graphics.Colours["BLACK"], uniqueID), layer);
-				}
-				string clickAndDragMessage = "Images Hovered Over: ";
-				graphics.TextMap[layer].internalMap[uniqueID].message = StringToWString(clickAndDragMessage);
-				Event("", "DEBUGUSERINPUT", {}).run(*&gameEngine);
-			}
 			if (type == "CLICKANDDRAG") {				
+				Event("Debug", "DEBUGUSERINPUT", {}).run(*&gameEngine);
 				List<string> draggable = split(data["objects"], ",");
 				bool YLocked = data["YLock"] == "1";
 				float XMin = 0;
@@ -1035,8 +1048,8 @@ public:
 					for (Graphics::Image* image : graphics.beingDragged.internalList) {
 						graphics.bumpLayer(image, -1);
 					}
-					graphics.beingDragged.clear();
-					graphics.recentlyFinishedBeingDragged.clear();
+					//graphics.beingDragged.clear();
+					//graphics.recentlyFinishedBeingDragged.clear();
 					pair<float, float> click = controller.mouseClickPosition;
 					for (auto const& ID : draggable.internalList) {
 						Graphics::Image* theImage = graphics.accessImageViaUniqueID(ID);
@@ -1078,9 +1091,8 @@ public:
 						graphics.bumpLayer(image, -1);
 					}
 					for (Graphics::Image * image : graphics.beingDragged.internalList) {
-						graphics.recentlyFinishedBeingDragged.push_back(image->unique_ID);
+						graphics.recentlyFinishedBeingDragged.addToBackIfNotAlreadyInList(image->unique_ID);
 					}
-					graphics.recentlyFinishedBeingDragged;
 					graphics.beingDragged.clear();
 				}
 				return false;
@@ -1210,6 +1222,7 @@ public:
 						List<string> party = saveContainer.current.party;
 						for (int x = 0; x < min(party.size(), saveContainer.partyLimit); x++) {
 							string who = party.at(x);
+							if (!graphics.doesThisImageAlreadyExist(who + "_CARD")) { return true; }
 							graphics.accessImageViaUniqueID(who + "_CARD")->positionAsPercentage = positions.at(x);
 							Event("TearDown", "TEARDOWNPLAYERREADOUT", pair<string, string>("who", who)).run(*&gameEngine);
 							Event("PrintoutPlayer", "SETUPPLAYERREADOUT", List<pair<string, string>>({
@@ -1233,12 +1246,14 @@ public:
 						pair<string, string>("offsetY", "25"),
 						pair<string, string>("what", "PARTY"),
 						pair<string, string>("moveExisting", "1"),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
 							})).run(*&gameEngine);
 						Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 							pair<string, string>("offsetX", "67"),
 							pair<string, string>("offsetY", "25"),
 							pair<string, string>("what", "RESERVES"),
 							pair<string, string>("moveExisting", "1"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
 							})).run(*&gameEngine);
 				}
 				return false;
@@ -1502,7 +1517,7 @@ public:
 				return true;
 			}
 			if (type == "LOADMENU") {
-				controller.mouseClickPosition = { -1,-1 };
+				controller.resetMouseClickPosition();
 				CLOCK.startClock("MENUINPUTDELAY");
 				string menuName = data["uniqueID"];
 				Menu menu= gameEngine.storedMenus[menuName];
@@ -1532,7 +1547,7 @@ public:
 						Event("LoadThisAudioImage", "LOADIMAGE", Map<string, string>({
 							pair<string, string>("sources", to_string(AUDIOKNOB)),
 							pair<string, string>("x", to_string(sliderPosition)),
-							pair<string, string>("y", to_string(audioManagementStartPos.second-1.5)),
+							pair<string, string>("y", to_string(audioManagementStartPos.second-2)),
 							pair<string, string>("anchor", "CENTRE"),
 							pair<string, string>("opacity", "1.0"),
 							pair<string, string>("layer",to_string(imageLookup.layerDefaults["BUTTONS"]+1)),
@@ -1586,11 +1601,13 @@ public:
 						pair<string, string>("offsetX", "32"),
 						pair<string, string>("offsetY", "25"),
 						pair<string, string>("what", "PARTY"),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
 						})).run(*&gameEngine);
 					Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 						pair<string, string>("offsetX", "67"),
 						pair<string, string>("offsetY", "25"),
 						pair<string, string>("what", "RESERVES"),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
 						})).run(*&gameEngine);
 				}
 				if (menu.data.hasKey("SELECTCHARACTERTOEDIT")) {
@@ -1598,6 +1615,7 @@ public:
 						pair<string, string>("offsetX", "5"),
 						pair<string, string>("offsetY", "20"),
 						pair<string, string>("what", "EVERYONE"),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
 						})).run(*&gameEngine);
 				}
 				if (menu.dropdownMenus.getKeys().contains("SkillTreeSelection1")) {
@@ -1648,6 +1666,7 @@ public:
 				string imageIDSuffix = "";
 				Map<string, int> toDraw;
 				float scale = 0.25;
+				string layer = data["layer"];
 
 				if (what == "PARTY") {
 					for (auto x : saveContainer.current.party) {
@@ -1720,7 +1739,7 @@ public:
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("scale", to_string(scale)),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+						pair<string, string>("layer", layer),
 						pair<string, string>("uniqueID", toDraw.getKeys().at(x) + imageIDSuffix),
 						})).run(*&gameEngine);
 					}
@@ -1834,6 +1853,7 @@ public:
 									pair<string, string>("what", "SKILLS"),
 									pair<string, string>("skillTreeName",equippedSkillTrees[whichTree]),
 									pair<string, string>("who", who),
+									pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
 									})).run(*&gameEngine);
 								Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 									pair<string, string>("offsetX", xPositions[whichTree]),
@@ -1841,6 +1861,7 @@ public:
 									pair<string, string>("what", "SKILLBORDERS"),
 									pair<string, string>("skillTreeName",equippedSkillTrees[whichTree]),
 									pair<string, string>("who", who),
+									pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"]+1)),
 									})).run(*&gameEngine);
 							}
 							Event("LoadSkillBar", "LOADSKILLBARHERE", Map<string, string>({
@@ -1931,6 +1952,7 @@ public:
 						pair<string, string>("purpose", "manageskills"),
 						pair<string, string>("menu",whichMenu),
 						})).run(*&gameEngine);
+					Event("CharacterSelection", "HANDLESKILLBAREDIT", Map<string, string>({})).run(*&gameEngine);
 				}
 				bool anythingHovered = false;
 				for (auto clickable : clickables.internalList) {
@@ -1961,10 +1983,7 @@ public:
 						}
 						if (hoveredOver and clickedOn) {
 							theImage->frame = 2;
-							Event("PlayHoverSound", "PLAYSFX", Map<string, string>({
-									pair<string,string>("audio",to_string(clickable.audioClick)),
-									pair<string,string>("direct","1"),
-								})).run(*&gameEngine);
+							Event("PlayHoverSound", "PLAYSFX", Map<string, string>({pair<string,string>("audio",to_string(clickable.audioClick)),pair<string,string>("direct","1"),})).run(*&gameEngine);
 							Event("ButtonLogic", "HANDLEBUTTON", pair<string, string>("uniqueID", clickable.uniqueID)).run(*&gameEngine);
 							return false;
 						}
@@ -2016,8 +2035,9 @@ public:
 			}
 			if (type == "TEARDOWNMENU") {
 				graphics.beingDragged.clear();
-				controller.mouseMovePosition = { -1,-1 };
-				controller.mouseClickPosition = { -1,-1 };
+				graphics.recentlyFinishedBeingDragged.clear();
+				controller.resetMouseMovePosition();
+				controller.resetMouseClickPosition();
 				graphics.changeCursor("DEFAULT");
 				string menuName = data["uniqueID"];
 				Menu menu = gameEngine.storedMenus[menuName];
@@ -2079,7 +2099,7 @@ public:
 			}
 			if (type == "HANDLEBUTTON") {
 				string buttonLogic = data["uniqueID"];
-				controller.mouseClickPosition = { -1,-1 };
+				controller.resetMouseClickPosition();
 				if (buttonLogic.find("PLUSBUTTON") != -1) {
 					string who = split(buttonLogic, "_").at(0);
 					string attribute = split(buttonLogic, "_").at(1);
@@ -2198,8 +2218,10 @@ public:
 					if (whoWasLastPlayer != "") {
 						for (auto knownSkill : saveContainer.current.knownSkills[whoWasLastPlayer]) {
 							string toTeardown = knownSkill + "_" + whoWasLastPlayer + "_SKILLSELECTIONGRID";
+							string toTearDown2 = knownSkill + "_" + whoWasLastPlayer + "_SKILLSELECTIONBORDER";
 							if (graphics.doesThisImageAlreadyExist(toTeardown));
 							Event("Teardown", "TEARDOWNIMAGE", Map<string, string>({ pair<string, string>("uniqueID", toTeardown) })).run(*&gameEngine);
+							Event("Teardown", "TEARDOWNIMAGE", Map<string, string>({ pair<string, string>("uniqueID", toTearDown2) })).run(*&gameEngine);
 						}
 					}
 					saveContainer.save();
@@ -2251,7 +2273,7 @@ public:
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("scale", data["scale"]),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"]+1)),
 						pair<string, string>("uniqueID", who + "_SKILLSLOTBORDER_" + to_string(skillSlot)),
 						})).run(*&gameEngine);
 				}
@@ -2274,6 +2296,9 @@ public:
 				return true;
 			}
 			if (type == "HANDLESKILLEXPLAIN") {
+				if (graphics.beingDragged.size() > 0) {
+					return true; // don't change skill explain if doing a click and drag
+				}
 				float scale = stof(data["scale"]);
 				bool full = data["full"] == "1";
 				pair<float, float> centreAnchor = { stof(data["x"]), stof(data["y"]) };
@@ -2308,7 +2333,6 @@ public:
 					if (hoverable and hoveredOver) {
 						isMouseHoveredOverAnySkill = true;
 						if (namingStyle == "SKILLSLOT") {
-							
 							hoveredOverSkillSlot = theImage->unique_ID;
 							who = split(hoveredOverSkillSlot, "_").at(0);
 							skill_slot = split(hoveredOverSkillSlot, "_").at(2);
@@ -2316,6 +2340,7 @@ public:
 							whichSkill = skills[skill_slot];
 						}
 						if (namingStyle == "GRID") {
+							who = gameEngine.stateFlags["PARTYEDITSELECTED"];
 							whichSkill = split(theImage->unique_ID, "_").at(0);
 						}
 
@@ -2629,6 +2654,28 @@ public:
 						return true;
 					}
 				}	
+			}
+			if (type == "HANDLESKILLBAREDIT") {
+				string theObjects;
+				List<string> canBeDragged;
+				for (auto x : {20}) {
+					for (Graphics::Image* Image : graphics.ImageMap[x].internalList) {
+						if (Image->unique_ID.find("_SKILLSELECTIONGRID") != -1 or
+							Image->unique_ID.find("_SKILLSLOT_") != -1){
+							theObjects += Image->unique_ID + ",";
+						}
+					}
+				}
+				Event("ClickAndDrag", "CLICKANDDRAG", Map<string, string>({
+					pair<string, string>("objects", theObjects),
+					})).run(*&gameEngine);
+				for (Graphics::Image* beingDragged : graphics.beingDragged.internalList) {
+					string theID = beingDragged->unique_ID;
+					string associatedBorder = SReplace(theID, "SELECTIONGRID", "SELECTIONBORDER");
+					associatedBorder = SReplace(associatedBorder, "SLOT_", "SLOTBORDER_");
+					Graphics::Image* associatedBorderImage = graphics.accessImageViaUniqueID(associatedBorder);
+					associatedBorderImage->positionAsPercentage = beingDragged->positionAsPercentage;
+				}
 			}
 			return false;
 }

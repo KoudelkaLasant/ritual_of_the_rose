@@ -309,6 +309,8 @@ public:
 		}
 	}
 	void loadAudio(int resource) {
+		List<int> alreadyLoaded = loadedResources.getKeys();
+		if (alreadyLoaded.contains(resource)) { return; }
 		HRSRC hResInfo = FindResource(NULL, MAKEINTRESOURCE(resource), L"WAVE");
 		HGLOBAL hResData = LoadResource(NULL, hResInfo);
 		LPVOID lpAddress = LockResource(hResData);
@@ -557,6 +559,16 @@ public:
 			if (keys.contains(x)) { return true; }
 		}
 		return false;
+	}
+	void resetMouseClickPosition() {
+		// to stop clicking on button / draggable multiple times
+		mouseClickPosition = { -1,-1 };
+	}
+	void resetMouseMovePosition() {
+		mouseMovePosition = {-1,-1};
+	}
+	void resetMouseUnclickPosition() {
+		mouseUnclickPosition = {-1,-1};
 	}
 
 	HWND* hwnd;

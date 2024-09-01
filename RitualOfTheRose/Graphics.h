@@ -42,6 +42,7 @@ public:
         Colours["SKILLTEXTBLUE"] = convertIntColour({ 0,246,255,255 });
         Colours["SKILLTEXTBLUEBACKDROP"] = convertIntColour({ 0,6,255,255 });
         Colours["ELITESKILLYELLOW"] = convertIntColour({ 254,251,111,255 });
+        Colours["OBVIOUSPINK"] = convertIntColour({ 255,155,251,255 });
     }
     ~Graphics() {
         teardownAllImages();
