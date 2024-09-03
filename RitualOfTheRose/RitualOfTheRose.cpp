@@ -48,7 +48,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        if (CLOCK.hasEnoughTimePassed("FPS", 8)) {
+        if (CLOCK.hasEnoughTimePassed("FPS", 0)) {
             game.run();
             graphics.OnRender();
         }

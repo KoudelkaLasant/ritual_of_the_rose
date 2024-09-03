@@ -379,6 +379,9 @@
 #define MANA_COST_ICON 4317
 #define RECHARGE_ICON 4318
 #define SKILLICON_LIFEDRAIN 4319
+#define SMALLBUTTON 4320
+#define SMALLBUTTON_HOVERED 4321
+#define SMALLBUTTON_PRESSED 4322
 
 // Next default values for new objects
 // 

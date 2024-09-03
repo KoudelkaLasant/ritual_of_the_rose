@@ -28,6 +28,8 @@ public:
         shadowColourTagLookupTable[wchar_t(10112)] = "BLUE";
         colourTagLookupTable[wchar_t(9313)] = "SKILLTEXTBLUE";
         shadowColourTagLookupTable[wchar_t(9313)] = "SKILLTEXTBLUEBACKDROP";
+        colourTagLookupTable[wchar_t(9314)] = "EQUIPMENTBLUE";
+        shadowColourTagLookupTable[wchar_t(9314)] = "DARKBROWN";
         customFonts = { 
             pair<string, int>({"Centaur", IDF_CENTAUR}), 
             pair<string,int>({ "GoudyMedieval", IDF_GOUDYMEDIEVAL }),
@@ -43,6 +45,7 @@ public:
         Colours["SKILLTEXTBLUEBACKDROP"] = convertIntColour({ 0,6,255,255 });
         Colours["ELITESKILLYELLOW"] = convertIntColour({ 254,251,111,255 });
         Colours["OBVIOUSPINK"] = convertIntColour({ 255,155,251,255 });
+        Colours["EQUIPMENTBLUE"] = convertIntColour({ 135,217,255,255 });
     }
     ~Graphics() {
         teardownAllImages();

@@ -36,6 +36,12 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Exile", L"Destroy target summoned creature. Exile takes an additional②$POWER1$ rounds to recharge." },
 			{"Life Drain", L"Curse target foe for②$POWER1$ rounds. Every round, you steal②$POWER2$ life from target foe."},
 }},
+		{"Type Names",{
+			{"HOLY", { L"holy"}},
+			{"UNHOLY", { L"unholy"}},
+			{"PHYSICAL", { L"physical"}},
+			{"WAYFARING", { L"Wayfaring"}},
+}},
 		{"Skill Actions", {
 			{"Wait", L"$WHO$ is waiting..."},
 			{"Default_Started", L"$WHO$ is using a skill..."},
@@ -45,11 +51,37 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Attack_Finished", L"$WHO$ uses $SKILLNAME$!"},
 			{"Spell_Finished", L"$WHO$ casts $SKILLNAME$"},
 }},
+		{"Item Type Names", {
+			{"Armour", L"Armour"},
+			{"Weapon", L"Weapon"},
+			{"Accessory", L"Accessory"},
+}},
 		{"Item Names", {
 					{"Withered Secespita", L"Withered Secespita"},
+					{"Vatican Vestiments", L"Vatican Vestiments"},
+					{"Cross of St Jeanne-Marie", L"Cross of St Jeanne-Marie"},
+					{"Suero's Blade", L"Suero's Blade"},
+					{"Matteo Carreri's Locket", L"Matteo Carreri's Locket"},
+					{ "Martin's Cloak", L"Martín Alhaja's Cloak" },
+					{"Blades of House JaqMaq", L"Blades of House JaqMaq"},
+					{"Theoricae Novae Planetarum", L"Theoricae Novae Planetarum"},
+					{"Lunyu Page Fragment", L"Lunyu Page Fragment"},
 		}},
 		{"Item Descriptions", {
 					{"Withered Secespita", L"A secespita is an iron-bladed knife ranging from 8 to 10 inches in length with a rounded ivory handle. It usage dates as far back as the 2nd Century AD,  where ritualists of the pre-Christian Roman Empire, known as Flamens and Flaminicae, would use the blade to kill animals as part of a sacrifice. Such an offering would have been made either to a certain God or Goddess, or as a plea for Rome to be victorious in a particular war, or saved from a particular threat. To complete the ritual, the Secespita would then be used to disembowel the victim.\n\nThis Secespita in particular seems to have been forged to have a thinner blade than usual, giving it a 'withered' look. In spite of this characteristic, as well as being well over a thousand years old, it looks to be uncannily well-preserved, as if an Ancient Roman had walked up to you in the street and dropped it calmly into your open palm before walking away."},
+					{"Vatican Vestiments", L"This sensible garment is hand woven for senior members of the clergy. A priest's robes are known as liturgical vestments and can comprise of many lengthy garments from chasubles to copes, mitres to mantles.\n\nThese robes in particular, however, are drastically more simple and are more appropriate to travelling and combat over evangelising."},
+					{"Cross of St Jeanne-Marie", L"Jeanne-Marie de Maille was an Anchoress who lived and died in the 14th and 15th centuries respectively. An Anchoress is a woman who, either symbolically or literally, consents to being imprisoned in a holy chamber for the purpose of living a sinless, isolated life, in endless service to God. They are at times considered 'already dead', and instead of living people, are treated as a kind of 'living saint'.\n\nThis cross in particular was forged by Jeanne-Marie during her period of hermeticism and therefore remains infused with her desire to serve God."},
+					{"Suero's Blade", L"Suero de Quiñones, the heroic knight of León, is famous for hosting the Paso Honroso (Passage of Honour), a jousting tournament for Spain's up-and-coming riders. Suero and his company enjoy the legend of having challenged thousands of knights in a total of 166 separate battles. Such heroism, however, is dimmed by the selfishness and cruelty he expressed as recently as 1449. Heavily indebted to a Jewish lender and looking for a way out, Suero stirred up hatred of the Jewish population of León by claiming they were collectively responsible for the death of Jesus. A violent uprising against the Jews took place in the town with hundreds of Jews murdered in the street, Suero's lender among them. Suero was said to have lost this sword in the carnage.\n\nYou can feel the pain this sword endures as a symbol of hope stained with the blood of wickedness. It does not wish to be returned to its original owner."},
+					{"Matteo Carreri's Locket", L"This odd item is a flower that has been dried, pressed, and preseved inside a locket of silver with a simple chain. It is said to have been gifted to a little girl rescued from Turkish pirates who were trying to sell her and her mother into slavery. The story of the legendary friar Matteo Carreri is that he, too, was captured by the same pirates, who agreed to free him after Matteo produced a strong sermon of Christian belief. However, once he realised that a mother and child were still held captive, he offered to give up his newfound freedom and take the girl's place while she be freed. Stunned by his altruism, the pirates freed everyone. As a token of gratitude, the girl gave Matteo a flower, which he had preserved into the locket.\n\nYou are unsure how the locket left Matteo's custody, but assume the friar gave up such fineries to pursue a more pious purpose."},
+					{"Martin's Cloak", L"This cloak once belonged to Martín Alhaja, a simple farmer and shepherd who helped guide the Castilian King Alfonso VIII to victory in the Battle of Las Navas de Tolosa in 1212. He placed the skull of a cow on the path that would lead to a field behind the Moors, allowing Alfonso's army to perform a surprise attack from behind. Alhaja was honoured for life for the part he played in the king's victory, and this fine silk cloak was a royal gift. It seems likely that it was never worn, being too fine and fancy for the man's tastes. Instead it was excellently preserved as a hand-me-down.\n\nThe cloak is fine and soothing to the touch and you feel more relaxed simply by wearing it."},
+					{ "Blades of House JaqMaq", L"The design of these swords was commissioned by the Sultan of Egypt, Sayf al-Din Jaqmaq, in 1448, as a birthday gift to his daughter Gihat. The craftsman in question was a brillian Indian blacksmith who took into account the needs of its user very carefully when bringing the design to life. It is quite similar to a traditional Indian Talwar from the 14th century. However, he made the blades shorter and wider, and had them weighted in such a way to favour moving silently and without hindrance over brute force.\n\nBy holding one of the blades, you can feel the absolute joy and gratitude of a young woman seeking recognition as an assassin." },
+					{"Theoricae Novae Planetarum", L"This tatty, hand-written tome is a collection of various manuscripts, drafts, and scribblings by Georg von Peuerbach, a young and ambitious lecturer at the University of Vienna. He specialises in the pioneering edge of astronomy and aspires to bring enlightenment to the world. While much of the scribblings are incomprehensible to a mere mortal, they generally dictate the concept that the Earth revolves around the Sun.\n\nYou feel smarter simply by holding the book." },
+					{"Lunyu Page Fragment", L"Originally written in around 210 BC, the Lunyu is a compilation of anectdotal wisdom written by the great philosopher Confucius. While deeply respected, its status remained dormant for a thousand years until it was officially canonized during the Song Dynasty. This page in particular is a reproduction from around 1250, and while it does seem well preserved considering its 200 years of age, you can't help but notice that it was clearly ripped out of a book. This page in particular details the Chinese concept of xiao (孝) - filial piety and devotion to one's parents.\n\nSomething doesn't feel right about this fragment, almost as if the one who ripped it out of the book was cursing its original pledge." }
+		}},
+		{"Item Effect Strings", {
+				{"XBOOST", L"Increases the power of⑳$REPLACE1$ skills by⑳$REPLACE2$"},
+				{"ATTUPP", L"Increases⑳$REPLACE1$ by⑳$REPLACE2$"},
+				{"ARMOUR", L"Increases resistance against⑳$REPLACE1$ attacks by⑳$REPLACE2$"},
 		}},
 		{"Attribute Names", {
 			{"STRENGTH", L"Strength"},
@@ -94,6 +126,10 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"SKILLTREESELECTIONEMPTY" , L"Skill Tree ↓"},
 			{"SKILLTREESELECTION1", L"Select Skill Tree (Current: $REPLACE$)"},
 			{"SKILLTREESELECTION2", L"Select Skill Tree (Current: $REPLACE$)"},
+			{"EQUIPMENTSELECT", L"Select Equipment Type →"},
+			{"Weapon", L"Weapons ↓"},
+			{"Armour", L"Armour ↓"},
+			{"Accessory", L"Accessories ↓"},
 }},
 		{"DeadHorse", {
 			{"1 Angela Fleuret", L"Hmph. I see the situation in Bénouville has become far worse than the one described in the letter."},

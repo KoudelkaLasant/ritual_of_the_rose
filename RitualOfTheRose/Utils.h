@@ -19,6 +19,12 @@ static wstring WSReplace(wstring input, wstring toFind, wstring toReplace) {
 	return input;
 }
 
+static string SLower(string input) {
+	string result = input;
+	transform(result.begin(), result.end(), result.begin(), [](unsigned char c) {return tolower(c); });
+	return result;
+}
+
 static List<string> split(string input, string delimiter) {
 	size_t pos = 0;
 	List<string> results;
@@ -614,6 +620,7 @@ public:
 		attributeInvestments = data["attribute investments"];
 		stats = data["stats"];
 		money = data["money"];
+		enemiesDefeated = data["enemies defeated"];
 		loaded = true;
 		}
 		void saveToDisk(filesystem::path filepath) {
@@ -630,7 +637,7 @@ public:
 			data["money"] = money;
 			data["equipped skilltrees"] = equippedSkillTrees;
 			data["all characters"] = allCharacters;
-			
+			data["enemies defeated"] = enemiesDefeated;
 			ofstream file(filepath);
 			file << data;
 		}
@@ -647,6 +654,7 @@ public:
 			allCharacters = RHS.allCharacters;
 			stats = RHS.stats;
 			money = RHS.money;
+			enemiesDefeated = RHS.enemiesDefeated;
 			loaded = true;
 			return *this;
 		}
@@ -662,6 +670,7 @@ public:
 		list<string> allCharacters;
 		map<string, map<string, int>> attributeInvestments;
 		map<string, int> stats;
+		list<string> enemiesDefeated;
 		int money;
 		bool loaded = false;
 	};
@@ -760,6 +769,51 @@ public:
 		}
 		return results;
 	}
+	void unequipThis(string who, string category) {
+		Map<string, string> currentlyEquipped; currentlyEquipped.internalMap = current.equippedItems[who];
+		if (!currentlyEquipped.hasKey(category)) {
+			return; // they had nothing in that slot
+		}
+		string toUnequip = currentlyEquipped[category];
+		current.equippedItems[who].erase(category);
+		if (toUnequip != "") {
+			increaseItemInventoryCount(toUnequip);
+		}
+	}
+	void equipThis(string who, string category, string what) {
+		Map<string, string> currentlyEquipped; currentlyEquipped.internalMap = current.equippedItems[who];
+		if (currentlyEquipped.hasKey(category)) {
+			if (currentlyEquipped[category] == what) {
+				return; // already equipped that item
+			}
+		}
+		if (what == "") {
+			return;
+		}
+		current.equippedItems[who][category] = what;
+		reduceItemInventoryCount(what);
+	}
+	bool reduceItemInventoryCount(string itemName) {
+		// return true if something was actually removed
+		Map<string, int> inventory; inventory.internalMap = current.inventory;
+		if (!inventory.hasKey(itemName)) { return false; }
+		if (inventory[itemName] <= 0) { inventory[itemName] = 0; }
+		if (inventory[itemName] == 0) { return false; }
+		inventory[itemName] = TChange(inventory[itemName], -1, 0, inventoryLimitPerItem);
+		current.inventory = inventory.internalMap;
+		return true;
+	}
+	bool increaseItemInventoryCount(string itemName) {
+		// return true if something was actually added
+		Map<string, int> inventory; inventory.internalMap = current.inventory;
+		if (inventory.hasKey(itemName) and inventory[itemName] <= 0) { inventory[itemName] = 0; }
+		if (!inventory.hasKey(itemName)) { 
+			inventory[itemName] = 0;
+		}
+		inventory[itemName] = TChange(inventory[itemName], 1, 0, inventoryLimitPerItem);
+		current.inventory = inventory.internalMap;
+		return true;
+	}
 
 	SaveFile current;
 	Map<int, SaveFile> slots;
@@ -767,6 +821,7 @@ public:
 	const int slotLimit = 9;
 	const int partyLimit = 4;
 	const int attributeInvestmentLimit = 20;
+	const int inventoryLimitPerItem = 99;
 };
 SaveContainer saveContainer;
 
