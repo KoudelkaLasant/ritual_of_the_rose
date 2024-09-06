@@ -48,9 +48,10 @@ public:
 		float height = 0;
 		int layer = 0;
 	};
-	Menu(string uniqueID, List<Button> _buttons, Map<string, string> _data) {
-			buttons = _buttons;
-			data = _data;
+	Menu(string _uniqueID, List<Button> _buttons, Map<string, string> _data) {
+		uniqueID = _uniqueID;
+		buttons = _buttons;
+		data = _data;
 		}
 	Map<int, string> getKeyboardShortcutsForThisMenu() {
 		Map<int, string> result;
@@ -158,6 +159,32 @@ public:
 		}
 		return result;
 	}
+	static Button MerchantTalkingBox(string baseID) {
+		Button result = Menu::TextBox(baseID, "", "", {0,0});
+		result.sources = List<int>({ TEXT_BOX_NARROW });
+		result.width = 100;
+		result.height = 20;
+		result.extras["textOffsetX"] = "2";
+		result.extras["textOffsetY"] = "2";
+		result.extras["textOffsetX2"] = "4";
+		result.extras["TYPEWRITER"] = "1";
+		result.extras["direct"] = "1";
+		result.extras["animated"] = "TRUE";
+		result.extras["colour"] = "BLACK";
+		result.anchorStyle = "TOPLEFT";
+		result.extras["layer"] = to_string(imageLookup.layerDefaults["BUTTONS"] - 1);
+		return result;
+	}
+	static Button MoneyPrintout(string baseID, pair<float, float> position) {
+		Button result = TextBox(baseID, "", "", position);
+		result.sources = List<int>({ MONEY });
+		result.extras["textOffsetX"] = "4";
+		result.extras["textOffsetY"] = "0";
+		result.extras["textOffsetX2"] = "0";
+		result.extras["direct"] = "1";
+		result.extras["getMessageFromMoney"] = "1";
+		return result;
+	}
 	static const List<pair<float, float>> getPlayerCardPositions() {
 		// for party rearrange
 		return List<pair<float, float>>({pair<float, float>(35,25),pair<float, float>(53,25),pair<float, float>(71,25),pair<float, float>(89,25)});
@@ -218,7 +245,22 @@ public:
 		int rowLength = 4;
 		int columnLength = 10;
 		pair<float, float> topLeftCorner = { 40,35 };
-		pair<float, float> gap = {15,10};
+		pair<float, float> gap = {15,5};
+		int cell = 0;
+		for (int x = 0; x < columnLength; x++) {
+			for (int y = 0; y < rowLength; y++) {
+				results[cell] = { topLeftCorner.first + (gap.first * y), topLeftCorner.second + (gap.second * x) };
+				cell += 1;
+			}
+		}
+		return results;
+	}
+	static const Map<int, pair<float, float>> getMerchantGridPositions() {
+		Map<int, pair<float, float>> results;
+		int rowLength = 6;
+		int columnLength = 10;
+		pair<float, float> topLeftCorner = { 10,30 };
+		pair<float, float> gap = { 15,5 };
 		int cell = 0;
 		for (int x = 0; x < columnLength; x++) {
 			for (int y = 0; y < rowLength; y++) {
@@ -233,6 +275,33 @@ public:
 			Menu::TextBox("TEXTBOX1", "GUI_SELECTCHARACTER", "VERY_SMALL", { 15, 7 }),
 			Menu::standardButton("EQUIPMENTTYPE", "GUI_Weapon", { 45, 7 }),
 			Menu::standardButton("FROMEQUIPMANAGETOPARTYMANAGE", "GUI_FROMPARTYTOPAUSE", { 12, 90 }) });
+		return result;
+	}
+	static const List<Button> getDefaultButtonsForMerchant() {
+		List<Button> result = List<Button>({
+			Menu::standardButton("MERCHANTTOEXPLORE", "GUI_MERCHANTTOEXPLORE", {12, 90}),
+			Menu::standardButton("MERCHANTBUY", "GUI_MERCHANTBUY", {25, 20}),
+			Menu::standardButton("MERCHANTSELL", "GUI_MERCHANTSELL", {50, 20}),
+			Menu::standardButton("MERCHANTBUYBACK", "GUI_MERCHANTBUYBACK", {75, 20}),
+			Menu::MerchantTalkingBox("MERCHANTDIALOGUE"),
+			Menu::MoneyPrintout("MONEYSTATUS", {8,22}),
+			});
+		return result;
+	}
+	static const List<Button> getDefaultButtonsForConfirmTrade() {
+		List<Button> result = List<Button>({
+			Menu::TextBox("TradeConfirm", "", "SMALL", {50,50}),
+			Menu::standardButton("TradeConfirmYes", "GUI_Yes", {65, 70}),
+			Menu::standardButton("TradeConfirmNo", "GUI_No", {35, 70}),
+			});
+		result.at(0).extras["direct"] = "1";
+		return result;
+	}
+	static const List<Button> getDefaultButtonsForDenyTrade(string reason) {
+		List<Button> result = List<Button>({
+			Menu::TextBox("TradeDeny", reason, "SMALL", {50,50}),
+			Menu::standardButton("TradeConfirmNo", "GUI_RETURN", {50, 70}),
+			});
 		return result;
 	}
 	string uniqueID;
@@ -251,7 +320,9 @@ public:
 		influenceLookups["SPEED"] = 0.1;
 		influenceLookups["AGILITY"] = 0.15;
 		influenceLookups["HOLYBOOST"] = 0.05;
+		influenceLookups["FIREBOOST"] = 0.05;
 		influenceLookups["UNHOLYBOOST"] = 0.05;
+		influenceLookups["SHADOWBOOST"] = 0.06;
 		influenceLookups["WAYFARINGBOOST"] = 0.06;
 		influenceLookups["PHYSICALARMOUR"] = 0.05;
 		AttributesInOrder = {"VITALITY","PIETY","STRENGTH", "INTELLIGENCE", "AGILITY","LUCK"};
@@ -427,6 +498,16 @@ public:
 					int powerAsPercentage = combat.influenceLookups[tag] * 100;
 					result = WSReplace(result, L"$REPLACE2$", to_wstring(powerAsPercentage));
 					result += L"%.\n";
+					return result;
+				}
+				if (tag.find("PLUS") != -1) {
+					result = strings[language]["Item Effect Strings"]["ATTUPP"];
+					string typeName = SReplace(tag, "PLUS", "");
+					wstring typeNameLower = strings[language]["Other Stat Names"][typeName];
+					result = WSReplace(result, L"$REPLACE1$", typeNameLower);
+					result = WSReplace(result, L"$REPLACE2$", to_wstring(int(influence)));
+					result += L".\n";
+					return result;
 				}
 				if (tag.find("ARMOUR") != -1) {
 					result = strings[language]["Item Effect Strings"]["ARMOUR"];
@@ -436,6 +517,7 @@ public:
 					int powerAsPercentage = combat.influenceLookups[tag] * 100;
 					result = WSReplace(result, L"$REPLACE2$", to_wstring(powerAsPercentage));
 					result += L"%.\n";
+					return result;
 				}
 				if (combat.AttributesInOrder.contains(tag)) {
 					result = strings[language]["Item Effect Strings"]["ATTUPP"];
@@ -444,9 +526,9 @@ public:
 					result = WSReplace(result, L"$REPLACE1$", typeAsWS);
 					result = WSReplace(result, L"$REPLACE2$", to_wstring(int(influence)));
 					result += L".\n";
+					return result;
 				}
-
-				return result;
+				return strings[language]["Unique Item Strings"][tag];
 			}
 
 			string tag;
@@ -456,12 +538,13 @@ public:
 		};
 		
 		Equipment() {}
-		Equipment(string _uniqueID, string _category, int _imageSource, List<Effect> _powers, string _textColour) {
+		Equipment(string _uniqueID, string _category, int _imageSource, List<Effect> _powers, string _textColour, int _price) {
 			uniqueID = _uniqueID;
 			category = _category;
 			imageSource = _imageSource;
 			powers = _powers;
 			textColour = _textColour;
+			price = _price;
 		}
 		
 		wstring printout(string language, Combat& combat) {
@@ -473,11 +556,19 @@ public:
 
 			itemName = WSReplace(itemName, L" ", colourTagAsSymbol);
 
-			result += L"③" + itemName + colourTag + L" \n";
+			result += colourTagAsSymbol + itemName + colourTagAsSymbol + L" \n";
 			for (auto effect : powers.internalList) {
 				result += L"✵" + WSReplace(effect.getPrintout(language, *&combat), colourToReplaceInEffectDescription, colourTagAsSymbol);
-				result += L"\n";
 			}
+			if (category == "Tome") {
+				result += L"*" + strings[language]["Item Descriptions"][uniqueID];
+			}
+			return result;
+		}
+
+		wstring printoutOnOneLine(string language, Combat& combat) {
+			wstring result = printout(language, *&combat);
+			result = WSReplace(result, L"\n", L" ");
 			return result;
 		}
 
@@ -486,15 +577,17 @@ public:
 		string category;
 		List<Effect> powers;
 		int imageSource;
+		int price;
 	};
 	class Combatant {
 	public:
 		Combatant() {}
 		Combatant(string _uniqueID, string _displayName, Map<string, int> _intData, Map<string, Map<string, string>> _data) {
-			defaultStats["LIFE"] = PowerValue("LIFE", 100, -999, 9999, true, list<string>({ "VITALITY", "LIFEBOOST" }));
-			defaultStats["ENERGY"] = PowerValue("ENERGY", 30, -999, 9999, true, list<string>({ "PIETY", "ENERGYBOOST" }));
-			defaultStats["ENERGYREGEN"] = PowerValue("ENERGYREGEN", 3, 0, 9999, true, list<string>({ "PIETY", "ENERGYREGENBOOST" }));
-			defaultStats["SPEED"] = PowerValue("SPEED", 10, 0, 9999, true, list<string>({ "AGILITY", "SPEEDBOOST" }));
+			defaultStats["LIFE"] = PowerValue("LIFE", 100, -999, 9999, true, list<string>({ "VITALITY" }));
+			defaultStats["ENERGY"] = PowerValue("ENERGY", 30, -999, 9999, true, list<string>({ "PIETY"}));
+			defaultStats["LIFEREGEN"] = PowerValue("LIFEREGEN", 0, 0, 9999, true, list<string>({ "LIFEREGENPLUS" }));
+			defaultStats["ENERGYREGEN"] = PowerValue("ENERGYREGEN", 3, 0, 9999, true, list<string>({ "PIETY", "ENERGYREGENPLUS" }));
+			defaultStats["SPEED"] = PowerValue("SPEED", 10, 0, 9999, true, list<string>({ "AGILITY"}));
 			uniqueID = _uniqueID;
 			displayName = _displayName;
 			data = _data;
@@ -728,40 +821,71 @@ public:
 			list<string>({ "DEALDAMAGE", "INEEDHEALING"}));
 	}
 	void defineAllEquipment() {
-		// UNIQUES
+		// TOMES
+		for (auto skill : skillDefinitions.getValues().internalList) {
+			string colour = "EQUIPMENTBLUE";
+			int price = 100;
+			if (skill.isElite()) {
+				colour = "ELITESKILLYELLOW";
+				price = 1000;
+			}
+			string tomeOf = WStringToString(strings["ENG"]["Unique Item Strings"]["TOMEOF"]);
+			equipmentDefinitions["Tome of " + skill.uniqueID] = Equipment("Tome of " + skill.uniqueID, "Tome", UNIMPLEMENTED_IMAGE, {}, colour, price);
+			for (auto const& [language, value] : strings) {
+				wstring name = strings[language]["Unique Item Strings"]["TOMEOF"] + strings[language]["Skill Names"][skill.uniqueID];
+				wstring description = WSReplace(strings[language]["Unique Item Strings"]["TEACHES"], L"$REPLACE$", strings[language]["Skill Names"][skill.uniqueID]);
+				strings[language]["Item Names"][tomeOf + skill.uniqueID] = name;
+				strings[language]["Item Descriptions"][tomeOf + skill.uniqueID] = description;
+			}
+		}
 
 		// WEAPONS
 		equipmentDefinitions["Withered Secespita"] = Equipment("Withered Secespita", "Weapon", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
 			Equipment::Effect("PIETY",1.0f,true,true), 
-			}), "EQUIPMENTBLUE");
+			}), "EQUIPMENTBLUE", 250);
 		equipmentDefinitions["Suero's Blade"] = Equipment("Suero's Blade", "Weapon", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
 			Equipment::Effect("STRENGTH",1.0f,true,true),
-			}), "EQUIPMENTBLUE");
+			}), "EQUIPMENTBLUE", 250);
 		equipmentDefinitions["Blades of House JaqMaq"] = Equipment("Blades of House JaqMaq", "Weapon", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
 			Equipment::Effect("AGILITY",1.0f,true,true),
-			}), "EQUIPMENTBLUE");
+			}), "EQUIPMENTBLUE", 250);
+		equipmentDefinitions["Tibetan Tie Bian"] = Equipment("Tibetan Tie Bian", "Weapon", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
+			Equipment::Effect("ENERGYREGENPLUS",5.0f,true,true),
+			}), "EQUIPMENTBLUE", 250);
 
 		// ARMOUR
 		equipmentDefinitions["Vatican Vestiments"] = Equipment("Vatican Vestiments", "Armour", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
 			Equipment::Effect("HOLYBOOST",1.0f,true,false),
-			}), "EQUIPMENTBLUE");
+			}), "EQUIPMENTBLUE", 250);
 		equipmentDefinitions["Martin's Cloak"] = Equipment("Martin's Cloak", "Armour", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
 			Equipment::Effect("PHYSICALARMOUR",1.0f,true,false),
-			}), "EQUIPMENTBLUE");
+			}), "EQUIPMENTBLUE", 250);
+		equipmentDefinitions["Alhambran Tunic"] = Equipment("Alhambran Tunic", "Armour", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
+			Equipment::Effect("SHADOWBOOST",1.0f,true,false),
+			}), "EQUIPMENTBLUE", 250);
 
 		// ACCESSORIES
 		equipmentDefinitions["Cross of St Jeanne-Marie"] = Equipment("Cross of St Jeanne-Marie", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
 			Equipment::Effect("PIETY",1.0f,true,true),
-			}), "EQUIPMENTBLUE");
+			}), "EQUIPMENTBLUE", 250);
 		equipmentDefinitions["Matteo Carreri's Locket"] = Equipment("Matteo Carreri's Locket", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
 			Equipment::Effect("WAYFARINGBOOST",1.0f,true,false),
-			}), "EQUIPMENTBLUE");
+			}), "EQUIPMENTBLUE", 250);
 		equipmentDefinitions["Theoricae Novae Planetarum"] = Equipment("Theoricae Novae Planetarum", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
 			Equipment::Effect("INTELLIGENCE",1.0f,true,true),
-			}), "EQUIPMENTBLUE");
+			}), "EQUIPMENTBLUE", 250);
 		equipmentDefinitions["Lunyu Page Fragment"] = Equipment("Lunyu Page Fragment", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
 			Equipment::Effect("UNHOLYBOOST",1.0f,true,false),
-			}), "EQUIPMENTBLUE");
+			}), "EQUIPMENTBLUE", 250);
+		equipmentDefinitions["Mask of House JaqMaq"] = Equipment("Mask of House JaqMaq", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
+			Equipment::Effect("AGILITY",1.0f,true,true),
+			}), "EQUIPMENTBLUE", 250);
+		equipmentDefinitions["Joan of Arc's Necklace"] = Equipment("Joan of Arc's Necklace", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
+			Equipment::Effect("INTELLIGENCE",5.0f,true,true),
+			Equipment::Effect("FIREBOOST",1.5f,true,false),
+			Equipment::Effect("SELFIMMOLATE",0.0f,true,true),
+			}), "ELITESKILLYELLOW",9999);
+
 	}
 	List<string> getNamesOfAllSkillTreeNames(string language) {
 		Map<string, wstring> skillTrees; skillTrees.internalMap = strings[language]["Skill Tree Names"];
@@ -1058,8 +1182,25 @@ public:
 				return true;
 			}
 			if (type == "DRAWTEXT") {
-				List<string> mp = split(data["message"], "_");
+				string origMessage = data["message"];
 				wstring message = wstring(data["message"].begin(), data["message"].end());
+
+				if (data["animateExisting"] == "1") {
+					data["x"] = "0";
+					data["y"] = "0";
+					data["w"] = "0";
+					data["h"] = "0";
+					data["direct"] = "1";
+					data["layer"] = "0";
+					data["styles"] = "TYPEWRITER,PARCHMENT";
+					data["animated"] = "TRUE";
+				}
+				if (data["direct"] != "1" and message.find(L"$LANGUAGE$") != -1) {
+					origMessage = SReplace(origMessage, "$LANGUAGE$", gameEngine.language);
+				}
+
+				List<string> mp = split(origMessage, "_");
+				
 				if (data["direct"] != "1") {
 					message = strings[mp.at(0)][mp.at(1)][mp.at(2)];
 				}
@@ -1081,13 +1222,26 @@ public:
 					wstring colourTagAsSymbol = wstring(1, wColourTag);
 					message = colourTagAsSymbol + message;
 					message = WSReplace(message, L" ", colourTagAsSymbol) + colourTagAsSymbol;
-					string who = gameEngine.stateFlags["PARTYEDITSELECTED"];
+				}
+				if (data["sayHowManyPlayerHas"] == "1") {
 					int howMany = saveContainer.current.inventory[data["itemName"]];
 					message += L" x" + to_wstring(howMany);
 				}
-				if (data["uniqueID"] == "explainEquipmentHover") {
-					message = combat.equipmentDefinitions[data["message"]].printout(gameEngine.language, *&combat);
+				if (data["addPriceToEquipment"] == "1") {
+					message += L" " + to_wstring(combat.equipmentDefinitions[data["itemName"]].price);
 				}
+				if (data["getMessageFromMoney"] == "1") {
+					message = to_wstring(saveContainer.current.money);
+				}
+				if (data["uniqueID"] == "explainEquipmentHover") {
+					if (data["hoverTextOneLine"] == "1") {
+						message = combat.equipmentDefinitions[data["message"]].printoutOnOneLine(gameEngine.language, *&combat);
+					}
+					else {
+						message = combat.equipmentDefinitions[data["message"]].printout(gameEngine.language, *&combat);
+					}
+				}
+				message = Graphics::Text::commonTextReplacements(gameEngine.language, message);
 				string format = data["format"];
 				pair<float, float> position = { stof(data["x"]), stof(data["y"]) };
 				string anchorStyle = data["anchorStyle"];
@@ -1114,9 +1268,11 @@ public:
 						}
 					}
 					if (animated and styles.contains("TYPEWRITER")) {
-						if (theText->fullMessage != message) {
-							theText->message = message;
-							theText->startTypewriter();
+						if (data["animateExisting"] == "0") {
+							if (theText->fullMessage != message) {
+								theText->message = message;
+								theText->startTypewriter();
+							}
 						}
 						int typewriterSpeed = 5;
 						wstring full = theText->fullMessage;
@@ -1127,6 +1283,7 @@ public:
 								return true;
 							}
 							else {
+								if (theText->fullMessage == L"") { return false;  } // not ready to be animated yet
 								int size = theText->message.size();
 								theText->message += full[size];
 								if (styles.contains("PARCHMENT") and howFarAlong < 50) {
@@ -1504,7 +1661,12 @@ public:
 			}
 			if (type == "EXPLORE") {
 				//Event("", "DEBUGUSERINPUT", {}).run(*&gameEngine);
+				bool force = data["force"] == "1";
 				bool moving = false;
+				if (force) { 
+					moving = true; 
+					data["force"] = "0";
+				}
 				bool need_to_reset_image_sources = true;
 				string newDirection = "";
 				string newAction = "STAND";
@@ -1583,11 +1745,13 @@ public:
 				}
 				bool stopExploringStartCutscene = false;
 				bool stopExploringChangeArea = false;
+				bool stopExploringLoadMerchant = false;
 				bool popUpTextNeedsToBeDrawn = false;
 				bool mapPopUpTextExists = false;
 				string whichCutscene = "";
 				string currentMap = explorer.currentMap.name;
 				string targetMap = "";
+				string targetMerchant = "";
 				pair<float, float> futurePlayerPosition = {0,0};
 				string futurePlayerDirection = "FRONT";
 				Map<string, string> walkableDataToMoveOn; // send this to function that deals with next step
@@ -1635,12 +1799,19 @@ public:
 						walkableDataToMoveOn = walkable.data;
 						stopExploringChangeArea = true;
 					}
+					if (walkable.data.getKeys().contains("Merchant") and userInput) {
+						targetMerchant = walkable.name;
+						stopExploringLoadMerchant = true;
+					}
 				}
-
+				if (stopExploringLoadMerchant) {
+					gameEngine.storedMenus["MERCHANT"].data["MERCHANT"] = "Buy";
+					gameEngine.activeProcedure = gameEngine.makeMerchantLoadProcedure(targetMerchant);
+					controller.menuItemCooldown = true;
+				}
 				if (!popUpTextNeedsToBeDrawn and mapPopUpTextExists) {
 					Event("TearDownPopUpText", "TEARDOWNTEXT", Map<string, string>(pair<string, string>{"uniqueID", explorer.mapPopupTextID})).run(*&gameEngine);
 				}
-				
 				if (stopExploringStartCutscene) {
 					if (!gameEngine.storedProcedures.getKeys().contains(whichCutscene)) {
 						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, whichCutscene, saveContainer.getCurrentMainCharacter(), "EXPLORE");
@@ -1886,6 +2057,32 @@ public:
 						return false;
 					}
 				}	
+				if (menu.data.hasKey("MERCHANT")) {
+					string merchantID = data["whichMerchant"];
+					Event("AddMerchantButtons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
+						pair<string,string>({"whichMerchant", merchantID})
+						})).run(*&gameEngine);
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = merchants.merchantDefinitions[merchantID].getCorrectDialogue(gameEngine.language, menu.data["MERCHANT"]);
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter();
+				}
+				if (menu.uniqueID == "MERCHANTCONFIRM") {
+					string mode = gameEngine.storedMenus["MERCHANT"].data["MERCHANT"];
+					string item = gameEngine.stateFlags["itemOfInterest"];
+					wstring dialogue = strings[gameEngine.language]["GUI"]["TradeConfirm"];
+					dialogue = WSReplace(dialogue, L"$ITEM$", strings[gameEngine.language]["Item Names"][item]);
+					dialogue = WSReplace(dialogue, L"$MODE$", strings[gameEngine.language]["GUI"][mode]);
+					int price = combat.equipmentDefinitions[item].price;
+					dialogue = WSReplace(dialogue, L"$PRICE$", to_wstring(price));
+					int currentlyInInventory = saveContainer.howManyOfThisItemInInventory(item);
+
+					if (currentlyInInventory > 0) {
+						wstring extra = L"\n\n" + strings[gameEngine.language]["GUI"]["TradeConfirmPlus_" + mode];
+						extra = WSReplace(extra, L"$AMOUNT$", to_wstring(currentlyInInventory));
+						dialogue += extra;
+					}
+
+					graphics.accessTextViaUniqueID("TradeConfirm_TEXT")->message = dialogue;
+				}
 				return true;
 			}
 			if (type == "LOADABUTTON") {
@@ -1896,6 +2093,10 @@ public:
 				bool justLoadText = data["justLoadText"] == "1";
 				bool justLoadImage = data["justLoadImage"] == "1";
 				Menu::Button button = toLoad.at(which);
+				string layer = data["layer"];
+				if (button.extras.hasKey("layer")) {
+					layer = button.extras["layer"];
+				}
 				if (!button.visible) { return true; }
 				if (button.sources.size() > 0 and !justLoadText) { // no sources = no images needed
 					Event("LoadThisButtonImage", "LOADIMAGE", Map<string, string>({
@@ -1904,7 +2105,7 @@ public:
 						pair<string, string>("y", to_string(button.position.second)),
 						pair<string, string>("anchor", button.anchorStyle),
 						pair<string, string>("opacity", "1.0"),
-						pair<string, string>("layer", data["layer"]),
+						pair<string, string>("layer", layer),
 						pair<string, string>("scale", "1.0"),
 						pair<string, string>("uniqueID", button.imageID),
 						})).run(*&gameEngine);
@@ -1914,18 +2115,33 @@ public:
 				if (data.getKeys().contains("format") and data["format"] != "") {
 					format = data["format"];
 				}
+				string colour = "WHITE";
+				if (button.extras.getKeys().contains("colour")) {
+					colour = button.extras["colour"];
+				}
+				int textOffsetX = 0;
+				int textOffsetY = 0;
+				int textOffsetX2 = 0;
+				if (button.extras.getKeys().contains("textOffsetX")) {
+					textOffsetX = stoi(button.extras["textOffsetX"]);
+					textOffsetY = stoi(button.extras["textOffsetY"]);
+					textOffsetX2 = stoi(button.extras["textOffsetX2"]);
+				}
 				Event("LoadThisButtonText", "DRAWTEXT", Map<string, string>({
 					pair<string, string>("message",gameEngine.language + "_" + button.buttonContent),
 					pair<string, string>("format", format),
 					pair<string, string>("anchorStyle", button.anchorStyle),
-					pair<string, string>("x", to_string(button.position.first)),
-					pair<string, string>("y", to_string(button.position.second)),
-					pair<string, string>("w", to_string(button.width)),
+					pair<string, string>("x", to_string(button.position.first + textOffsetX)),
+					pair<string, string>("y", to_string(button.position.second + textOffsetY)),
+					pair<string, string>("w", to_string(button.width - textOffsetX2)),
 					pair<string, string>("h",  to_string(button.height)),
-					pair<string, string>("colour", "WHITE"),
+					pair<string, string>("colour", colour),
 					pair<string, string>("shadowColour", "DARKBROWN"),
-					pair<string, string>("layer",  data["layer"]),
+					pair<string, string>("direct",  button.extras["direct"]),
+					pair<string, string>("layer",  layer),
 					pair<string, string>("uniqueID", button.textID),
+					pair<string, string>("animated", button.extras["animated"]),
+					pair<string, string>("getMessageFromMoney", button.extras["getMessageFromMoney"]),
 					}) + button.extras).run(*&gameEngine);
 				return true;
 			}
@@ -2177,9 +2393,12 @@ public:
 								pair<string, string>("textID",toHandle.at(x).textID),
 								})).run(*&gameEngine);
 						}
+						if (gameEngine.stateFlags["WEPTYPESELECTED"] == "") {
+							gameEngine.stateFlags["WEPTYPESELECTED"] = "Weapon";
+						}
 						Event("AddButtons", "ADDEQUIPBUTTONSTOMENU", Map<string, string>({
-						pair<string, string>("category", "None"),
-						pair<string, string>("who", ""),
+						pair<string, string>("category", gameEngine.stateFlags["WEPTYPESELECTED"]),
+						pair<string, string>("who", who),
 							})).run(*&gameEngine);
 
 						toHandle = gameEngine.storedMenus["EQUIPMENTMANAGEMENT"].buttons;
@@ -2282,6 +2501,10 @@ public:
 				if (gameEngine.storedMenus[whichMenu].data.getKeys().contains("MANAGESKILLS")) {
 					Event("CharacterSelection", "HANDLESKILLBAREDIT", Map<string, string>({})).run(*&gameEngine);
 				}
+				if (List<string>({"MERCHANTCONFIRM", "TRADEDENY","TRADEDENYFULL"}).contains(whichMenu)){
+					// keep animating the dialogue even behind the confirmation buttons
+					clickables.push_back(Menu::MerchantTalkingBox("MERCHANTDIALOGUE"));
+				}
 
 				bool anythingHovered = false;
 				List<Menu::Button> hoveredOverItems;
@@ -2289,6 +2512,12 @@ public:
 				List<string> popUpTexts;
 
 				for (auto clickable : clickables.internalList) {
+					if (clickable.extras.getKeys().contains("TYPEWRITER")) {
+						Event("Animate", "DRAWTEXT", Map<string, string>({
+							pair<string, string>("uniqueID", clickable.textID),
+							pair<string, string>("animateExisting", "1"),
+							})).run(*&gameEngine);
+					}
 					if (clickable.extras.getKeys().contains("hasHoverText")) {
 						popUpTexts.push_back(clickable.extras["hoverTextName"]);
 					}
@@ -2316,10 +2545,15 @@ public:
 					Graphics::Image* theImage = graphics.accessImageViaUniqueID(clickable.imageID);
 					theImage->frame = 2;
 					Event("PlayHoverSound", "PLAYSFX", Map<string, string>({ pair<string,string>("audio",to_string(clickable.audioClick)),pair<string,string>("direct","1"), })).run(*&gameEngine);
-					Event("ButtonLogic", "HANDLEBUTTON", Map<string, string>({ pair<string, string>("uniqueID", clickable.uniqueID),pair<string, string>("menuName", data["uniqueID"]) })).run(*&gameEngine);
+					Event("ButtonLogic", "HANDLEBUTTON", Map<string, string>({ 
+						pair<string, string>("uniqueID", clickable.uniqueID),
+						pair<string, string>("menuName", data["uniqueID"]), 
+						pair<string, string>("whichMerchant", data["whichMerchant"]),
+						})).run(*&gameEngine);
 					return false;
 				}
 				for (auto clickable : hoveredOverItems.internalList) {
+					if (!clickable.clickable) { continue; }
 					Graphics::Image* theImage = graphics.accessImageViaUniqueID(clickable.imageID);
 					theImage->frame = 1;
 					string hoveredOverItem = clickable.imageID;
@@ -2348,7 +2582,8 @@ public:
 							pair<string, string>("direct", direct),
 							pair<string, string>("uniqueID", textID),
 							pair<string, string>("message", message),
-							pair<string, string>("w", "50"),
+							pair<string, string>("hoverTextOneLine", clickable.extras["hoverTextOneLine"]),
+							pair<string, string>("w", "100"),
 							pair<string, string>("h", "50"),
 							pair<string, string>("colour", "WHITE"),
 							pair<string, string>("format", clickable.extras["hoverTextFormat"]),
@@ -2357,7 +2592,6 @@ public:
 							pair<string, string>("anchorStyle", clickable.extras["hoverAnchorStyle"]),
 							})).run(*&gameEngine);
 					}
-					return false;
 				}
 				if (!anythingHovered) {
 					controller.latestMenuItemHovered = "";
@@ -2369,7 +2603,11 @@ public:
 					for (auto const& [key, value] : gameEngine.storedMenus[whichMenu].getKeyboardShortcutsForThisMenu().internalMap) {
 						if (controller.hasThisBeenPressed(key)) {
 							controller.menuItemCooldown = true;
-							Event("ButtonLogic", "HANDLEBUTTON", pair<string, string>("uniqueID", value)).run(*&gameEngine);
+							Event("ButtonLogic", "HANDLEBUTTON", Map<string, string>({
+								pair<string, string>("uniqueID", value),
+								pair<string, string>("menuName", data["uniqueID"]),
+								pair<string, string>("whichMerchant", data["whichMerchant"]),
+								})).run(*&gameEngine);
 						}
 					}
 				}
@@ -2495,6 +2733,17 @@ public:
 					gameEngine.activeProcedure = Procedure("Explore", { Event("Explore","EXPLORE",{}) });
 					return true;
 				}
+				if (buttonLogic == "MERCHANTTOEXPLORE") {
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "MERCHANT")).run(*&gameEngine);
+					List<Menu::Button> toHandle = gameEngine.storedMenus["MERCHANT"].buttons;
+					for (auto button : toHandle.internalList) {
+						Event("TearDown", "TEARDOWNABUTTON", Map<string, string>({
+							pair<string,string>("imageID", button.imageID),
+							pair<string,string>("textID", button.textID)})).run(*&gameEngine);
+					}
+					gameEngine.activeProcedure = Procedure("Explore", { Event("Explore","EXPLORE",{}) });
+					return true;
+				}
 				if (buttonLogic == "AUDIOSETTINGS") {
 					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "EXPLOREPAUSE")).run(*&gameEngine);
 					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("AUDIOSETTINGS");
@@ -2609,6 +2858,7 @@ public:
 				}
 				if (buttonLogic == "CANCELSKILLTREECHOICE") {
 					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "SKILLTREEEDIT1")).run(*&gameEngine);
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "SKILLTREEEDIT2")).run(*&gameEngine);
 					gameEngine.activeProcedure = Procedure("MenuProcedure", List<Event>({ 
 						Event("HandleMenu", "HANDLEMENU", Map<string, string>({pair<string, string>("uniqueID", "SKILLMANAGEMENT"),})) }));
 				}
@@ -2619,6 +2869,7 @@ public:
 				}
 				if (combat.getNamesOfAllItemTypeNames(gameEngine.language).contains(buttonLogic)) {
 					string category = buttonLogic;
+					gameEngine.stateFlags["WEPTYPESELECTED"] = category;
 					List<Menu::Button> toHandle = gameEngine.storedMenus["EQUIPMENTMANAGEMENT"].buttons;
 					for (int x = 0; x < toHandle.size(); x++) {
 						Event("TearDown", "TEARDOWNABUTTON", Map<string, string>({
@@ -2723,6 +2974,132 @@ public:
 							})).run(*&gameEngine);
 					}
 					graphics.accessTextViaUniqueID("EQUIPMENTEXPLAIN")->message = combat.loadPartyMemberAsCombatant(who).getEquipmentPrintout(gameEngine.language, *&combat);
+					return true;
+				}
+				if (buttonLogic.find("Buy_") != -1) {
+					string what = SReplace(buttonLogic, "Buy_", "");
+					gameEngine.stateFlags["itemOfInterest"] = what;
+					int price = combat.equipmentDefinitions[what].price;
+					int currentMoney = saveContainer.current.money;
+					int currentlyHave = saveContainer.howManyOfThisItemInInventory(what);
+					if (price > currentMoney) {
+						gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("TRADEDENY");
+					}
+					if (currentlyHave >= saveContainer.inventoryLimitPerItem) {
+						gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("TRADEDENYFULL");
+					}
+					if (price <= currentMoney and currentlyHave < saveContainer.inventoryLimitPerItem) {
+						gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("MERCHANTCONFIRM");
+					}
+					gameEngine.activeProcedure.eventList.at(1).data["whichMerchant"] = data["whichMerchant"];
+					return true;
+				}
+				if (buttonLogic.find("Buyback_") != -1) {
+					string what = SReplace(buttonLogic, "Buyback_", "");
+					gameEngine.stateFlags["itemOfInterest"] = what;
+					int price = combat.equipmentDefinitions[what].price;
+					int currentMoney = saveContainer.current.money;
+					int currentlyHave = saveContainer.howManyOfThisItemInInventory(what);
+					if (price > currentMoney) {
+						gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("TRADEDENY");
+					}
+					if (currentlyHave >= saveContainer.inventoryLimitPerItem) {
+						gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("TRADEDENYFULL");
+					}
+					if (price <= currentMoney and currentlyHave < saveContainer.inventoryLimitPerItem) {
+						gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("MERCHANTCONFIRM");
+					}
+					gameEngine.activeProcedure.eventList.at(1).data["whichMerchant"] = data["whichMerchant"];
+					return true;
+				}
+				if (buttonLogic.find("Sell_") != -1) {
+					string what = SReplace(buttonLogic, "Sell_", "");
+					gameEngine.stateFlags["itemOfInterest"] = what;
+					int price = combat.equipmentDefinitions[what].price;
+					int currentMoney = saveContainer.current.money;
+					int currentlyHave = saveContainer.howManyOfThisItemInInventory(what);
+					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("MERCHANTCONFIRM");
+					gameEngine.activeProcedure.eventList.at(1).data["whichMerchant"] = data["whichMerchant"];
+					return true;
+				}
+				if (buttonLogic == "MERCHANTBUY") {
+					string whichMerchant = data["whichMerchant"];
+					gameEngine.storedMenus["MERCHANT"].data["MERCHANT"] = "Buy";
+					Event("Change Merch Buttons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
+						pair<string, string>("whichMerchant", whichMerchant),
+						})).run(*&gameEngine);
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Buy");
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter();
+					return true;
+				}
+				if (buttonLogic == "MERCHANTSELL") {
+					string whichMerchant = data["whichMerchant"];
+					gameEngine.storedMenus["MERCHANT"].data["MERCHANT"] = "Sell";
+					Event("Change Merch Buttons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
+						pair<string, string>("whichMerchant", whichMerchant),
+						})).run(*&gameEngine);
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Sell");
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter();
+					return true;
+				}
+				if (buttonLogic == "MERCHANTBUYBACK") {
+					string whichMerchant = data["whichMerchant"];
+					gameEngine.storedMenus["MERCHANT"].data["MERCHANT"] = "Buyback";
+					Event("Change Merch Buttons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
+						pair<string, string>("whichMerchant", whichMerchant),
+						})).run(*&gameEngine);
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Buyback");
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter();
+					return true;
+				}
+				if (buttonLogic == "TradeConfirmNo") {
+					string whichMerchant = data["whichMerchant"];
+					gameEngine.stateFlags["itemOfInterest"] = "";
+					for (auto menu : { "MERCHANTCONFIRM", "TRADEDENY", "TRADEDENYFULL" }) {
+						Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", menu)).run(*&gameEngine);
+					}	
+					gameEngine.activeProcedure = Procedure("MenuProcedure", List<Event>({
+						Event("HandleMenu", "HANDLEMENU", Map<string, string>({
+							pair<string, string>("uniqueID", "MERCHANT"),
+							pair<string, string>("whichMerchant", whichMerchant),
+							})) }));
+					return true;
+				}
+				if (buttonLogic == "TradeConfirmYes") {
+					string whichMerchant = data["whichMerchant"];
+					string item = gameEngine.stateFlags["itemOfInterest"];
+					string mode = gameEngine.storedMenus["MERCHANT"].data["MERCHANT"];
+					int price = combat.equipmentDefinitions[item].price;
+					Event("PlaySound", "PLAYSFX", Map<string, string>({
+							pair<string, string>("audio", to_string(MONEY_WAV)),
+							pair<string, string>("direct", "1"),
+						})).run(*&gameEngine);
+					if (mode == "Buy") {
+						saveContainer.increaseItemInventoryCount(item);
+						saveContainer.loseMoney(price);
+					}
+					if (mode == "Buyback") {
+						saveContainer.increaseItemInventoryCount(item);
+						saveContainer.loseMoney(price);
+						saveContainer.reduceSoldItemCount(item);
+					}
+					if (mode == "Sell") {
+						saveContainer.reduceItemInventoryCount(item);
+						saveContainer.gainMoney(price);
+						saveContainer.increaseSoldItemCount(item);
+					}
+					Event("Change Merch Buttons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
+						pair<string, string>("whichMerchant", whichMerchant),
+						})).run(*&gameEngine);
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "MERCHANTCONFIRM")).run(*&gameEngine);
+					gameEngine.activeProcedure = Procedure("MenuProcedure", List<Event>({
+						Event("HandleMenu", "HANDLEMENU", Map<string, string>({
+							pair<string, string>("uniqueID", "MERCHANT"),
+							pair<string, string>("whichMerchant", whichMerchant),
+							})) }));
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = strings[gameEngine.language]["GUI"]["MERCHANTTHANKS" + mode];
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter();
+					graphics.accessTextViaUniqueID("MONEYSTATUS_TEXT")->message = to_wstring(saveContainer.current.money);
 					return true;
 				}
 				return true;
@@ -3157,7 +3534,9 @@ public:
 				for (auto x : { 20,21,22,23 }) {
 					for (Graphics::Image* Image : graphics.ImageMap[x].internalList) {
 						if (Image->unique_ID.find("SKILLSLOT_0") != -1 or
-							Image->unique_ID.find("SKILLSLOT_6") != -1) {
+							Image->unique_ID.find("SKILLSLOT_6") != -1 or 
+							Image->unique_ID.find("SKILLSLOTBORDER_0") != -1 or
+							Image->unique_ID.find("SKILLSLOTBORDER_6") != -1 ) {
 							continue;
 						}
 						if (Image->unique_ID.find("_SKILLSELECTIONGRID") != -1 or
@@ -3295,6 +3674,7 @@ public:
 					string itemID = items.getKeys().at(x);
 					Menu::Button current = Menu::smallButton("EQUIP_" + items.getKeys().at(x),"Item Names_" + itemID, positions[x]);
 					current.extras["getColourFromEquipment"] = "1";
+					current.extras["sayHowManyPlayerHas"] = "1";
 					current.extras["itemName"] = itemID;
 					current.extras["hasHoverText"] = "1";
 					current.extras["hoverTextName"] = "explainEquipmentHover";
@@ -3308,7 +3688,69 @@ public:
 				gameEngine.storedMenus["EQUIPMENTMANAGEMENT"].buttons = result;
 				return true;
 			}
-			
+			if (type == "ADDMERCHANTITEMBUTTONS") {
+				string whichMerchant = data["whichMerchant"];
+				string mode = gameEngine.storedMenus["MERCHANT"].data["MERCHANT"];
+				List<Menu::Button> toHandle = gameEngine.storedMenus["MERCHANT"].buttons;
+				for (auto button : toHandle.internalList) {
+					if (button.uniqueID != "MERCHANTDIALOGUE") {
+						Event("TearDown", "TEARDOWNABUTTON", Map<string, string>({
+							pair<string,string>("textID", button.textID),
+							pair<string,string>("imageID", button.imageID),
+							})).run(*&gameEngine);
+					}
+				}
+				List<Menu::Button> result = Menu::getDefaultButtonsForMerchant();
+				List<string> toAdd;
+				if (mode == "Buy") {
+					toAdd = merchants.merchantDefinitions[whichMerchant].getCorrectItemsForSale();
+				}
+				if (mode == "Sell") {
+					for (auto const& [key, val] : saveContainer.current.inventory) {
+						if (val > 0) {
+							toAdd.push_back(key);
+						}
+					}
+				}
+				if (mode == "Buyback") {
+					for (auto const& [key, val] : saveContainer.current.itemsSold) {
+						if (val > 0) {
+							toAdd.push_back(key);
+						}
+					}
+				}
+				Map<int, pair<float, float>> positions = Menu::getMerchantGridPositions();
+				for (int x = 0; x < toAdd.size(); x++) {
+					Combat::Equipment def = combat.equipmentDefinitions[toAdd.at(x)];
+					string itemID = toAdd.at(x);
+					Menu::Button current = Menu::smallButton(mode + "_" + toAdd.at(x), "Item Names_" + itemID, positions[x]);
+					current.extras["getColourFromEquipment"] = "1";
+					current.extras["addPriceToEquipment"] = "1";
+					current.extras["itemName"] = itemID;
+					current.extras["merchantExplain"] = "1";
+					current.extras["hasHoverText"] = "1";
+					current.extras["hoverTextName"] = "explainEquipmentHover";
+					current.extras["hoverTextOneLine"] = "1";
+					current.extras["hoverTextContent"] = "explainEquipmentHover";
+					current.extras["hoverTextContentX"] = "50";
+					current.extras["hoverTextContentY"] = "26";
+					current.extras["hoverAnchorStyle"] = "CENTRE";
+					current.extras["hoverTextFormat"] = "Centaur_13",
+					result.push_back(current);
+				}
+				string layer = to_string(imageLookup.layerDefaults["BUTTONS"]);
+				gameEngine.storedMenus["MERCHANT"].buttons = result;
+				for (int x = 0; x < result.size(); x++) {
+					if (result.at(x).uniqueID == "MERCHANTDIALOGUE") { continue; }
+					Event("LoadThisButton", "LOADABUTTON", Map<string, string>({
+						pair<string, string>("uniqueID", "MERCHANT"),
+						pair<string, string>("which", to_string(x)),
+						pair<string, string>("layer", layer),
+						pair<string, string>("format", result.at(x).extras["format"]),
+						})).run(*&gameEngine);
+				}
+				
+			}
 			return false;
 }
 		string name;
@@ -3452,10 +3894,10 @@ public:
 				pair<string, string>("uniqueID", "Olyver Sumner")
 				}))),
 			Event("Load Map", "MANAGEAUDIOSWAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "House1Inside1"),
+				pair<string, string>("targetMap", "RoadToBénouville"),
 			}))),
 			Event("Load Map", "LOADMAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "House1Inside1"),
+				pair<string, string>("targetMap", "RoadToBénouville"),
 			}))),
 			Event("Debug Exploring", "EXPLORE", Map<string,string>(List<pair<string,string>>({}))),
 			})) }),
@@ -3561,8 +4003,24 @@ public:
 				}),Map<string, string>({
 					pair<string, string>("layer", to_string(imageLookup.layerDefaults["DROPDOWNMENU"])),
 					pair<string, string>("EQUIPMENTCHOICE", "1"),
-					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " CANCELEQUIPMENTCHOICE")}))),
-
+					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " CANCELEQUIPCHOICE")}))),
+		pair<string, Menu>(
+			"MERCHANT", Menu("MERCHANT", Menu::getDefaultButtonsForMerchant(),Map<string, string>({
+					pair<string, string>("layer", to_string(imageLookup.layerDefaults["DROPDOWNMENU"])),
+					pair<string, string>("MERCHANT", "Buy"),
+					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " MERCHANTTOEXPLORE")}))),
+		pair<string, Menu>(
+			"MERCHANTCONFIRM", Menu("MERCHANTCONFIRM", Menu::getDefaultButtonsForConfirmTrade(),Map<string, string>({
+					pair<string, string>("layer", to_string(imageLookup.layerDefaults["DROPDOWNMENU"])),
+					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " TradeConfirmNo")}))),
+		pair<string, Menu>(
+			"TRADEDENY", Menu("TRADEDENY", Menu::getDefaultButtonsForDenyTrade("GUI_CAN'TAFFORD"),Map<string, string>({
+					pair<string, string>("layer", to_string(imageLookup.layerDefaults["DROPDOWNMENU"])),
+					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " TradeConfirmNo")}))),
+		pair<string, Menu>(
+			"TRADEDENYFULL", Menu("TRADEDENY", Menu::getDefaultButtonsForDenyTrade("GUI_NOSPACE"), Map<string, string>({
+					pair<string, string>("layer", to_string(imageLookup.layerDefaults["DROPDOWNMENU"])),
+					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " TradeConfirmNo") }))),
 	});
 	Procedure makeDynamicCutsceneProcedure(string language, string cutsceneName, string player, string postProcedure) {
 			return Procedure("Cutscene", List<Event>(convertDynamicStringsToDialogue(language, cutsceneName, player) + 
@@ -3601,8 +4059,16 @@ public:
 				pair<string, string>("wait", "TRUE"), }))));
 		events.push_back(Event("TeardownImage", "TEARDOWNIMAGE", Map<string, string>(List<pair<string, string>>({
 				pair<string, string>("uniqueID", "LoadingScreen"), }))));
-		events.push_back(Event("Explore", "EXPLORE", {}));
+		events.push_back(Event("Explore", "EXPLORE", Map<string, string>(
+			pair<string, string>({"force","1"}))));
 		return Procedure("AreaTransition", events);
+	}
+	Procedure makeMerchantLoadProcedure(string whichMerchant) {
+		Procedure result = makeLoadMenuProcedure("MERCHANT");
+		for (auto & event : result.eventList.internalList) {
+			event.data["whichMerchant"] = whichMerchant;
+		}
+		return result;
 	}
 	Procedure makeLoadMenuProcedure(string whichMenu) {
 		List<Event> events;

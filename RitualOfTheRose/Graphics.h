@@ -30,6 +30,8 @@ public:
         shadowColourTagLookupTable[wchar_t(9313)] = "SKILLTEXTBLUEBACKDROP";
         colourTagLookupTable[wchar_t(9314)] = "EQUIPMENTBLUE";
         shadowColourTagLookupTable[wchar_t(9314)] = "DARKBROWN";
+        colourTagLookupTable[wchar_t(9315)] = "ELITESKILLYELLOW";
+        shadowColourTagLookupTable[wchar_t(9315)] = "DARKBROWN";
         customFonts = { 
             pair<string, int>({"Centaur", IDF_CENTAUR}), 
             pair<string,int>({ "GoudyMedieval", IDF_GOUDYMEDIEVAL }),
@@ -467,6 +469,18 @@ public:
         int howFarAlong() {
             if (fullMessage.size() == 0) { return 100; }
             return message.size() * 100 / fullMessage.size();
+        }
+
+        static wstring commonTextReplacements(string language, wstring input) {
+            Map<wstring, wstring> replacements;
+            replacements[L"$DEFAULTBUYBACK$"] = strings[language]["Default Merchant Dialogue"]["Buy Back"];
+            replacements[L"$DEFAULTBUY$"] = strings[language]["Default Merchant Dialogue"]["Buy"];
+            replacements[L"$SELL$"] = strings[language]["Default Merchant Dialogue"]["Sell"];
+
+            for (auto const & [key, val] : replacements.internalMap) {
+                input = WSReplace(input, key, val);
+            }
+            return input;
         }
 
         wstring fullMessage;

@@ -538,6 +538,10 @@ public:
 		result += "x = " + to_string(mouseClickPosition.first) + " y = " + to_string(mouseClickPosition.second);
 		result += "\nMouse Moved Position: ";
 		result += "x = " + to_string(mouseMovePosition.first) + " y = " + to_string(mouseMovePosition.second);
+		result += "\nMouse Moved Position As Percentage: ";
+		float MouseXAsPercent = mouseMovePosition.first / actualRenderSizeAsFloat.first * 100;
+		float MouseYAsPercent = mouseMovePosition.second / actualRenderSizeAsFloat.second * 100;
+		result += "x = " + to_string(MouseXAsPercent) + " y = " + to_string(MouseYAsPercent);
 		result += "\nMouse Unclicked Position: ";
 		result += "x = " + to_string(mouseUnclickPosition.first) + " y = " + to_string(mouseUnclickPosition.second);
 		return result;
@@ -666,7 +670,7 @@ public:
 		map<string, map<string, string>> equippedSkillTrees;
 		map<string, list<string>> knownSkills;
 		map<string, int> inventory;
-		list<string> itemsSold;
+		map<string, int> itemsSold;
 		list<string> allCharacters;
 		map<string, map<string, int>> attributeInvestments;
 		map<string, int> stats;
@@ -814,6 +818,38 @@ public:
 		current.inventory = inventory.internalMap;
 		return true;
 	}
+	bool reduceSoldItemCount(string itemName) {
+		// return true if something was actually removed
+		Map<string, int> soldItems; soldItems.internalMap = current.itemsSold;
+		if (!soldItems.hasKey(itemName)) { return false; }
+		if (soldItems[itemName] <= 0) { soldItems[itemName] = 0; }
+		if (soldItems[itemName] == 0) { return false; }
+		soldItems[itemName] = TChange(soldItems[itemName], -1, 0, inventoryLimitPerItem);
+		current.itemsSold = soldItems.internalMap;
+		return true;
+	}
+	bool increaseSoldItemCount(string itemName) {
+		// return true if something was actually added
+		Map<string, int> soldItems; soldItems.internalMap = current.itemsSold;
+		if (soldItems.hasKey(itemName) and soldItems[itemName] <= 0) { soldItems[itemName] = 0; }
+		if (!soldItems.hasKey(itemName)) {
+			soldItems[itemName] = 0;
+		}
+		soldItems[itemName] = TChange(soldItems[itemName], 1, 0, inventoryLimitPerItem);
+		current.itemsSold = soldItems.internalMap;
+		return true;
+	}
+	int howManyOfThisItemInInventory(string itemName) {
+		Map<string, int> inventory; inventory.internalMap = current.inventory;
+		if (!inventory.hasKey(itemName)) { return 0; }
+		return (inventory[itemName]);
+	}
+	void gainMoney(int amount) {
+		current.money = TChange(current.money, amount, 0, goldLimit);
+	}
+	void loseMoney(int amount) {
+		current.money = TChange(current.money, amount * -1, 0, goldLimit);
+	}
 
 	SaveFile current;
 	Map<int, SaveFile> slots;
@@ -822,6 +858,7 @@ public:
 	const int partyLimit = 4;
 	const int attributeInvestmentLimit = 20;
 	const int inventoryLimitPerItem = 99;
+	const int goldLimit = 1000000;
 };
 SaveContainer saveContainer;
 
@@ -941,6 +978,8 @@ public:
 		animationFrames["Fog1"]["STAND_FRONT"].internalList = { FOG1,FOG2,FOG3,FOG4,FOG5,FOG6,FOG7,FOG8,FOG9,FOG10,FOG11,FOG12,FOG13,FOG14,FOG15,FOG16,FOG17,FOG18,FOG19,FOG20,FOG21,FOG22,FOG23,FOG24,FOG24,FOG23,FOG22,FOG21,FOG20,FOG19,FOG18,FOG17,FOG16,FOG15,FOG14,FOG13,FOG12,FOG11,FOG10,FOG9,FOG8,FOG7,FOG6,FOG5,FOG4,FOG3,FOG2,FOG1, };
 		animationFrames["House1Inside1AsObject"]["STAND_FRONT"].internalList = { HOUSE1INSIDE1 };
 		animationFrames["Fireplace1"]["STAND_FRONT"].internalList = { FIREPLACE1_1, FIREPLACE1_2,FIREPLACE1_3,FIREPLACE1_4,FIREPLACE1_5,FIREPLACE1_6,FIREPLACE1_7,FIREPLACE1_8,FIREPLACE1_9,FIREPLACE1_10,FIREPLACE1_11,FIREPLACE1_12,FIREPLACE1_13,FIREPLACE1_14,FIREPLACE1_15,FIREPLACE1_16,FIREPLACE1_17,FIREPLACE1_18,FIREPLACE1_19,FIREPLACE1_20,FIREPLACE1_21,FIREPLACE1_22,FIREPLACE1_23,FIREPLACE1_24 };
+		animationFrames["OldBookMan"]["STAND_FRONT"].internalList = { BOOKSELLER_OLD_MAN_STAND_FRONT_1, BOOKSELLER_OLD_MAN_STAND_FRONT_2 };
+		animationFrames["Shadow OldBookMan"]["STAND_FRONT"].internalList = { SHADOW_BOOKSELLER_OLD_MAN_STAND_FRONT_1, SHADOW_BOOKSELLER_OLD_MAN_STAND_FRONT_2 };
 	}
 	string getSequenceAsString(string character, string action) {
 		// get it as one string so it can be used in event data
@@ -965,10 +1004,59 @@ public:
 };
 ImageLookup imageLookup;
 
+class MerchantContainer {
+public:
+	class Merchant {
+	public:
+		Merchant() {}
+		Merchant(string _uniqueID, Map<string, list<string>> _itemsForSaleBasedOnFlags) {
+			uniqueID = _uniqueID;
+			for (auto const& [key, val] : _itemsForSaleBasedOnFlags.internalMap) {
+				itemsForSaleBasedOnFlags[key] = val;
+			}
+		}
+		string getLatestCorrectFlag(string language) {
+			List<string> possibleFlags;
+			string result = "NoFlags";
+			for (auto const& [key, value] : strings[language][uniqueID]) {
+				possibleFlags.push_back(split(key, " ").at(1));
+			}
+			for (auto flag : possibleFlags.internalList) {
+				if (saveContainer.current.flags[flag]) {
+					result = flag;
+				}
+			}
+			return result;
+		}
+		wstring getCorrectDialogue(string language, string Event) {
+			wstring result = strings[language][uniqueID][Event + " " + getLatestCorrectFlag(language)];
+			return result;
+		}
+		List<string> getCorrectItemsForSale() {
+			string language = "ENG"; // language doesn't matter
+			string flag = getLatestCorrectFlag(language);
+			return itemsForSaleBasedOnFlags[flag];
+		}
+
+		
+		string uniqueID;
+		Map<string, List<string>> itemsForSaleBasedOnFlags;
+	};
+	MerchantContainer() {
+		merchantDefinitions["OldBookMan"] = Merchant("OldBookMan", Map<string, list<string>>({
+			pair<string, list<string>>("NoFlags",{"Tome of Life Drain", "Tome of Heal Wounds"}),
+			}));
+
+	}
+
+	Map<string, Merchant> merchantDefinitions;
+};
+MerchantContainer merchants;
+
 class Explorer {
 public:
 	Explorer() {
-		maps["RoadToBénouville"] = mapInstance("RoadToBénouville", MAP_DEBUG, { 36.1,21.4 }, List<mapObject>({
+		maps["RoadToBénouville"] = mapInstance("RoadToBénouville", MAP_DEBUG, { 15,40 }, List<mapObject>({
 			mapObject("Lamp1", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","CENTRE",{60.5f, 20.0f}, false, {}, {}),
 			mapObject("Lamp2", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","CENTRE",{49.3, 29.7}, false, {}, {}),
 			mapObject("Lamp3", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","CENTRE",{34.9, 18.0}, false, {}, {}),
@@ -977,7 +1065,7 @@ public:
 			mapObject("Well", false, true, false, imageLookup.getSequenceAsString("Well","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"],"1.0","CENTRE",{42, 26.6}, false, {}, {}),
 			mapObject("Lamp6", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","CENTRE",{56.9, 1.2}, false, {}, {}),
 			mapObject("DeadHorse", true, false, false, "","0",0,imageLookup.layerDefaults["SMALLOBJECTS"],"1.0","CENTRE",{54.6, 16.9}, false, List<mapFloor::triangle>({mapFloor::triangle({{50.72616934776306,23.629747331142426}, {56.28034472465515,16.637805104255676}, {50.594234466552734,16.637805104255676}}),mapFloor::triangle({{50.72616934776306,23.629747331142426}, {56.76738619804382,23.295582830905914}, {56.28034472465515,16.637805104255676}}),}), Map<string, string>({
-											pair<string, string>({"message","Press the Spacebar to interact with objects of interest."}), 
+											pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Dead Horse"}), 
 											pair<string, string>({"copy","DeadHorse"}),
 											pair<string, string>({"cutscene","DeadHorse"}),
 											pair<string, string>({"x","0"}),
@@ -985,14 +1073,13 @@ public:
 											pair<string, string>({"h","50"}),
 											pair<string, string>({"w","50"}),
 											pair<string, string>("colour", "WHITE"),
-											pair<string, string>("direct", "1"),
 											pair<string, string>("uniqueID", mapPopupTextID),
 											pair<string, string>("anchorStyle", "TOPLEFT"),
 											pair<string, string>("shadowColour", "BLACK"),
 											pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
 											pair<string, string>({"format","LightText_20"})})),
 			mapObject("DeadWoman", true, true, false, imageLookup.getSequenceAsString("DeadWoman1","STAND_FRONT"),"0",0,imageLookup.layerDefaults["SMALLOBJECTS"],"1.0","CENTRE",{44.7, 21}, false, List<mapFloor::triangle>({mapFloor::triangle({{43.252843618392944,23.397547006607056}, {45.84275484085083,18.938007950782776}, {41.23336672782898,20.89352011680603}}),mapFloor::triangle({{43.252843618392944,23.397547006607056}, {47.981709241867065,21.335013210773468}, {45.84275484085083,18.938007950782776}}),}), Map<string, string>({
-											pair<string, string>({"message","Corpse of a female villager"}),
+											pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Corpse of a female villager"}),
 											pair<string, string>({"copy","DeadWoman"}),
 											pair<string, string>({"cutscene","DeadWoman"}),
 											pair<string, string>({"x","-10"}),
@@ -1000,14 +1087,13 @@ public:
 											pair<string, string>({"h","50"}),
 											pair<string, string>({"w","50"}),
 											pair<string, string>("colour", "WHITE"),
-											pair<string, string>("direct", "1"),
 											pair<string, string>("uniqueID", mapPopupTextID),
 											pair<string, string>("anchorStyle", "TOPLEFT"),
 											pair<string, string>("shadowColour", "BLACK"),
 											pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
 											pair<string, string>({"format","LightText_20"})})),
 			mapObject("DeadMan", true, true, false, imageLookup.getSequenceAsString("DeadMan1", "STAND_FRONT"), "0", 0, imageLookup.layerDefaults["SMALLOBJECTS"], "1.0", "CENTRE", { 37.9, 26.1 }, false, List<mapFloor::triangle>({ mapFloor::triangle({{33.55035483837128,27.531203627586365}, {41.157734394073486,24.36063140630722}, {33.66403877735138,24.066226184368134}}),mapFloor::triangle({{33.55035483837128,27.531203627586365}, {41.06677174568176,28.645145893096924}, {41.157734394073486,24.36063140630722}}),}), Map<string, string>({
-											pair<string, string>({"message","Corpse of a male villager"}),
+											pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Corpse of a male villager"}),
 											pair<string, string>({"copy","DeadMan"}),
 											pair<string, string>({"cutscene","DeadMan"}),
 											pair<string, string>({"x","-10"}),
@@ -1015,15 +1101,29 @@ public:
 											pair<string, string>({"h","50"}),
 											pair<string, string>({"w","50"}),
 											pair<string, string>("colour", "WHITE"),
-											pair<string, string>("direct", "1"),
 											pair<string, string>("uniqueID", mapPopupTextID),
 											pair<string, string>("anchorStyle", "TOPLEFT"),
 											pair<string, string>("shadowColour", "BLACK"),
 											pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
 											pair<string, string>({"format","LightText_20"}) })),
 			mapObject("Fog1", false, true, true, imageLookup.getSequenceAsString("Fog2","STAND_FRONT"),"1",2500,imageLookup.layerDefaults["ENVIRONMENT"] + 1,"1","CENTRE",{0, 0}, false, {}, {}),
+			mapObject("OldBookManShadow", true, true, false, imageLookup.getSequenceAsString("Shadow OldBookMan", "STAND_FRONT"), "1", 800, imageLookup.layerDefaults["SMALLOBJECTS"]-1, "1.0", "CENTRE", { 9, 37 }, false, List<mapFloor::triangle>({ mapFloor::triangle({{12.475095689296722,35.404083132743835}, {6.834037601947784,39.8309051990509}, {7.403770089149475,35.25550961494446}}),mapFloor::triangle({{12.475095689296722,35.404083132743835}, {12.759986519813538,40.50284922122955}, {6.834037601947784,39.8309051990509}}),}), Map<string, string>({})),
+			mapObject("OldBookMan", true, true, false, imageLookup.getSequenceAsString("OldBookMan", "STAND_FRONT"), "1", 800, imageLookup.layerDefaults["SMALLOBJECTS"], "1.0", "CENTRE", { 9, 37 }, false, List<mapFloor::triangle>({ mapFloor::triangle({{12.475095689296722,35.404083132743835}, {6.834037601947784,39.8309051990509}, {7.403770089149475,35.25550961494446}}),mapFloor::triangle({{12.475095689296722,35.404083132743835}, {12.759986519813538,40.50284922122955}, {6.834037601947784,39.8309051990509}}),}), Map<string, string>({
+											pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to OldBookMan"}),
+											pair<string, string>({"copy","OldBookMan"}),
+											pair<string, string>({"x","5"}),
+											pair<string, string>({"y","-5"}),
+											pair<string, string>({"h","50"}),
+											pair<string, string>({"w","50"}),
+											pair<string, string>("Merchant", "1"),
+											pair<string, string>("colour", "WHITE"),
+											pair<string, string>("uniqueID", mapPopupTextID),
+											pair<string, string>("anchorStyle", "TOPLEFT"),
+											pair<string, string>("shadowColour", "BLACK"),
+											pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+											pair<string, string>({"format","LightText_20"}) })),
 			mapObject("AT_Door", true, false, false, "","0",0,0,"1","CENTRE",{36.2, 19.1}, false, List<mapFloor::triangle>({mapFloor::triangle({{37.298646569252014,20.028436183929443}, {35.527339577674866,21.976549923419952}, {35.056111216545105,20.607496798038483}}),mapFloor::triangle({{37.298646569252014,20.028436183929443}, {37.60534226894379,21.315868198871613}, {35.527339577674866,21.976549923419952}}),}), Map<string, string>({
-											pair<string, string>({"message","Enter House"}),
+											pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Enter House"}),
 											pair<string, string>({"copy","AT_Door"}),
 											pair<string, string>({"areaTransition","House1Inside1"}),
 											pair<string, string>({"direction","STAND_BACK"}),
@@ -1035,7 +1135,6 @@ public:
 											pair<string, string>({"h","50"}),
 											pair<string, string>({"w","50"}),
 											pair<string, string>("colour", "WHITE"),
-											pair<string, string>("direct", "1"),
 											pair<string, string>("uniqueID", mapPopupTextID),
 											pair<string, string>("anchorStyle", "TOPLEFT"),
 											pair<string, string>("shadowColour", "BLACK"),
@@ -1148,7 +1247,7 @@ mapFloor::triangle({{46.79390788078308,13.37292343378067}, {46.32799029350281,15
 		maps["House1Inside1"] = mapInstance("House1Inside1", EMPTYMAP, { 46,53 }, List<mapObject>({
 			mapObject("House1Inside1AsObject", false, true, false, imageLookup.getSequenceAsString("House1Inside1AsObject","STAND_FRONT"),"0",0,imageLookup.layerDefaults["Map"]+1,"1.0","CENTRE",{50, 50}, false, {}, {}),
 			mapObject("AT_Door", true, false, false, "","0",0,0,"1","CENTRE",{46, 54}, false, List<mapFloor::triangle>({mapFloor::triangle({{44.78374421596527,54.089611768722534}, {46.707287430763245,51.44556760787964}, {47.589874267578125,53.23103070259094}}),mapFloor::triangle({{44.78374421596527,54.089611768722534}, {43.931591510772705,52.344727516174316}, {46.707287430763245,51.44556760787964}}),}), Map<string, string>({
-											pair<string, string>({"message","Leave House"}),
+											pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Leave House"}),
 											pair<string, string>({"copy","AT_Door"}),
 											pair<string, string>({"areaTransition","RoadToBénouville"}),
 											pair<string, string>({"direction","STAND_FRONT"}),
@@ -1160,7 +1259,6 @@ mapFloor::triangle({{46.79390788078308,13.37292343378067}, {46.32799029350281,15
 											pair<string, string>({"h","50"}),
 											pair<string, string>({"w","50"}),
 											pair<string, string>("colour", "WHITE"),
-											pair<string, string>("direct", "1"),
 											pair<string, string>("uniqueID", mapPopupTextID),
 											pair<string, string>("anchorStyle", "TOPLEFT"),
 											pair<string, string>("shadowColour", "BLACK"),
@@ -1168,7 +1266,7 @@ mapFloor::triangle({{46.79390788078308,13.37292343378067}, {46.32799029350281,15
 											pair<string, string>({"format","LightText_20"}),
 				})),
 			mapObject("Fireplace", false, true, false, imageLookup.getSequenceAsString("Fireplace1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["Map"] + 2,"1.0","CENTRE",{53.6, 49.2}, false, List<mapFloor::triangle>({mapFloor::triangle({{52.78176665306091,47.05861508846283}, {52.88730263710022,51.08172297477722}, {50.99630951881409,47.94119894504547}}),mapFloor::triangle({{52.78176665306091,47.05861508846283}, {54.733604192733765,50.480109453201294}, {52.88730263710022,51.08172297477722}}),}), Map<string, string>({
-											pair<string, string>({"message","A roaring fireplace"}),
+											pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_A Roaring Fireplace"}),
 											pair<string, string>({"copy","Fireplace"}),
 											pair<string, string>({"cutscene","Fireplace1"}),
 											pair<string, string>({"x","5"}),
@@ -1176,7 +1274,6 @@ mapFloor::triangle({{46.79390788078308,13.37292343378067}, {46.32799029350281,15
 											pair<string, string>({"h","50"}),
 											pair<string, string>({"w","50"}),
 											pair<string, string>("colour", "WHITE"),
-											pair<string, string>("direct", "1"),
 											pair<string, string>("uniqueID", mapPopupTextID),
 											pair<string, string>("anchorStyle", "TOPLEFT"),
 											pair<string, string>("shadowColour", "BLACK"),
