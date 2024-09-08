@@ -304,6 +304,13 @@ public:
 			});
 		return result;
 	}
+	static const List<Button> getDefaultButtonsForFindingItems() {
+		List<Button> result = List<Button>({
+			Menu::TextBox("YouFoundTextBox", "GUI_You found 1", "SMALL", {50,50}),
+			Menu::standardButton("AcceptItem", "GUI_RETURN", {50, 70}),
+			});
+		return result;
+	}
 	string uniqueID;
 	List<Button> buttons;
 	Map<string, string> data;
@@ -319,15 +326,29 @@ public:
 		influenceLookups["LUCK"] = 0.1;
 		influenceLookups["SPEED"] = 0.1;
 		influenceLookups["AGILITY"] = 0.15;
+		// skill tags are used by more than 2 skill trees so give lower bonus
+		influenceLookups["ELEMENTALBOOST"] = 0.04;
+
+		// skill tags are shared with 2 skill trees so give slightly lower bonus
 		influenceLookups["HOLYBOOST"] = 0.05;
-		influenceLookups["FIREBOOST"] = 0.05;
 		influenceLookups["UNHOLYBOOST"] = 0.05;
+
+		// less skill trees use this tag so give slightly higher bonus
 		influenceLookups["SHADOWBOOST"] = 0.06;
+		influenceLookups["FIREBOOST"] = 0.06;
+		influenceLookups["WATERBOOST"] = 0.06;
 		influenceLookups["WAYFARINGBOOST"] = 0.06;
+		influenceLookups["WEATHERBOOST"] = 0.06;
+		influenceLookups["Dual Weapon MasteryBOOST"] = 0.06;
+		influenceLookups["1H Weapon MasteryBOOST"] = 0.06;
+
+		// armour boosts
 		influenceLookups["PHYSICALARMOUR"] = 0.05;
+
+
 		AttributesInOrder = {"VITALITY","PIETY","STRENGTH", "INTELLIGENCE", "AGILITY","LUCK"};
 		statsInOrder = {"LIFE","ENERGY","ENERGYREGEN", "SPEED"};
-		defaultAttInvestments["Angela Fleuret"].internalMap = {
+		defaultAttInvestments["Angela Fleuret"] = {
 			{"STRENGTH" , 2},
 			{"INTELLIGENCE" , 3},
 			{"VITALITY", 2},
@@ -335,7 +356,7 @@ public:
 			{"AGILITY", 0},
 			{"LUCK", 1}
 		};
-		defaultAttInvestments["Tianshun Song"].internalMap = {
+		defaultAttInvestments["Tianshun Song"] = {
 			{"STRENGTH" , 0},
 			{"INTELLIGENCE" , 8},
 			{"VITALITY", 0},
@@ -343,7 +364,7 @@ public:
 			{"AGILITY", 4},
 			{"LUCK", 0}
 		};
-		defaultAttInvestments["Olyver Sumner"].internalMap = {
+		defaultAttInvestments["Olyver Sumner"] = {
 			{"STRENGTH" , 1},
 			{"INTELLIGENCE" , 9},
 			{"VITALITY", 0},
@@ -351,7 +372,7 @@ public:
 			{"AGILITY", 3},
 			{"LUCK", 2}
 		};
-		defaultAttInvestments["Hernando Pizarro"].internalMap = {
+		defaultAttInvestments["Hernando Pizarro"] = {
 			{"STRENGTH" , 10},
 			{"INTELLIGENCE" , 0},
 			{"VITALITY", 5},
@@ -359,7 +380,7 @@ public:
 			{"AGILITY", 3},
 			{"LUCK", 2}
 		};
-		defaultAttInvestments["Gihat al-Din Jaqmaq"].internalMap = {
+		defaultAttInvestments["Gihat al-Din Jaqmaq"] = {
 			{"STRENGTH" , 5},
 			{"INTELLIGENCE" , 0},
 			{"VITALITY", 2},
@@ -367,6 +388,47 @@ public:
 			{"AGILITY", 5},
 			{"LUCK", 4}
 		};
+		defaultSkillTreeChoices["Angela Fleuret"] = {
+			{"1", "Cleromancy"},
+			{"2", "Hagiomancy"},
+		};
+		defaultSkillTreeChoices["Tianshun Song"] = {
+			{"1", "Sangromancy"},
+			{"2", "Necromancy"},
+		};
+		defaultSkillTreeChoices["Olyver Sumner"] = {
+			{"1", "Meteomancy"},
+			{"2", "Electromancy"},
+		};
+		defaultSkillTreeChoices["Gihat al-Din Jaqmaq"] = {
+			{"1", "Dual Weapon Mastery"},
+			{"2", "Umbromancy"},
+		};
+		defaultSkillTreeChoices["Hernando Pizarro"] = {
+			{"1", "1H Weapon Mastery"},
+			{"2", "Wayfaring"},
+		};
+		defaultSkillChoices["Angela Fleuret"] = {
+			{"1", "Heal Wounds"},
+			{"5", "Heavenstrike"}
+		};
+		defaultSkillChoices["Tianshun Song"] = {
+			{"1", "Life Drain"},
+			{"5", "Animate Skeleton Warrior"}
+		};
+		defaultSkillChoices["Olyver Sumner"] = {
+			{"1", "Rainstorm"},
+			{"5", "Plasma Pulse"}
+		};
+		defaultSkillChoices["Gihat al-Din Jaqmaq"] = {
+			{"1", "Doublestrike"},
+			{"5", "Shadow Spike"},
+		};
+		defaultSkillChoices["Hernando Pizarro"] = {
+			{"1", "Fine Strike"},
+			{"5", "Gentleman's Riposte"},
+		};
+
 		defineAllSkills();
 		defineAllEquipment();
 	}
@@ -495,7 +557,7 @@ public:
 					string typeName = SReplace(tag, "BOOST", "");
 					wstring typeNameLower = strings[language]["Type Names"][typeName];
 					result = WSReplace(result, L"$REPLACE1$", typeNameLower);
-					int powerAsPercentage = combat.influenceLookups[tag] * 100;
+					int powerAsPercentage = combat.influenceLookups[tag] * (100 * influence);
 					result = WSReplace(result, L"$REPLACE2$", to_wstring(powerAsPercentage));
 					result += L"%.\n";
 					return result;
@@ -570,6 +632,11 @@ public:
 			wstring result = printout(language, *&combat);
 			result = WSReplace(result, L"\n", L" ");
 			return result;
+		}
+		wstring getColourForPrint() {
+			wchar_t colourTag = graphics.colourTagLookupTable.getKeyAssociatedWithThisValue(textColour);
+			wstring colourTagAsSymbol = wstring(1, colourTag);
+			return colourTagAsSymbol;
 		}
 
 		string textColour;
@@ -784,7 +851,7 @@ public:
 
 		// HAGIOMANCY
 		skillDefinitions["Heavenstrike"] = Skill("Heavenstrike", "Heavenstrike", "Hagiomancy", SKILLICON_HEAVENSTRIKE, 10, 2, 0, 
-			list<string>({ "DAMAGE_SINGLE", "HEAVENSTRIKE"}),
+			list<string>({ "DAMAGE_SINGLE_HOLY", "HEAVENSTRIKE"}),
 			list<string>({"MAGICAL","HOLY", "ELITE", "TARGETSFOES"}), 
 			Map<string, PowerValue>({ 
 				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 70, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))),
@@ -819,6 +886,67 @@ public:
 				pair<string, PowerValue>("POWER2", PowerValue("POWER2", 5, 1, 10, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"})))
 				}),
 			list<string>({ "DEALDAMAGE", "INEEDHEALING"}));
+
+		// NECROMANCY
+		skillDefinitions["Animate Skeleton Warrior"] = Skill("Animate Skeleton Warrior", "Animate Skeleton Warrior", "Necromancy", SKILLICON_ANIMATESKELETONWARRIOR, 35, 2, 5,
+			list<string>({ "ANIMATE_SKELETON_WARRIOR"}),
+			list<string>({ "MAGICAL","UNHOLY", "ELITE", "SUMMON" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 60, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("POWER2", PowerValue("POWER2", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+}),
+				list<string>({ "SUMMON",}));
+
+		// METEOMANCY
+		skillDefinitions["Rainstorm"] = Skill("Rainstorm", "Rainstorm", "Meteomancy", SKILLICON_RAINSTORM, 15, 1, 0,
+			list<string>({ "RAINSTORM" }),
+			list<string>({ "MAGICAL","WATER","ELEMENTAL"}),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),}),
+				list<string>({ "MAKEITRAIN" }));
+
+		// ELECTROMANCY
+		skillDefinitions["Plasma Pulse"] = Skill("Plasma Pulse", "Plasma Pulse", "Electromancy", SKILLICON_PLASMAPULSE, 35, 2, 5,
+			list<string>({ "DAMAGE_SINGLE_ELECTRIC", "APPLY_CONCUSSION", }),
+			list<string>({ "MAGICAL","ELECTRIC", "ELEMENTAL", "ELITE"}),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 70, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER2", PowerValue("POWER2", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "DEALDAMAGE",}));
+
+		// DUAL WEP MASTERY
+		skillDefinitions["Doublestrike"] = Skill("Doublestrike", "Doublestrike", "Dual Weapon Mastery", SKILLICON_DOUBLESTRIKE, 15, 0, 0,
+			list<string>({ "DAMAGE_SINGLE_PHYSICAL", "DAMAGE_SINGLE_PHYSICAL" }),
+			list<string>({ "PHYSICAL",}),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 4, 0, 999, true, list<string>({ "STRENGTH", "Dual Weapon MasteryBOOST"}))), }),
+				list<string>({ "DEALDAMAGE" }));
+
+		// UMBROMANCY
+		skillDefinitions["Shadow Spike"] = Skill("Shadow Spike", "Shadow Spike", "Umbromancy", SKILLICON_SHADOWSPIKE, 15, 0, 0,
+			list<string>({ "INTERRUPT_AOE", "APPLY_BLINDNESS_AOE" }),
+			list<string>({ "MAGICAL","ELITE"}),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 8, 1, 5, false, list<string>({ "INTELLIGENCE", "SHADOWBOOST"}))), }),
+				list<string>({ "BLINDSOMEONE", "INTERRUPTSOMEONE" }));
+
+		// 1H WEP MASTERY
+		skillDefinitions["Fine Strike"] = Skill("Fine Strike", "Fine Strike", "1H Weapon Mastery", SKILLICON_FINESTRIKE, 5, 0, 0,
+			list<string>({ "DAMAGE_SINGLE_PHYSICAL",}),
+			list<string>({ "PHYSICAL", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 33, 0, 999, true, list<string>({ "STRENGTH", "1H Weapon MasteryBOOST"}))), }),
+				list<string>({ "DEALDAMAGE" }));
+
+		// WAYFARING
+		skillDefinitions["Gentleman's Riposte"] = Skill("Gentleman's Riposte", "Gentleman's Riposte", "Wayfaring", SKILLICON_GENTLEMANSRIPOSTE, 5, 0, 10,
+			list<string>({ "RIPOSTE", }),
+			list<string>({ "PHYSICAL", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 2, 0, 15, true, list<string>({ "STRENGTH", "WayfaringBOOST"}))), }),
+				list<string>({ "DEALDAMAGE" }));
+
 	}
 	void defineAllEquipment() {
 		// TOMES
@@ -885,6 +1013,10 @@ public:
 			Equipment::Effect("FIREBOOST",1.5f,true,false),
 			Equipment::Effect("SELFIMMOLATE",0.0f,true,true),
 			}), "ELITESKILLYELLOW",9999);
+		equipmentDefinitions["The Eyes of St Lucy"] = Equipment("The Eyes of St Lucy", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
+			Equipment::Effect("HOLYBOOST",0.5f,true,false),
+			Equipment::Effect("PIETY",1.0f,true,true),
+			}), "EQUIPMENTBLUE", 150);
 
 	}
 	List<string> getNamesOfAllSkillTreeNames(string language) {
@@ -934,7 +1066,9 @@ public:
 	Map<string, float> influenceLookups;
 	List<string> AttributesInOrder;
 	List<string> statsInOrder;
-	Map<string, Map<string, int>> defaultAttInvestments;
+	Map<string, map<string, int>> defaultAttInvestments;
+	Map<string, map<string, string>> defaultSkillChoices;
+	Map<string, map<string, string>> defaultSkillTreeChoices;
 };
 Combat combat;
 
@@ -1525,6 +1659,11 @@ public:
 							theCurrentParty.internalList.remove(lhs);
 							saveContainer.current.party = theCurrentParty.internalList;
 							forceRedraw = true;
+
+							string nextLeader = saveContainer.getCurrentMainCharacter();
+							if (lhs != nextLeader) {
+								Event("PrintoutPlayer", "SWAPEXPLORERS", List<pair<string, string>>({ pair<string, string>("previous", lhs),pair<string, string>("next", nextLeader), })).run(*&gameEngine);
+							}
 						}
 						if (goingToParty and !theCurrentParty.contains(lhs) and theCurrentParty.size() < saveContainer.partyLimit) {
 							// move into party
@@ -1657,9 +1796,29 @@ public:
 				for (auto equipmentDef : combat.equipmentDefinitions.getValues().internalList) {
 					saveContainer.current.inventory[equipmentDef.uniqueID] = 1;
 				}
+				saveContainer.current.equippedSkills = combat.defaultSkillChoices.internalMap;
+				saveContainer.current.attributeInvestments = combat.defaultAttInvestments.internalMap;
+				saveContainer.current.equippedSkillTrees = combat.defaultSkillTreeChoices.internalMap;
+				for (auto s : saveContainer.current.party) {
+					saveContainer.current.knownSkills[s] = combat.skillDefinitions.getKeys().internalList;
+				}
+				return true;
+			}
+			if (type == "ANIMATEIMAGEONMAP") {
+				string uniqueID = data["whichImage"];
+				string character = data["character"];
+				string action = data["action"];
+				string direction = data["direction"];
+
+				Graphics::Image* image = graphics.accessImageViaUniqueID(uniqueID);
+				List<int> sources = imageLookup.animationFrames[character][action + "_" + direction];
+				image->resetSources(*&graphics, sources);
+				image->action = action;
+				image->animationSpeed = explorer.getAnimationSpeeds()[action];
 				return true;
 			}
 			if (type == "EXPLORE") {
+				Event("userInput", "DEBUGWALKING", { }).run(*&gameEngine);
 				//Event("", "DEBUGUSERINPUT", {}).run(*&gameEngine);
 				bool force = data["force"] == "1";
 				bool moving = false;
@@ -1670,7 +1829,7 @@ public:
 				bool need_to_reset_image_sources = true;
 				string newDirection = "";
 				string newAction = "STAND";
-				map<string, int> exploreAnimationSpeeds = { {"WALK",200} , {"STAND" ,500 }, {"MOVE", explorer.mapSize.first / 50} };
+				Map<string, int> exploreAnimationSpeeds = explorer.getAnimationSpeeds();
 				if (Args.get("mode") == "DEBUG") {
 					if (controller.hasThisBeenPressed(VK_F1)) {
 						Args.toggle("SPEEDCHEAT");
@@ -1748,6 +1907,8 @@ public:
 				bool stopExploringLoadMerchant = false;
 				bool popUpTextNeedsToBeDrawn = false;
 				bool mapPopUpTextExists = false;
+				bool stopExploringOpenChest = false;
+				Map<string, string> chestData;
 				string whichCutscene = "";
 				string currentMap = explorer.currentMap.name;
 				string targetMap = "";
@@ -1755,7 +1916,7 @@ public:
 				pair<float, float> futurePlayerPosition = {0,0};
 				string futurePlayerDirection = "FRONT";
 				Map<string, string> walkableDataToMoveOn; // send this to function that deals with next step
-				if (moving and CLOCK.hasEnoughTimePassed("EXPLORE",exploreAnimationSpeeds["MOVE"])) {
+				if (force or (moving and CLOCK.hasEnoughTimePassed("EXPLORE",exploreAnimationSpeeds["MOVE"]))) {
 					explorer.tryToMovePlayer(newDirection);
 					Event("Map Move", "MAPMOVE", {}).run(*&gameEngine);
 					image->opacity = 1.0;
@@ -1768,8 +1929,8 @@ public:
 							shadowImage->opacity = 0;
 						}
 					}
-					for (auto walkable : explorer.getObjectsInRange().internalList) {
-						if (walkable.data.getKeys().contains("message")) {
+					for (auto walkable : explorer.getObjectsThatAreClose().internalList) {
+						if (walkable.data.getKeys().contains("message") and walkable.canInteract) {
 							popUpTextNeedsToBeDrawn = true;
 							if (!mapPopUpTextExists) {
 								Event("PopUpTextOnMap", "DRAWTEXT", walkable.data).run(*&gameEngine);
@@ -1777,14 +1938,19 @@ public:
 							}
 							Event("Map Move", "MAPMOVE", { pair<string, string>("copy",walkable.data["copy"]) }).run(*&gameEngine); // call again to move text to right position
 						}
-						// put trigger here
 					}
 				}
 				// user has walked in range of an interactible object
 				bool userInput = controller.haveOneOfTheseBeenPressed(VK_SPACE) and CLOCK.hasEnoughTimePassed("DialogueEnded", 1000);
-				for (auto walkable : explorer.getObjectsInRange().internalList) {
-					if (walkable.data.getKeys().contains("message")) {
+				for (auto walkable : explorer.getObjectsThatAreClose().internalList) {
+					if (walkable.data.getKeys().contains("message") and walkable.canInteract) {
 						popUpTextNeedsToBeDrawn = true;
+					}
+					if (walkable.data.hasKey("trigger") and walkable.canInteract) {
+						walkable.canInteract = false;
+						saveContainer.current.flags[walkable.name + "_TRIGGERED"] = true;
+						whichCutscene = walkable.data["cutscene"];
+						stopExploringStartCutscene = true;
 					}
 					if (walkable.data.getKeys().contains("cutscene") and userInput) {
 						whichCutscene = walkable.data["cutscene"];
@@ -1803,6 +1969,11 @@ public:
 						targetMerchant = walkable.name;
 						stopExploringLoadMerchant = true;
 					}
+					if (walkable.data.getKeys().contains("isAChest") and walkable.canInteract and userInput) {
+						stopExploringOpenChest = true;
+						chestData = walkable.data;
+						popUpTextNeedsToBeDrawn = false;
+					}
 				}
 				if (stopExploringLoadMerchant) {
 					gameEngine.storedMenus["MERCHANT"].data["MERCHANT"] = "Buy";
@@ -1813,6 +1984,19 @@ public:
 					Event("TearDownPopUpText", "TEARDOWNTEXT", Map<string, string>(pair<string, string>{"uniqueID", explorer.mapPopupTextID})).run(*&gameEngine);
 				}
 				if (stopExploringStartCutscene) {
+					Event("MakePlayerStopMoving", "ANIMATEIMAGEONMAP", Map<string, string>({
+					pair<string, string>("whichImage", uniqueID),
+					pair <string, string>("character", character),
+					pair <string, string>("direction", currentDirection),
+					pair <string, string>("action", "STAND"),
+						})).run(*&gameEngine);
+					Event("MakePlayerStopMoving", "ANIMATEIMAGEONMAP", Map<string, string>({
+					pair<string, string>("whichImage", shadowID),
+					pair <string, string>("character", "Shadow " + character),
+					pair <string, string>("direction", currentDirection),
+					pair <string, string>("action", "STAND"),
+						})).run(*&gameEngine);
+
 					if (!gameEngine.storedProcedures.getKeys().contains(whichCutscene)) {
 						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, whichCutscene, saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					}
@@ -1822,6 +2006,9 @@ public:
 				}
 				if (stopExploringChangeArea) {
 					gameEngine.activeProcedure = gameEngine.makeAreaTransitionProcedure(currentMap, targetMap, futurePlayerPosition, futurePlayerDirection, walkableDataToMoveOn);
+				}
+				if (stopExploringOpenChest) {
+					gameEngine.activeProcedure = gameEngine.makeOpenChestProcedure(chestData);
 				}
 				if (controller.haveOneOfTheseBeenPressed(VK_ESCAPE) and CLOCK.hasEnoughTimePassed("MENUINPUTDELAY", 100) and not controller.menuItemCooldown) {
 					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("EXPLOREPAUSE");
@@ -1884,6 +2071,7 @@ public:
 				}
 				bool finishedWriting = Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
 				pair<string, string>("message",line),
+				pair<string, string>("animateExisting","0"),
 				pair<string, string>("format", "Centaur_25"),
 				pair<string, string>("anchorStyle", "TOPLEFT"),
 				pair<string, string>("x", "20"),
@@ -1898,7 +2086,11 @@ public:
 				pair<string, string>("animated", "TRUE"),
 				pair<string, string>("styles", "TYPEWRITER,PARCHMENT"),
 					}))).run(*&gameEngine);
-				return (finishedWriting and controller.haveOneOfTheseBeenPressed({ VK_SPACE }));
+				bool userInput = controller.haveOneOfTheseBeenPressed({ VK_SPACE });
+				if (finishedWriting and userInput) {
+					return true;
+				}
+				return false;
 			}
 			if (type == "TEARDOWNDIALOGUE") {
 				Event("TeardownImage", "TEARDOWNIMAGE", Map<string, string>(List<pair<string, string>>({
@@ -2082,6 +2274,31 @@ public:
 					}
 
 					graphics.accessTextViaUniqueID("TradeConfirm_TEXT")->message = dialogue;
+				}
+				if (menu.uniqueID == "YOUFOUNDANITEM") {
+					string foundItem = data["contents"];
+					wstring toPrint = strings[gameEngine.language]["GUI"]["You found other"];
+					wstring itemName = strings[gameEngine.language]["Item Names"][foundItem];
+					Combat::Equipment def = combat.equipmentDefinitions[foundItem];
+					string type = def.category;
+					if (type == "Weapon") {
+						toPrint = strings[gameEngine.language]["GUI"]["You found weapon"];
+					}
+					if (type == "Armour") {
+						toPrint = strings[gameEngine.language]["GUI"]["You found armour"];
+					}
+					if (type == "Accessory") {
+						toPrint = strings[gameEngine.language]["GUI"]["You found accessory"];
+					}
+					if (type == "Tome") {
+						toPrint = strings[gameEngine.language]["GUI"]["You found tome"];
+					}
+					toPrint += L"\n\n";
+					toPrint += def.getColourForPrint();
+					toPrint += WSReplace(itemName, L" ", def.getColourForPrint());
+					toPrint += def.getColourForPrint();
+					Graphics::Text * toUpdate = graphics.accessTextViaUniqueID("YouFoundTextBox_TEXT");
+					toUpdate->message = toPrint;
 				}
 				return true;
 			}
@@ -2549,6 +2766,7 @@ public:
 						pair<string, string>("uniqueID", clickable.uniqueID),
 						pair<string, string>("menuName", data["uniqueID"]), 
 						pair<string, string>("whichMerchant", data["whichMerchant"]),
+						pair<string, string>("objectID", data["objectID"]),
 						})).run(*&gameEngine);
 					return false;
 				}
@@ -2607,6 +2825,7 @@ public:
 								pair<string, string>("uniqueID", value),
 								pair<string, string>("menuName", data["uniqueID"]),
 								pair<string, string>("whichMerchant", data["whichMerchant"]),
+								pair<string, string>("objectID", data["objectID"]),
 								})).run(*&gameEngine);
 						}
 					}
@@ -3100,6 +3319,20 @@ public:
 					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = strings[gameEngine.language]["GUI"]["MERCHANTTHANKS" + mode];
 					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter();
 					graphics.accessTextViaUniqueID("MONEYSTATUS_TEXT")->message = to_wstring(saveContainer.current.money);
+					return true;
+				}
+				if (buttonLogic == "AcceptItem") {
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "YOUFOUNDANITEM")).run(*&gameEngine);
+					gameEngine.activeProcedure = Procedure("Explore", { Event("Explore","EXPLORE",{}) });
+					string objectName = data["objectID"];
+					string flagName = data["objectID"] + "_OPENED";
+					saveContainer.current.flags[flagName] = true;
+					Explorer::mapObject & obj = explorer.getThisMapObject(objectName);
+					obj.canInteract = false;
+					Event("UpdateMap", "EXPLORE", Map<string, string>({
+						pair <string,string>("force","1"),
+						})).run(*&gameEngine);
+					saveContainer.save();
 					return true;
 				}
 				return true;
@@ -3751,6 +3984,62 @@ public:
 				}
 				
 			}
+			if (type == "HANDLECHESTANIMATION") {
+				string imageName = data["imageID"];
+				string chestImageSource = data["ChestImageSource"];
+				Graphics::Image* theImage = graphics.accessImageViaUniqueID(imageName);
+				if (theImage->action == "STAND") {
+					theImage->action = "ACTION";
+					theImage->resetSources(*&graphics, imageLookup.animationFrames[chestImageSource]["ACTION_FRONT"]);
+					theImage->frame = 0;
+					theImage->animationStyles.clear();
+					theImage->animationStyles.push_back("SINGLE");
+					theImage->animationSpeed = 100;
+					CLOCK.startClock(imageName + "_CHESTWAIT");
+				}
+				if (theImage->frame == theImage->sources.size() - 1 and CLOCK.hasEnoughTimePassed(imageName + "_CHESTWAIT", 1400)) {
+					return true;
+				}
+				
+				return false;
+			}
+			if (type == "MOVECAMERA") {
+				// moving the camera independently of the player
+				explorer.perspective = "FOLLOW_CAMERA";
+				float unitOfMovement = explorer.unitOfMovement;
+				float ignore = -1; // use this to move camera only along x or y
+				pair<float, float> currentPosition = explorer.activeCamera.position;
+				pair<float, float> targetPosition = { stof(data["x"]), stof(data["y"]) };
+				bool reachedDestination = true;
+				if (CLOCK.hasEnoughTimePassed("CAMERAMOVE", 10)) {
+					if (targetPosition.first != ignore) {
+						if (currentPosition.first < targetPosition.first) {
+							currentPosition.first += unitOfMovement;
+						}
+						if (currentPosition.first > targetPosition.first) {
+							currentPosition.first -= unitOfMovement;
+						}
+						if (currentPosition.first != targetPosition.first) {
+							reachedDestination = false;
+						}
+					}
+					if (targetPosition.second != ignore) {
+						if (currentPosition.second < targetPosition.second) {
+							currentPosition.second += unitOfMovement;
+						}
+						if (currentPosition.second > targetPosition.second) {
+							currentPosition.second -= unitOfMovement;
+						}
+					}
+					if (currentPosition.second != targetPosition.second) {
+						reachedDestination = false;
+					}
+					explorer.activeCamera.position = currentPosition;
+					Event("UpdateMap", "MAPMOVE", {}).run(*&gameEngine);
+					return reachedDestination;
+				}
+				return false;
+			}
 			return false;
 }
 		string name;
@@ -4021,11 +4310,15 @@ public:
 			"TRADEDENYFULL", Menu("TRADEDENY", Menu::getDefaultButtonsForDenyTrade("GUI_NOSPACE"), Map<string, string>({
 					pair<string, string>("layer", to_string(imageLookup.layerDefaults["DROPDOWNMENU"])),
 					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " TradeConfirmNo") }))),
+		pair<string, Menu>(
+			"YOUFOUNDANITEM", Menu("YOUFOUNDANITEM", Menu::getDefaultButtonsForFindingItems(), Map<string, string>({
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["DROPDOWNMENU"])),
+							pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " AcceptItem") }))),
 	});
 	Procedure makeDynamicCutsceneProcedure(string language, string cutsceneName, string player, string postProcedure) {
-			return Procedure("Cutscene", List<Event>(convertDynamicStringsToDialogue(language, cutsceneName, player) + 
-				List<Event>(Event("PostCutscene", "TEARDOWNDIALOGUE", {})) + List<Event>(Event("PostCutscene", postProcedure, {}))
-			));
+		return Procedure("Cutscene", List<Event>(convertDynamicStringsToDialogue(language, cutsceneName, player) + 
+			List<Event>(Event("PostCutscene", "TEARDOWNDIALOGUE", {})) + List<Event>(Event("PostCutscene", postProcedure, {}))
+		));
 	}
 	Procedure makeAreaTransitionProcedure(string fromMap, string toMap, pair<float, float> playerPosition, string playerDirection, Map<string,string> walkableData) {
 		List<Event> events;
@@ -4083,6 +4376,26 @@ public:
 		}
 		return Procedure("MenuProcedure", events);
 	}
+	Procedure makeOpenChestProcedure(Map<string, string> data) {
+		List<Event> events;
+		events.push_back(Event("PlayOpenChestSound", "PLAYSFX", Map<string, string>({
+			pair<string, string>("audio", "OPENCHEST")
+			})));
+		events.push_back(Event("HandleChest", "HANDLECHESTANIMATION", data));
+		events.push_back(Event("PlayItemSound", "PLAYSFX", Map<string, string>({
+			pair<string, string>("audio", to_string(ITEMFIND_WAV)),
+			pair<string, string>("direct", "1")
+			})));
+		events.push_back(Event("LoadAMenu", "LOADMENU", Map<string, string>({
+			pair<string, string>("uniqueID", "YOUFOUNDANITEM"),
+			pair<string, string>("contents", data["contents"]),
+			})));
+		events.push_back(Event("HandleMenu", "HANDLEMENU", Map<string, string>({
+			pair<string, string>("uniqueID", "YOUFOUNDANITEM"),
+			pair<string, string>("objectID", data["imageID"]),
+			})));
+		return Procedure("HandleChest", events);
+	}
 	List<Event> convertDynamicStringsToDialogue(string language, string cutsceneName, string player) {
 		// dynamic as in, the line changes depending on who the player is
 		// for example, player interacting with something on the map
@@ -4098,6 +4411,22 @@ public:
 				// add something where the line itself must change according to the player
 			}
 			string speaker = thisSpeaker;
+			if (speaker == "$CAMERAMOVE$") {
+				// instruction to move the camera
+				List<string> data = split(WStringToString(val), " ");
+				results.push_back(Event(thisLine, "MOVECAMERA", { Map<string, string>(List<pair<string,string>>({
+				pair<string, string>({"x", data.at(0)}),
+				pair<string, string>({"y", data.at(1)}),
+				})) }));
+				acceptedLines.push_back(thisLine);
+				continue;
+			}
+			if (speaker == "$STOPDIALOGUE$") {
+				results.push_back(Event("PostCutscene", "TEARDOWNDIALOGUE", {}));
+				acceptedLines.push_back(thisLine);
+				continue;
+			}
+			
 			if (lines.getKeys().contains(thisLine + " " + player)) {
 				speaker = "PLAYER";
 			}

@@ -304,7 +304,9 @@ public:
         void animate() {
             if (!animated) { return; }
             if (animationStyles.contains("SINGLE") and frame<textures.size()-1) {
-                frame++;
+                if (CLOCK.hasEnoughTimePassed(unique_ID + "_SINGLE", animationSpeed)) {
+                    frame++;
+                }
             }
             if (animationStyles.contains("LOOP")) { 
                 if (CLOCK.hasEnoughTimePassed(unique_ID + "_FADE", animationSpeed)) {

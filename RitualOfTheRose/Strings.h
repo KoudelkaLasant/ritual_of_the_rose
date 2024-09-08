@@ -14,6 +14,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Wayfaring", L"Wayfaring"},
 			{"Umbromancy", L"Umbromancy"},
 			{"Dual Weapon Mastery", L"D Wep Mastery"},
+			{"Wayfaring", L"Wayfaring"},
 			{"DEFAULT", L""},
 }},
 		{"Skill Names", {
@@ -25,6 +26,13 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Exile", L"Exile"},
 			{"Strength of Reason", L"Strength of Reason"},
 			{"Life Drain", L"Life Drain"},
+			{"Animate Skeleton Warrior", L"Animate Skeleton Warrior"},
+			{"Rainstorm", L"Rainstorm"},
+			{"Plasma Pulse", L"Plasma Pulse"},
+			{"Doublestrike", L"Doublestrike"},
+			{"Shadow Spike", L"Shadow Spike"},
+			{ "Fine Strike", L"Fine Strike" },
+			{ "Gentleman's Riposte", L"Gentleman's Riposte" }
 }},
 		{"Skill Descriptions", {
 			{"DEFAULT_ATTACK", L"Perform a physical attack against target foe that deals②$POWER1$ damage."},
@@ -35,6 +43,13 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Strength of Reason", L"Enchant target ally with Strength of Reason for②$POWER1$ rounds. Their physical attacks deal an extra②$POWER2$ holy damage." },
 			{"Exile", L"Destroy target summoned creature. Exile takes an additional②$POWER1$ rounds to recharge." },
 			{"Life Drain", L"Curse target foe for②$POWER1$ rounds. Every round, you steal②$POWER2$ life from target foe."},
+			{"Animate Skeleton Warrior", L"Animate a Skeleton Warrior that has②$POWER1$ life and a bonus②$POWER2$ Strength."},
+			{"Rainstorm", L"Start a rainstorm which lasts for②$POWER1$ rounds and applies Wetness to everyone for②$POWER1$ rounds . Being wet reduces armour against cold and electric damage by 25%, but increases that of fire damage by 25%."},
+			{"Plasma Pulse", L"Target foe is struck for②$POWER1$ electric damage and is left concussed for②$POWER2$ rounds, making their spells 50% more likely to fail."},
+			{"Doublestrike", L"Strike target foe twice. Each strike deals an extra②$POWER1$ damage."},
+			{"Shadow Spike", L"Target foe and all adjacent foes are interrupted and blinded for 1 round. Shadow Spike recharge takes an additional②$POWER1$ rounds to recharge."},
+			{"Fine Strike", L"Strike target foe. This attack is②$POWER1$% more likely to be a critical hit."},
+			{"Gentleman's Riposte", L"For②$POWER1$ rounds, the next time an ally would be struck by a foe's physical attack, the attack is blocked and a physical attack is attempted against that foe."},
 }},
 		{"Other Stat Names", {
 			{"LIFEREGEN", L"Life⑳Regeneration"},
@@ -43,6 +58,9 @@ map<string, map<string, map<string, wstring>>> strings = {
 		{"Type Names",{
 			{"HOLY", { L"holy"}},
 			{"FIRE", { L"fire"}},
+			{"ELECTRIC", { L"electric"}},
+			{"ELEMENTAL", { L"elemental"}},
+			{"WEATHER", { L"weather"}},
 			{"UNHOLY", { L"unholy"}},
 			{"SHADOW", { L"shadow"}},
 			{"PHYSICAL", { L"physical"}},
@@ -76,6 +94,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 					{"Mask of House JaqMaq", L"Mask of House JaqMaq"},
 					{"Alhambran Tunic", L"Alhambran Tunic"},
 					{"Joan of Arc's Necklace", L"Joan of Arc's Necklace"},
+					{"The Eyes of St Lucy", L"The Eyes of St Lucy"},
 		}},
 		{"Item Descriptions", {
 					{"Withered Secespita", L"A secespita is an iron-bladed knife ranging from 8 to 10 inches in length with a rounded ivory handle. It usage dates as far back as the 2nd Century AD,  where ritualists of the pre-Christian Roman Empire, known as Flamens and Flaminicae, would use the blade to kill animals as part of a sacrifice. Such an offering would have been made either to a certain God or Goddess, or as a plea for Rome to be victorious in a particular war, or saved from a particular threat. To complete the ritual, the Secespita would then be used to disembowel the victim.\n\nThis Secespita in particular seems to have been forged to have a thinner blade than usual, giving it a 'withered' look. In spite of this characteristic, as well as being well over a thousand years old, it looks to be uncannily well-preserved, as if an Ancient Roman had walked up to you in the street and dropped it calmly into your open palm before walking away."},
@@ -90,7 +109,8 @@ map<string, map<string, map<string, wstring>>> strings = {
 					{ "Tibetan Tie Bian", L"The Tie Bian (鐵鞭), is a small ornate iron rod designed to parry and break weapons, and this one was once gifted to a Tibetan Priest named Butön Rinchen Drup by his Mongol Lord. At the time, Tibet was subject to Mongol rule, but managed to enjoy a period of relative stability and prosperity, with the Tibetan priests acting as spiritual and political leaders while their masters, the Mongols, provided the substantial military power needed to keep the peace.\n\nThis particular Tie Bian is smaller than usual and seems to serve a more decorative purpose than most Tie Bians." },
 					{ "Mask of House JaqMaq", L"This simple silk mask is used to hide an assassin's identity from those who would identify him or her as a killer. Discretion is essential in matters of death, and this garment is no exception. It was delicately sewn by a servant of the House of JaqMaq, the current ruling dynasty of Egypt.\n\nThe mask allows the user to act without hesitation." },
 					{ "Alhambran Tunic", L"The exquisite craftsmanship of this perfectly-fitting silk tunic and harem pants reveal the origin of these clothes - Granada. The last stronghold in Spain still controlled by the Moors, these clothes were privately commissioned by Gihat al-Din JaqMaq as a practical alternative to the puffy, billowing cloaks and veils that would impede her ability to be effective in combat.\n\nDespite the bloodshed, these garments are as pristine as they were the day she had her fitting for them." },
-					{ "Joan of Arc's Necklace", L"This plain gold necklace adorned with the Christian Cross was worn by Joan of Arc on the day she was burned at the stake. While Joan herself accepted her cruel fate as a part of God's plan, hundreds of thousands of witches throughout the Western world were spiritually wounded by the outrageous and terrible injustice. In that singular moment of united sorrow, their combined grief birthed a spiritual entity which cursed the necklace, permanently sealing away a single flame from the pyre that continues to burn 19 years after La Pucelle's death.\n\nYou can see waves of powerful heat rising from the necklace and you fear wearing it would invite disaster upon you." }
+					{ "Joan of Arc's Necklace", L"This plain gold necklace adorned with the Christian Cross was worn by Joan of Arc on the day she was burned at the stake. While Joan herself accepted her cruel fate as a part of God's plan, hundreds of thousands of witches throughout the Western world were spiritually wounded by the outrageous and terrible injustice. In that singular moment of united sorrow, their combined grief birthed a spiritual entity which cursed the necklace, permanently sealing away a single flame from the pyre that continues to burn 19 years after La Pucelle's death.\n\nYou can see waves of powerful heat rising from the necklace and you fear wearing it would invite disaster upon you." },
+					{ "The Eyes of St Lucy", L"This pair of perfectly-preserved eyeballs have been delicately tied together by their nerve endings as if they were ribbons rather than the flesh of a revered saint. Nevertheless, these were once the eyes of St Lucy. She lived and died in the 3rd and 4th centuries respectively, at a time when the growing sprouts of Christianity were starting to cast Roman Paganism into the shadow. Despite being a wealthy woman betrothed to a Roman, Lucy insisted on sharing her wealth with others in accordance with her Christian faith. Outraged by her heresy, the Governor of Syracuse ordered for her to be taken to a brothel and raped. By some miracle, all the Governor's horses and men couldn't move Lucy even an inch. It is said that when one of the men decided to stab Lucy with a sword, her eyes shone brightly in blinding rays of judgement that disintegrated everyone in sight. The only thing that remained were the eyes, now dormant." }
 		}},
 		{"Item Effect Strings", {
 				{"XBOOST", L"Increases the power of⑳$REPLACE1$ skills by⑳$REPLACE2$"},
@@ -168,6 +188,11 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"TradeConfirmPlus_Buy", L"You already have $AMOUNT$ of these in your inventory."},
 			{"TradeConfirmPlus_Buyback", L"You already have $AMOUNT$ of these in your inventory."},
 			{"TradeConfirmPlus_Sell", L"You currently have $AMOUNT$ of these in your inventory."},
+			{"You found other", L"You found an item:"},
+			{"You found weapon", L"You found a weapon:"},
+			{"You found armour", L"You found some armour:"},
+			{"You found accessory", L"You found an accessory:"},
+			{"You found tome", L"You found a tome:"},
 }},
 		{"Map Pop Up Text", {
 			{"Dead Horse", L"Press the Spacebar to interact with objects of interest"},
@@ -177,6 +202,10 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Leave House", L"Leave House"},
 			{"A Roaring Fireplace", L"A Roaring Fireplace"},
 			{"Talk to OldBookMan", L"Talk to Remy de Rouen"},
+			{"Go Upstairs", L"Go Upstairs"},
+			{"Go Back Downstairs", L"Go Back Downstairs"},
+			{"Open Chest", L"Open Chest"},
+			{"Leave Bénouville", L"Leave Bénouville"},
 		}},
 		{ "Default Merchant Dialogue", {
 			{"Buy" , L"Greetings, traveller, and welcome to my store! I have some items for sale that might interest you! If you have any questions don't hesitate to ask, I'm here to help."},
@@ -234,6 +263,18 @@ map<string, map<string, map<string, wstring>>> strings = {
 				{"1 Hernando Pizarro", L"Ah... to lay by such a fire with a glass of wine, a good friend and passionate conversation... maybe another time."},
 				{"1 Gihat al-Din Jaqmaq", L"I shouldn't be wasting any more time standing in this dead peasant's house!"},
 	}},
+	{ "Leave Bénouville", {
+			{"1 Angela Fleuret", L"I cannot leave until my work here is done."},
+			{"1 Tianshun Song", L"It would be easy for me to walk away, but the dark energy of this place would just call me back."},
+			{"1 Olyver Sumner", L"I will return to England, but not yet. There is more here I must accomplish."},
+			{"1 Hernando Pizarro", L"A gentleman never cuts and runs. I will stay here for as long as I am needed."},
+			{"1 Gihat al-Din Jaqmaq", L"I'm not going home empty handed. There is more I must do here."},
+	}},
+	{ "HorsemanCutscene1", {
+		{"1 Angela Fleuret", L"Example dialogue."},
+		{"2 $STOPDIALOGUE$", L""},
+		{"3 $CAMERAMOVE$", L"56 10"},
+	} },
 		{"DEBUG", {
 			{"TestString", L".!?Test String➀é hello I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes."},
 }}}} };
