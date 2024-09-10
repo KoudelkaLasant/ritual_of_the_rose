@@ -47,7 +47,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Rainstorm", L"Start a rainstorm which lasts for②$POWER1$ rounds and applies Wetness to everyone for②$POWER1$ rounds . Being wet reduces armour against cold and electric damage by 25%, but increases that of fire damage by 25%."},
 			{"Plasma Pulse", L"Target foe is struck for②$POWER1$ electric damage and is left concussed for②$POWER2$ rounds, making their spells 50% more likely to fail."},
 			{"Doublestrike", L"Strike target foe twice. Each strike deals an extra②$POWER1$ damage."},
-			{"Shadow Spike", L"Target foe and all adjacent foes are interrupted and blinded for 1 round. Shadow Spike recharge takes an additional②$POWER1$ rounds to recharge."},
+			{"Shadow Spike", L"Target foe and all adjacent foes are interrupted and blinded for 1 round. Shadow Spike takes an additional②$POWER1$ rounds to recharge."},
 			{"Fine Strike", L"Strike target foe. This attack is②$POWER1$% more likely to be a critical hit."},
 			{"Gentleman's Riposte", L"For②$POWER1$ rounds, the next time an ally would be struck by a foe's physical attack, the attack is blocked and a physical attack is attempted against that foe."},
 }},
@@ -62,6 +62,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"ELEMENTAL", { L"elemental"}},
 			{"WEATHER", { L"weather"}},
 			{"UNHOLY", { L"unholy"}},
+			{"BLOOD", { L"blood"}},
 			{"SHADOW", { L"shadow"}},
 			{"PHYSICAL", { L"physical"}},
 			{"WAYFARING", { L"Wayfaring"}},
@@ -86,7 +87,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 					{"Cross of St Jeanne-Marie", L"Cross of St Jeanne-Marie"},
 					{"Suero's Blade", L"Suero's Blade"},
 					{"Matteo Carreri's Locket", L"Matteo Carreri's Locket"},
-					{ "Martin's Cloak", L"Martín Alhaja's Cloak" },
+					{"Martin's Cloak", L"Martín Alhaja's Cloak" },
 					{"Blades of House JaqMaq", L"Blades of House JaqMaq"},
 					{"Theoricae Novae Planetarum", L"Theoricae Novae Planetarum"},
 					{"Lunyu Page Fragment", L"Lunyu Page Fragment"},
@@ -95,6 +96,9 @@ map<string, map<string, map<string, wstring>>> strings = {
 					{"Alhambran Tunic", L"Alhambran Tunic"},
 					{"Joan of Arc's Necklace", L"Joan of Arc's Necklace"},
 					{"The Eyes of St Lucy", L"The Eyes of St Lucy"},
+					{"Insulating Gloves", L"Insulating Gloves"},
+					{"Ming Theatre Costume", L"Ming Theatre Costume"},
+					{"Roger Bacon's Quill", L"Roger Bacon's Quill"},
 		}},
 		{"Item Descriptions", {
 					{"Withered Secespita", L"A secespita is an iron-bladed knife ranging from 8 to 10 inches in length with a rounded ivory handle. It usage dates as far back as the 2nd Century AD,  where ritualists of the pre-Christian Roman Empire, known as Flamens and Flaminicae, would use the blade to kill animals as part of a sacrifice. Such an offering would have been made either to a certain God or Goddess, or as a plea for Rome to be victorious in a particular war, or saved from a particular threat. To complete the ritual, the Secespita would then be used to disembowel the victim.\n\nThis Secespita in particular seems to have been forged to have a thinner blade than usual, giving it a 'withered' look. In spite of this characteristic, as well as being well over a thousand years old, it looks to be uncannily well-preserved, as if an Ancient Roman had walked up to you in the street and dropped it calmly into your open palm before walking away."},
@@ -110,7 +114,10 @@ map<string, map<string, map<string, wstring>>> strings = {
 					{ "Mask of House JaqMaq", L"This simple silk mask is used to hide an assassin's identity from those who would identify him or her as a killer. Discretion is essential in matters of death, and this garment is no exception. It was delicately sewn by a servant of the House of JaqMaq, the current ruling dynasty of Egypt.\n\nThe mask allows the user to act without hesitation." },
 					{ "Alhambran Tunic", L"The exquisite craftsmanship of this perfectly-fitting silk tunic and harem pants reveal the origin of these clothes - Granada. The last stronghold in Spain still controlled by the Moors, these clothes were privately commissioned by Gihat al-Din JaqMaq as a practical alternative to the puffy, billowing cloaks and veils that would impede her ability to be effective in combat.\n\nDespite the bloodshed, these garments are as pristine as they were the day she had her fitting for them." },
 					{ "Joan of Arc's Necklace", L"This plain gold necklace adorned with the Christian Cross was worn by Joan of Arc on the day she was burned at the stake. While Joan herself accepted her cruel fate as a part of God's plan, hundreds of thousands of witches throughout the Western world were spiritually wounded by the outrageous and terrible injustice. In that singular moment of united sorrow, their combined grief birthed a spiritual entity which cursed the necklace, permanently sealing away a single flame from the pyre that continues to burn 19 years after La Pucelle's death.\n\nYou can see waves of powerful heat rising from the necklace and you fear wearing it would invite disaster upon you." },
-					{ "The Eyes of St Lucy", L"This pair of perfectly-preserved eyeballs have been delicately tied together by their nerve endings as if they were ribbons rather than the flesh of a revered saint. Nevertheless, these were once the eyes of St Lucy. She lived and died in the 3rd and 4th centuries respectively, at a time when the growing sprouts of Christianity were starting to cast Roman Paganism into the shadow. Despite being a wealthy woman betrothed to a Roman, Lucy insisted on sharing her wealth with others in accordance with her Christian faith. Outraged by her heresy, the Governor of Syracuse ordered for her to be taken to a brothel and raped. By some miracle, all the Governor's horses and men couldn't move Lucy even an inch. It is said that when one of the men decided to stab Lucy with a sword, her eyes shone brightly in blinding rays of judgement that disintegrated everyone in sight. The only thing that remained were the eyes, now dormant." }
+					{ "The Eyes of St Lucy", L"This pair of perfectly-preserved eyeballs have been delicately tied together by their nerve endings as if they were ribbons rather than the flesh of a revered saint. Nevertheless, these were once the eyes of St Lucy. She lived and died in the 3rd and 4th centuries respectively, at a time when the growing sprouts of Christianity were starting to cast Roman Paganism into the shadow. Despite being a wealthy woman betrothed to a Roman, Lucy insisted on sharing her wealth with others in accordance with her Christian faith. Outraged by her heresy, the Governor of Syracuse ordered for her to be taken to a brothel and raped. By some miracle, all the Governor's horses and men couldn't move Lucy even an inch. It is said that when one of the men decided to stab Lucy with a sword, her eyes shone brightly in blinding rays of judgement that disintegrated everyone in sight. The only thing that remained were the eyes, now dormant." },
+					{ "Insulating Gloves", L"In the 4th Century BC, almost a thousand years before the current day, the great Greek philosopher Aristotle theorised about the origin of lightning. He described how water in the atmosphere, upon moving higher in the sky, becomes colder and denser as it collects back into liquid form. This disparity of temperatures between colder, higher clouds and warmer, closer clouds causes a burst of movement in which the hot air escapes from the cold and starts to burn in a thin, brilliant line known as lightning. Unsatisfied by the alleged universality of this theory, Olyver Sumner had these gloves made to be thickly insulated to protect him from electricity so he can study it safely." },
+					{ "Ming Theatre Costume", L"The history of modern theatre in China may trace its roots to as far back as the 12th Century. The Tang Buddhist tradition of bianwen (變文) mixed speech, song, and dance and was utilised by Buddhist monks to communicate their teachings to the common illiterate masses. Such an entertaining art form spread among the populace, not as a religious tool, but as a form of entertainment. This particular costume would typically have been worn by a girl starting her career in a travelling opera troop performing shows for anyone with coin to spend.\n\nUnlike most actresses, however, this costume is stained with the blood and sinew associated with corpses." },
+					{"Roger Bacon's Quill", L"Roger Bacon was a revered English scholar, friar and philosopher whose studies and interests were rich and widespread, ranging from gunpowder to astronomy to theology to grammar. His open-mindedness in accepting wisdom and knowledge from all corners of the earth, a drastic departure from many of the ignorant zealots of his era, made him an exceptional thinker of his time. Unbeknownst to many, even now, is that Roger Bacon was also a highly proficient wizard who specialised in the creation of automata - that is to say, self-thinking golems such as the Brazen Head, an animated creature capable of answering simple yes or no questions.\n\nIt is said that this quill was used to jot down some of the friar's most intelligent musings."},
 		}},
 		{"Item Effect Strings", {
 				{"XBOOST", L"Increases the power of⑳$REPLACE1$ skills by⑳$REPLACE2$"},
@@ -271,9 +278,32 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"1 Gihat al-Din Jaqmaq", L"I'm not going home empty handed. There is more I must do here."},
 	}},
 	{ "HorsemanCutscene1", {
-		{"1 Angela Fleuret", L"Example dialogue."},
-		{"2 $STOPDIALOGUE$", L""},
-		{"3 $CAMERAMOVE$", L"56 10"},
+		{"1 PLAYER", L"!!!"},
+		{"2 Angela Fleuret", L"You! Stop at once!"},
+		{"2 Tianshun Song", L"You must be... yes. I sense it."},
+		{"2 Olyver Sumner", L"Y-you there! Who are you?!"},
+		{"2 Hernando Pizarro", L"You! The one whose blade is bathed in the blood of innocents!"},
+		{"2 Gihat al-Din Jaqmaq", L"Step aside, rider! Do not get in my way!"},
+		{"3 $STOPDIALOGUE$", L""},
+		{"4 $LOADOBJECT$", L"White Knight_68_10_6_500_White Knight_STAND_LEFT_2.0_1.0"}, // x_y_layer_animSpeed_sources_sources_sources_scale_opacity
+		{"5 $LOADOBJECT$", L"Shadow White Knight_68_10_5_500_Shadow White Knight_STAND_LEFT_2.0_0.5"},
+		{"6 $ANIMATEOBJECT$", L"Shadow White Knight_Shadow White Knight_WALK_LEFT"}, // imageName, character, action, direction
+		{"7 $ANIMATEOBJECTS$", L"Shadow White Knight_Shadow White Knight_WALK_LEFT"},
+		{"8 $MOVEOBJECTS$", L"White Knight_Shadow White Knight_CAMERA$60,10,HORSE_60,10,NOAUDIO_55,10,NOAUDIO"}, // object_where_soundToPlay
+		{"9 $ANIMATEOBJECT$", L"White Knight_White Knight_STAND_LEFT"},
+		{"10 $ANIMATEOBJECT$", L"Shadow White Knight_Shadow White Knight_STAND_LEFT"},
+		{"11 $WAIT$", L"wait_100"},
+		{"12 $PLAYSFX$", L"1049"},
+		{"13 $PLAYSFX$", L"1050"},
+		{"14 $ANIMATEOBJECT$", L"White Knight_White Knight_REAR_LEFT"},
+		{"15 $ANIMATEOBJECT$", L"Shadow White Knight_Shadow White Knight_REAR_LEFT"},
+		{"16 $CHANGEANIMATIONSPEED$", L"White Knight_Shadow White Knight$100$SINGLE"}, //what_what$speed$styles
+		{"17 $WAITFORANIMATION$", L"White Knight"},
+		{"18 $ANIMATEOBJECT$", L"White Knight_White Knight_STAND_LEFT"},
+		{"19 $ANIMATEOBJECT$", L"Shadow White Knight_Shadow White Knight_STAND_LEFT"},
+		{"20 $CHANGEANIMATIONSPEED$", L"White Knight_Shadow White Knight$500$LOOP"}, //what_what$speed$styles
+		{"21 $WAIT$", L"wait_100"},
+		//{"7 $CAMERAMOVE$", L"56 10"},
 	} },
 		{"DEBUG", {
 			{"TestString", L".!?Test String➀é hello I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes."},

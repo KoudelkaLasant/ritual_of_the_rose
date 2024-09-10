@@ -321,7 +321,7 @@ public:
 	Combat() {
 		influenceLookups["STRENGTH"] = 0.05;
 		influenceLookups["INTELLIGENCE"] = 0.05;
-		influenceLookups["VITALITY"] = 0.08;
+		influenceLookups["VITALITY"] = 0.09;
 		influenceLookups["PIETY"] = 0.15;
 		influenceLookups["LUCK"] = 0.1;
 		influenceLookups["SPEED"] = 0.1;
@@ -339,12 +339,13 @@ public:
 		influenceLookups["WATERBOOST"] = 0.06;
 		influenceLookups["WAYFARINGBOOST"] = 0.06;
 		influenceLookups["WEATHERBOOST"] = 0.06;
+		influenceLookups["BLOODBOOST"] = 0.06;
 		influenceLookups["Dual Weapon MasteryBOOST"] = 0.06;
 		influenceLookups["1H Weapon MasteryBOOST"] = 0.06;
 
 		// armour boosts
 		influenceLookups["PHYSICALARMOUR"] = 0.05;
-
+		influenceLookups["ELECTRICARMOUR"] = 0.05;
 
 		AttributesInOrder = {"VITALITY","PIETY","STRENGTH", "INTELLIGENCE", "AGILITY","LUCK"};
 		statsInOrder = {"LIFE","ENERGY","ENERGYREGEN", "SPEED"};
@@ -428,6 +429,32 @@ public:
 			{"1", "Fine Strike"},
 			{"5", "Gentleman's Riposte"},
 		};
+		defaultEquipment["Angela Fleuret"] = {
+			{"Weapon", "Withered Secespita"},
+			{"Armour" , "Vatican Vestiments"},
+			{"Accessory", "Cross of St Jeanne-Marie"}
+		};
+		defaultEquipment["Tianshun Song"] = {
+			{"Weapon", "Tibetan Tie Bian"},
+			{"Armour" , "Ming Theatre Costume"},
+			{"Accessory", "Lunyu Page Fragment"}
+		};
+		defaultEquipment["Olyver Sumner"] = {
+			{"Weapon", "Roger Bacon's Quill"},
+			{"Armour" , "Insulating Gloves"},
+			{"Accessory", "Theoricae Novae Planetarum"}
+		};
+		defaultEquipment["Gihat al-Din Jaqmaq"] = {
+			{"Weapon", "Suero's Blade"},
+			{"Armour" , "Martin's Cloak"},
+			{"Accessory", "Matteo Carreri's Locket"}
+		};
+		defaultEquipment["Hernando Pizarro"] = {
+			{"Weapon", "Blades of House JaqMaq"},
+			{"Armour" , "Alhambran Tunic"},
+			{"Accessory", "Mask of House JaqMaq"}
+		};
+		
 
 		defineAllSkills();
 		defineAllEquipment();
@@ -576,7 +603,7 @@ public:
 					string typeName = SReplace(tag, "ARMOUR", "");
 					wstring typeNameLower = strings[language]["Type Names"][typeName];
 					result = WSReplace(result, L"$REPLACE1$", typeNameLower);
-					int powerAsPercentage = combat.influenceLookups[tag] * 100;
+					int powerAsPercentage = combat.influenceLookups[tag] * 100 * influence;
 					result = WSReplace(result, L"$REPLACE2$", to_wstring(powerAsPercentage));
 					result += L"%.\n";
 					return result;
@@ -980,6 +1007,9 @@ public:
 		equipmentDefinitions["Tibetan Tie Bian"] = Equipment("Tibetan Tie Bian", "Weapon", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
 			Equipment::Effect("ENERGYREGENPLUS",5.0f,true,true),
 			}), "EQUIPMENTBLUE", 250);
+		equipmentDefinitions["Roger Bacon's Quill"] = Equipment("Roger Bacon's Quill", "Weapon", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
+			Equipment::Effect("INTELLIGENCE",1.0f,true,true),
+			}), "EQUIPMENTBLUE", 250);
 
 		// ARMOUR
 		equipmentDefinitions["Vatican Vestiments"] = Equipment("Vatican Vestiments", "Armour", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
@@ -990,6 +1020,12 @@ public:
 			}), "EQUIPMENTBLUE", 250);
 		equipmentDefinitions["Alhambran Tunic"] = Equipment("Alhambran Tunic", "Armour", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
 			Equipment::Effect("SHADOWBOOST",1.0f,true,false),
+			}), "EQUIPMENTBLUE", 250);
+		equipmentDefinitions["Insulating Gloves"] = Equipment("Insulating Gloves", "Armour", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
+			Equipment::Effect("ELECTRICARMOUR",5.0f,true,false),
+			}), "EQUIPMENTBLUE", 250);
+		equipmentDefinitions["Ming Theatre Costume"] = Equipment("Ming Theatre Costume", "Armour", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
+			Equipment::Effect("BLOODBOOST",1.0f,true,false),
 			}), "EQUIPMENTBLUE", 250);
 
 		// ACCESSORIES
@@ -1069,6 +1105,7 @@ public:
 	Map<string, map<string, int>> defaultAttInvestments;
 	Map<string, map<string, string>> defaultSkillChoices;
 	Map<string, map<string, string>> defaultSkillTreeChoices;
+	Map<string, map<string, string>> defaultEquipment;
 };
 Combat combat;
 
@@ -1799,9 +1836,12 @@ public:
 				saveContainer.current.equippedSkills = combat.defaultSkillChoices.internalMap;
 				saveContainer.current.attributeInvestments = combat.defaultAttInvestments.internalMap;
 				saveContainer.current.equippedSkillTrees = combat.defaultSkillTreeChoices.internalMap;
+				saveContainer.current.equippedItems = combat.defaultEquipment.internalMap;
 				for (auto s : saveContainer.current.party) {
 					saveContainer.current.knownSkills[s] = combat.skillDefinitions.getKeys().internalList;
 				}
+				// test any npc
+				//saveContainer.current.party.push_front("White Knight");
 				return true;
 			}
 			if (type == "ANIMATEIMAGEONMAP") {
@@ -1947,12 +1987,12 @@ public:
 						popUpTextNeedsToBeDrawn = true;
 					}
 					if (walkable.data.hasKey("trigger") and walkable.canInteract) {
-						walkable.canInteract = false;
+						explorer.disableThisObject(walkable.name);
 						saveContainer.current.flags[walkable.name + "_TRIGGERED"] = true;
 						whichCutscene = walkable.data["cutscene"];
 						stopExploringStartCutscene = true;
 					}
-					if (walkable.data.getKeys().contains("cutscene") and userInput) {
+					if (walkable.data.getKeys().contains("cutscene") and userInput and walkable.canInteract) {
 						whichCutscene = walkable.data["cutscene"];
 						stopExploringStartCutscene = true;
 						popUpTextNeedsToBeDrawn = false;
@@ -2026,11 +2066,11 @@ public:
 				string speakerID = data["speaker"];
 				string line = name;
 				string direct = data["direct"]; // 1 = use string here 0 = get string from Strings.h
-				if (speakerID == "PLAYER") {
-					speakerID = saveContainer.getCurrentMainCharacter();
-				}
 				if (direct != "1") {
 					line = gameEngine.language + "_" + cutscene + "_" + line + " " + speakerID;
+				}
+				if (speakerID == "PLAYER") {
+					speakerID = saveContainer.getCurrentMainCharacter();
 				}
 				string speakerImageID = imageLookup.getSequenceAsString(speakerID, "SPEAKER");
 				if (!graphics.doesThisImageAlreadyExist("TEXTBOX")) {
@@ -4006,12 +4046,12 @@ public:
 			if (type == "MOVECAMERA") {
 				// moving the camera independently of the player
 				explorer.perspective = "FOLLOW_CAMERA";
-				float unitOfMovement = explorer.unitOfMovement;
+				float unitOfMovement = explorer.unitOfMovement / 2;
 				float ignore = -1; // use this to move camera only along x or y
 				pair<float, float> currentPosition = explorer.activeCamera.position;
 				pair<float, float> targetPosition = { stof(data["x"]), stof(data["y"]) };
 				bool reachedDestination = true;
-				if (CLOCK.hasEnoughTimePassed("CAMERAMOVE", 10)) {
+				if (CLOCK.hasEnoughTimePassed("CAMERAMOVE", 50)) {
 					if (targetPosition.first != ignore) {
 						if (currentPosition.first < targetPosition.first) {
 							currentPosition.first += unitOfMovement;
@@ -4039,6 +4079,130 @@ public:
 					return reachedDestination;
 				}
 				return false;
+			}
+			if (type == "MOVEOBJECTS") {
+				List<string> objectsToMove = split(data["whichObjects"], "_");
+				List<pair<float, float>> targetPositions;
+				List<string> audioToPlay;
+				for (auto node : split(data["targetPositions"], "_").internalList) {
+					List<string> current = split(node, ",");
+					pair<float, float> currentPos = { stof(current.at(0)), stof(current.at(1)) };
+					targetPositions.push_back(currentPos);
+					audioToPlay.push_back(current.at(2));
+				}
+				bool allFinished = true;
+				for (int x = 0; x < objectsToMove.size(); x++) {
+					string objectName = objectsToMove.at(x);
+					if (objectName == "CAMERA") {
+						Event("MoveCamera", "MOVECAMERA", Map<string, string>({
+							pair<string, string>("x", to_string(targetPositions.at(x).first)),
+							pair<string, string>("y", to_string(targetPositions.at(x).second)),
+							})).run(*&gameEngine);
+						continue;
+					}
+					Explorer::mapObject & theObject = explorer.getThisMapObject(objectName);
+					float unitOfMovement = explorer.unitOfMovement / 2;
+					float ignore = -1; // use this to move camera only along x or y
+					pair<float, float> currentPosition = theObject.positionOnMap;
+					pair<float, float> targetPosition = targetPositions.at(x);
+					bool reachedDestination = true;
+					if (CLOCK.hasEnoughTimePassed(objectName + "PLAYAUDIO", 200)) {
+						string audioName = audioToPlay.at(x);
+						if (audioName != "NOAUDIO") {
+							Event("Audio", "PLAYSFX", Map<string, string>({ 
+								pair<string, string>("audio", audioName) })).run(*&gameEngine);
+						}
+					}
+					if (CLOCK.hasEnoughTimePassed(objectName + "MOVE", 50)) {
+						if (targetPosition.first != ignore) {
+							if (currentPosition.first < targetPosition.first) {
+								currentPosition.first += unitOfMovement;
+							}
+							if (currentPosition.first > targetPosition.first) {
+								currentPosition.first -= unitOfMovement;
+							}
+							if (currentPosition.first != targetPosition.first) {
+								reachedDestination = false;
+							}
+						}
+						if (targetPosition.second != ignore) {
+							if (currentPosition.second < targetPosition.second) {
+								currentPosition.second += unitOfMovement;
+							}
+							if (currentPosition.second > targetPosition.second) {
+								currentPosition.second -= unitOfMovement;
+							}
+						}
+						if (currentPosition.second != targetPosition.second) {
+							reachedDestination = false;
+						}
+						if (not reachedDestination) {
+							allFinished = false;
+						}
+						for (int index = 0; index < explorer.currentMap.objects.size(); index++) {
+							if (explorer.currentMap.objects.at(index).name == objectName) {
+								explorer.currentMap.objects.at(index).positionOnMap = currentPosition;
+								break;
+							}
+						}
+						
+					}
+					else {
+						allFinished = false;
+					}
+					Event("UpdateMap", "MAPMOVE", {}).run(*&gameEngine);
+				}
+				
+				if (allFinished) {
+					int example = 1; // debug
+				}
+				return allFinished;
+			}
+			if (type == "LOADOBJECT") {
+				string name = data["name"];
+				string animationSpeed = data["animationSpeed"];
+				string sources = imageLookup.getSequenceAsString(data["sources_1"], data["sources_2"] + "_" + data["sources_3"]);
+				string layer = data["layer"];
+				string x = data["x"];
+				string y = data["y"];
+				string scale = data["scale"];
+				string opacity = data["opacity"];
+
+				Explorer::mapObject objectToAdd(name, false, true, false, sources, "1", stoi(animationSpeed), stoi(layer), "1.0", "CENTRE", {stof(x), stof(y)}, false, {}, {});
+				explorer.currentMap.objects.push_back(objectToAdd);
+				Event("Load" + name, "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources",sources),
+						pair<string, string>("x", "50"),
+						pair<string, string>("y", "50"),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", "1.0"),
+						pair<string, string>("layer", layer),
+						pair<string, string>("animated", "1"),
+						pair<string, string>("animation_speed", animationSpeed),
+						pair<string, string>("styles", "LOOP"),
+						pair<string, string>("scale", scale),
+						pair<string, string>("opacity", opacity),
+						pair<string, string>("uniqueID", name), }))).run(*&gameEngine);
+				return true;
+			}
+			if (type == "STARTCLOCK") {
+				CLOCK.startClock(data["uniqueID"]);
+				return true;
+			}
+			if (type == "CHANGEANIMATIONSPEED") {
+				int speed = stoi(data["animationSpeed"]);
+				List<string> styles = split(data["styles"], "_");
+				for (auto uniqueID : split(data["uniqueID"], "_").internalList) {
+					Graphics::Image* theImage = graphics.accessImageViaUniqueID(uniqueID);
+					graphics.accessImageViaUniqueID(uniqueID)->animationSpeed = stoi(data["animationSpeed"]);
+					graphics.accessImageViaUniqueID(uniqueID)->animationStyles = styles;
+				}
+				return true;
+			}
+			if (type == "WAITFORANIMATION") {
+				string uniqueID = data["uniqueID"];
+				Graphics::Image* theImage = graphics.accessImageViaUniqueID(uniqueID);
+				return theImage->hasThisFinishedAnimating();
 			}
 			return false;
 }
@@ -4403,38 +4567,137 @@ public:
 		List<Event> results;
 		List<string> acceptedLines;
 		Map<string, wstring> lines; lines.internalMap = strings[language][cutsceneName];
-		for (auto const [key, val] : strings[language][cutsceneName]) {
-			string thisLine = split(key, " ").at(0);
-			if (acceptedLines.contains(thisLine)) { continue; }
-			string thisSpeaker = split(key, " ").at(1);
-			if (thisSpeaker.find("+") != -1) {
-				// add something where the line itself must change according to the player
-			}
-			string speaker = thisSpeaker;
-			if (speaker == "$CAMERAMOVE$") {
-				// instruction to move the camera
-				List<string> data = split(WStringToString(val), " ");
-				results.push_back(Event(thisLine, "MOVECAMERA", { Map<string, string>(List<pair<string,string>>({
-				pair<string, string>({"x", data.at(0)}),
-				pair<string, string>({"y", data.at(1)}),
-				})) }));
+		Map<int, List<string>> sortedKeys;
+		int currentLine = 1;
+		for (auto s : lines.getKeys().internalList) {
+			int number_only = stoi(split(s, " ").at(0));
+			sortedKeys[number_only].push_back(s);
+		}
+
+		string mainCharacter = saveContainer.getCurrentMainCharacter();
+		for (auto const sortedKey : sortedKeys.getKeys().internalList) {
+			List<string> keys = sortedKeys[sortedKey];
+			for (auto key : keys.internalList) {
+				wstring val = lines[key];
+				string thisLine = split(key, " ").at(0);
+				if (acceptedLines.contains(thisLine)) { continue; }
+				string speaker = "";
+				for (int x = key.find(" ") + 1; x < key.size(); x++) {
+					speaker += key.at(x);
+				}
+				if (speaker.find("+") != -1) {
+					// add something where the line itself must change according to the player
+				}
+				if (speaker.find("$DIRECT$") != -1) {
+					// use the speaker name directly
+					speaker = SReplace(speaker, "$DIRECT$", "");
+					results.push_back(Event(thisLine, "DIALOGUE", { Map<string, string>(List<pair<string,string>>({
+					pair<string, string>({"cutscene", cutsceneName}),
+					pair<string, string>({"speaker", speaker}),
+					})) }));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$CAMERAMOVE$") {
+					// instruction to move the camera
+					List<string> data = split(WStringToString(val), " ");
+					results.push_back(Event(thisLine, "MOVECAMERA", { Map<string, string>(List<pair<string,string>>({
+					pair<string, string>({"x", data.at(0)}),
+					pair<string, string>({"y", data.at(1)}),
+					})) }));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$STOPDIALOGUE$") {
+					results.push_back(Event("PostCutscene", "TEARDOWNDIALOGUE", {}));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$LOADOBJECT$") {
+					List<string> parsed_data = split(WStringToString(val), "_");
+					results.push_back(Event("LoadObject", "LOADOBJECT", Map<string, string>({
+						pair<string, string>("name", parsed_data.at(0)),
+						pair<string, string>("x", parsed_data.at(1)),
+						pair<string, string>("y", parsed_data.at(2)),
+						pair<string, string>("layer", parsed_data.at(3)),
+						pair<string, string>("animationSpeed", parsed_data.at(4)),
+						pair<string, string>("sources_1", parsed_data.at(5)),
+						pair<string, string>("sources_2", parsed_data.at(6)),
+						pair<string, string>("sources_3", parsed_data.at(7)),
+						pair<string, string>("scale", parsed_data.at(8)),
+						pair<string, string>("opacity", parsed_data.at(9)),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$ANIMATEOBJECT$") {
+					List<string> parsed_data = split(WStringToString(val), "_");
+					results.push_back(Event("LoadObject", "ANIMATEIMAGEONMAP", Map<string, string>({
+						pair<string, string>("whichImage", parsed_data.at(0)),
+						pair<string, string>("character", parsed_data.at(1)),
+						pair<string, string>("action", parsed_data.at(2)),
+						pair<string, string>("direction", parsed_data.at(3)),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$CHANGEANIMATIONSPEED$") {
+					List<string> parsed_data = split(WStringToString(val), "$");
+					results.push_back(Event("ChangeSpeed", "CHANGEANIMATIONSPEED", Map<string, string>({
+						pair<string, string>("uniqueID", parsed_data.at(0)),
+						pair<string, string>("animationSpeed", parsed_data.at(1)),
+						pair<string, string>("styles", parsed_data.at(2)),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$WAITFORANIMATION$") {
+					results.push_back(Event("ChangeSpeed", "WAITFORANIMATION", Map<string, string>({
+						pair<string, string>("uniqueID", WStringToString(val)),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$MOVEOBJECTS$") {
+					List<string> parsed_data = split(WStringToString(val), "$");
+					results.push_back(Event("LoadObject", "MOVEOBJECTS", Map<string, string>({
+						pair<string, string>("whichObjects", parsed_data.at(0)),
+						pair<string, string>("targetPositions", parsed_data.at(1)),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$WAIT$") {
+					List<string> parsed_data = split(WStringToString(val), "_");
+					results.push_back(Event("Wait", "STARTCLOCK", Map<string, string>({
+						pair<string, string>("uniqueID", parsed_data.at(0)),
+						})));
+					results.push_back(Event("Wait", "WAIT", Map<string, string>({
+						pair<string, string>("clockID", parsed_data.at(0)),
+						pair<string, string>("waitDuration", parsed_data.at(1)),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$PLAYSFX$") {
+					results.push_back(Event("PlayAudio", "PLAYSFX", Map<string, string>({
+						pair<string, string>("audio", WStringToString(val)),
+						pair<string, string>("direct", "1"),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker != "PLAYER" and speaker != mainCharacter) {
+					// Line belongs to a different playable character
+					continue;
+				}
+				// either the speaker is the main character or SPEAKER (line shared across all playable characters)
+				results.push_back(Event(thisLine, "DIALOGUE", { Map<string, string>(List<pair<string,string>>({
+					pair<string, string>({"cutscene", cutsceneName}),
+					pair<string, string>({"speaker", speaker}),
+					})) }));
 				acceptedLines.push_back(thisLine);
-				continue;
 			}
-			if (speaker == "$STOPDIALOGUE$") {
-				results.push_back(Event("PostCutscene", "TEARDOWNDIALOGUE", {}));
-				acceptedLines.push_back(thisLine);
-				continue;
-			}
-			
-			if (lines.getKeys().contains(thisLine + " " + player)) {
-				speaker = "PLAYER";
-			}
-			results.push_back(Event(thisLine, "DIALOGUE", { Map<string, string>(List<pair<string,string>>({
-				pair<string, string>({"cutscene", cutsceneName}),
-				pair<string, string>({"speaker", "PLAYER"}),
-				})) }));
-			acceptedLines.push_back(thisLine);
 		}
 		return results;
 	}

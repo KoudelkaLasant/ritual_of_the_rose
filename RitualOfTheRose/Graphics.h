@@ -301,6 +301,12 @@ public:
             D2D1_RECT_F rect = getRect(position, size);
             return rect;
         }
+        bool hasThisFinishedAnimating() {
+            if (!animationStyles.contains("SINGLE")) {
+                return false;
+            }
+            return frame == textures.size() - 1;
+        }
         void animate() {
             if (!animated) { return; }
             if (animationStyles.contains("SINGLE") and frame<textures.size()-1) {

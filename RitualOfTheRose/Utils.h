@@ -266,6 +266,13 @@ public:
 		SFXCollections["OPENCHEST"] = List<int>({
 			CHESTOPEN1_WAV,
 			});
+		SFXCollections["HORSE"] = List<int>({
+			CLIPCLOP1_WAV,
+			CLIPCLOP2_WAV,
+			CLIPCLOP3_WAV,
+			CLIPCLOP4_WAV,
+			CLIPCLOP5_WAV,
+			});
 
 		volumes["SFXVolume"] = 1.0;
 		volumes["AmbienceVolume"] = 1.0;
@@ -990,6 +997,59 @@ public:
 		animationFrames["Chest1"]["ACTION_FRONT"].internalList = { CHEST1_FRONT_ACTION_1,CHEST1_FRONT_ACTION_2,CHEST1_FRONT_ACTION_3,CHEST1_FRONT_ACTION_4,CHEST1_FRONT_ACTION_5,CHEST1_FRONT_ACTION_6,CHEST1_FRONT_ACTION_7,CHEST1_FRONT_ACTION_8,CHEST1_FRONT_ACTION_9,CHEST1_FRONT_ACTION_10,CHEST1_FRONT_ACTION_11,CHEST1_FRONT_ACTION_12 };
 		animationFrames["Chest1"]["STAND_FRONT"].internalList = { CHEST1_FRONT_STAND_1};
 		animationFrames["Chest1"]["OPEN_FRONT"].internalList = { CHEST1_FRONT_ACTION_12 };
+		animationFrames["Father Michelet"]["STAND_FRONT"].internalList = { PRIESTMICHELET_STAND_F1, PRIESTMICHELET_STAND_F2 };
+		animationFrames["Father Michelet"]["STAND_RIGHT"].internalList = { PRIESTMICHELET_STAND_R1, PRIESTMICHELET_STAND_R2 };
+		animationFrames["Father Michelet"]["STAND_LEFT"].internalList = { PRIESTMICHELET_STAND_L1, PRIESTMICHELET_STAND_L2 };
+		animationFrames["Father Michelet"]["STAND_BACK"].internalList = { PRIESTMICHELET_STAND_B1, PRIESTMICHELET_STAND_B2 };
+		animationFrames["Father Michelet"]["WALK_FRONT"].internalList = { PRIESTMICHELET_WALK_F1, PRIESTMICHELET_WALK_F2, PRIESTMICHELET_WALK_F3, PRIESTMICHELET_WALK_F2 };
+		animationFrames["Father Michelet"]["WALK_RIGHT"].internalList = { PRIESTMICHELET_WALK_R1, PRIESTMICHELET_WALK_R2, PRIESTMICHELET_WALK_R3, PRIESTMICHELET_WALK_R2 };
+		animationFrames["Father Michelet"]["WALK_LEFT"].internalList = { PRIESTMICHELET_WALK_L1, PRIESTMICHELET_WALK_L2, PRIESTMICHELET_WALK_L3, PRIESTMICHELET_WALK_L2 };
+		animationFrames["Father Michelet"]["WALK_BACK"].internalList = { PRIESTMICHELET_WALK_B1, PRIESTMICHELET_WALK_B2, PRIESTMICHELET_WALK_B3, PRIESTMICHELET_WALK_B2 };
+		animationFrames["Shadow Father Michelet"]["STAND_FRONT"].internalList = { PRIESTMICHELET_SHADOW_STAND_F1, PRIESTMICHELET_SHADOW_STAND_F2 };
+		animationFrames["Shadow Father Michelet"]["STAND_RIGHT"].internalList = { PRIESTMICHELET_SHADOW_STAND_R1, PRIESTMICHELET_SHADOW_STAND_R2 };
+		animationFrames["Shadow Father Michelet"]["STAND_LEFT"].internalList = { PRIESTMICHELET_SHADOW_STAND_L1, PRIESTMICHELET_SHADOW_STAND_L2 };
+		animationFrames["Shadow Father Michelet"]["STAND_BACK"].internalList = { PRIESTMICHELET_SHADOW_STAND_B1, PRIESTMICHELET_SHADOW_STAND_B2 };
+		animationFrames["Shadow Father Michelet"]["WALK_FRONT"].internalList = { PRIESTMICHELET_SHADOW_WALK_F1, PRIESTMICHELET_SHADOW_WALK_F2, PRIESTMICHELET_SHADOW_WALK_F3, PRIESTMICHELET_SHADOW_WALK_F2 };
+		animationFrames["Shadow Father Michelet"]["WALK_RIGHT"].internalList = { PRIESTMICHELET_SHADOW_WALK_R1, PRIESTMICHELET_SHADOW_WALK_R2, PRIESTMICHELET_SHADOW_WALK_R3, PRIESTMICHELET_SHADOW_WALK_R2 };
+		animationFrames["Shadow Father Michelet"]["WALK_LEFT"].internalList = { PRIESTMICHELET_SHADOW_WALK_L1, PRIESTMICHELET_SHADOW_WALK_L2, PRIESTMICHELET_SHADOW_WALK_L3, PRIESTMICHELET_SHADOW_WALK_L2 };
+		animationFrames["Shadow Father Michelet"]["WALK_BACK"].internalList = { PRIESTMICHELET_SHADOW_WALK_B1, PRIESTMICHELET_SHADOW_WALK_B2, PRIESTMICHELET_SHADOW_WALK_B3, PRIESTMICHELET_SHADOW_WALK_B2 };
+		animationFrames["Father Michelet"]["SPEAKER"].internalList = { PRIESTMICHELET_Speaker };
+		animationFrames["Isobella de Vaines"]["STAND_FRONT"].internalList = { LADYISOBELLA_STAND_F1, LADYISOBELLA_STAND_F2 };
+		animationFrames["Isobella de Vaines"]["STAND_RIGHT"].internalList = { LADYISOBELLA_STAND_R1, LADYISOBELLA_STAND_R2 };
+		animationFrames["Isobella de Vaines"]["STAND_LEFT"].internalList = { LADYISOBELLA_STAND_L1, LADYISOBELLA_STAND_L2 };
+		animationFrames["Isobella de Vaines"]["STAND_BACK"].internalList = { LADYISOBELLA_STAND_B1, LADYISOBELLA_STAND_B2 };
+		animationFrames["Isobella de Vaines"]["WALK_FRONT"].internalList = { LADYISOBELLA_WALK_F1, LADYISOBELLA_WALK_F2, LADYISOBELLA_WALK_F3, LADYISOBELLA_WALK_F2 };
+		animationFrames["Isobella de Vaines"]["WALK_RIGHT"].internalList = { LADYISOBELLA_WALK_R1, LADYISOBELLA_WALK_R2, LADYISOBELLA_WALK_R3, LADYISOBELLA_WALK_R2 };
+		animationFrames["Isobella de Vaines"]["WALK_LEFT"].internalList = { LADYISOBELLA_WALK_L1, LADYISOBELLA_WALK_L2, LADYISOBELLA_WALK_L3, LADYISOBELLA_WALK_L2 };
+		animationFrames["Isobella de Vaines"]["WALK_BACK"].internalList = { LADYISOBELLA_WALK_B1, LADYISOBELLA_WALK_B2, LADYISOBELLA_WALK_B3, LADYISOBELLA_WALK_B2 };
+		animationFrames["Shadow Isobella de Vaines"]["STAND_FRONT"].internalList = { LADYISOBELLA_SHADOW_STAND_F1, LADYISOBELLA_SHADOW_STAND_F2 };
+		animationFrames["Shadow Isobella de Vaines"]["STAND_RIGHT"].internalList = { LADYISOBELLA_SHADOW_STAND_R1, LADYISOBELLA_SHADOW_STAND_R2 };
+		animationFrames["Shadow Isobella de Vaines"]["STAND_LEFT"].internalList = { LADYISOBELLA_SHADOW_STAND_L1, LADYISOBELLA_SHADOW_STAND_L2 };
+		animationFrames["Shadow Isobella de Vaines"]["STAND_BACK"].internalList = { LADYISOBELLA_SHADOW_STAND_B1, LADYISOBELLA_SHADOW_STAND_B2 };
+		animationFrames["Shadow Isobella de Vaines"]["WALK_FRONT"].internalList = { LADYISOBELLA_SHADOW_WALK_F1, LADYISOBELLA_SHADOW_WALK_F2, LADYISOBELLA_SHADOW_WALK_F3, LADYISOBELLA_SHADOW_WALK_F2 };
+		animationFrames["Shadow Isobella de Vaines"]["WALK_RIGHT"].internalList = { LADYISOBELLA_SHADOW_WALK_R1, LADYISOBELLA_SHADOW_WALK_R2, LADYISOBELLA_SHADOW_WALK_R3, LADYISOBELLA_SHADOW_WALK_R2 };
+		animationFrames["Shadow Isobella de Vaines"]["WALK_LEFT"].internalList = { LADYISOBELLA_SHADOW_WALK_L1, LADYISOBELLA_SHADOW_WALK_L2, LADYISOBELLA_SHADOW_WALK_L3, LADYISOBELLA_SHADOW_WALK_L2 };
+		animationFrames["Shadow Isobella de Vaines"]["WALK_BACK"].internalList = { LADYISOBELLA_SHADOW_WALK_B1, LADYISOBELLA_SHADOW_WALK_B2, LADYISOBELLA_SHADOW_WALK_B3, LADYISOBELLA_SHADOW_WALK_B2 };
+		animationFrames["Isobella de Vaines"]["SPEAKER"].internalList = { LADYISOBELLA_Speaker };
+		animationFrames["White Knight"]["STAND_FRONT"].internalList = { WHITEKNIGHT_STAND_F1, WHITEKNIGHT_STAND_F2 };
+		animationFrames["White Knight"]["STAND_RIGHT"].internalList = { WHITEKNIGHT_STAND_R1, WHITEKNIGHT_STAND_R2 };
+		animationFrames["White Knight"]["STAND_LEFT"].internalList = { WHITEKNIGHT_STAND_L1, WHITEKNIGHT_STAND_L2 };
+		animationFrames["White Knight"]["STAND_BACK"].internalList = { WHITEKNIGHT_STAND_B1, WHITEKNIGHT_STAND_B2 };
+		animationFrames["White Knight"]["WALK_FRONT"].internalList = { WHITEKNIGHT_WALK_F1, WHITEKNIGHT_WALK_F2, WHITEKNIGHT_WALK_F3, WHITEKNIGHT_WALK_F2 };
+		animationFrames["White Knight"]["WALK_RIGHT"].internalList = { WHITEKNIGHT_WALK_R1, WHITEKNIGHT_WALK_R2, WHITEKNIGHT_WALK_R3, WHITEKNIGHT_WALK_R2 };
+		animationFrames["White Knight"]["WALK_LEFT"].internalList = { WHITEKNIGHT_WALK_L1, WHITEKNIGHT_WALK_L2, WHITEKNIGHT_WALK_L3, WHITEKNIGHT_WALK_L2 };
+		animationFrames["White Knight"]["WALK_BACK"].internalList = { WHITEKNIGHT_WALK_B1, WHITEKNIGHT_WALK_B2, WHITEKNIGHT_WALK_B3, WHITEKNIGHT_WALK_B2 };
+		animationFrames["White Knight"]["REAR_LEFT"].internalList = { WHITEKNIGHT_REAR_L1, WHITEKNIGHT_REAR_L2, WHITEKNIGHT_REAR_L3, WHITEKNIGHT_REAR_L4, WHITEKNIGHT_REAR_L5, WHITEKNIGHT_REAR_L6, WHITEKNIGHT_REAR_L7, WHITEKNIGHT_REAR_L8, WHITEKNIGHT_REAR_L9, WHITEKNIGHT_REAR_L10, WHITEKNIGHT_REAR_L11, WHITEKNIGHT_REAR_L12, WHITEKNIGHT_REAR_L13, WHITEKNIGHT_REAR_L14, WHITEKNIGHT_REAR_L15, WHITEKNIGHT_REAR_L16, WHITEKNIGHT_REAR_L17, WHITEKNIGHT_REAR_L18, WHITEKNIGHT_REAR_L19, WHITEKNIGHT_REAR_L20, WHITEKNIGHT_REAR_L21, WHITEKNIGHT_REAR_L22, WHITEKNIGHT_REAR_L23, WHITEKNIGHT_REAR_L24, WHITEKNIGHT_REAR_L25, WHITEKNIGHT_REAR_L26, WHITEKNIGHT_REAR_L27, WHITEKNIGHT_REAR_L28, WHITEKNIGHT_REAR_L29, WHITEKNIGHT_REAR_L30, WHITEKNIGHT_REAR_L31, WHITEKNIGHT_REAR_L32, WHITEKNIGHT_REAR_L33, WHITEKNIGHT_REAR_L34, WHITEKNIGHT_REAR_L35, WHITEKNIGHT_REAR_L36, WHITEKNIGHT_REAR_L37, WHITEKNIGHT_REAR_L38, WHITEKNIGHT_REAR_L39, WHITEKNIGHT_REAR_L40, WHITEKNIGHT_REAR_L41, WHITEKNIGHT_REAR_L42, WHITEKNIGHT_REAR_L43, WHITEKNIGHT_REAR_L44, WHITEKNIGHT_REAR_L45, WHITEKNIGHT_REAR_L46, };
+		animationFrames["Shadow White Knight"]["REAR_LEFT"].internalList = { WHITEKNIGHT_SHADOW_REAR_L1, WHITEKNIGHT_SHADOW_REAR_L2, WHITEKNIGHT_SHADOW_REAR_L3, WHITEKNIGHT_SHADOW_REAR_L4, WHITEKNIGHT_SHADOW_REAR_L5, WHITEKNIGHT_SHADOW_REAR_L6, WHITEKNIGHT_SHADOW_REAR_L7, WHITEKNIGHT_SHADOW_REAR_L8, WHITEKNIGHT_SHADOW_REAR_L9, WHITEKNIGHT_SHADOW_REAR_L10, WHITEKNIGHT_SHADOW_REAR_L11, WHITEKNIGHT_SHADOW_REAR_L12, WHITEKNIGHT_SHADOW_REAR_L13, WHITEKNIGHT_SHADOW_REAR_L14, WHITEKNIGHT_SHADOW_REAR_L15, WHITEKNIGHT_SHADOW_REAR_L16, WHITEKNIGHT_SHADOW_REAR_L17, WHITEKNIGHT_SHADOW_REAR_L18, WHITEKNIGHT_SHADOW_REAR_L19, WHITEKNIGHT_SHADOW_REAR_L20, WHITEKNIGHT_SHADOW_REAR_L21, WHITEKNIGHT_SHADOW_REAR_L22, WHITEKNIGHT_SHADOW_REAR_L23, WHITEKNIGHT_SHADOW_REAR_L24, WHITEKNIGHT_SHADOW_REAR_L25, WHITEKNIGHT_SHADOW_REAR_L26, WHITEKNIGHT_SHADOW_REAR_L27, WHITEKNIGHT_SHADOW_REAR_L28, WHITEKNIGHT_SHADOW_REAR_L29, WHITEKNIGHT_SHADOW_REAR_L30, WHITEKNIGHT_SHADOW_REAR_L31, WHITEKNIGHT_SHADOW_REAR_L32, WHITEKNIGHT_SHADOW_REAR_L33, WHITEKNIGHT_SHADOW_REAR_L34, WHITEKNIGHT_SHADOW_REAR_L35, WHITEKNIGHT_SHADOW_REAR_L36, WHITEKNIGHT_SHADOW_REAR_L37, WHITEKNIGHT_SHADOW_REAR_L38, WHITEKNIGHT_SHADOW_REAR_L39, WHITEKNIGHT_SHADOW_REAR_L40, WHITEKNIGHT_SHADOW_REAR_L41, WHITEKNIGHT_SHADOW_REAR_L42, WHITEKNIGHT_SHADOW_REAR_L43, WHITEKNIGHT_SHADOW_REAR_L44, WHITEKNIGHT_SHADOW_REAR_L45, WHITEKNIGHT_SHADOW_REAR_L46, };
+		animationFrames["Shadow White Knight"]["STAND_FRONT"].internalList = { WHITEKNIGHT_SHADOW_STAND_F1, WHITEKNIGHT_SHADOW_STAND_F2 };
+		animationFrames["Shadow White Knight"]["STAND_RIGHT"].internalList = { WHITEKNIGHT_SHADOW_STAND_R1, WHITEKNIGHT_SHADOW_STAND_R2 };
+		animationFrames["Shadow White Knight"]["STAND_LEFT"].internalList = { WHITEKNIGHT_SHADOW_STAND_L1, WHITEKNIGHT_SHADOW_STAND_L2 };
+		animationFrames["Shadow White Knight"]["STAND_BACK"].internalList = { WHITEKNIGHT_SHADOW_STAND_B1, WHITEKNIGHT_SHADOW_STAND_B2 };
+		animationFrames["Shadow White Knight"]["WALK_FRONT"].internalList = { WHITEKNIGHT_SHADOW_WALK_F1, WHITEKNIGHT_SHADOW_WALK_F2, WHITEKNIGHT_SHADOW_WALK_F3, WHITEKNIGHT_SHADOW_WALK_F2 };
+		animationFrames["Shadow White Knight"]["WALK_RIGHT"].internalList = { WHITEKNIGHT_SHADOW_WALK_R1, WHITEKNIGHT_SHADOW_WALK_R2, WHITEKNIGHT_SHADOW_WALK_R3, WHITEKNIGHT_SHADOW_WALK_R2 };
+		animationFrames["Shadow White Knight"]["WALK_LEFT"].internalList = { WHITEKNIGHT_SHADOW_WALK_L1, WHITEKNIGHT_SHADOW_WALK_L2, WHITEKNIGHT_SHADOW_WALK_L3, WHITEKNIGHT_SHADOW_WALK_L2 };
+		animationFrames["Shadow White Knight"]["WALK_BACK"].internalList = { WHITEKNIGHT_SHADOW_WALK_B1, WHITEKNIGHT_SHADOW_WALK_B2, WHITEKNIGHT_SHADOW_WALK_B3, WHITEKNIGHT_SHADOW_WALK_B2 };
+		animationFrames["White Knight"]["SPEAKER"].internalList = { WHITEKNIGHT_Speaker };
 	}
 	string getSequenceAsString(string character, string action) {
 		// get it as one string so it can be used in event data
@@ -1305,6 +1365,18 @@ mapFloor::triangle({{49.4265079498291,4.762154072523117}, {-19.623970985412598,2
 			}
 			return result;
 		}
+		void addNewCutsceneObject(string uniqueID, string characterName, string dirplusaction, pair<float, float> loc, int animationSpeed, int layer) {
+			mapObject result;
+			result.visible = true;
+			result.canInteract = false;
+			result.animationSpeed = animationSpeed;
+			result.tracksToPlayer = false;
+			result.animated = "1";
+			result.layer = layer;
+			result.imageSources = imageLookup.getSequenceAsString(characterName, dirplusaction);
+			result.positionOnMap = loc;
+			objects.push_back(result);
+		}
 
 		string name = "";
 		int source;
@@ -1361,6 +1433,7 @@ mapFloor::triangle({{49.4265079498291,4.762154072523117}, {-19.623970985412598,2
 
 		bool hold = true;
 
+	
 		if (hold) {
 			if (result["map position"].first > xLimitMax) {
 				float difference = result["map position"].first - xLimitMax;
@@ -1391,6 +1464,21 @@ mapFloor::triangle({{49.4265079498291,4.762154072523117}, {-19.623970985412598,2
 			result["absolute map position"].second - (mapSize.second / 2),
 			result["absolute map position"].first - (mapSize.first / 2),
 		};
+		
+		if (perspective == "FOLLOW_CAMERA") {
+			float absoluteXPos = result["absolute map top left"].second + (mapSize.first / 100 * playerOnMap.position.first);
+			float absoluteYPos = result["absolute map top left"].first + (mapSize.second / 100 * playerOnMap.position.second);
+			float percentXPos = absoluteXPos * 100.0f / actualRenderSizeAsFloat.first;
+			float percentYPos = absoluteYPos * 100.0f / actualRenderSizeAsFloat.second;
+			float percentOffsetX = 0.0;
+			float percentOffsetY = 0.0;
+			pair<float, float> objectPosition = {
+				percentXPos,
+				percentYPos,
+			};
+			result["player image position"] = objectPosition;
+		}
+		
 		for (auto x : currentMap.objects.internalList) {
 			if (x.tracksToPlayer) { result[x.name] = { 50.0f, 50.0f }; }
 			if (!x.tracksToPlayer) {
@@ -1833,12 +1921,19 @@ mapFloor::triangle({{52.088552713394165,15.467023849487305}, {50.50344467163086,
 									pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
 									}) });
 	}
-
+	void disableThisObject(string objectName) {
+		for (int x = 0; x < currentMap.objects.size(); x++) {
+			if (currentMap.objects.at(x).name == objectName) {
+				currentMap.objects.at(x).canInteract = false;
+			}
+		}
+	}
 	Map<string, int> getAnimationSpeeds() {
 		Map<string, int> result;
 		result.internalMap  = { pair<string, int>("WALK",200) , pair<string, int>("STAND" ,500), pair<string, int>("MOVE", mapSize.first / 50)};
 		return result;
 	}
+
 
 	int resource;
 	float unitOfMovement = 0.5;
