@@ -316,6 +316,7 @@ public:
 	Map<string, string> data;
 };
 
+
 class Combat {
 public:
 	Combat() {
@@ -969,7 +970,7 @@ public:
 		// WAYFARING
 		skillDefinitions["Gentleman's Riposte"] = Skill("Gentleman's Riposte", "Gentleman's Riposte", "Wayfaring", SKILLICON_GENTLEMANSRIPOSTE, 5, 0, 10,
 			list<string>({ "RIPOSTE", }),
-			list<string>({ "PHYSICAL", }),
+			list<string>({ "PHYSICAL","ELITE"}),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 2, 0, 15, true, list<string>({ "STRENGTH", "WayfaringBOOST"}))), }),
 				list<string>({ "DEALDAMAGE" }));
@@ -1053,6 +1054,10 @@ public:
 			Equipment::Effect("HOLYBOOST",0.5f,true,false),
 			Equipment::Effect("PIETY",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 150);
+		equipmentDefinitions["al-Hajar al-Aswad"] = Equipment("al-Hajar al-Aswad", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
+			Equipment::Effect("HOLYBOOST",1.3f,true,false),
+			Equipment::Effect("UNHOLYBOOST",1.3f,true,false),
+			}), "ELITESKILLYELLOW", 9999);
 
 	}
 	List<string> getNamesOfAllSkillTreeNames(string language) {
@@ -1172,7 +1177,7 @@ public:
 						if (!audio.isThisAudioLoaded(stoi(songName))) {
 							audio.loadAudio(stoi(songName));
 						}
-						audio.playSound(stoi(songName), volume, true, true);
+						audio.playSound(stoi(songName), volume, true, true, 0);
 					}
 				}
 				return true;
@@ -1212,9 +1217,13 @@ public:
 				return true;
 			}
 			if (type == "PLAYSFX") {
-				if (data.hasKey("direct")) {
+				int delay = 0;
+				if (data.hasKey("delay")) {
+					delay = stoi(data["delay"]);
+				}
+				if (data["direct"] == "1") {
 					audio.loadAudio(stoi(data["audio"]));
-					audio.playSound(stoi(data["audio"]), audio.volumes["SFXVolume"], false, false);
+					audio.playSound(stoi(data["audio"]), audio.volumes["SFXVolume"], false, false, 0);
 				}
 				else {
 					audio.playRandomSFXFromThisCollection(data["audio"], audio.volumes["SFXVolume"]);
@@ -1259,7 +1268,7 @@ public:
 					pair<string, string>("y", "50"),
 					pair<string, string>("anchor", "BOTTOMMIDDLE"),
 					pair<string, string>("opacity", "0.5"),
-					pair<string, string>("layer", to_string(imageLookup.layerDefaults["PLAYERSHADOW"])),
+					pair<string, string>("layer", to_string(imageLookup.layerDefaults["PLAYER"])),
 					pair<string, string>("animated", "1"),
 					pair<string, string>("animation_speed", "500"),
 					pair<string, string>("styles", "LOOP"),
@@ -1270,12 +1279,14 @@ public:
 					if (!x.visible) {
 						opacity = "0.0";
 					}
+					string scale = x.scale;
 					Event("Load" + x.name, "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 						pair<string, string>("sources", x.imageSources),
 						pair<string, string>("x", "50"),
 						pair<string, string>("y", "50"),
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", opacity),
+						pair<string, string>("scale", scale),
 						pair<string, string>("layer", to_string(x.layer)),
 						pair<string, string>("animated", x.animated),
 						pair<string, string>("animation_speed", to_string(x.animationSpeed)),
@@ -1320,6 +1331,7 @@ public:
 				mapImage->positionAsPercentage = imagePositions["map position"];
 				image->positionAsPercentage = imagePositions["player image position"];
 				shadowImage->positionAsPercentage = imagePositions["player image position"];
+				shadowImage->positionAsPercentage.second -= 0.0001f;
 				for (auto const& x : explorer.currentMap.objects.internalList) {
 					if (!x.visible) { continue; }
 					Graphics::Image* objectImage = graphics.accessImageViaUniqueID(x.name);
@@ -1413,6 +1425,7 @@ public:
 					}
 				}
 				message = Graphics::Text::commonTextReplacements(gameEngine.language, message);
+
 				string format = data["format"];
 				pair<float, float> position = { stof(data["x"]), stof(data["y"]) };
 				string anchorStyle = data["anchorStyle"];
@@ -1518,6 +1531,21 @@ public:
 					return true;
 				}
 				return false;
+			}
+			if (type == "DEBUGBEZIER") {
+				Event("LoadImage", "LOADIMAGE", Map<string, string>({
+							pair<string, string>("uniqueID", "victim"),
+							pair<string, string>("sources",imageLookup.getSequenceAsString("OldBookMan", "STAND_FRONT")),
+							pair<string, string>("x","0"),
+							pair<string, string>("y","0"),
+							pair<string, string>("layer","10"),
+							pair<string, string>("scale","1.0"),
+							pair<string, string>("anchor","CENTRE"),
+							pair<string, string>("animated","1"),
+							pair<string, string>("opacity","1.0"),
+							pair<string, string>("animation_speed", "200"),
+					})).run(*&gameEngine);
+				return gameEngine.skillAnimationContainer.handleAnimation(*&gameEngine, graphics.accessPlayerImage(), graphics.accessImageViaUniqueID("victim"), "Life Drain", {}, {});
 			}
 			if (type == "CLICKANDDRAG") {				
 				//Event("Debug", "DEBUGUSERINPUT", {}).run(*&gameEngine);
@@ -1844,22 +1872,10 @@ public:
 				//saveContainer.current.party.push_front("White Knight");
 				return true;
 			}
-			if (type == "ANIMATEIMAGEONMAP") {
-				string uniqueID = data["whichImage"];
-				string character = data["character"];
-				string action = data["action"];
-				string direction = data["direction"];
-
-				Graphics::Image* image = graphics.accessImageViaUniqueID(uniqueID);
-				List<int> sources = imageLookup.animationFrames[character][action + "_" + direction];
-				image->resetSources(*&graphics, sources);
-				image->action = action;
-				image->animationSpeed = explorer.getAnimationSpeeds()[action];
-				return true;
-			}
 			if (type == "EXPLORE") {
-				Event("userInput", "DEBUGWALKING", { }).run(*&gameEngine);
+				//Event("userInput", "DEBUGWALKING", { }).run(*&gameEngine);
 				//Event("", "DEBUGUSERINPUT", {}).run(*&gameEngine);
+
 				bool force = data["force"] == "1";
 				bool moving = false;
 				if (force) { 
@@ -1874,9 +1890,20 @@ public:
 					if (controller.hasThisBeenPressed(VK_F1)) {
 						Args.toggle("SPEEDCHEAT");
 					}
+					if (controller.hasThisBeenPressed(VK_F2)) {
+						gameEngine.activeProcedure.eventList.push_front(Event("Debug Bezier", "DEBUGBEZIER", {}));
+						return false;
+					}
+					if (controller.hasThisBeenPressed(VK_F3)) {
+						saveContainer.current.flags["debugFlag"] = true;
+					}
+					if (controller.hasThisBeenPressed(VK_F4)) {
+						gameEngine.stateFlags["SHOWFPS"] = "1";
+					}
 					if (Args.get("SPEEDCHEAT") == "1") {
 						exploreAnimationSpeeds["MOVE"] = 10;
 					}
+					
 				}
 				int animationSpeed = 500;
 
@@ -1972,10 +1999,8 @@ public:
 					for (auto walkable : explorer.getObjectsThatAreClose().internalList) {
 						if (walkable.data.getKeys().contains("message") and walkable.canInteract) {
 							popUpTextNeedsToBeDrawn = true;
-							if (!mapPopUpTextExists) {
-								Event("PopUpTextOnMap", "DRAWTEXT", walkable.data).run(*&gameEngine);
+							Event("PopUpTextOnMap", "DRAWTEXT", walkable.data).run(*&gameEngine);
 								mapPopUpTextExists = true;
-							}
 							Event("Map Move", "MAPMOVE", { pair<string, string>("copy",walkable.data["copy"]) }).run(*&gameEngine); // call again to move text to right position
 						}
 					}
@@ -1994,6 +2019,7 @@ public:
 					}
 					if (walkable.data.getKeys().contains("cutscene") and userInput and walkable.canInteract) {
 						whichCutscene = walkable.data["cutscene"];
+						whichCutscene = FlagDependentCutsceneNameFinder::getNameOfCutsceneDependingOnFlags(whichCutscene);
 						stopExploringStartCutscene = true;
 						popUpTextNeedsToBeDrawn = false;
 					}
@@ -2061,16 +2087,53 @@ public:
 				Event("userInput", "DEBUGUSERINPUT", { }).run(*&gameEngine);
 				return Event("Explore", "EXPLORE", {}).run(*&gameEngine);
 			}
+			if (type == "SHOWFPS") {
+				long total = 0;
+				long average = 0;
+				if (graphics.RenderSpeedHistory.size() > 0) {
+					for (auto & time : graphics.RenderSpeedHistory.internalList) {
+						long current = time.count();
+						total += current;
+					}
+					average = total / graphics.RenderSpeedHistory.size();
+				}
+				string textUniqueID = "FPSCOUNTER";
+				int layer = 10;
+				if (!graphics.doesThisTextAlreadyExist(textUniqueID)) {
+					graphics.addText(new Graphics::Text(L"", "Centaur_25", { 2,95 }, "TOPLEFT", { 100,100 }, graphics.Colours["WHITE"], graphics.Colours["BLACK"], textUniqueID), layer);
+				}
+				Graphics::Text* theText = graphics.accessTextViaUniqueID(textUniqueID);
+				string message = "Average Frame Render Time: ";
+				message += to_string(average);
+				message += " FPS: ";
+				message += to_string(1000 / average);
+				theText->message = StringToWString(message);
+				return false;
+			}
 			if (type == "DIALOGUE") {
 				string cutscene = data["cutscene"];
 				string speakerID = data["speaker"];
+				string displayName = speakerID;
 				string line = name;
 				string direct = data["direct"]; // 1 = use string here 0 = get string from Strings.h
 				if (direct != "1") {
 					line = gameEngine.language + "_" + cutscene + "_" + line + " " + speakerID;
 				}
+				bool hideSpeakerName = speakerID.find("?") != -1;
+				if (hideSpeakerName) {
+					speakerID = SReplace(speakerID, "?", "");
+					speakerID = SReplace(speakerID, "$DIRECT$", "");
+					displayName = "???";
+				}
 				if (speakerID == "PLAYER") {
 					speakerID = saveContainer.getCurrentMainCharacter();
+					displayName = saveContainer.getCurrentMainCharacter();
+					displayName = gameEngine.language + "_NPCNames_" + displayName;
+				}
+				else {
+					speakerID = SReplace(speakerID, "$DIRECT$", "");
+					displayName = SReplace(displayName, "$DIRECT$", "");
+					displayName = gameEngine.language + "_NPCNames_" + displayName;
 				}
 				string speakerImageID = imageLookup.getSequenceAsString(speakerID, "SPEAKER");
 				if (!graphics.doesThisImageAlreadyExist("TEXTBOX")) {
@@ -2092,8 +2155,8 @@ public:
 					pair<string, string>("uniqueID", "SPEAKER"), }))).run(*&gameEngine);
 				}
 				Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
-					pair<string, string>("message",speakerID),
-					pair<string, string>("direct", "1"),
+					pair<string, string>("message",displayName),
+					pair<string, string>("direct", "0"),
 					pair<string, string>("format", "LightText_40"),
 					pair<string, string>("anchorStyle", "TOPLEFT"),
 					pair<string, string>("x", "18"),
@@ -2127,6 +2190,17 @@ public:
 				pair<string, string>("styles", "TYPEWRITER,PARCHMENT"),
 					}))).run(*&gameEngine);
 				bool userInput = controller.haveOneOfTheseBeenPressed({ VK_SPACE });
+				if (Args.get("mode") == "DEBUG" and controller.haveOneOfTheseBeenPressed({ VK_F2 }) and CLOCK.hasEnoughTimePassed("DebugFlag", 100)) {
+					if (gameEngine.stateFlags["FASTDIALOGUE"] == "1") {
+						gameEngine.stateFlags["FASTDIALOGUE"] = "0";
+					}
+					else {
+						gameEngine.stateFlags["FASTDIALOGUE"] = "1";
+					}
+				}
+				if (Args.get("mode") == "DEBUG" and userInput and gameEngine.stateFlags["FASTDIALOGUE"] == "1") {
+					return true;
+				}
 				if (finishedWriting and userInput) {
 					return true;
 				}
@@ -2294,7 +2368,7 @@ public:
 					Event("AddMerchantButtons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
 						pair<string,string>({"whichMerchant", merchantID})
 						})).run(*&gameEngine);
-					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = merchants.merchantDefinitions[merchantID].getCorrectDialogue(gameEngine.language, menu.data["MERCHANT"]);
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = Graphics::Text::commonTextReplacements(gameEngine.language, merchants.merchantDefinitions[merchantID].getCorrectDialogue(gameEngine.language, menu.data["MERCHANT"]));
 					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter();
 				}
 				if (menu.uniqueID == "MERCHANTCONFIRM") {
@@ -2955,6 +3029,10 @@ public:
 						Event("TearDownImage", "TEARDOWNIMAGE", Map<string, string>({
 						pair<string, string>("uniqueID", image) })).run(*&gameEngine);
 					}
+					List<string> tearTheseTextsDown = List<string>({"skillExplainText", "skillExplainText_skillTreeName", "skillExplainText_Name","skillExplainText_Cost","skillExplainText_Activation","skillExplainText_Recharge"});
+					for (auto text : tearTheseTextsDown.internalList) {
+						Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({ "uniqueID", text })).run(*&gameEngine);
+					}
 				}
 				if (menu.data.hasKey("MANAGEEQUIPMENT")) {
 					Event("Teardown", "TEARDOWNTEXT", Map<string, string>({ pair<string, string>("uniqueID", "EQUIPMENTEXPLAIN") })).run(*&gameEngine);
@@ -3287,7 +3365,7 @@ public:
 					Event("Change Merch Buttons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
 						pair<string, string>("whichMerchant", whichMerchant),
 						})).run(*&gameEngine);
-					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Buy");
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = Graphics::Text::commonTextReplacements(gameEngine.language, merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Buy"));
 					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter();
 					return true;
 				}
@@ -3297,7 +3375,7 @@ public:
 					Event("Change Merch Buttons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
 						pair<string, string>("whichMerchant", whichMerchant),
 						})).run(*&gameEngine);
-					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Sell");
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = Graphics::Text::commonTextReplacements(gameEngine.language, merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Sell"));
 					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter();
 					return true;
 				}
@@ -3307,7 +3385,7 @@ public:
 					Event("Change Merch Buttons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
 						pair<string, string>("whichMerchant", whichMerchant),
 						})).run(*&gameEngine);
-					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Buyback");
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = Graphics::Text::commonTextReplacements(gameEngine.language, merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Buyback"));
 					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter();
 					return true;
 				}
@@ -3374,6 +3452,12 @@ public:
 						})).run(*&gameEngine);
 					saveContainer.save();
 					return true;
+				}
+				if (buttonLogic == "TUTNO") {
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "TUTORIALCONFIRM")).run(*&gameEngine);
+					string player = saveContainer.getCurrentMainCharacter();
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "HorsemanCutscene2$" + player, player, "EXPLORE");
+					return false;
 				}
 				return true;
 }
@@ -4082,81 +4166,99 @@ public:
 			}
 			if (type == "MOVEOBJECTS") {
 				List<string> objectsToMove = split(data["whichObjects"], "_");
-				List<pair<float, float>> targetPositions;
+				List<pair<float, float>> targets;
 				List<string> audioToPlay;
+				int speed = stoi(data["speed"]);
 				for (auto node : split(data["targetPositions"], "_").internalList) {
 					List<string> current = split(node, ",");
 					pair<float, float> currentPos = { stof(current.at(0)), stof(current.at(1)) };
-					targetPositions.push_back(currentPos);
+					targets.push_back(currentPos);
 					audioToPlay.push_back(current.at(2));
 				}
-				bool allFinished = true;
+				Map<string, pair<float, float>> currentPositions; 
+				Map<string, string> objectAudio;
+				Map<string, pair<float, float>> allObjectPositions = explorer.getPositionsOfAllObjects();
+				for (auto object : objectsToMove.internalList) {
+					if (object == "CAMERA") { continue; }
+					currentPositions[object] = allObjectPositions[object];
+				}
+				Map<string, pair<float, float>> targetPositions;
 				for (int x = 0; x < objectsToMove.size(); x++) {
-					string objectName = objectsToMove.at(x);
-					if (objectName == "CAMERA") {
-						Event("MoveCamera", "MOVECAMERA", Map<string, string>({
-							pair<string, string>("x", to_string(targetPositions.at(x).first)),
-							pair<string, string>("y", to_string(targetPositions.at(x).second)),
-							})).run(*&gameEngine);
-						continue;
+					targetPositions[objectsToMove.at(x)] = targets.at(x);
+					objectAudio[objectsToMove.at(x)] = audioToPlay.at(x);
+				}
+
+				bool allFinished = true;
+				float unitOfMovement = explorer.unitOfMovement / 2;
+				float ignore = -1; // use this to move camera only along x or y
+
+				for (auto objectName : objectsToMove.internalList) {
+					if (objectName == "CAMERA") { continue; }
+					pair<float, float> currentPosition = currentPositions[objectName];
+					pair<float, float> targetPosition = targetPositions[objectName];
+					if (objectName == "PLAYER1") {
+						currentPosition = explorer.playerOnMap.position;
+						List<int> sources;
+						List<int> shadowSources;
+						string character = saveContainer.getCurrentMainCharacter();
+						string newDirection = explorer.decideDirectionDependingOnTwoPoints(currentPosition, targetPosition);
+						int animationSpeed = explorer.getAnimationSpeeds()["WALK"];
+						if (newDirection != "") {
+							sources = imageLookup.animationFrames[character]["WALK_" + newDirection];
+							shadowSources = imageLookup.animationFrames["Shadow " + character]["WALK_" + newDirection];
+							for (auto const& x : { graphics.accessImageViaUniqueID(character + "_Explore"), graphics.accessImageViaUniqueID(character + "_Shadow") }) {
+								x->action = "WALK";
+								x->animationSpeed = animationSpeed;
+							}
+							graphics.accessImageViaUniqueID(character + "_Explore")->resetSources(*&graphics, sources);
+							graphics.accessImageViaUniqueID(character + "_Shadow")->resetSources(*&graphics, shadowSources);
+						}
+
+
 					}
-					Explorer::mapObject & theObject = explorer.getThisMapObject(objectName);
-					float unitOfMovement = explorer.unitOfMovement / 2;
-					float ignore = -1; // use this to move camera only along x or y
-					pair<float, float> currentPosition = theObject.positionOnMap;
-					pair<float, float> targetPosition = targetPositions.at(x);
-					bool reachedDestination = true;
-					if (CLOCK.hasEnoughTimePassed(objectName + "PLAYAUDIO", 200)) {
-						string audioName = audioToPlay.at(x);
-						if (audioName != "NOAUDIO") {
-							Event("Audio", "PLAYSFX", Map<string, string>({ 
-								pair<string, string>("audio", audioName) })).run(*&gameEngine);
-						}
+					if (!explorer.areThesePointsInSamePlace(currentPosition, targetPosition, (targetPosition.first == ignore), (targetPosition.second == ignore))) {
+						allFinished = false;
 					}
-					if (CLOCK.hasEnoughTimePassed(objectName + "MOVE", 50)) {
-						if (targetPosition.first != ignore) {
-							if (currentPosition.first < targetPosition.first) {
-								currentPosition.first += unitOfMovement;
-							}
-							if (currentPosition.first > targetPosition.first) {
-								currentPosition.first -= unitOfMovement;
-							}
-							if (currentPosition.first != targetPosition.first) {
-								reachedDestination = false;
-							}
+				}
+				if (allFinished) {
+					return true;
+				}
+
+				if (CLOCK.hasEnoughTimePassed("MOVEOBJECTSON", speed)) {
+					for (auto objectName : objectsToMove.internalList) {
+						if (objectName == "CAMERA") {
+							Event("MoveCamera", "MOVECAMERA", Map<string, string>({
+								pair<string, string>("x", to_string(targetPositions[objectName].first)),
+								pair<string, string>("y", to_string(targetPositions[objectName].second)),
+								})).run(*&gameEngine);
+							continue;
 						}
-						if (targetPosition.second != ignore) {
-							if (currentPosition.second < targetPosition.second) {
-								currentPosition.second += unitOfMovement;
-							}
-							if (currentPosition.second > targetPosition.second) {
-								currentPosition.second -= unitOfMovement;
-							}
+
+						if (objectName == "PLAYER1") {
+							pair<float, float> current = explorer.playerOnMap.position;
+							pair<float, float> target = targetPositions["PLAYER1"];
+							explorer.playerOnMap.position = explorer.moveLHSCloserToRHS(current, target, (targetPositions[objectName].first == ignore), (targetPositions[objectName].second == ignore), unitOfMovement);
 						}
-						if (currentPosition.second != targetPosition.second) {
-							reachedDestination = false;
+						else {
+							currentPositions[objectName] = explorer.moveLHSCloserToRHS(currentPositions[objectName], targetPositions[objectName], (targetPositions[objectName].first == ignore), (targetPositions[objectName].second == ignore), unitOfMovement);
 						}
-						if (not reachedDestination) {
-							allFinished = false;
+						if (CLOCK.hasEnoughTimePassed(objectName + "PLAYAUDIO", 200)) {
+							string audioName = objectAudio[objectName];
+							if (audioName != "NOAUDIO") {
+								Event("Audio", "PLAYSFX", Map<string, string>({
+									pair<string, string>("audio", audioName) })).run(*&gameEngine);
+							}
 						}
 						for (int index = 0; index < explorer.currentMap.objects.size(); index++) {
 							if (explorer.currentMap.objects.at(index).name == objectName) {
-								explorer.currentMap.objects.at(index).positionOnMap = currentPosition;
-								break;
+								explorer.currentMap.objects.at(index).positionOnMap = currentPositions[objectName];
 							}
 						}
-						
 					}
-					else {
-						allFinished = false;
-					}
-					Event("UpdateMap", "MAPMOVE", {}).run(*&gameEngine);
 				}
-				
-				if (allFinished) {
-					int example = 1; // debug
-				}
-				return allFinished;
+
+				Event("UpdateMap", "MAPMOVE", {}).run(*&gameEngine);
+   				return false;
 			}
 			if (type == "LOADOBJECT") {
 				string name = data["name"];
@@ -4165,17 +4267,21 @@ public:
 				string layer = data["layer"];
 				string x = data["x"];
 				string y = data["y"];
-				string scale = data["scale"];
 				string opacity = data["opacity"];
+				bool followPlayer = data["followPlayer"] == "1";
+				string anchor = data["anchor"];
+				string scale = "1.0";
+				if (data.hasKey("scale")) {
+					scale = data["scale"];
+				}
 
-				Explorer::mapObject objectToAdd(name, false, true, false, sources, "1", stoi(animationSpeed), stoi(layer), "1.0", "CENTRE", {stof(x), stof(y)}, false, {}, {});
+				Explorer::mapObject objectToAdd(name, false, true, followPlayer, sources, "1", stoi(animationSpeed), stoi(layer), "1.0", scale, anchor, {stof(x), stof(y)}, false, {}, {});
 				explorer.currentMap.objects.push_back(objectToAdd);
 				Event("Load" + name, "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 						pair<string, string>("sources",sources),
 						pair<string, string>("x", "50"),
 						pair<string, string>("y", "50"),
-						pair<string, string>("anchor", "CENTRE"),
-						pair<string, string>("opacity", "1.0"),
+						pair<string, string>("anchor", anchor),
 						pair<string, string>("layer", layer),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("animation_speed", animationSpeed),
@@ -4183,26 +4289,122 @@ public:
 						pair<string, string>("scale", scale),
 						pair<string, string>("opacity", opacity),
 						pair<string, string>("uniqueID", name), }))).run(*&gameEngine);
+				Event("UpdateMap", "MAPMOVE", {}).run(*&gameEngine);
 				return true;
 			}
 			if (type == "STARTCLOCK") {
 				CLOCK.startClock(data["uniqueID"]);
 				return true;
 			}
+			if (type == "ANIMATEIMAGEONMAP") {
+				string uniqueID = data["whichImage"];
+				string character = data["character"];
+				string action = data["action"];
+				string direction = data["direction"];
+
+				Graphics::Image* image = NULL;
+				
+				if (uniqueID.find("PLAYER1") != -1) {
+					if (uniqueID == "PLAYER1") {
+						image = graphics.accessPlayerImage();
+						character = SReplace(character, "PLAYER1", saveContainer.getCurrentMainCharacter());
+					}
+					if (uniqueID == "Shadow PLAYER1") {
+						image = graphics.accessPlayerShadowImage();
+						character = SReplace(character, "PLAYER1", saveContainer.getCurrentMainCharacter());
+					}
+				}
+				else {
+					image = graphics.accessImageViaUniqueID(uniqueID);
+				}
+
+				List<int> sources = imageLookup.animationFrames[character][action + "_" + direction];
+				image->resetSources(*&graphics, sources);
+				image->action = action;
+				image->animationSpeed = explorer.getAnimationSpeeds()[action];
+				Event("UpdateMap", "MAPMOVE", {}).run(*&gameEngine);
+				return true;
+			}
 			if (type == "CHANGEANIMATIONSPEED") {
 				int speed = stoi(data["animationSpeed"]);
 				List<string> styles = split(data["styles"], "_");
 				for (auto uniqueID : split(data["uniqueID"], "_").internalList) {
-					Graphics::Image* theImage = graphics.accessImageViaUniqueID(uniqueID);
-					graphics.accessImageViaUniqueID(uniqueID)->animationSpeed = stoi(data["animationSpeed"]);
-					graphics.accessImageViaUniqueID(uniqueID)->animationStyles = styles;
+					Graphics::Image* theImage = NULL;
+					if (uniqueID.find("PLAYER1") != -1) {
+						if (uniqueID == "PLAYER1") {
+							theImage = graphics.accessPlayerImage();
+						}
+						if (uniqueID == "Shadow PLAYER1") {
+							theImage = graphics.accessPlayerShadowImage();
+						}
+					}
+					else {
+						theImage = graphics.accessImageViaUniqueID(uniqueID);
+					}
+					theImage->animationSpeed = stoi(data["animationSpeed"]);
+					theImage->animationStyles = styles;
+					if (data["styles"] != "FADEOUT") {
+						theImage->frame = 0; // if just fade out, don't change frame just stay on frame and fade out
+					}
+					
 				}
 				return true;
 			}
 			if (type == "WAITFORANIMATION") {
 				string uniqueID = data["uniqueID"];
+				uniqueID = SReplace(uniqueID, "PLAYER1", saveContainer.getCurrentMainCharacter());
 				Graphics::Image* theImage = graphics.accessImageViaUniqueID(uniqueID);
 				return theImage->hasThisFinishedAnimating();
+			}
+			if (type == "STARTCUTSCENEDIRECTLY") {
+				string cutsceneName = data["cutsceneName"];
+				gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, cutsceneName, saveContainer.getCurrentMainCharacter(), "EXPLORE");
+				return false;
+			}
+			if (type == "FROMCUTSCENETOMENU") {
+				string menuName = data["menuName"];
+				gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure(menuName);
+				return false;
+			}
+			if (type == "CHANGEOPACITY") {
+				string whichImage = data["uniqueID"];
+				string opacity = data["opacity"];
+				graphics.accessImageViaUniqueID(whichImage)->opacity = stof(opacity);
+				return true;
+			}
+			if (type == "TELEPORTOBJECT") {
+				string whichObject = data["uniqueID"];
+				pair<float, float> position = {stof(data["x"]), stof(data["y"])};
+				for (int index = 0; index < explorer.currentMap.objects.size(); index++) {
+					if (explorer.currentMap.objects.at(index).name == whichObject) {
+						explorer.currentMap.objects.at(index).positionOnMap = position;
+					}
+				}
+				return true;
+			}
+			if (type == "REMOVEIMAGES") {
+				List<string> whichObjects = split(data["toRemove"], "$");
+				for (auto imageName : whichObjects.internalList) {
+					Event("Teardown", "TEARDOWNIMAGE", Map<string, string>({ 
+						pair<string, string>("uniqueID", imageName),
+						})).run(*&gameEngine);
+					for (int index = 0; index < explorer.currentMap.objects.size(); index++) {
+						if (explorer.currentMap.objects.at(index).name == imageName) {
+							explorer.currentMap.objects.at(index).visible = false;
+						}
+					}
+				}
+				return true;
+			}
+			if (type == "HANDLESKILLANIMATION") {
+				string target = data["target"];
+				string caster = data["caster"];
+				string skillName = data["skill"];
+				Map<string, string> extras;
+				for (auto s : split(data["extras"], "_").internalList) {
+					extras[split(s, "%").at(0)] = split(s, "%").at(1);
+				}
+				return gameEngine.skillAnimationContainer.handleAnimation(*&gameEngine, graphics.accessImageViaUniqueID(caster), graphics.accessImageViaUniqueID(target), skillName, {}, extras);
 			}
 			return false;
 }
@@ -4225,6 +4427,78 @@ public:
 		}
 		string name = "None";
 		List<Event> eventList;
+	};
+	class SkillAnimationContainer {
+	public:
+		bool handleAnimation(GameEngine & gameEngine, Graphics::Image* caster, Graphics::Image* target, string skill, Map<string, Map<string, string>> numbersToDraw, Map<string,string> extras) {
+			pair<float, float> targetLocation = target->positionAsPercentage;
+			pair<float, float> casterLocation = caster->positionAsPercentage;
+			Map<string, bool> finished; // each bubble
+			if (skill == "Life Drain") {
+				int numberOfBubbles = 50;
+				if (!started) {
+					pair<float, float> destination = { casterLocation.first, casterLocation.second - 5 };
+					if (extras.hasKey("xOffset")) {
+						destination.first += stof(extras["xOffset"]);
+					}
+					bezierPlots.clear();
+					for (int x = 0; x < numberOfBubbles; x++) {
+						string imageName = "LIFEBUBBLE" + to_string(x);
+						List<string> randomScales = List<string>({"0.1","0.11","0.12","0.13","0.14","0.15","0.16","0.17","0.18","0.19","0.2"});
+						List<int> randomTimes = List<int>({50,60,70,80,90,100,110,120,130,});
+						Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", imageLookup.getSequenceAsString("Life Drain", "ACTION_1")),
+						pair<string, string>("x", to_string(targetLocation.first)),
+						pair<string, string>("y", to_string(targetLocation.second)),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", "1.0"),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
+						pair<string, string>("scale", RANDOM.getRandom(randomScales)),
+						pair<string, string>("animated", "1"),
+						pair<string, string>("animation_speed", "10"),
+						pair<string, string>("uniqueID", imageName),}))).run(*&gameEngine);
+						List<pair<float, float>> basePoints = List<pair<float, float>>({
+							targetLocation, graphics.randomVariation(graphics.getEquidistantPoint(targetLocation, destination),25), destination
+							});
+						bezierPlots[imageName] = graphics.plot(basePoints, 0.1);
+						timers[imageName] = RANDOM.getRandom(randomTimes);
+						timers[imageName + "START"] = RANDOM.getRandom(randomTimes) + 50;
+						CLOCK.startClock(imageName + "START");
+					}
+					started = true;
+					GameEngine::Event("PlayAudio", "PLAYSFX", Map<string, string>({
+							pair<string, string>("audio","1060"),
+							pair<string, string>("direct","1"),
+							pair<string, string>("delay","0.3"),
+						})).run(*&gameEngine);
+					return false;
+				}
+				for (int x = 0; x < numberOfBubbles; x++) {
+					string imageName = "LIFEBUBBLE" + to_string(x);
+					finished[imageName] = bezierPlots[imageName].size() == 0;
+					if (!CLOCK.hasEnoughTimePassedDoNotResetClock(imageName + "START", timers[imageName + "START"])) { continue; }
+					if (finished[imageName]) {
+						graphics.accessImageViaUniqueID(imageName)->animationStyles.push_back("FADEOUT");
+					}
+					if (!finished[imageName] and CLOCK.hasEnoughTimePassed(imageName, timers[imageName])) {
+						graphics.accessImageViaUniqueID(imageName)->positionAsPercentage = bezierPlots[imageName].pop_front();
+					}
+				}
+				if (!finished.getValues().contains(false)) {
+					started = false;
+					for (int x = 0; x < numberOfBubbles; x++) {
+						string imageName = "LIFEBUBBLE" + to_string(x);
+						graphics.tearDownSpecifiedImage(imageName);
+					}
+					return true;
+				}
+				return false;
+			}
+			return false;
+		}
+		bool started = false;
+		Map<string, List<pair<float, float>>> bezierPlots;
+		Map<string, int> timers;
 	};
 	Map<string, Procedure> storedProcedures = List<pair<string, Procedure>>({
 		pair<string, Procedure>({"DEBUG1" ,
@@ -4347,10 +4621,10 @@ public:
 				pair<string, string>("uniqueID", "Olyver Sumner")
 				}))),
 			Event("Load Map", "MANAGEAUDIOSWAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "RoadToBénouville"),
+				pair<string, string>("targetMap", "BénouvilleTown1"),
 			}))),
 			Event("Load Map", "LOADMAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "RoadToBénouville"),
+				pair<string, string>("targetMap", "BénouvilleTown1"),
 			}))),
 			Event("Debug Exploring", "EXPLORE", Map<string,string>(List<pair<string,string>>({}))),
 			})) }),
@@ -4478,6 +4752,12 @@ public:
 			"YOUFOUNDANITEM", Menu("YOUFOUNDANITEM", Menu::getDefaultButtonsForFindingItems(), Map<string, string>({
 							pair<string, string>("layer", to_string(imageLookup.layerDefaults["DROPDOWNMENU"])),
 							pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " AcceptItem") }))),
+		pair<string, Menu>(
+			"TUTORIALCONFIRM", Menu("TUTORIALCONFIRM", List<Menu::Button>({
+				Menu::TextBox("TEXTBOX1", "GUI_TUTTEXTBOX", "SMALL", {50, 20}),
+				Menu::standardButton("TUTNO", "GUI_TUTNO", {50, 45}),
+				Menu::standardButton("TUTYES", "GUI_TUTYES", {50, 60}),
+				}), Map<string, string>({}))),
 	});
 	Procedure makeDynamicCutsceneProcedure(string language, string cutsceneName, string player, string postProcedure) {
 		return Procedure("Cutscene", List<Event>(convertDynamicStringsToDialogue(language, cutsceneName, player) + 
@@ -4567,10 +4847,10 @@ public:
 		List<Event> results;
 		List<string> acceptedLines;
 		Map<string, wstring> lines; lines.internalMap = strings[language][cutsceneName];
-		Map<int, List<string>> sortedKeys;
-		int currentLine = 1;
+		Map<float, List<string>> sortedKeys;
+		float currentLine = 1;
 		for (auto s : lines.getKeys().internalList) {
-			int number_only = stoi(split(s, " ").at(0));
+			float number_only = stof(split(s, " ").at(0));
 			sortedKeys[number_only].push_back(s);
 		}
 
@@ -4590,7 +4870,6 @@ public:
 				}
 				if (speaker.find("$DIRECT$") != -1) {
 					// use the speaker name directly
-					speaker = SReplace(speaker, "$DIRECT$", "");
 					results.push_back(Event(thisLine, "DIALOGUE", { Map<string, string>(List<pair<string,string>>({
 					pair<string, string>({"cutscene", cutsceneName}),
 					pair<string, string>({"speaker", speaker}),
@@ -4626,13 +4905,25 @@ public:
 						pair<string, string>("sources_3", parsed_data.at(7)),
 						pair<string, string>("scale", parsed_data.at(8)),
 						pair<string, string>("opacity", parsed_data.at(9)),
+						pair<string, string>("followPlayer", parsed_data.at(10)),
+						pair<string, string>("anchor", parsed_data.at(11)),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$TELEPORTOBJECT$") {
+					List<string> parsed_data = split(WStringToString(val), "_");
+					results.push_back(Event("Teleport", "TELEPORTOBJECT", Map<string, string>({
+						pair<string, string>("uniqueID", parsed_data.at(0)),
+						pair<string, string>("x", parsed_data.at(1)),
+						pair<string, string>("y", parsed_data.at(2)),
 						})));
 					acceptedLines.push_back(thisLine);
 					continue;
 				}
 				if (speaker == "$ANIMATEOBJECT$") {
 					List<string> parsed_data = split(WStringToString(val), "_");
-					results.push_back(Event("LoadObject", "ANIMATEIMAGEONMAP", Map<string, string>({
+					results.push_back(Event("Animate Image", "ANIMATEIMAGEONMAP", Map<string, string>({
 						pair<string, string>("whichImage", parsed_data.at(0)),
 						pair<string, string>("character", parsed_data.at(1)),
 						pair<string, string>("action", parsed_data.at(2)),
@@ -4663,6 +4954,7 @@ public:
 					results.push_back(Event("LoadObject", "MOVEOBJECTS", Map<string, string>({
 						pair<string, string>("whichObjects", parsed_data.at(0)),
 						pair<string, string>("targetPositions", parsed_data.at(1)),
+						pair<string, string>("speed", parsed_data.at(2)),
 						})));
 					acceptedLines.push_back(thisLine);
 					continue;
@@ -4680,9 +4972,53 @@ public:
 					continue;
 				}
 				if (speaker == "$PLAYSFX$") {
+					List<string> parsedData = split(WStringToString(val), "_");
 					results.push_back(Event("PlayAudio", "PLAYSFX", Map<string, string>({
-						pair<string, string>("audio", WStringToString(val)),
-						pair<string, string>("direct", "1"),
+						pair<string, string>("audio", parsedData.at(0)),
+						pair<string, string>("delay", parsedData.at(1)),
+						pair<string, string>("direct", parsedData.at(2)),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$FROMCUTSCENETOMENU$") {
+					results.push_back(Event("LoadMenu", "FROMCUTSCENETOMENU", Map<string, string>({
+						pair<string, string>("menuName", WStringToString(val)),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$STARTCUTSCENEDIRECTLY$") {
+					string whichCutscene = SReplace(WStringToString(val), "PLAYER",saveContainer.getCurrentMainCharacter());
+					results.push_back(Event("StartCutscene", "STARTCUTSCENEDIRECTLY", Map<string, string>({
+						pair<string, string>("cutsceneName", whichCutscene),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$CHANGEOPACITY$") {
+					List<string> parsed_data = split(WStringToString(val), "$");
+					results.push_back(Event("LoadObject", "CHANGEOPACITY", Map<string, string>({
+						pair<string, string>("uniqueID", parsed_data.at(0)),
+						pair<string, string>("opacity", parsed_data.at(1)),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$REMOVEIMAGES$") {
+					results.push_back(Event("LoadObject", "REMOVEIMAGES", Map<string, string>({
+						pair<string, string>("toRemove",WStringToString(val)),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$HANDLESKILLANIMATION$") {
+					List<string> parsed_data = split(WStringToString(val), "$");
+					results.push_back(Event("LoadObject", "HANDLESKILLANIMATION", Map<string, string>({
+						pair<string, string>("caster", parsed_data.at(0)),
+						pair<string, string>("target", parsed_data.at(1)),
+						pair<string, string>("skill", parsed_data.at(2)),
+						pair<string, string>("extras", parsed_data.at(3)),
 						})));
 					acceptedLines.push_back(thisLine);
 					continue;
@@ -4718,11 +5054,15 @@ public:
 		return stateFlags["QUIT"] == "1";
 	}
 	void run() {
+		if (stateFlags["SHOWFPS"] == "1") {
+			Event("ShowFPS", "SHOWFPS", {}).run(*this);
+		}
 		activeProcedure.run(*this);
 	}
 
 	Procedure activeProcedure;
 	Map<string, string> stateFlags;
 	string language = "ENG";
+	SkillAnimationContainer skillAnimationContainer;
 };
 GameEngine game;

@@ -75,6 +75,15 @@ public:
                     position.first + (size.width / 2),
                     position.second + smallD);
             }
+            if (anchorStyle == "ANIMATEONTOP") { // much higher and slightly to the right
+                float smallD = size.height / 6.5;
+                float smallD2 = size.width / 7.5;
+                result = D2D1::RectF(
+                    position.first - (size.width / 2) + smallD2,
+                    position.second - size.height + smallD,
+                    position.first + (size.width / 2) + smallD2,
+                    position.second + smallD);
+            }
             if (anchorStyle == "CENTRE") {
                 result = D2D1::RectF(
                     position.first - (size.width / 2.0f),
@@ -262,6 +271,9 @@ public:
             }
             textures.at(frame) = texture;
             storeTexturesInMemory(graphics);
+            if (hr == E_FAIL) {
+                throw exception("Failed to load this texture!");
+            }
             return hr;
         }
         ID2D1Bitmap* getWhichTexture() {
@@ -322,6 +334,16 @@ public:
             if (animationStyles.contains("FADEOUT")) {
                 if (CLOCK.hasEnoughTimePassed(unique_ID + "_FADE", animationSpeed)) {
                     opacity = TChange(opacity, -0.07f, 0.0f, 1.0f);
+                }
+            }
+            if (animationStyles.contains("FADEOUTWHENFINISHED") and frame == textures.size() - 1) {
+                if (CLOCK.hasEnoughTimePassed(unique_ID + "_FADE", animationSpeed)) {
+                    opacity = TChange(opacity, -0.07f, 0.0f, 1.0f);
+                }
+            }
+            if (animationStyles.contains("FADEIN")) {
+                if (CLOCK.hasEnoughTimePassed(unique_ID + "_FADE", animationSpeed)) {
+                    opacity = TChange(opacity, 0.07f, 0.0f, 1.0f);
                 }
             }
         };
@@ -484,6 +506,10 @@ public:
             replacements[L"$DEFAULTBUYBACK$"] = strings[language]["Default Merchant Dialogue"]["Buy Back"];
             replacements[L"$DEFAULTBUY$"] = strings[language]["Default Merchant Dialogue"]["Buy"];
             replacements[L"$SELL$"] = strings[language]["Default Merchant Dialogue"]["Sell"];
+            replacements[L"$KIND$"] = strings[language]["Terms Per Character"][ saveContainer.getCurrentMainCharacter() + "_Kind"];
+            replacements[L"$POLITE$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_Polite"];
+            replacements[L"$GENDER$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_Gender"];
+            replacements[L"$GENDERUPPER$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_GenderUpper"];
 
             for (auto const & [key, val] : replacements.internalMap) {
                 input = WSReplace(input, key, val);
@@ -597,6 +623,7 @@ public:
         return hr;
     }
     HRESULT OnRender() {
+        chrono::steady_clock::time_point start = chrono::steady_clock::now();
         HRESULT hr;
         hr = CreateDeviceResources();
         if (SUCCEEDED(hr) && !(hwndRenderTarget->CheckWindowState() & D2D1_WINDOW_STATE_OCCLUDED))
@@ -631,9 +658,21 @@ public:
             hr = S_OK;
             DiscardDeviceResources();
         }
+        chrono::steady_clock::time_point end = chrono::steady_clock::now();
+        chrono::milliseconds renderTime = chrono::duration_cast<chrono::milliseconds>(end - start);
+        RenderSpeedHistory.push_back(renderTime);
+        if (RenderSpeedHistory.size() > 100) {
+            RenderSpeedHistory.pop_front();
+        }
         return hr;
     }
 
+    Image* accessPlayerImage() {
+        return accessImageViaUniqueID(saveContainer.getCurrentMainCharacter() + "_Explore");
+    }
+    Image* accessPlayerShadowImage() {
+        return accessImageViaUniqueID(saveContainer.getCurrentMainCharacter() + "_Shadow");
+    }
     bool isThisInsideRect(pair<float, float> click, RECT position) {
         bool insideX = position.left <= click.first and position.right >= click.first;
         bool insideY = position.top <= click.second and position.bottom >= click.second;
@@ -644,6 +683,7 @@ public:
             float max = 999;
             Image* drawThisOne = NULL;
             for (auto const& value : images.internalList) {
+                D2D1_RECT_F imagePosition = value->getPosition(*this);
                 if (value->positionAsPercentage.second < max) {
                     max = value->positionAsPercentage.second;
                     drawThisOne = value;
@@ -831,6 +871,58 @@ public:
         result.bottom = bottom;
         return result;
     }
+    int interpolate(int from, int to, float percent) {
+        int difference = to - from;
+        return from + (difference * percent);
+    }
+    List<pair<float, float>> plot(List<pair<float, float>> basePoints, float density) {
+        List<pair< float, float>> results;
+
+        for (float x = 0.0; x < 1.0; x += density) {
+            List<float> Xs;
+            List<float> Ys;
+            List<float> interpolatedXs;
+            List<float> interpolatedYs;
+            for (auto point : basePoints.internalList) {
+                Xs.push_back(point.first);
+                Ys.push_back(point.second);
+            }
+            for (auto index = 0; index < basePoints.size() - 1; index++) {
+                interpolatedXs.push_back(interpolate(Xs.at(index), Xs.at(index + 1), x));
+                interpolatedYs.push_back(interpolate(Ys.at(index), Ys.at(index + 1), x));
+            }
+            float currentX = Xs.front();
+            float currentY = Ys.front();
+            while (interpolatedXs.size() > 1) {
+                currentX = interpolate(interpolatedXs.at(0), interpolatedXs.at(1), x);
+                interpolatedXs.pop_front();
+            }
+            while (interpolatedYs.size() > 1) {
+                currentY = interpolate(interpolatedYs.at(0), interpolatedYs.at(1), x);
+                interpolatedYs.pop_front();
+            }
+            results.push_back(pair<float, float>(currentX, currentY));
+        }
+        results.push_back(basePoints.back());
+        return results;
+    }
+    pair<float, float> getEquidistantPoint(pair<float, float> LHS, pair<float, float> RHS) {
+        return { LHS.first + RHS.first / 2, LHS.second + RHS.second / 2 };
+    }
+    pair<float, float> randomVariation(pair<float, float> LHS, float variation) {
+        List<float> XRange;
+        List<float> YRange;
+        for (float x = LHS.first - variation; x < LHS.first + variation; x += 0.1f) {
+            XRange.push_back(x);
+        }
+        for (float y = LHS.second - variation; y < LHS.second + variation; y += 0.1f) {
+            YRange.push_back(y);
+        }
+        pair<float, float> result = { RANDOM.getRandom(XRange), RANDOM.getRandom(YRange) };
+        return result;
+    }
+
+    List<chrono::milliseconds> RenderSpeedHistory;
 
     HWND * hwnd;
     HINSTANCE hinstance;
