@@ -32,6 +32,8 @@ public:
         shadowColourTagLookupTable[wchar_t(9314)] = "DARKBROWN";
         colourTagLookupTable[wchar_t(9315)] = "ELITESKILLYELLOW";
         shadowColourTagLookupTable[wchar_t(9315)] = "DARKBROWN";
+        colourTagLookupTable[wchar_t(9316)] = "INVISIBLE";
+        shadowColourTagLookupTable[wchar_t(9316)] = "INVISIBLE";
         customFonts = { 
             pair<string, int>({"Centaur", IDF_CENTAUR}), 
             pair<string,int>({ "GoudyMedieval", IDF_GOUDYMEDIEVAL }),
@@ -42,6 +44,7 @@ public:
         Colours["BLACK"] = { 0.0,0.0,0.0,1.0 };
         Colours["WHITE"] = { 1.0,1.0,1.0,1.0 };
         Colours["BLUE"] = { 0.0,0.0,1.0,1.0 };
+        Colours["INVISIBLE"] = { 0.0,0.0,0.0,0.0 };
         Colours["DARKBROWN"] = convertIntColour({100,35,0,255});
         Colours["SKILLTEXTBLUE"] = convertIntColour({ 0,246,255,255 });
         Colours["SKILLTEXTBLUEBACKDROP"] = convertIntColour({ 0,6,255,255 });
@@ -379,8 +382,10 @@ public:
 	};
     class Text : public Drawable {
     public:
-        Text() {}
-        Text(wstring _message, string _format, pair<float, float> _positionAsPercentage, string _anchorStyle, pair<float, float> _size, vector<float> _colour, vector<float> _shadowColour, string _unique_ID) {
+        Text() {
+            tearDownSelf();
+        }
+        Text(Graphics & graphics, wstring _message, string _format, pair<float, float> _positionAsPercentage, string _anchorStyle, pair<float, float> _size, vector<float> _colour, vector<float> _shadowColour, string _unique_ID) {
             message = _message;
             format = _format;
             positionAsPercentage = _positionAsPercentage;
@@ -389,18 +394,24 @@ public:
             colour = _colour;
             unique_ID = _unique_ID;
             shadowColour = _shadowColour;
+            resetText(*&graphics);
         }
-        void draw(Graphics& graphics) {
-            D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
-            pair<float, float> position = getAbsolutePosition(renderTargetSize);
-            pair<float, float> trueSize = convertPercentToActual(renderTargetSize, size);
-            D2D_SIZE_F size_as_d2d = D2D_SIZE_F();
-            size_as_d2d.width = trueSize.first;
-            size_as_d2d.height = trueSize.second;
-            D2D1_RECT_F rect = getRect(position, size_as_d2d);
-            D2D1_RECT_F shadowRect = getRect({ position.first -1, position.second + 1 }, size_as_d2d);
-            ID2D1SolidColorBrush* theBrush = NULL;
-            ID2D1SolidColorBrush* shadowBrush = NULL;
+        void tearDownSelf() {
+            SafeRelease("Releasing the brush", &theBrush);
+            SafeRelease("Releasing the shadow brush", &shadowBrush);
+            for (string x : extraBrushes.getKeys().internalList) {
+                SafeRelease("Releasing extra brush " + x, &extraBrushes[x]);
+            }
+            for (string x : extraShadowBrushes.getKeys().internalList) {
+                SafeRelease("Releasing extra brush " + x, &extraShadowBrushes[x]);
+            }
+            SafeRelease("Releasing text layout", &textLayout);
+            SafeRelease("Releasing shadow text layout", &shadowTextLayout);
+        }
+        void resetText(Graphics & graphics) {
+            tearDownSelf();
+            subcolours = interpret_subcolours(graphics, graphics.colourTagLookupTable);
+            shadowSubColours = interpret_subcolours(graphics, graphics.shadowColourTagLookupTable);
             HRESULT hr = S_OK;
             hr = graphics.hwndRenderTarget->CreateSolidColorBrush(
                 D2D1::ColorF(D2D1::ColorF(colour[0], colour[1], colour[2], colour[3])),
@@ -408,56 +419,62 @@ public:
             hr = graphics.hwndRenderTarget->CreateSolidColorBrush(
                 D2D1::ColorF(D2D1::ColorF(shadowColour[0], shadowColour[1], shadowColour[2], shadowColour[3])),
                 &shadowBrush);
-            IDWriteTextLayout * textLayout = NULL;
-            graphics.DWriteFactory->CreateTextLayout(removeTagsBeforePrinting(graphics, message).c_str(), message.size(), graphics.WriteTextFormats[format], size_as_d2d.width, size_as_d2d.height, &textLayout);
-            IDWriteTextLayout* shadowTextLayout = NULL;
-            graphics.DWriteFactory->CreateTextLayout(removeTagsBeforePrinting(graphics, message).c_str(), message.size(), graphics.WriteTextFormats[format], size_as_d2d.width, size_as_d2d.height, &shadowTextLayout);
-            D2D1_POINT_2F P;
+            for (auto const& [key, value] : subcolours.internalMap) {
+                extraBrushes[key] = NULL;
+                graphics.hwndRenderTarget->CreateSolidColorBrush(
+                    D2D1::ColorF(D2D1::ColorF(graphics.Colours[key][0], graphics.Colours[key][1], graphics.Colours[key][2], graphics.Colours[key][3])),
+                    &extraBrushes[key]);
+            }
+            for (auto const& [key, value] : shadowSubColours.internalMap) {
+                extraShadowBrushes[key] = NULL;
+                graphics.hwndRenderTarget->CreateSolidColorBrush(
+                    D2D1::ColorF(D2D1::ColorF(graphics.Colours[key][0], graphics.Colours[key][1], graphics.Colours[key][2], graphics.Colours[key][3])),
+                    &extraShadowBrushes[key]);
+            }
+            D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
+            pair<float, float> position = getAbsolutePosition(renderTargetSize);
+            pair<float, float> trueSize = convertPercentToActual(renderTargetSize, size);
+            D2D_SIZE_F size_as_d2d = D2D_SIZE_F();
+            size_as_d2d.width = trueSize.first;
+            size_as_d2d.height = trueSize.second;
+            D2D1_RECT_F rect = getRect(position, size_as_d2d);
+            D2D1_RECT_F shadowRect = getRect({ position.first - 1, position.second + 1 }, size_as_d2d);
             P.x = rect.left; P.y = rect.top;
+            shadowP = P;
+            shadowP.x -= 1;
+            shadowP.y += 1;
+
+            hr = graphics.DWriteFactory->CreateTextLayout(removeTagsBeforePrinting(graphics, message).c_str(), message.size(), graphics.WriteTextFormats[format], size_as_d2d.width, size_as_d2d.height, &textLayout);
+            hr = graphics.DWriteFactory->CreateTextLayout(removeTagsBeforePrinting(graphics, message).c_str(), message.size(), graphics.WriteTextFormats[format], size_as_d2d.width, size_as_d2d.height, &shadowTextLayout);
+
+            for (auto const& [key, value] : subcolours.internalMap) {
+                for (auto const& range : subcolours[key].internalList) {
+                    textLayout->SetDrawingEffect(extraBrushes[key], range);
+                }
+            }
+            for (auto const& [key, value] : shadowSubColours.internalMap) {
+                for (auto const& range : shadowSubColours[key].internalList) {
+                    shadowTextLayout->SetDrawingEffect(extraShadowBrushes[key], range);
+                }
+            }
+
             if (anchorStyle == "CENTRE") {
                 hr = textLayout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
                 hr = textLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
                 hr = shadowTextLayout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
                 hr = shadowTextLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
             }
-            D2D1_POINT_2F shadowP = P;
-            shadowP.x -= 1;
-            shadowP.y += 1;
-            Map<string, List<DWRITE_TEXT_RANGE>> subcolours = interpret_subcolours(graphics, graphics.colourTagLookupTable);
-            Map<string, List<DWRITE_TEXT_RANGE>> shadowSubColours = interpret_subcolours(graphics, graphics.shadowColourTagLookupTable);
-            Map<string, ID2D1SolidColorBrush*> extraBrushes;
-            Map<string, ID2D1SolidColorBrush*> extraShadowBrushes;
-            for (auto const& [key, value] : subcolours.internalMap) {
-                extraBrushes[key] = NULL;
-                graphics.hwndRenderTarget->CreateSolidColorBrush(
-                    D2D1::ColorF(D2D1::ColorF(graphics.Colours[key][0], graphics.Colours[key][1], graphics.Colours[key][2], graphics.Colours[key][3])),
-                    &extraBrushes[key]);
-                for (auto const& range : subcolours[key].internalList) {
-                    textLayout->SetDrawingEffect(extraBrushes[key], range);
-                }
-            } 
-            for (auto const& [key, value] : shadowSubColours.internalMap) {
-                extraShadowBrushes[key] = NULL;
-                graphics.hwndRenderTarget->CreateSolidColorBrush(
-                    D2D1::ColorF(D2D1::ColorF(graphics.Colours[key][0], graphics.Colours[key][1], graphics.Colours[key][2], graphics.Colours[key][3])),
-                    &extraShadowBrushes[key]);
-                for (auto const& range : shadowSubColours[key].internalList) {
-                    shadowTextLayout->SetDrawingEffect(extraShadowBrushes[key], range);
-                }
-            }
-
+        }
+        void resetMessage(Graphics& graphics, wstring _message) {
+            message = _message;
+            resetText(*&graphics);
+        }
+        const wstring& getMessage() {
+            return message;
+        }
+        void draw(Graphics& graphics) {
             graphics.hwndRenderTarget->DrawTextLayout(shadowP, shadowTextLayout, shadowBrush);
             graphics.hwndRenderTarget->DrawTextLayout(P, textLayout, theBrush);
-            SafeRelease("Releasing the brush", & theBrush);
-            SafeRelease("Releasing the shadow brush", & shadowBrush);
-            SafeRelease("Releasing text layout", & textLayout);
-            SafeRelease("Releasing shadow text layout", &shadowTextLayout);
-            for (string x : extraBrushes.getKeys().internalList) {
-                SafeRelease("Releasing extra brush " + x, & extraBrushes[x]);
-            }
-            for (string x : extraShadowBrushes.getKeys().internalList) {
-                SafeRelease("Releasing extra brush " + x, &extraShadowBrushes[x]);
-            }
         }
         wstring removeTagsBeforePrinting(Graphics & graphics, wstring input_string) {
             for (int x = 0; x < input_string.size(); x++) {
@@ -469,13 +486,13 @@ public:
         }
         Map<string, List<DWRITE_TEXT_RANGE>> interpret_subcolours(Graphics & graphics, Map<wchar_t, string> tableToUse) {
             Map<string, List<DWRITE_TEXT_RANGE>> results;
+            wstring toAnalyse = message;
+            wchar_t invisible = wchar_t(9316);
+
+            // colour in subsections of text
             for (auto const& colour : graphics.colourTagLookupTable.getKeys().internalList) {
                 int current_start = -1;
                 bool seekingEnd = false;
-                wstring toAnalyse = fullMessage;
-                if (toAnalyse == L"") {
-                    toAnalyse = message;
-                }
                 for (int x = 0; x < toAnalyse.size(); x++) {
                     if (seekingEnd and current_start != -1 and List<wchar_t>({ wchar_t(46), wchar_t(32), wchar_t(33), wchar_t(63), colour }).contains(toAnalyse[x])) {
                         int current_end = x;
@@ -487,20 +504,27 @@ public:
                         current_start = x;
                         seekingEnd = true;
                     }
+                    if (toAnalyse[x] == invisible) { 
+                        // make all text from ⑤ onwards invisible regardless
+                        results[tableToUse[invisible]].push_back({ unsigned(x), unsigned(toAnalyse.size() - x) });
+                        return results;
+                    }
                     
                 }
                 }
             return results;
         }
-        void startTypewriter() {
+        void startTypewriter(Graphics & graphics) {
             fullMessage = message;
-            message = L"";
+            message = L"⑤" + message;
+            resetText(*&graphics);
         }
         int howFarAlong() {
-            if (fullMessage.size() == 0) { return 100; }
-            return message.size() * 100 / fullMessage.size();
-        }
+            int index = message.find(L"⑤");
+            if (index == -1) { return 100; }
 
+            return index * 100 / message.size();
+        }
         static wstring commonTextReplacements(string language, wstring input) {
             Map<wstring, wstring> replacements;
             replacements[L"$DEFAULTBUYBACK$"] = strings[language]["Default Merchant Dialogue"]["Buy Back"];
@@ -510,6 +534,7 @@ public:
             replacements[L"$POLITE$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_Polite"];
             replacements[L"$GENDER$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_Gender"];
             replacements[L"$GENDERUPPER$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_GenderUpper"];
+            replacements[L"$POLITETITLE$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_PoliteTitle"];
 
             for (auto const & [key, val] : replacements.internalMap) {
                 input = WSReplace(input, key, val);
@@ -517,18 +542,31 @@ public:
             return input;
         }
 
-        wstring fullMessage;
-        wstring message;
         string format;
         pair<float, float> size;
         vector<float> colour = {0.0,0.0,0.0,1.0};
         vector<float> shadowColour = { 0.0,0.0,0.0,1.0 };
         int tagLimit = 10;
+        Map<string, List<DWRITE_TEXT_RANGE>> subcolours;
+        Map<string, List<DWRITE_TEXT_RANGE>> shadowSubColours;
+        ID2D1SolidColorBrush* theBrush = NULL;
+        ID2D1SolidColorBrush* shadowBrush = NULL;
+        Map<string, ID2D1SolidColorBrush*> extraBrushes;
+        Map<string, ID2D1SolidColorBrush*> extraShadowBrushes;
+        IDWriteTextLayout* textLayout = NULL;
+        IDWriteTextLayout* shadowTextLayout = NULL;
+        D2D1_POINT_2F P;
+        D2D1_POINT_2F shadowP;
+        wstring fullMessage;
+
+        private:
+            wstring message;
     };
     void setup(HWND * hwnd, HINSTANCE _hInstance) {
         hwnd = hwnd;
         hinstance = _hInstance;
         CreateDeviceIndependentResources();
+        CreateDeviceResources();
     }
     HRESULT CreateDeviceIndependentResources() {
         HRESULT hr;

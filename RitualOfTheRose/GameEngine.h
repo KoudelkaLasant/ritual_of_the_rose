@@ -1203,9 +1203,14 @@ public:
 				}
 				Graphics::Image* theImage = graphics.accessImageViaUniqueID(uniqueID);
 				theImage->opacity = TChange(theImage->opacity,0.1f,0.0f,1.0f);
-				if (theImage->opacity == 1.0f) {
-					return true;
+				if (theImage->opacity == 1.0f ) {
+					CLOCK.startClockIfItDoesNotExist("makesureLoadingScreenIsOpaque");
+					if (CLOCK.hasEnoughTimePassed("makesureLoadingScreenIsOpaque", 100)) {
+						CLOCK.eraseClock("makesureLoadingScreenIsOpaque");
+						return true;
+					}
 				}
+				
 				return false;
 			}
 			if (type == "UNLOADIMAGESFORMAPCHANGE") {
@@ -1341,6 +1346,7 @@ public:
 					int layer = imageLookup.layerDefaults["TEXTONMAP"];
 					Graphics::Text * theText = graphics.accessTextViaUniqueID(explorer.mapPopupTextID);
 					theText->positionAsPercentage = imagePositions[data["copy"] + "_text"];
+					theText->resetText(*&graphics);
 				}
 			}
 			if (type == "WAIT") {
@@ -1437,39 +1443,42 @@ public:
 				List<string> styles = split(data["styles"], ",");
 				bool animated = data["animated"] == "TRUE";
 				if (!graphics.doesThisTextAlreadyExist(uniqueID)) {
-					Graphics::Text * theText = graphics.addText(new Graphics::Text(message, format, position, anchorStyle, size, colour, shadowColour, uniqueID), layer);
+					Graphics::Text * theText = graphics.addText(new Graphics::Text(*&graphics, message, format, position, anchorStyle, size, colour, shadowColour, uniqueID), layer);
 					if (animated) {
 						if (styles.contains("TYPEWRITER")) {
-							theText->startTypewriter();
+							theText->startTypewriter(*&graphics);
 						}
 					}
 				}
 				else {
 					Graphics::Text* theText = graphics.accessTextViaUniqueID(uniqueID);
 					if (!animated) {
-						if (theText->message != message) {
-							theText->message = message;
+						if (theText->getMessage() != message) {
+							theText->resetMessage(*&graphics, message);
 						}
 					}
 					if (animated and styles.contains("TYPEWRITER")) {
 						if (data["animateExisting"] == "0") {
 							if (theText->fullMessage != message) {
-								theText->message = message;
-								theText->startTypewriter();
+								theText->resetMessage(*&graphics, message);
+								theText->startTypewriter(*&graphics);
 							}
 						}
 						int typewriterSpeed = 5;
-						wstring full = theText->fullMessage;
-						bool finished = theText->message == full;
+						bool finished = theText->getMessage().find(L"⑤") == -1;
 						int howFarAlong = theText->howFarAlong();
 						if (CLOCK.hasEnoughTimePassed("TYPEWRITER", typewriterSpeed)) {
 							if (finished) {
 								return true;
 							}
 							else {
-								if (theText->fullMessage == L"") { return false;  } // not ready to be animated yet
-								int size = theText->message.size();
-								theText->message += full[size];
+								if (theText->getMessage() == L"") { return false; } // not ready to be animated yet
+								int howFar = theText->getMessage().find(L"⑤");
+								wstring current = theText->fullMessage;
+								if (howFar < current.size()) {
+									current.replace(howFar+1, 1, L"⑤");
+								}
+								theText->resetMessage(*&graphics, current);
 								if (styles.contains("PARCHMENT") and howFarAlong < 50) {
 									audio.playRandomSFXFromThisCollection("PARCHMENT", audio.volumes["SFXVolume"]/2);
 								}
@@ -1501,7 +1510,7 @@ public:
 				string uniqueID = "DEBUGTEXT";
 				int layer = imageLookup.layerDefaults["DEBUGUSERINPUT"];
 				if (!graphics.doesThisTextAlreadyExist(uniqueID)) {
-					graphics.addText(new Graphics::Text(L"", "Centaur_25", { 0,0 }, "TOPLEFT", { 100,100 }, graphics.Colours["OBVIOUSPINK"], graphics.Colours["BLACK"], uniqueID), layer);
+					graphics.addText(new Graphics::Text(*&graphics, L"", "Centaur_25", { 0,0 }, "TOPLEFT", { 100,100 }, graphics.Colours["OBVIOUSPINK"], graphics.Colours["BLACK"], uniqueID), layer);
 				}
 				Graphics::Text* theText = graphics.accessTextViaUniqueID(uniqueID);
 				string message = controller.controllerDebug() + "\nBeing Clicked and Dragged: ";
@@ -1526,7 +1535,7 @@ public:
 
 				message += hoverMessage + "\n" + clickMessage + "\n";
 
-				theText->message = StringToWString(message);
+				theText->resetMessage(*&graphics, StringToWString(message));
 				if (controller.hasThisBeenPressed(27)) {
 					return true;
 				}
@@ -1843,12 +1852,12 @@ public:
 			}
 			if (type == "DEBUGWALKING") {
 				string textUniqueID = "DEBUGWALKING";
-				int layer = 10;
+				int layer = 100;
 				if (!graphics.doesThisTextAlreadyExist(textUniqueID)) {
-					graphics.addText(new Graphics::Text(L"", "Centaur_25", { 2,80 }, "TOPLEFT", { 100,100 }, graphics.Colours["WHITE"], graphics.Colours["BLACK"], textUniqueID), layer);
+					graphics.addText(new Graphics::Text(*&graphics, L"", "Centaur_25", { 2,80 }, "TOPLEFT", { 100,100 }, graphics.Colours["WHITE"], graphics.Colours["BLACK"], textUniqueID), layer);
 				}
 				Graphics::Text* theText = graphics.accessTextViaUniqueID(textUniqueID);
-				theText->message = StringToWString(explorer.debug());
+				theText->resetMessage(*&graphics, StringToWString(explorer.debug()));
 				return false;
 			}
 			if (type == "DEBUGLOAD") {
@@ -1873,7 +1882,7 @@ public:
 				return true;
 			}
 			if (type == "EXPLORE") {
-				//Event("userInput", "DEBUGWALKING", { }).run(*&gameEngine);
+				Event("userInput", "DEBUGWALKING", { }).run(*&gameEngine);
 				//Event("", "DEBUGUSERINPUT", {}).run(*&gameEngine);
 
 				bool force = data["force"] == "1";
@@ -2100,14 +2109,14 @@ public:
 				string textUniqueID = "FPSCOUNTER";
 				int layer = 10;
 				if (!graphics.doesThisTextAlreadyExist(textUniqueID)) {
-					graphics.addText(new Graphics::Text(L"", "Centaur_25", { 2,95 }, "TOPLEFT", { 100,100 }, graphics.Colours["WHITE"], graphics.Colours["BLACK"], textUniqueID), layer);
+					graphics.addText(new Graphics::Text(*&graphics, L"", "Centaur_25", { 2,95 }, "TOPLEFT", { 100,100 }, graphics.Colours["WHITE"], graphics.Colours["BLACK"], textUniqueID), layer);
 				}
 				Graphics::Text* theText = graphics.accessTextViaUniqueID(textUniqueID);
 				string message = "Average Frame Render Time: ";
 				message += to_string(average);
 				message += " FPS: ";
 				message += to_string(1000 / average);
-				theText->message = StringToWString(message);
+				theText->resetMessage(*&graphics, StringToWString(message));
 				return false;
 			}
 			if (type == "DIALOGUE") {
@@ -2201,7 +2210,7 @@ public:
 				if (Args.get("mode") == "DEBUG" and userInput and gameEngine.stateFlags["FASTDIALOGUE"] == "1") {
 					return true;
 				}
-				if (finishedWriting and userInput) {
+				if (finishedWriting and userInput and CLOCK.hasEnoughTimePassed("DialogueWait", 100)) {
 					return true;
 				}
 				return false;
@@ -2368,8 +2377,8 @@ public:
 					Event("AddMerchantButtons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
 						pair<string,string>({"whichMerchant", merchantID})
 						})).run(*&gameEngine);
-					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = Graphics::Text::commonTextReplacements(gameEngine.language, merchants.merchantDefinitions[merchantID].getCorrectDialogue(gameEngine.language, menu.data["MERCHANT"]));
-					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter();
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->resetMessage(*&graphics,Graphics::Text::commonTextReplacements(gameEngine.language, merchants.merchantDefinitions[merchantID].getCorrectDialogue(gameEngine.language, menu.data["MERCHANT"])));
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter(*&graphics);
 				}
 				if (menu.uniqueID == "MERCHANTCONFIRM") {
 					string mode = gameEngine.storedMenus["MERCHANT"].data["MERCHANT"];
@@ -2387,7 +2396,7 @@ public:
 						dialogue += extra;
 					}
 
-					graphics.accessTextViaUniqueID("TradeConfirm_TEXT")->message = dialogue;
+					graphics.accessTextViaUniqueID("TradeConfirm_TEXT")->resetMessage(*&graphics, dialogue);
 				}
 				if (menu.uniqueID == "YOUFOUNDANITEM") {
 					string foundItem = data["contents"];
@@ -2412,7 +2421,7 @@ public:
 					toPrint += WSReplace(itemName, L" ", def.getColourForPrint());
 					toPrint += def.getColourForPrint();
 					Graphics::Text * toUpdate = graphics.accessTextViaUniqueID("YouFoundTextBox_TEXT");
-					toUpdate->message = toPrint;
+					toUpdate->resetMessage(*&graphics, toPrint);
 				}
 				return true;
 			}
@@ -2714,7 +2723,7 @@ public:
 						})).run(*&gameEngine);
 					Graphics::Text* theText = graphics.accessTextViaUniqueID("EQUIPMENTEXPLAIN");
 					Combat::Combatant theCombatant = combat.loadPartyMemberAsCombatant(who);
-					theText->message = theCombatant.getEquipmentPrintout(gameEngine.language, *&combat);
+					theText->resetMessage(*&graphics, theCombatant.getEquipmentPrintout(gameEngine.language, *&combat));
 					if (gameEngine.stateFlags["PARTYEDITSELECTED"] != "") {
 						// someone else was selected so do teardown
 						List<Menu::Button> toHandle = gameEngine.storedMenus["EQUIPMENTMANAGEMENT"].buttons;
@@ -2778,8 +2787,8 @@ public:
 					Event("ChangeDropDownText", "RENAMEDROPDOWNMENUS", Map<string, string>({
 						pair<string, string>("menu", data["menu"]),
 						})).run(*&gameEngine);
-					graphics.accessTextViaUniqueID("SKILLTREE1_TEXT")->message = combat.loadPartyMemberAsCombatant(who).getSkillTreesNamesForEditPrintout(gameEngine.language)["1"];
-					graphics.accessTextViaUniqueID("SKILLTREE2_TEXT")->message = combat.loadPartyMemberAsCombatant(who).getSkillTreesNamesForEditPrintout(gameEngine.language)["2"];
+					graphics.accessTextViaUniqueID("SKILLTREE1_TEXT")->resetMessage(*&graphics, combat.loadPartyMemberAsCombatant(who).getSkillTreesNamesForEditPrintout(gameEngine.language)["1"]);
+					graphics.accessTextViaUniqueID("SKILLTREE2_TEXT")->resetMessage(*&graphics, combat.loadPartyMemberAsCombatant(who).getSkillTreesNamesForEditPrintout(gameEngine.language)["2"]);
 					return true;
 				}
 
@@ -3056,8 +3065,8 @@ public:
 					string who = split(buttonLogic, "_").at(0);
 					wstring message1 = combat.loadPartyMemberAsCombatant(who).getPrintout(gameEngine.language, *&combat, gameEngine.stateFlags["includeEquipmentInStatView"] == "1");
 					wstring message2 = combat.loadPartyMemberAsCombatant(who).getPointsRemainingPrintout(gameEngine.language, *&combat);
-					graphics.accessTextViaUniqueID(who + "_PRINTOUTTEXT")->message = message1;
-					graphics.accessTextViaUniqueID(who + "_POINTSLEFTTEXT")->message = message2;
+					graphics.accessTextViaUniqueID(who + "_PRINTOUTTEXT")->resetMessage(*&graphics, message1);
+					graphics.accessTextViaUniqueID(who + "_POINTSLEFTTEXT")->resetMessage(*&graphics, message2);
 					return true;
 				}
 				if (buttonLogic == "DEBUGBUTTON1") {
@@ -3310,7 +3319,7 @@ public:
 							pair<string, string>("format", toHandle.at(x).extras["format"]),
 							})).run(*&gameEngine);
 					}
-					graphics.accessTextViaUniqueID("EQUIPMENTEXPLAIN")->message = combat.loadPartyMemberAsCombatant(who).getEquipmentPrintout(gameEngine.language, *&combat);
+					graphics.accessTextViaUniqueID("EQUIPMENTEXPLAIN")->resetMessage(*&graphics, combat.loadPartyMemberAsCombatant(who).getEquipmentPrintout(gameEngine.language, *&combat));
 					return true;
 				}
 				if (buttonLogic.find("Buy_") != -1) {
@@ -3365,8 +3374,8 @@ public:
 					Event("Change Merch Buttons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
 						pair<string, string>("whichMerchant", whichMerchant),
 						})).run(*&gameEngine);
-					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = Graphics::Text::commonTextReplacements(gameEngine.language, merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Buy"));
-					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter();
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->resetMessage(*&graphics, Graphics::Text::commonTextReplacements(gameEngine.language, merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Buy")));
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter(*&graphics);
 					return true;
 				}
 				if (buttonLogic == "MERCHANTSELL") {
@@ -3375,8 +3384,8 @@ public:
 					Event("Change Merch Buttons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
 						pair<string, string>("whichMerchant", whichMerchant),
 						})).run(*&gameEngine);
-					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = Graphics::Text::commonTextReplacements(gameEngine.language, merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Sell"));
-					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter();
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->resetMessage(*&graphics, Graphics::Text::commonTextReplacements(gameEngine.language, merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Sell")));
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter(*&graphics);
 					return true;
 				}
 				if (buttonLogic == "MERCHANTBUYBACK") {
@@ -3385,8 +3394,8 @@ public:
 					Event("Change Merch Buttons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
 						pair<string, string>("whichMerchant", whichMerchant),
 						})).run(*&gameEngine);
-					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = Graphics::Text::commonTextReplacements(gameEngine.language, merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Buyback"));
-					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter();
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->resetMessage(*&graphics, Graphics::Text::commonTextReplacements(gameEngine.language, merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Buyback")));
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter(*&graphics);
 					return true;
 				}
 				if (buttonLogic == "TradeConfirmNo") {
@@ -3434,9 +3443,9 @@ public:
 							pair<string, string>("uniqueID", "MERCHANT"),
 							pair<string, string>("whichMerchant", whichMerchant),
 							})) }));
-					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->message = strings[gameEngine.language]["GUI"]["MERCHANTTHANKS" + mode];
-					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter();
-					graphics.accessTextViaUniqueID("MONEYSTATUS_TEXT")->message = to_wstring(saveContainer.current.money);
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->resetMessage(*&graphics, strings[gameEngine.language]["GUI"]["MERCHANTTHANKS" + mode]);
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter(*&graphics);
+					graphics.accessTextViaUniqueID("MONEYSTATUS_TEXT")->resetMessage(*&graphics, to_wstring(saveContainer.current.money));
 					return true;
 				}
 				if (buttonLogic == "AcceptItem") {
@@ -3966,8 +3975,17 @@ public:
 						Combat::Skill skillDefinition = combat.skillDefinitions[skillName];
 						skillbarNeedsToBeRedrawn = true;
 						if (!skillDefinition.isElite() and destinationSlot != "5") {
-							equippedSkills.internalMap.erase(skillIndex);
-							equippedSkills[destinationSlot] = skillName;
+							if (equippedSkills.hasKey(destinationSlot)) {
+								// swap two skills
+								string toSwap = equippedSkills[destinationSlot];
+								equippedSkills[destinationSlot] = skillName;
+								equippedSkills[skillIndex] = toSwap;
+							}
+							else {
+								// move the skill into the empty slot
+								equippedSkills.internalMap.erase(skillIndex);
+								equippedSkills[destinationSlot] = skillName;
+							}
 						}
 					}
 					if (imageSource == "FROMSKILLBAR" and unclickLocation == "OUTSIDE") {
@@ -4621,10 +4639,10 @@ public:
 				pair<string, string>("uniqueID", "Olyver Sumner")
 				}))),
 			Event("Load Map", "MANAGEAUDIOSWAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "BénouvilleTown1"),
+				pair<string, string>("targetMap", "Tavern1"),
 			}))),
 			Event("Load Map", "LOADMAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "BénouvilleTown1"),
+				pair<string, string>("targetMap", "Tavern1"),
 			}))),
 			Event("Debug Exploring", "EXPLORE", Map<string,string>(List<pair<string,string>>({}))),
 			})) }),
