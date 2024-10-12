@@ -38,6 +38,29 @@ static List<string> split(string input, string delimiter) {
 	return results;
 }
 
+static List<wstring> WSplit(wstring input, wstring delimiter) {
+	size_t pos = 0;
+	List<wstring> results;
+	while ((pos = input.find(delimiter)) != string::npos) {
+		results.push_back(input.substr(0, pos));
+		input.erase(0, pos + delimiter.length());
+	}
+	if (input.size() > 0) {
+		results.push_back(input);
+	}
+	return results;
+}
+
+static Map<string, string> stringMapCompose(string input, string delimiter) {
+	List<string> split1 = split(input, delimiter);
+	Map<string, string> result;
+	for (auto x : split1.internalList) {
+		List<string> split2 = split(x, "=");
+		result[split2.at(0)] = split2.at(1);
+	}
+	return result;
+}
+
 template <typename T>
 T TChange(T target, T amount, T lowerLimit, T upperLimit) {
 	target += amount;
@@ -915,6 +938,7 @@ public:
 		defineCharacters();
 		defineSkills();
 		
+		animationFrames["EMPTY"]["SPEAKER"].internalList = { EMPTYOBJECT };
 		animationFrames["LampLight1"]["STAND_FRONT"].internalList = { 
 			LAMPLIGHT1 , LAMPLIGHT2, LAMPLIGHT3, LAMPLIGHT4, LAMPLIGHT5, LAMPLIGHT6, LAMPLIGHT7, LAMPLIGHT8, LAMPLIGHT9, LAMPLIGHT10, LAMPLIGHT11,LAMPLIGHT12,LAMPLIGHT13,LAMPLIGHT14,LAMPLIGHT15,LAMPLIGHT16,LAMPLIGHT17,LAMPLIGHT18
 		};
@@ -1001,6 +1025,14 @@ public:
 		animationFrames["TAVERN1_1"]["STAND_FRONT"].internalList = { TAVERN1_1 };
 		animationFrames["TAVERN1_2"]["STAND_FRONT"].internalList = { TAVERN1_2 };
 		animationFrames["TAVERN1_3"]["STAND_FRONT"].internalList = { TAVERN1_3 };
+		animationFrames["TAVERN1_4"]["STAND_FRONT"].internalList = { TAVERN1_4 };
+
+		animationFrames["SKELESUMMON"]["SUMMON_FRONT"].internalList = { SKELESUMMON_1,SKELESUMMON_2,SKELESUMMON_3,SKELESUMMON_4,SKELESUMMON_5,SKELESUMMON_6,SKELESUMMON_7,SKELESUMMON_8,SKELESUMMON_9,SKELESUMMON_10,SKELESUMMON_11,SKELESUMMON_12,SKELESUMMON_13,SKELESUMMON_14,SKELESUMMON_15,SKELESUMMON_16,SKELESUMMON_17,SKELESUMMON_18,SKELESUMMON_19,SKELESUMMON_20,SKELESUMMON_21,SKELESUMMON_22,SKELESUMMON_23,SKELESUMMON_24,SKELESUMMON_25,SKELESUMMON_26,SKELESUMMON_27,SKELESUMMON_28,SKELESUMMON_29,SKELESUMMON_30,SKELESUMMON_31,SKELESUMMON_32,SKELESUMMON_33,SKELESUMMON_34,SKELESUMMON_35,SKELESUMMON_36,SKELESUMMON_37,SKELESUMMON_38,SKELESUMMON_39,SKELESUMMON_40,SKELESUMMON_41,SKELESUMMON_42,SKELESUMMON_43,SKELESUMMON_44,SKELESUMMON_45,SKELESUMMON_46,SKELESUMMON_47,SKELESUMMON_48, };
+
+		animationFrames["SKELESUMMON"]["UNSUMMON_FRONT"].internalList = animationFrames["SKELESUMMON"]["SUMMON_FRONT"].internalList;
+		animationFrames["SKELESUMMON"]["UNSUMMON_FRONT"].internalList.reverse();
+
+		animationFrames["SKELESUMMON"]["SUMMON_FRONT2"].internalList ={ SKELESUMMON_47,SKELESUMMON_48, };
 	}
 	void defineLookups() {
 		layerDefaults["MAP"] = 1;
@@ -1031,6 +1063,7 @@ public:
 		animationFrames["Angela Fleuret"]["MAPACTIONFIGHT_RIGHT"].internalList = { ANGELA_MAPACTIONFIGHT_R1, ANGELA_MAPACTIONFIGHT_R2, ANGELA_MAPACTIONFIGHT_R3 };
 		animationFrames["Angela Fleuret"]["MAPACTIONFIGHT_FRONT"].internalList = { ANGELA_MAPACTIONFIGHT_F1, ANGELA_MAPACTIONFIGHT_F2, ANGELA_MAPACTIONFIGHT_F3 };
 		animationFrames["Angela Fleuret"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { ANGELA_MAPACTIONFIGHT_F3, ANGELA_MAPACTIONFIGHT_F2, ANGELA_MAPACTIONFIGHT_F1 };
+		animationFrames["Angela Fleuret"]["TAVERN_WAIT"].internalList = { ANGELA_TAVERN_WAIT_1, ANGELA_TAVERN_WAIT_2,};
 
 		animationFrames["Shadow Angela Fleuret"]["MAPACTIONFIGHT_RIGHT"].internalList = { ANGELA_MAPACTIONFIGHT_SHADOW_R1, ANGELA_MAPACTIONFIGHT_SHADOW_R2, ANGELA_MAPACTIONFIGHT_SHADOW_R3 };
 		animationFrames["Shadow Angela Fleuret"]["MAPACTIONFIGHT_FRONT"].internalList = { ANGELA_MAPACTIONFIGHT_SHADOW_F1, ANGELA_MAPACTIONFIGHT_SHADOW_F2, ANGELA_MAPACTIONFIGHT_SHADOW_F3 };
@@ -1053,6 +1086,7 @@ public:
 		animationFrames["Tianshun Song"]["WALK_FRONT"].internalList = { TIANSHUN_WALK_FRONT_1, TIANSHUN_WALK_FRONT_2, TIANSHUN_WALK_FRONT_3, TIANSHUN_WALK_FRONT_2, };
 		animationFrames["Tianshun Song"]["WALK_LEFT"].internalList = { TIANSHUN_WALK_LEFT_1, TIANSHUN_WALK_LEFT_2, TIANSHUN_WALK_LEFT_3, TIANSHUN_WALK_LEFT_2, };
 		animationFrames["Tianshun Song"]["WALK_RIGHT"].internalList = { TIANSHUN_WALK_RIGHT_1, TIANSHUN_WALK_RIGHT_2, TIANSHUN_WALK_RIGHT_3, TIANSHUN_WALK_RIGHT_2 };
+		animationFrames["Tianshun Song"]["TAVERN_WAIT"].internalList = { TIANSHUN_TAVERN_WAIT_1, TIANSHUN_TAVERN_WAIT_2, };
 
 		animationFrames["Tianshun Song"]["MAPACTIONFIGHT_RIGHT"].internalList = { TIANSHUN_MAPACTIONFIGHT_R1, TIANSHUN_MAPACTIONFIGHT_R2, TIANSHUN_MAPACTIONFIGHT_R3 };
 		animationFrames["Tianshun Song"]["MAPACTIONFIGHT_FRONT"].internalList = { TIANSHUN_MAPACTIONFIGHT_F1, TIANSHUN_MAPACTIONFIGHT_F2, TIANSHUN_MAPACTIONFIGHT_F3 };
@@ -1083,6 +1117,7 @@ public:
 		animationFrames["Olyver Sumner"]["MAPACTIONFIGHT_RIGHT"].internalList = { OLYVER_MAPACTIONFIGHT_R1, OLYVER_MAPACTIONFIGHT_R2, OLYVER_MAPACTIONFIGHT_R3 };
 		animationFrames["Olyver Sumner"]["MAPACTIONFIGHT_FRONT"].internalList = { OLYVER_MAPACTIONFIGHT_F1, OLYVER_MAPACTIONFIGHT_F2, OLYVER_MAPACTIONFIGHT_F3 };
 		animationFrames["Olyver Sumner"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { OLYVER_MAPACTIONFIGHT_F3, OLYVER_MAPACTIONFIGHT_F2, OLYVER_MAPACTIONFIGHT_F1 };
+		animationFrames["Olyver Sumner"]["TAVERN_WAIT"].internalList = { OLYVER_TAVERN_WAIT_1, OLYVER_TAVERN_WAIT_2, };
 
 		animationFrames["Shadow Olyver Sumner"]["MAPACTIONFIGHT_RIGHT"].internalList = { OLYVER_MAPACTIONFIGHT_SHADOW_R1, OLYVER_MAPACTIONFIGHT_SHADOW_R2, OLYVER_MAPACTIONFIGHT_SHADOW_R3 };
 		animationFrames["Shadow Olyver Sumner"]["MAPACTIONFIGHT_FRONT"].internalList = { OLYVER_MAPACTIONFIGHT_SHADOW_F1, OLYVER_MAPACTIONFIGHT_SHADOW_F2, OLYVER_MAPACTIONFIGHT_SHADOW_F3 };
@@ -1108,6 +1143,7 @@ public:
 		animationFrames["Hernando Pizarro"]["MAPACTIONFIGHT_RIGHT"].internalList = { HERNANDO_MAPACTIONFIGHT_R1, HERNANDO_MAPACTIONFIGHT_R2, HERNANDO_MAPACTIONFIGHT_R3 };
 		animationFrames["Hernando Pizarro"]["MAPACTIONFIGHT_FRONT"].internalList = { HERNANDO_MAPACTIONFIGHT_F1, HERNANDO_MAPACTIONFIGHT_F2, HERNANDO_MAPACTIONFIGHT_F3 };
 		animationFrames["Hernando Pizarro"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { HERNANDO_MAPACTIONFIGHT_F3, HERNANDO_MAPACTIONFIGHT_F2, HERNANDO_MAPACTIONFIGHT_F1 };
+		animationFrames["Hernando Pizarro"]["TAVERN_WAIT"].internalList = { HERNANDO_TAVERN_WAIT_1, HERNANDO_TAVERN_WAIT_2, };
 
 		animationFrames["Hernando Pizarro"]["MAPACTIONATTACK_R1"].internalList = { HERNANDO_MAPATTACK_01, HERNANDO_MAPATTACK_02, HERNANDO_MAPATTACK_03,HERNANDO_MAPATTACK_04,HERNANDO_MAPATTACK_05,HERNANDO_MAPATTACK_06,HERNANDO_MAPATTACK_07,HERNANDO_MAPATTACK_08,HERNANDO_MAPATTACK_09,HERNANDO_MAPATTACK_10, HERNANDO_MAPATTACK_11 };
 
@@ -1147,6 +1183,8 @@ public:
 		animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFADEBACKIN_RIGHT"].internalList.reverse();
 		animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFIGHTUNDO_FRONT"] = animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_FRONT"];
 		animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFIGHTUNDO_FRONT"].internalList.reverse();
+		animationFrames["Gihat al-Din Jaqmaq"]["TAVERN_WAIT"].internalList = { GIHAT_TAVERN_WAIT_1, GIHAT_TAVERN_WAIT_2, };
+		animationFrames["Gihat al-Din Jaqmaq"]["TAVERN_WAIT2"].internalList = { GIHAT_TAVERN_WAIT_3, GIHAT_TAVERN_WAIT_4, };
 
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFADE_RIGHT"].internalList = { GIHAT_MAPACTIONFIGHT_SHADOW_R3 };
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_RIGHT"].internalList = { SHADOW_GIHAT_STAND_RIGHT_1, SHADOW_GIHAT_STAND_RIGHT_2, GIHAT_MAPACTIONFIGHT_SHADOW_R1, GIHAT_MAPACTIONFIGHT_SHADOW_R2, GIHAT_MAPACTIONFIGHT_SHADOW_R3 };
@@ -1333,11 +1371,33 @@ class FlagDependentCutsceneNameFinder {
 public:
 	static string getNameOfCutsceneDependingOnFlags(string cutsceneName) {
 		Map<string, bool> flags; flags.internalMap = saveContainer.current.flags;
+		string player1 = saveContainer.getCurrentMainCharacter();
 		if (cutsceneName == "GraveDigger") {
 			if (flags["debugFlag"]) {
 				cutsceneName = "GraveDiggerDebug";
 			}
 		}
+		if (cutsceneName == "TavernTianshun1") {
+			if (flags["IntroFinished"]) {}
+			cutsceneName += "+" + player1;
+		}
+		if (cutsceneName == "TavernOlyver1") {
+			if (flags["IntroFinished"]) {}
+			cutsceneName += "+" + player1;
+		}
+		if (cutsceneName == "TavernHernando1") {
+			if (flags["IntroFinished"]) {}
+			cutsceneName += "+" + player1;
+		}
+		if (cutsceneName == "TavernGihat1") {
+			if (flags["IntroFinished"]) {}
+			cutsceneName += "+" + player1;
+		}
+		if (cutsceneName == "TavernAngela1") {
+			if (flags["IntroFinished"]) {}
+			cutsceneName += "+" + player1;
+		}
+
 
 		return cutsceneName;
 	}
@@ -1616,8 +1676,8 @@ mapFloor::triangle({{49.4265079498291,4.762154072523117}, {-19.623970985412598,2
 		pair<float, float> position;
 	};
 	void defineAllMaps() {
-		maps["RoadToBénouville"] = mapInstance("RoadToBénouville", MAP_DEBUG, { 51,55 /*51,55*/ }, List<mapObject>({
-		mapObject::getOnetimeTrigger("HorsemanCutscene1",List<mapFloor::triangle>({mapFloor::triangle({{47.42600917816162,9.98448133468628}, {48.882490396499634,6.590679287910461}, {48.918330669403076,10.155074298381805}}),mapFloor::triangle({{48.918330669403076,10.155074298381805}, {50.9097695350647,6.964127719402313}, {50.94560980796814,10.528524219989777}}),mapFloor::triangle({{48.882490396499634,6.590679287910461}, {49.91276562213898,5.539841949939728}, {50.9097695350647,6.964127719402313}}),
+		maps["RoadToBénouville"] = mapInstance("RoadToBénouville", MAP_DEBUG, { 45,8 /*51,55*/ }, List<mapObject>({
+		mapObject::getOnetimeTrigger("HorsemanCutsceneDEBUG"/*"HorsemanCutscene1"*/,List<mapFloor::triangle>({mapFloor::triangle({{47.42600917816162,9.98448133468628}, {48.882490396499634,6.590679287910461}, {48.918330669403076,10.155074298381805}}),mapFloor::triangle({{48.918330669403076,10.155074298381805}, {50.9097695350647,6.964127719402313}, {50.94560980796814,10.528524219989777}}),mapFloor::triangle({{48.882490396499634,6.590679287910461}, {49.91276562213898,5.539841949939728}, {50.9097695350647,6.964127719402313}}),
 mapFloor::triangle({{48.94671440124512,12.747283279895782}, {48.918330669403076,10.155074298381805}, {50.50344467163086,12.811049818992615}}),mapFloor::triangle({{50.46741962432861,15.510085225105286}, {50.50344467163086,12.811049818992615}, {52.088552713394165,15.467023849487305}}),mapFloor::triangle({{52.088552713394165,15.467023849487305}, {54.11888360977173,12.615998089313507}, {55.40493726730347,14.890195429325104}}),
 mapFloor::triangle({{50.94560980796814,10.528524219989777}, {50.50344467163086,12.811049818992615}, {48.918330669403076,10.155074298381805}}),mapFloor::triangle({{47.42600917816162,9.98448133468628}, {47.411930561065674,6.761273741722107}, {48.882490396499634,6.590679287910461}}),mapFloor::triangle({{48.918330669403076,10.155074298381805}, {48.882490396499634,6.590679287910461}, {50.9097695350647,6.964127719402313}}),
 mapFloor::triangle({{48.882490396499634,6.590679287910461}, {48.882490396499634,5.7226985692977905}, {49.91276562213898,5.539841949939728}}),mapFloor::triangle({{48.94671440124512,12.747283279895782}, {47.42600917816162,9.98448133468628}, {48.918330669403076,10.155074298381805}}),mapFloor::triangle({{50.46741962432861,15.510085225105286}, {48.94671440124512,12.747283279895782}, {50.50344467163086,12.811049818992615}}),
@@ -2521,13 +2581,89 @@ mapFloor::triangle({{39.47590887546539,91.0868763923645}, {39.526793360710144,91
 	mapFloor::triangle({{20.69150060415268,83.3631157875061}, {20.893466472625732,84.20861959457397}, {16.15099161863327,84.20861959457397}}),mapFloor::triangle({{14.440201222896576,79.04058694839478}, {14.22465443611145,78.42307686805725}, {17.82085746526718,77.34041213989258}}),mapFloor::triangle({{20.893466472625732,84.20861959457397}, {21.20542675256729,86.10115051269531}, {16.46295189857483,84.92844104766846}}), }), false, Map<string, string>({ pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "GRASS"}) })),
 				mapFloor("Wood", List<mapFloor::triangle>({ mapFloor::triangle({{32.14395046234131,97.42332100868225}, {42.084380984306335,93.16425919532776}, {42.084380984306335,97.42332100868225}}),mapFloor::triangle({{62.91089653968811,61.24071478843689}, {64.63928818702698,59.19190049171448}, {63.254958391189575,58.54418873786926}}),mapFloor::triangle({{32.14395046234131,97.42332100868225}, {32.05464780330658,93.16425919532776}, {42.084380984306335,93.16425919532776}}),
 				mapFloor::triangle({{62.91089653968811,61.24071478843689}, {64.62193131446838,62.04128861427307}, {64.63928818702698,59.19190049171448}}), }), false, Map<string, string>({ pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "WOOD"}) })),
-				}), {}, { 5000, 5000 }, { Map<string, string>({pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),}) });
+				}), {}, { 5000, 5000 }, { Map<string, string>({pair<string,string>		({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),}) });
 		maps["Tavern1"] = mapInstance("Tavern1", EMPTYMAP, { 50,50 }, List<mapObject>({
-					mapObject("Father Michelet", true, true, false, imageLookup.getSequenceAsString("Father Michelet","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","0.9","CENTRE",{49.8, 53}, false, List<mapFloor::triangle>({mapFloor::triangle({{49.09331798553467,54.02823090553284}, {50.56154727935791,56.25041127204895}, {49.09331798553467,56.25041127204895}}),mapFloor::triangle({{49.09331798553467,54.02823090553284}, {50.56154727935791,54.02823090553284}, {50.56154727935791,56.25041127204895}}),}), Map<string, string>({
+				mapObject("Hernando Pizarro", true, true, false, imageLookup.getSequenceAsString("Hernando Pizarro","TAVERN_WAIT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{56, 48.5}, false, List<mapFloor::triangle>({mapFloor::triangle({{54.85587120056152,49.13839101791382}, {55.50876259803772,51.55308246612549}, {56.750309467315674,49.848872423172}}),mapFloor::triangle({{54.85587120056152,49.13839101791382}, {53.76160144805908,50.5159854888916}, {55.50876259803772,51.55308246612549}}),}), Map<string, string>({
+										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Hernando Pizarro"}),
+										pair<string, string>({"copy","Hernando Pizarro"}),
+										pair<string, string>({"cutscene","TavernHernando1"}),
+										pair<string, string>({"x","4"}),
+										pair<string, string>({"y","-5"}),
+										pair<string, string>({"h","50"}),
+										pair<string, string>({"w","50"}),
+										pair<string, string>("colour", "WHITE"),
+										pair<string, string>("uniqueID", mapPopupTextID),
+										pair<string, string>("don'tLoadIfPlayer", "Hernando Pizarro"),
+										pair<string, string>("anchorStyle", "TOPLEFT"),
+										pair<string, string>("shadowColour", "BLACK"),
+										pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+										pair<string, string>({"format","LightText_20"})})),
+				mapObject("Gihat al-Din Jaqmaq", true, true, false, imageLookup.getSequenceAsString("Gihat al-Din Jaqmaq","TAVERN_WAIT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{54.5, 51}, false, List<mapFloor::triangle>({mapFloor::triangle({{53.69369983673096,50.6539523601532}, {54.89156246185303,53.317856788635254}, {55.93475103378296,51.88592076301575}}),mapFloor::triangle({{53.69369983673096,50.6539523601532}, {52.196645736694336,52.538615465164185}, {54.89156246185303,53.317856788635254}}),}), Map<string, string>({
+										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Gihat al-Din Jaqmaq"}),
+										pair<string, string>({"copy","Gihat al-Din Jaqmaq"}),
+										pair<string, string>({"cutscene","TavernGihat1"}),
+										pair<string, string>({"x","4"}),
+										pair<string, string>({"y","-5"}),
+										pair<string, string>({"h","50"}),
+										pair<string, string>({"w","50"}),
+										pair<string, string>("colour", "WHITE"),
+										pair<string, string>("uniqueID", mapPopupTextID),
+										pair<string, string>("anchorStyle", "TOPLEFT"),
+										pair<string, string>("shadowColour", "BLACK"),
+										pair<string, string>("don'tLoadIfPlayer", "Gihat al-Din Jaqmaq"),
+										pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+										pair<string, string>({"format","LightText_20"})})),
+				mapObject("Olyver Sumner", true, true, false, imageLookup.getSequenceAsString("Olyver Sumner","TAVERN_WAIT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{50, 48.8}, false, List<mapFloor::triangle>({mapFloor::triangle({{49.690064787864685,49.232131242752075}, {50.1770555973053,51.677531003952026}, {51.40126347541809,49.997130036354065}}),mapFloor::triangle({{49.690064787864685,49.232131242752075}, {48.65306317806244,50.53762197494507}, {50.1770555973053,51.677531003952026}}),}), Map<string, string>({
+										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Olyver Sumner"}),
+										pair<string, string>({"copy","Olyver Sumner"}),
+										pair<string, string>({"cutscene","TavernOlyver1"}),
+										pair<string, string>({"x","-17"}),
+										pair<string, string>({"y","-5"}),
+										pair<string, string>({"h","50"}),
+										pair<string, string>({"w","50"}),
+										pair<string, string>("colour", "WHITE"),
+										pair<string, string>("uniqueID", mapPopupTextID),
+										pair<string, string>("anchorStyle", "TOPLEFT"),
+										pair<string, string>("shadowColour", "BLACK"),
+										pair<string, string>("don'tLoadIfPlayer", "Olyver Sumner"),
+										pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+										pair<string, string>({"format","LightText_20"})})),
+				mapObject("Tianshun Song", true, true, false, imageLookup.getSequenceAsString("Tianshun Song","TAVERN_WAIT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{53.4, 46.7}, false, List<mapFloor::triangle>({mapFloor::triangle({{53.75606417655945,47.804465889930725}, {51.4295756816864,50.14353394508362}, {53.19821238517761,50.67419409751892}}),mapFloor::triangle({{53.75606417655945,47.804465889930725}, {51.983314752578735,46.987324953079224}, {51.4295756816864,50.14353394508362}}),}), Map<string, string>({
+										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Tianshun Song"}),
+										pair<string, string>({"copy","Tianshun Song"}),
+										pair<string, string>({"cutscene","TavernTianshun1"}),
+										pair<string, string>({"x","-17"}),
+										pair<string, string>({"y","-5"}),
+										pair<string, string>({"h","50"}),
+										pair<string, string>({"w","50"}),
+										pair<string, string>("colour", "WHITE"),
+										pair<string, string>("uniqueID", mapPopupTextID),
+										pair<string, string>("anchorStyle", "TOPLEFT"),
+										pair<string, string>("shadowColour", "BLACK"),
+										pair<string, string>("don'tLoadIfPlayer", "Tianshun Song"),
+										pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+										pair<string, string>({"format","LightText_20"})})),
+				mapObject("Angela Fleuret", true, true, false, imageLookup.getSequenceAsString("Angela Fleuret","TAVERN_WAIT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{48, 51}, false, List<mapFloor::triangle>({mapFloor::triangle({{47.35563099384308,52.509766817092896}, {48.2275515794754,54.15087938308716}, {48.571962118148804,51.74139738082886}}),mapFloor::triangle({{48.2275515794754,54.15087938308716}, {49.37558174133301,51.93273425102234}, {48.571962118148804,51.74139738082886}}),mapFloor::triangle({{47.35563099384308,52.509766817092896}, {47.02636897563934,53.65135669708252}, {48.2275515794754,54.15087938308716}}),
+mapFloor::triangle({{48.2275515794754,54.15087938308716}, {49.03117120265961,54.34221625328064}, {49.37558174133301,51.93273425102234}}),}), Map<string, string>({
+										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Angela Fleuret"}),
+										pair<string, string>({"copy","Angela Fleuret"}),
+										pair<string, string>({"cutscene","TavernAngela1"}),
+										pair<string, string>({"x","-17"}),
+										pair<string, string>({"y","-5"}),
+										pair<string, string>({"h","50"}),
+										pair<string, string>({"w","50"}),
+										pair<string, string>("colour", "WHITE"),
+										pair<string, string>("uniqueID", mapPopupTextID),
+										pair<string, string>("anchorStyle", "TOPLEFT"),
+										pair<string, string>("shadowColour", "BLACK"),
+										pair<string, string>("don'tLoadIfPlayer", "Angela Fleuret"),
+										pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+										pair<string, string>({"format","LightText_20"})})),
+				mapObject("Father Michelet", true, true, false, imageLookup.getSequenceAsString("Father Michelet","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","0.9","CENTRE",{45.5, 52}, false, List<mapFloor::triangle>({mapFloor::triangle({{46.30991220474243,52.92676091194153}, {44.418954849243164,54.49073314666748}, {46.23188078403473,54.792553186416626}}),mapFloor::triangle({{46.30991220474243,52.92676091194153}, {45.14247477054596,52.35322117805481}, {44.418954849243164,54.49073314666748}}),}), Map<string, string>({
 										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Father Michelet"}),
 										pair<string, string>({"copy","Father Michelet"}),
-										pair<string, string>({"cutscene","Michelet"}),
-										pair<string, string>({"x","-10"}),
+										pair<string, string>({"cutscene","TavernMichelet1"}),
+										pair<string, string>({"x","-20"}),
 										pair<string, string>({"y","-7"}),
 										pair<string, string>({"h","50"}),
 										pair<string, string>({"w","50"}),
@@ -2535,15 +2671,18 @@ mapFloor::triangle({{39.47590887546539,91.0868763923645}, {39.526793360710144,91
 										pair<string, string>("uniqueID", mapPopupTextID),
 										pair<string, string>("anchorStyle", "TOPLEFT"),
 										pair<string, string>("shadowColour", "BLACK"),
+										pair<string, string>("don'tLoadIfNot", "IntroFinished"),
 										pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
 										pair<string, string>({"format","LightText_20"})})),
-			mapObject("Shadow Father Michelet", false, true, false, imageLookup.getSequenceAsString("Shadow Father Michelet","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"0.5","0.9","CENTRE",{49.8, 53}, false, {},{}),
+				mapObject("Shadow Father Michelet", false, true, false, imageLookup.getSequenceAsString("Shadow Father Michelet","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"0.5","0.9","CENTRE",{45.5, 52}, false, {},Map<string, string>({
+					pair<string, string>("don'tLoadIfNot", "IntroFinished")
+				})),
 					mapObject("Fireplace", false, true, false, imageLookup.getSequenceAsString("Fireplace2","STAND_FRONT"),"1",20,imageLookup.layerDefaults["MAP"] + 2,"1.0","1.0","CENTRE",{55.7, 48.5}, false, {}, {}),
 					mapObject("Tavern1AsObject1", false, true, false, imageLookup.getSequenceAsString("TAVERN1_1","STAND_FRONT"),"0",0,imageLookup.layerDefaults["MAP"] + 1,"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+					mapObject("Table", false, true, false, imageLookup.getSequenceAsString("TAVERN1_4","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"],"1","1.0","CENTRE",{53.7, 48.9}, false, {}, {}),
 					mapObject("Tavern1AsObject2", false, true, false, imageLookup.getSequenceAsString("TAVERN1_2","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"] + 1,"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
 					mapObject("Tavern1AsObject3", false, true, false, imageLookup.getSequenceAsString("TAVERN1_3","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"] + 2,"0.2","1.0","CENTRE",{50, 50}, false, {}, {}),
-					mapObject("AT_Door", true, false, false, "","0",0,0,"1","1.0","CENTRE",{52, 56}, false, List<mapFloor::triangle>({mapFloor::triangle({{51.54890418052673,58.0529510974884}, {52.12327241897583,55.843013525009155}, {50.66222548484802,57.672882080078125}}),mapFloor::triangle({{49.81577396392822,56.539249420166016}, {51.57681703567505,58.146923780441284}, {51.95688605308533,57.26024508476257}}),mapFloor::triangle({{51.54890418052673,58.0529510974884}, {53.00514101982117,56.22187852859497}, {52.12327241897583,55.843013525009155}}),
-mapFloor::triangle({{49.81577396392822,56.539249420166016}, {49.43690598011017,57.42111802101135}, {51.57681703567505,58.146923780441284}}),}), Map<string, string>({
+					mapObject("AT_Door", true, false, false, "","0",0,0,"1","1.0","CENTRE",{52, 56}, false, List<mapFloor::triangle>({mapFloor::triangle({{51.54890418052673,58.0529510974884}, {50.794535875320435,55.240654945373535}, {49.33348894119263,57.070523500442505}}),mapFloor::triangle({{51.54890418052673,58.0529510974884}, {53.00514101982117,56.22187852859497}, {50.794535875320435,55.240654945373535}}),}), Map<string, string>({
 													pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Leave Tavern"}),
 													pair<string, string>({"copy","AT_Door"}),
 													pair<string, string>({"areaTransition","BénouvilleTown1"}),
@@ -2563,18 +2702,18 @@ mapFloor::triangle({{49.81577396392822,56.539249420166016}, {49.43690598011017,5
 													pair<string, string>({"format","LightText_20"}),
 														})),
 					}), List<mapFloor>({
-							mapFloor("Walkable", List<mapFloor::triangle>({mapFloor::triangle({{45.80773115158081,55.23442625999451}, {43.52834224700928,52.217042446136475}, {42.25945472717285,53.74298095703125}}),mapFloor::triangle({{51.78239941596985,57.75935649871826}, {51.406002044677734,55.53486347198486}, {50.175940990448,57.07051157951355}}),mapFloor::triangle({{50.175940990448,57.07051157951355}, {47.05921411514282,53.70413064956665}, {45.80773115158081,55.23442625999451}}),
-mapFloor::triangle({{51.406002044677734,55.53486347198486}, {50.562429428100586,49.26672577857971}, {47.05921411514282,53.70413064956665}}),mapFloor::triangle({{54.80759143829346,51.210397481918335}, {55.250173807144165,48.847419023513794}, {53.683775663375854,50.73707699775696}}),mapFloor::triangle({{52.27267146110535,50.05027651786804}, {50.97469687461853,47.59702384471893}, {50.365859270095825,49.536800384521484}}),
-mapFloor::triangle({{50.97469687461853,47.59702384471893}, {50.05497336387634,46.827346086502075}, {49.763306975364685,47.14358448982239}}),mapFloor::triangle({{44.866180419921875,51.85549855232239}, {43.43647360801697,52.36383080482483}, {43.921685218811035,51.41664147377014}}),mapFloor::triangle({{45.80773115158081,55.23442625999451}, {47.05921411514282,53.70413064956665}, {43.52834224700928,52.217042446136475}}),
-mapFloor::triangle({{51.78239941596985,57.75935649871826}, {53.00514101982117,56.22187852859497}, {51.406002044677734,55.53486347198486}}),mapFloor::triangle({{50.175940990448,57.07051157951355}, {51.406002044677734,55.53486347198486}, {47.05921411514282,53.70413064956665}}),mapFloor::triangle({{51.406002044677734,55.53486347198486}, {54.9092173576355,51.097458600997925}, {50.562429428100586,49.26672577857971}}),
-mapFloor::triangle({{54.80759143829346,51.210397481918335}, {56.59042000770569,49.41188991069794}, {55.250173807144165,48.847419023513794}}),mapFloor::triangle({{52.27267146110535,50.05027651786804}, {52.75932550430298,47.75756299495697}, {50.97469687461853,47.59702384471893}}),mapFloor::triangle({{50.97469687461853,47.59702384471893}, {52.75932550430298,47.75756299495697}, {50.05497336387634,46.827346086502075}}),
-mapFloor::triangle({{44.866180419921875,51.85549855232239}, {44.82801854610443,53.02895903587341}, {43.43647360801697,52.36383080482483}}),}),true,{}),
-							mapFloor("WoodFloor", List<mapFloor::triangle>({mapFloor::triangle({{45.56874930858612,55.526649951934814}, {43.52834224700928,52.217042446136475}, {42.017149925231934,54.03437614440918}}),mapFloor::triangle({{51.54890418052673,58.0529510974884}, {51.406002044677734,55.53486347198486}, {49.9410480260849,57.36375451087952}}),mapFloor::triangle({{49.9410480260849,57.36375451087952}, {47.05921411514282,53.70413064956665}, {45.56874930858612,55.526649951934814}}),
-mapFloor::triangle({{51.406002044677734,55.53486347198486}, {50.562429428100586,49.26672577857971}, {47.05921411514282,53.70413064956665}}),mapFloor::triangle({{54.80759143829346,51.210397481918335}, {55.250173807144165,48.847419023513794}, {53.683775663375854,50.73707699775696}}),mapFloor::triangle({{52.27267146110535,50.05027651786804}, {50.97469687461853,47.59702384471893}, {50.365859270095825,49.536800384521484}}),
-mapFloor::triangle({{50.97469687461853,47.59702384471893}, {50.05497336387634,46.827346086502075}, {49.763306975364685,47.14358448982239}}),mapFloor::triangle({{44.866180419921875,51.85549855232239}, {43.43647360801697,52.36383080482483}, {43.921685218811035,51.41664147377014}}),mapFloor::triangle({{45.56874930858612,55.526649951934814}, {47.05921411514282,53.70413064956665}, {43.52834224700928,52.217042446136475}}),
-mapFloor::triangle({{51.54890418052673,58.0529510974884}, {53.00514101982117,56.22187852859497}, {51.406002044677734,55.53486347198486}}),mapFloor::triangle({{49.9410480260849,57.36375451087952}, {51.406002044677734,55.53486347198486}, {47.05921411514282,53.70413064956665}}),mapFloor::triangle({{51.406002044677734,55.53486347198486}, {54.9092173576355,51.097458600997925}, {50.562429428100586,49.26672577857971}}),
-mapFloor::triangle({{54.80759143829346,51.210397481918335}, {56.59042000770569,49.41188991069794}, {55.250173807144165,48.847419023513794}}),mapFloor::triangle({{52.27267146110535,50.05027651786804}, {52.75932550430298,47.75756299495697}, {50.97469687461853,47.59702384471893}}),mapFloor::triangle({{50.97469687461853,47.59702384471893}, {52.75932550430298,47.75756299495697}, {50.05497336387634,46.827346086502075}}),
-mapFloor::triangle({{44.866180419921875,51.85549855232239}, {44.82801854610443,53.02895903587341}, {43.43647360801697,52.36383080482483}}),}),false,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "FLOORBOARD"})})),
+							mapFloor("Walkable", List<mapFloor::triangle>({mapFloor::triangle({{45.80773115158081,55.23442625999451}, {43.52834224700928,52.217042446136475}, {42.25945472717285,53.74298095703125}}),mapFloor::triangle({{51.78239941596985,57.75935649871826}, {51.420509815216064,55.51648139953613}, {50.175940990448,57.07051157951355}}),mapFloor::triangle({{50.175940990448,57.07051157951355}, {47.05921411514282,53.70413064956665}, {45.80773115158081,55.23442625999451}}),
+mapFloor::triangle({{51.420509815216064,55.51648139953613}, {50.562429428100586,49.26672577857971}, {47.05921411514282,53.70413064956665}}),mapFloor::triangle({{54.80759143829346,51.210397481918335}, {55.250173807144165,48.847419023513794}, {53.683775663375854,50.73707699775696}}),mapFloor::triangle({{52.27267146110535,50.05027651786804}, {50.97469687461853,47.59702384471893}, {50.365859270095825,49.536800384521484}}),
+mapFloor::triangle({{50.97469687461853,47.59702384471893}, {50.05497336387634,46.827346086502075}, {49.763306975364685,47.14358448982239}}),mapFloor::triangle({{44.866180419921875,51.85549855232239}, {43.43647360801697,52.36383080482483}, {43.921685218811035,51.41664147377014}}),mapFloor::triangle({{52.332907915115356,56.570613384246826}, {52.022868394851685,53.92199754714966}, {50.277793407440186,55.861955881118774}}),
+mapFloor::triangle({{45.80773115158081,55.23442625999451}, {47.05921411514282,53.70413064956665}, {43.52834224700928,52.217042446136475}}),mapFloor::triangle({{51.78239941596985,57.75935649871826}, {52.54425406455994,56.81350231170654}, {51.420509815216064,55.51648139953613}}),mapFloor::triangle({{50.175940990448,57.07051157951355}, {51.420509815216064,55.51648139953613}, {47.05921411514282,53.70413064956665}}),
+mapFloor::triangle({{51.420509815216064,55.51648139953613}, {54.9092173576355,51.097458600997925}, {50.562429428100586,49.26672577857971}}),mapFloor::triangle({{54.80759143829346,51.210397481918335}, {56.59042000770569,49.41188991069794}, {55.250173807144165,48.847419023513794}}),mapFloor::triangle({{52.27267146110535,50.05027651786804}, {52.75932550430298,47.75756299495697}, {50.97469687461853,47.59702384471893}}),
+mapFloor::triangle({{50.97469687461853,47.59702384471893}, {52.75932550430298,47.75756299495697}, {50.05497336387634,46.827346086502075}}),mapFloor::triangle({{44.866180419921875,51.85549855232239}, {44.82801854610443,53.02895903587341}, {43.43647360801697,52.36383080482483}}),}),true,{}),
+							mapFloor("WoodFloor", List<mapFloor::triangle>({mapFloor::triangle({{45.80773115158081,55.23442625999451}, {43.52834224700928,52.217042446136475}, {42.25945472717285,53.74298095703125}}),mapFloor::triangle({{51.78239941596985,57.75935649871826}, {51.420509815216064,55.51648139953613}, {50.175940990448,57.07051157951355}}),mapFloor::triangle({{50.175940990448,57.07051157951355}, {47.05921411514282,53.70413064956665}, {45.80773115158081,55.23442625999451}}),
+mapFloor::triangle({{51.420509815216064,55.51648139953613}, {50.562429428100586,49.26672577857971}, {47.05921411514282,53.70413064956665}}),mapFloor::triangle({{54.80759143829346,51.210397481918335}, {55.250173807144165,48.847419023513794}, {53.683775663375854,50.73707699775696}}),mapFloor::triangle({{52.27267146110535,50.05027651786804}, {50.97469687461853,47.59702384471893}, {50.365859270095825,49.536800384521484}}),
+mapFloor::triangle({{50.97469687461853,47.59702384471893}, {50.05497336387634,46.827346086502075}, {49.763306975364685,47.14358448982239}}),mapFloor::triangle({{44.866180419921875,51.85549855232239}, {43.43647360801697,52.36383080482483}, {43.921685218811035,51.41664147377014}}),mapFloor::triangle({{52.660661935806274,56.37573003768921}, {52.3506224155426,53.72711420059204}, {50.6055474281311,55.66707253456116}}),
+mapFloor::triangle({{45.80773115158081,55.23442625999451}, {47.05921411514282,53.70413064956665}, {43.52834224700928,52.217042446136475}}),mapFloor::triangle({{51.78239941596985,57.75935649871826}, {53.00514101982117,56.22187852859497}, {51.420509815216064,55.51648139953613}}),mapFloor::triangle({{50.175940990448,57.07051157951355}, {51.420509815216064,55.51648139953613}, {47.05921411514282,53.70413064956665}}),
+mapFloor::triangle({{51.420509815216064,55.51648139953613}, {54.9092173576355,51.097458600997925}, {50.562429428100586,49.26672577857971}}),mapFloor::triangle({{54.80759143829346,51.210397481918335}, {56.59042000770569,49.41188991069794}, {55.250173807144165,48.847419023513794}}),mapFloor::triangle({{52.27267146110535,50.05027651786804}, {52.75932550430298,47.75756299495697}, {50.97469687461853,47.59702384471893}}),
+mapFloor::triangle({{50.97469687461853,47.59702384471893}, {52.75932550430298,47.75756299495697}, {50.05497336387634,46.827346086502075}}),mapFloor::triangle({{44.866180419921875,51.85549855232239}, {44.82801854610443,53.02895903587341}, {43.43647360801697,52.36383080482483}}),}),false,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "FLOORBOARD"})})),
 						}), {}, { 5000,5000 }, { Map<string, string>({
 							pair<string,string>({"song1",to_string(FIREPLACE_WAV_1) + " " + "AmbienceVolume"}),
 							pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
@@ -2873,14 +3012,17 @@ mapFloor::triangle({{46.14731967449188,42.88007318973541}, {46.34263217449188,44
 		}
 		return (walkable and not obstructed);
 	}
-	void tryToMovePlayer(string direction) {
+	void playWalkingAudio() {
 		List<mapFloor> currentlySteppedOn = getCurrentlySteppedOn();
-		pair<float, float> proposedPosition;
 		for (auto walkable : currentlySteppedOn.internalList) {
 			if (walkable.hasAudio()) {
 				walkable.playAudio();
+				return;
 			}
 		}
+	}
+	void tryToMovePlayer(string direction) {
+		pair<float, float> proposedPosition;
 		pair<float, float> toMove;
 		float unit = unitOfMovement;
 		if (direction == "BACK") { toMove.second -= unit; }

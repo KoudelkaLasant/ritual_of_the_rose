@@ -1236,6 +1236,58 @@ public:
 				
 				return true;
 			}
+			if (type == "RELOADMAPOBJECTS") {
+				for (auto& x : explorer.currentMap.objects.internalList) {
+					Map<string, string> data = x.data;
+					if (data.hasOneOfTheseKeys({ "don'tLoadIfNot", "don'tLoadIfPlayer" })) {
+						bool needToLoad = true;
+						if (data.hasKey("don'tLoadIfNot")) {
+							string flagName = data["don'tLoadIfNot"];
+							bool status = saveContainer.current.flags[flagName];
+							needToLoad = status;
+						}
+						if (data.hasKey("don'tLoadIfPlayer")) {
+							bool status = saveContainer.getCurrentMainCharacter() != data["don'tLoadIfPlayer"];
+							needToLoad = status;
+						}
+						if (!needToLoad) {
+							x.visible = false;
+							x.canInteract = false;
+						}
+						else {
+							x.visible = true;
+							x.canInteract = true;
+						}
+					}
+
+					if (x.imageSources == "") { continue; }
+					string opacity = x.opacity;
+					if (!x.visible) {
+						opacity = "0.0";
+					}
+					string scale = x.scale;
+					if (graphics.doesThisImageAlreadyExist(x.name)) {
+						Event("Teardown", "TEARDOWNIMAGE", Map<string, string>(List<pair<string, string>>({
+							pair<string, string>("uniqueID", x.name),
+							}))).run(*&gameEngine);
+					}
+					Event("Load" + x.name, "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", x.imageSources),
+						pair<string, string>("x", "50"),
+						pair<string, string>("y", "50"),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", opacity),
+						pair<string, string>("scale", scale),
+						pair<string, string>("layer", to_string(x.layer)),
+						pair<string, string>("animated", x.animated),
+						pair<string, string>("animation_speed", to_string(x.animationSpeed)),
+						pair<string, string>("styles", "LOOP"),
+						pair<string, string>("uniqueID", x.name), }))).run(*&gameEngine);
+				}
+				Event("", "MAPMOVE", {}).run(*&gameEngine);
+				Event("TearDownPopUpText", "TEARDOWNTEXT", Map<string, string>(pair<string, string>{"uniqueID", explorer.mapPopupTextID})).run(*&gameEngine);
+				return true;
+			}
 			if (type == "LOADMAP") {
 				string mapName = data["targetMap"];
 				string explorerName = saveContainer.getCurrentMainCharacter();
@@ -1278,27 +1330,7 @@ public:
 					pair<string, string>("animation_speed", "500"),
 					pair<string, string>("styles", "LOOP"),
 					pair<string, string>("uniqueID", explorerName + "_Shadow")}))).run(*&gameEngine);
-				for (auto const& x : explorer.currentMap.objects.internalList) {
-					if (x.imageSources == "") { continue; }
-					string opacity = x.opacity;
-					if (!x.visible) {
-						opacity = "0.0";
-					}
-					string scale = x.scale;
-					Event("Load" + x.name, "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
-						pair<string, string>("sources", x.imageSources),
-						pair<string, string>("x", "50"),
-						pair<string, string>("y", "50"),
-						pair<string, string>("anchor", "CENTRE"),
-						pair<string, string>("opacity", opacity),
-						pair<string, string>("scale", scale),
-						pair<string, string>("layer", to_string(x.layer)),
-						pair<string, string>("animated", x.animated),
-						pair<string, string>("animation_speed", to_string(x.animationSpeed)),
-						pair<string, string>("styles", "LOOP"),
-						pair<string, string>("uniqueID", x.name), }))).run(*&gameEngine);
-				}
-				Event("", "MAPMOVE", {}).run(*&gameEngine);
+				Event("LoadMapObjects", "RELOADMAPOBJECTS", {}).run(*&gameEngine);
 				CLOCK.startClock("DialogueEnded"); // wait short time once a cutscene ends before moving on
 				return true;
 			}
@@ -1446,6 +1478,10 @@ public:
 					Graphics::Text * theText = graphics.addText(new Graphics::Text(*&graphics, message, format, position, anchorStyle, size, colour, shadowColour, uniqueID), layer);
 					if (animated) {
 						if (styles.contains("TYPEWRITER")) {
+							if (message == L"") {
+								return true; // there is no dialogue to animate
+							}
+							theText->resetMessage(*&graphics, graphics.insertNewlines(message));
 							theText->startTypewriter(*&graphics);
 						}
 					}
@@ -1459,8 +1495,8 @@ public:
 					}
 					if (animated and styles.contains("TYPEWRITER")) {
 						if (data["animateExisting"] == "0") {
-							if (theText->fullMessage != message) {
-								theText->resetMessage(*&graphics, message);
+							if (theText->fullMessage == L"") {
+								theText->resetMessage(*&graphics, graphics.insertNewlines(message));
 								theText->startTypewriter(*&graphics);
 							}
 						}
@@ -1473,10 +1509,30 @@ public:
 							}
 							else {
 								if (theText->getMessage() == L"") { return false; } // not ready to be animated yet
-								int howFar = theText->getMessage().find(L"⑤");
+								wstring message = theText->getMessage();
+								int textLength = message.size();
+								int howFar = message.find(L"⑤");
+								int nextLoc = howFar;
+								if (howFar < textLength-1) {
+									nextLoc = howFar + 1;
+									wchar_t nextChar = message.at(nextLoc);
+									List<wchar_t> skipThese = graphics.colourTagLookupTable.getKeys();
+									for (auto x : { 33,63,46 }) {
+										skipThese.push_back(wchar_t(x));
+									}
+									while (nextLoc < message.size() - 1 and skipThese.contains(nextChar)) {
+										nextLoc += 1;
+										nextChar = message.at(nextLoc);
+									}
+								}
+								else {
+									nextLoc += 1;
+								}
+								
+
 								wstring current = theText->fullMessage;
 								if (howFar < current.size()) {
-									current.replace(howFar+1, 1, L"⑤");
+									current.replace(nextLoc, 1, L"⑤");
 								}
 								theText->resetMessage(*&graphics, current);
 								if (styles.contains("PARCHMENT") and howFarAlong < 50) {
@@ -1748,6 +1804,9 @@ public:
 					}
 					forceRedraw = true;
 					}
+				if (forceRedraw) {
+					Event("LoadMapObjects", "RELOADMAPOBJECTS", {}).run(*&gameEngine);
+				}
 				if (forceRedraw and data["mode"] == "shuffle") {
 						List<pair<float, float>> positions = Menu::getPlayerCardPositions();
 						List<string> party = saveContainer.current.party;
@@ -1882,7 +1941,7 @@ public:
 				return true;
 			}
 			if (type == "EXPLORE") {
-				Event("userInput", "DEBUGWALKING", { }).run(*&gameEngine);
+				//Event("userInput", "DEBUGWALKING", { }).run(*&gameEngine);
 				//Event("", "DEBUGUSERINPUT", {}).run(*&gameEngine);
 
 				bool force = data["force"] == "1";
@@ -1908,6 +1967,10 @@ public:
 					}
 					if (controller.hasThisBeenPressed(VK_F4)) {
 						gameEngine.stateFlags["SHOWFPS"] = "1";
+					}
+					if (controller.hasThisBeenPressed(VK_F5)) {
+						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "Tavern1", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+						return false;
 					}
 					if (Args.get("SPEEDCHEAT") == "1") {
 						exploreAnimationSpeeds["MOVE"] = 10;
@@ -1994,6 +2057,9 @@ public:
 				Map<string, string> walkableDataToMoveOn; // send this to function that deals with next step
 				if (force or (moving and CLOCK.hasEnoughTimePassed("EXPLORE",exploreAnimationSpeeds["MOVE"]))) {
 					explorer.tryToMovePlayer(newDirection);
+					if (data["audio"] != "0") {
+						explorer.playWalkingAudio();
+					}
 					Event("Map Move", "MAPMOVE", {}).run(*&gameEngine);
 					image->opacity = 1.0;
 					shadowImage->opacity = 0.5;
@@ -2181,14 +2247,19 @@ public:
 				if (!speaker->sources.contains(stoi(speakerImageID))) {
 					speaker->resetSources(*&graphics, { stoi(speakerImageID) });
 				}
+				string width = "78";
+				string x = "20";
+				if (speakerID == "EMPTY") {
+					x = "12";
+				}
 				bool finishedWriting = Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
 				pair<string, string>("message",line),
 				pair<string, string>("animateExisting","0"),
 				pair<string, string>("format", "Centaur_25"),
 				pair<string, string>("anchorStyle", "TOPLEFT"),
-				pair<string, string>("x", "20"),
+				pair<string, string>("x", x),
 				pair<string, string>("y", "79"),
-				pair<string, string>("w", "78"),
+				pair<string, string>("w", width),
 				pair<string, string>("h", "33"),
 				pair<string, string>("direct",direct),
 				pair<string, string>("colour", "BLACK"),
@@ -2211,6 +2282,7 @@ public:
 					return true;
 				}
 				if (finishedWriting and userInput and CLOCK.hasEnoughTimePassed("DialogueWait", 100)) {
+					graphics.tearDownSpecifiedText("speakerDialogueText");
 					return true;
 				}
 				return false;
@@ -4148,12 +4220,13 @@ public:
 			if (type == "MOVECAMERA") {
 				// moving the camera independently of the player
 				explorer.perspective = "FOLLOW_CAMERA";
+				int speed = stoi(data["speed"]);
 				float unitOfMovement = explorer.unitOfMovement / 2;
 				float ignore = -1; // use this to move camera only along x or y
 				pair<float, float> currentPosition = explorer.activeCamera.position;
 				pair<float, float> targetPosition = { stof(data["x"]), stof(data["y"]) };
 				bool reachedDestination = true;
-				if (CLOCK.hasEnoughTimePassed("CAMERAMOVE", 50)) {
+				if (CLOCK.hasEnoughTimePassed("CAMERAMOVE", speed)) {
 					if (targetPosition.first != ignore) {
 						if (currentPosition.first < targetPosition.first) {
 							currentPosition.first += unitOfMovement;
@@ -4182,6 +4255,74 @@ public:
 				}
 				return false;
 			}
+			if (type == "MOVEPLAYERCUTSCENE") {
+				pair<float, float> currentPosition = explorer.playerOnMap.position;
+				pair<float, float> targetPosition = { stof(data["targetX"]), stof(data["targetY"]) };
+				string audioName = data["audio"];
+				int speed = stoi(data["speed"]);
+				if (targetPosition.first == -1) {
+					targetPosition.first = currentPosition.first;
+				}
+				if (targetPosition.second == -1) {
+					targetPosition.second = currentPosition.second;
+				}
+				string objectName = "PLAYER";
+				List<int> sources;
+				List<int> shadowSources;
+				string character = saveContainer.getCurrentMainCharacter();
+				string newDirection = explorer.decideDirectionDependingOnTwoPoints(currentPosition, targetPosition);
+				int animationSpeed = explorer.getAnimationSpeeds()["WALK"];
+				if (newDirection != "") {
+					sources = imageLookup.animationFrames[character]["WALK_" + newDirection];
+					shadowSources = imageLookup.animationFrames["Shadow " + character]["WALK_" + newDirection];
+					for (auto const& x : { graphics.accessImageViaUniqueID(character + "_Explore"), graphics.accessImageViaUniqueID(character + "_Shadow") }) {
+						x->action = "WALK";
+						x->animationSpeed = animationSpeed;
+					}
+					graphics.accessImageViaUniqueID(character + "_Explore")->resetSources(*&graphics, sources);
+					graphics.accessImageViaUniqueID(character + "_Shadow")->resetSources(*&graphics, shadowSources);
+				}
+				float unitOfMovement = explorer.unitOfMovement / 2;
+				if (CLOCK.hasEnoughTimePassed("MOVEOBJECTSON", speed)) {
+					explorer.playerOnMap.position = explorer.moveLHSCloserToRHS(currentPosition, targetPosition, false, false, unitOfMovement);
+					if (CLOCK.hasEnoughTimePassed("PLAYERPLAYAUDIO", 200)) {
+						Event("Audio", "PLAYSFX", Map<string, string>({
+										pair<string, string>("audio", audioName) })).run(*&gameEngine);
+					}
+					Event("UpdateMap", "MAPMOVE", {}).run(*&gameEngine);
+				}
+				if (currentPosition == targetPosition) {
+					int animationSpeed = explorer.getAnimationSpeeds()["STAND"];
+					string direction = graphics.accessImageViaUniqueID(character + "_Explore")->direction;
+					sources = imageLookup.animationFrames[character]["STAND_" + direction];
+					shadowSources = imageLookup.animationFrames["Shadow " + character]["WALK_" + direction];
+					for (auto const& x : { graphics.accessImageViaUniqueID(character + "_Explore"), graphics.accessImageViaUniqueID(character + "_Shadow") }) {
+						x->action = "WALK";
+						x->animationSpeed = animationSpeed;
+					}
+					graphics.accessImageViaUniqueID(character + "_Explore")->resetSources(*&graphics, sources);
+					graphics.accessImageViaUniqueID(character + "_Shadow")->resetSources(*&graphics, shadowSources);
+					
+					return true;
+				}
+				return false;
+			}
+			if (type == "CHANGECAMERAOPERTATION") {
+				if (data["followPlayer"] == "1") {
+					explorer.perspective = "FOLLOW_PLAYER";
+				}
+				else {
+					explorer.perspective = "FOLLOW_CAMERA";
+				}
+				Event("Update", "MAPMOVE", {}).run(*&gameEngine);
+				return true;
+			}
+			if (type == "TELEPORTCAMERA") {
+				pair<float, float> position = {stof(data["x"]), stof(data["y"])};
+				explorer.activeCamera.position = position;
+				Event("Update", "MAPMOVE", {}).run(*&gameEngine);
+				return true;
+			}
 			if (type == "MOVEOBJECTS") {
 				List<string> objectsToMove = split(data["whichObjects"], "_");
 				List<pair<float, float>> targets;
@@ -4197,7 +4338,9 @@ public:
 				Map<string, string> objectAudio;
 				Map<string, pair<float, float>> allObjectPositions = explorer.getPositionsOfAllObjects();
 				for (auto object : objectsToMove.internalList) {
-					if (object == "CAMERA") { continue; }
+					if (object == "CAMERA") { 
+						explorer.perspective = "FOLLOW_CAMERA";
+						continue; }
 					currentPositions[object] = allObjectPositions[object];
 				}
 				Map<string, pair<float, float>> targetPositions;
@@ -4211,28 +4354,13 @@ public:
 				float ignore = -1; // use this to move camera only along x or y
 
 				for (auto objectName : objectsToMove.internalList) {
-					if (objectName == "CAMERA") { continue; }
 					pair<float, float> currentPosition = currentPositions[objectName];
 					pair<float, float> targetPosition = targetPositions[objectName];
-					if (objectName == "PLAYER1") {
+					if (objectName == "PLAYER1" or objectName == "Shadow PLAYER1") {
 						currentPosition = explorer.playerOnMap.position;
-						List<int> sources;
-						List<int> shadowSources;
-						string character = saveContainer.getCurrentMainCharacter();
-						string newDirection = explorer.decideDirectionDependingOnTwoPoints(currentPosition, targetPosition);
-						int animationSpeed = explorer.getAnimationSpeeds()["WALK"];
-						if (newDirection != "") {
-							sources = imageLookup.animationFrames[character]["WALK_" + newDirection];
-							shadowSources = imageLookup.animationFrames["Shadow " + character]["WALK_" + newDirection];
-							for (auto const& x : { graphics.accessImageViaUniqueID(character + "_Explore"), graphics.accessImageViaUniqueID(character + "_Shadow") }) {
-								x->action = "WALK";
-								x->animationSpeed = animationSpeed;
-							}
-							graphics.accessImageViaUniqueID(character + "_Explore")->resetSources(*&graphics, sources);
-							graphics.accessImageViaUniqueID(character + "_Shadow")->resetSources(*&graphics, shadowSources);
 						}
-
-
+					if (objectName == "CAMERA") {
+						currentPosition = explorer.activeCamera.position;
 					}
 					if (!explorer.areThesePointsInSamePlace(currentPosition, targetPosition, (targetPosition.first == ignore), (targetPosition.second == ignore))) {
 						allFinished = false;
@@ -4248,6 +4376,7 @@ public:
 							Event("MoveCamera", "MOVECAMERA", Map<string, string>({
 								pair<string, string>("x", to_string(targetPositions[objectName].first)),
 								pair<string, string>("y", to_string(targetPositions[objectName].second)),
+								pair<string, string>("speed", data["speed"]),
 								})).run(*&gameEngine);
 							continue;
 						}
@@ -4340,6 +4469,7 @@ public:
 				image->resetSources(*&graphics, sources);
 				image->action = action;
 				image->animationSpeed = explorer.getAnimationSpeeds()[action];
+				image->direction = direction;
 				Event("UpdateMap", "MAPMOVE", {}).run(*&gameEngine);
 				return true;
 			}
@@ -4359,6 +4489,9 @@ public:
 					else {
 						theImage = graphics.accessImageViaUniqueID(uniqueID);
 					}
+					if (theImage == NULL) {
+						return true;
+					}
 					theImage->animationSpeed = stoi(data["animationSpeed"]);
 					theImage->animationStyles = styles;
 					if (data["styles"] != "FADEOUT") {
@@ -4372,6 +4505,9 @@ public:
 				string uniqueID = data["uniqueID"];
 				uniqueID = SReplace(uniqueID, "PLAYER1", saveContainer.getCurrentMainCharacter());
 				Graphics::Image* theImage = graphics.accessImageViaUniqueID(uniqueID);
+				if (theImage == NULL) {
+					return true;
+				}
 				return theImage->hasThisFinishedAnimating();
 			}
 			if (type == "STARTCUTSCENEDIRECTLY") {
@@ -4639,10 +4775,10 @@ public:
 				pair<string, string>("uniqueID", "Olyver Sumner")
 				}))),
 			Event("Load Map", "MANAGEAUDIOSWAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "Tavern1"),
+				pair<string, string>("targetMap", "RoadToBénouville"),
 			}))),
 			Event("Load Map", "LOADMAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "Tavern1"),
+				pair<string, string>("targetMap", "RoadToBénouville"),
 			}))),
 			Event("Debug Exploring", "EXPLORE", Map<string,string>(List<pair<string,string>>({}))),
 			})) }),
@@ -4814,8 +4950,11 @@ public:
 				pair<string, string>("wait", "TRUE"), }))));
 		events.push_back(Event("TeardownImage", "TEARDOWNIMAGE", Map<string, string>(List<pair<string, string>>({
 				pair<string, string>("uniqueID", "LoadingScreen"), }))));
-		events.push_back(Event("Explore", "EXPLORE", Map<string, string>(
-			pair<string, string>({"force","1"}))));
+		if (walkableData["don'tAddExploreAtTheEnd"] != "1") {
+			events.push_back(Event("Explore", "EXPLORE", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("force","1"),
+				pair<string, string>("audio","0"), }))));
+		}
 		return Procedure("AreaTransition", events);
 	}
 	Procedure makeMerchantLoadProcedure(string whichMerchant) {
@@ -4901,6 +5040,7 @@ public:
 					results.push_back(Event(thisLine, "MOVECAMERA", { Map<string, string>(List<pair<string,string>>({
 					pair<string, string>({"x", data.at(0)}),
 					pair<string, string>({"y", data.at(1)}),
+					pair<string, string>({"speed", data.at(2)}),
 					})) }));
 					acceptedLines.push_back(thisLine);
 					continue;
@@ -4977,6 +5117,17 @@ public:
 					acceptedLines.push_back(thisLine);
 					continue;
 				}
+				if (speaker == "$MOVEPLAYERCUTSCENE$") {
+					List<string> parsed_data = split(WStringToString(val), "$");
+					results.push_back(Event("MovePlayer", "MOVEPLAYERCUTSCENE", Map<string, string>({
+						pair<string, string>("targetX", parsed_data.at(0)),
+						pair<string, string>("targetY", parsed_data.at(1)),
+						pair<string, string>("audio", parsed_data.at(2)),
+						pair<string, string>("speed", parsed_data.at(3)),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
 				if (speaker == "$WAIT$") {
 					List<string> parsed_data = split(WStringToString(val), "_");
 					results.push_back(Event("Wait", "STARTCLOCK", Map<string, string>({
@@ -5037,6 +5188,39 @@ public:
 						pair<string, string>("target", parsed_data.at(1)),
 						pair<string, string>("skill", parsed_data.at(2)),
 						pair<string, string>("extras", parsed_data.at(3)),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$AREATRANSITION$") {
+					List<string> parsed_data = split(WStringToString(val), "$");
+					string currentMap = explorer.currentMap.name;
+					string targetMap = parsed_data.at(0);
+					List<string> futurePlayerPositionAsString = split(parsed_data.at(1), ",");
+					pair<float, float> futurePlayerPositionAsFloat = {stof(futurePlayerPositionAsString.at(0)), stof(futurePlayerPositionAsString.at(1))};
+					string futurePlayerDirection = parsed_data.at(2);
+					Map<string, string> walkableDataToMoveOn = stringMapCompose(parsed_data.at(3), ",");
+					walkableDataToMoveOn["don'tAddExploreAtTheEnd"] = "1";
+					acceptedLines.push_back(thisLine);
+					Procedure P = makeAreaTransitionProcedure(currentMap, targetMap, futurePlayerPositionAsFloat, futurePlayerDirection, walkableDataToMoveOn);
+					for (auto e : P.eventList.internalList) {
+						results.push_back(e);
+					}
+					continue;
+				}
+				if (speaker == "$CHANGECAMERAOPERTATION$") {
+					string parsedData = WStringToString(val);
+					results.push_back(Event("LoadObject", "CHANGECAMERAOPERTATION", Map<string, string>({
+						pair<string, string>("followPlayer", parsedData),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$TELEPORTCAMERA$") {
+					List<string> parsed_data = split(WStringToString(val), ",");
+					results.push_back(Event("LoadObject", "TELEPORTCAMERA", Map<string, string>({
+						pair<string, string>("x", parsed_data.at(0)),
+						pair<string, string>("y", parsed_data.at(1)),
 						})));
 					acceptedLines.push_back(thisLine);
 					continue;

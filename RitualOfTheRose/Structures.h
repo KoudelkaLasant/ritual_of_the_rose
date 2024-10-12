@@ -276,6 +276,12 @@ struct Map {
 	bool hasKey(A x) {
 		return (getKeys().contains(x));
 	}
+	bool hasOneOfTheseKeys(list<A> RHS) {
+		for (auto x : RHS) {
+			if (hasKey(x)) { return true; }
+		}
+		return false;
+	}
 	Map<A, B> operator +(const Map<A, B>& RHS) {
 		Map<A, B> result = *this;
 		for (auto x : RHS.internalMap) {

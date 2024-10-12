@@ -24,7 +24,7 @@ SafeRelease(string ID, Interface** ppInterfaceToRelease
 class Graphics {
 public:
     Graphics() {
-        colourTagLookupTable[wchar_t(10112)] = "BLUE";
+        colourTagLookupTable[wchar_t(10112)] = "BLUE"; // ➀
         shadowColourTagLookupTable[wchar_t(10112)] = "BLUE";
         colourTagLookupTable[wchar_t(9313)] = "SKILLTEXTBLUE";
         shadowColourTagLookupTable[wchar_t(9313)] = "SKILLTEXTBLUEBACKDROP";
@@ -320,6 +320,9 @@ public:
             if (!animationStyles.contains("SINGLE")) {
                 return false;
             }
+            if (animationStyles.contains("SINGLE") and animationStyles.contains("FADEOUT")) {
+                return opacity == 0.0;
+            }
             return frame == textures.size() - 1;
         }
         void animate() {
@@ -494,7 +497,7 @@ public:
                 int current_start = -1;
                 bool seekingEnd = false;
                 for (int x = 0; x < toAnalyse.size(); x++) {
-                    if (seekingEnd and current_start != -1 and List<wchar_t>({ wchar_t(46), wchar_t(32), wchar_t(33), wchar_t(63), colour }).contains(toAnalyse[x])) {
+                    if (seekingEnd and current_start != -1 and List<wchar_t>({ wchar_t(46), wchar_t(32), wchar_t(33), wchar_t(63), colour, invisible }).contains(toAnalyse[x])) {
                         int current_end = x;
                         results[tableToUse[colour]].push_back({unsigned(current_start), unsigned(current_end - current_start)});
                         current_start = -1;
@@ -504,14 +507,14 @@ public:
                         current_start = x;
                         seekingEnd = true;
                     }
-                    if (toAnalyse[x] == invisible) { 
-                        // make all text from ⑤ onwards invisible regardless
-                        results[tableToUse[invisible]].push_back({ unsigned(x), unsigned(toAnalyse.size() - x) });
-                        return results;
-                    }
-                    
                 }
                 }
+            for (int x = 0; x < toAnalyse.size(); x++) {
+                if (toAnalyse[x] == invisible) {
+                    // make all text from ⑤ onwards invisible regardless
+                    results[tableToUse[invisible]].push_back({ unsigned(x), unsigned(toAnalyse.size() - x) });
+                }
+            }
             return results;
         }
         void startTypewriter(Graphics & graphics) {
@@ -957,6 +960,60 @@ public:
             YRange.push_back(y);
         }
         pair<float, float> result = { RANDOM.getRandom(XRange), RANDOM.getRandom(YRange) };
+        return result;
+    }
+    wstring insertNewlines(wstring input) {
+        // try to make text box formatted nicely for dialogue
+        int maxLineSize = 70000;
+        List<wstring> words = WSplit(input, L" ");
+        wstring result;
+        int currentLineSize = 0;
+        for (auto & word : words.internalList) {
+            int sizeOfWord = getSizeOfWord(L" " + word);
+            if (currentLineSize + sizeOfWord > maxLineSize) {
+                result += L"\n" + word;
+                currentLineSize = 0;
+            }
+            else {
+                currentLineSize += sizeOfWord;
+                if (currentLineSize == 0 or result == L"") {
+                    result += word;
+                }
+                else {
+                    result += L" " + word;
+                }
+            }
+        }
+        return result;
+    }
+    int getSizeOfWord(wstring input) {
+        Map<wstring, int> sizeLookup(List<pair<wstring, int>>({
+                pair<wstring, int>(L"A" , 1280), pair<wstring, int>(L"B" , 1044),pair<wstring, int>(L"C" , 1280),pair<wstring, int>(L"D" , 1473),
+                pair<wstring, int>(L"E" , 1153),pair<wstring, int>(L"F" , 1044),pair<wstring, int>(L"G" , 1386),pair<wstring, int>(L"H" , 1579),
+                pair<wstring, int>(L"I" , 641),pair<wstring, int>(L"J" , 641),pair<wstring, int>(L"K" , 1280),pair<wstring, int>(L"L" , 1153),
+                pair<wstring, int>(L"M" , 1792),pair<wstring, int>(L"N" , 1579),pair<wstring, int>(L"O" , 1516),pair<wstring, int>(L"P" , 1087),
+                pair<wstring, int>(L"Q" , 1516),pair<wstring, int>(L"R" , 1366),pair<wstring, int>(L"S" , 961),pair<wstring, int>(L"T" , 1366),
+                pair<wstring, int>(L"U" , 1473),pair<wstring, int>(L"V" , 1473),pair<wstring, int>(L"W" , 2005),pair<wstring, int>(L"X" , 1386),
+                pair<wstring, int>(L"Y" , 1366),pair<wstring, int>(L"Z" , 1260),
+                pair<wstring, int>(L"a" , 768), pair<wstring, int>(L"b" , 961),pair<wstring, int>(L"c" , 768),pair<wstring, int>(L"d" , 981),
+                pair<wstring, int>(L"e" , 748), pair<wstring, int>(L"f" , 618),pair<wstring, int>(L"g" , 854),pair<wstring, int>(L"h" , 961),
+                pair<wstring, int>(L"i" , 492), pair<wstring, int>(L"j" , 469),pair<wstring, int>(L"k" , 938),pair<wstring, int>(L"l" , 492),
+                pair<wstring, int>(L"m" , 1450), pair<wstring, int>(L"n" , 961),pair<wstring, int>(L"o" , 961),pair<wstring, int>(L"p" , 981),
+                pair<wstring, int>(L"q" , 961), pair<wstring, int>(L"r" , 641),pair<wstring, int>(L"s" , 662),pair<wstring, int>(L"t" , 598),
+                pair<wstring, int>(L"u" , 938), pair<wstring, int>(L"v" , 881),pair<wstring, int>(L"w" , 1260),pair<wstring, int>(L"x" , 831),
+                pair<wstring, int>(L"y" , 831), pair<wstring, int>(L"z" , 831),
+                pair<wstring, int>(L" " , 502), pair<wstring, int>(L"." , 406), pair<wstring, int>(L"!" , 426), pair<wstring, int>(L"?" , 575),
+                pair<wstring, int>(L"é" , 748), pair<wstring, int>(L"í" , 492), pair<wstring, int>(L"á" , 768), pair<wstring, int>(L"É" , 1153),
+                pair<wstring, int>(L"é" , 748), pair<wstring, int>(L"Í" , 641), pair<wstring, int>(L"Á" , 1280),
+                pair<wstring, int>(L"➀", 502), pair<wstring, int>(L"②", 502), pair<wstring, int>(L"③", 502),pair<wstring, int>(L"④", 502),
+                pair<wstring, int>(L"⑤", 502),
+                pair<wstring, int>(L",", 406),pair<wstring, int>(L"'", 385),
+            }));
+        int result = 0;
+        for (int x = 0; x < input.size(); x++) {
+            wstring letter = input.substr(x, 1);
+            result += sizeLookup[letter];
+        }
         return result;
     }
 
