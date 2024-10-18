@@ -124,6 +124,17 @@ private:
 };
 Random RANDOM;
 
+template <typename T>
+List<T> scrambleList(List<T> input) {
+	List<T> result;
+	while (input.size() > 0) {
+		int which = RANDOM.getRandom(0, input.size() - 1);
+		result.push_back(input.at(which));
+		input.remove_at(which);
+	}
+	return result;
+}
+
 class RuntimeArgs {
 public:
 	RuntimeArgs() {}
@@ -937,7 +948,8 @@ public:
 		defineLookups();
 		defineCharacters();
 		defineSkills();
-		
+		defineCombatPlayerImages();
+
 		animationFrames["EMPTY"]["SPEAKER"].internalList = { EMPTYOBJECT };
 		animationFrames["LampLight1"]["STAND_FRONT"].internalList = { 
 			LAMPLIGHT1 , LAMPLIGHT2, LAMPLIGHT3, LAMPLIGHT4, LAMPLIGHT5, LAMPLIGHT6, LAMPLIGHT7, LAMPLIGHT8, LAMPLIGHT9, LAMPLIGHT10, LAMPLIGHT11,LAMPLIGHT12,LAMPLIGHT13,LAMPLIGHT14,LAMPLIGHT15,LAMPLIGHT16,LAMPLIGHT17,LAMPLIGHT18
@@ -1048,6 +1060,10 @@ public:
 		layerDefaults["LOADINGSCREEN"] = 25;
 		layerDefaults["DROPDOWNMENU"] = 30;
 		layerDefaults["DEBUGUSERINPUT"] = 100;
+		layerDefaults["COMBATTEAM1"] = 8;
+		layerDefaults["COMBATTEAM1ALLIES"] = 6;
+		layerDefaults["COMBATTEAM2"] = 4;
+		layerDefaults["COMBATTEAM2ALLIES"] = 2;
 	}
 	void defineCharacters() {
 		animationFrames["Angela Fleuret"]["SPEAKER"].internalList = { ANGELA_SPEAKER };
@@ -1209,6 +1225,8 @@ public:
 		animationFrames["Father Michelet"]["WALK_RIGHT"].internalList = { PRIESTMICHELET_WALK_R1, PRIESTMICHELET_WALK_R2, PRIESTMICHELET_WALK_R3, PRIESTMICHELET_WALK_R2 };
 		animationFrames["Father Michelet"]["WALK_LEFT"].internalList = { PRIESTMICHELET_WALK_L1, PRIESTMICHELET_WALK_L2, PRIESTMICHELET_WALK_L3, PRIESTMICHELET_WALK_L2 };
 		animationFrames["Father Michelet"]["WALK_BACK"].internalList = { PRIESTMICHELET_WALK_B1, PRIESTMICHELET_WALK_B2, PRIESTMICHELET_WALK_B3, PRIESTMICHELET_WALK_B2 };
+		animationFrames["Father Michelet"]["SAD_FRONT"].internalList = { PRIESTMICHELET_SAD_F1, PRIESTMICHELET_SAD_F2 };
+
 		animationFrames["Shadow Father Michelet"]["STAND_FRONT"].internalList = { PRIESTMICHELET_SHADOW_STAND_F1, PRIESTMICHELET_SHADOW_STAND_F2 };
 		animationFrames["Shadow Father Michelet"]["STAND_RIGHT"].internalList = { PRIESTMICHELET_SHADOW_STAND_R1, PRIESTMICHELET_SHADOW_STAND_R2 };
 		animationFrames["Shadow Father Michelet"]["STAND_LEFT"].internalList = { PRIESTMICHELET_SHADOW_STAND_L1, PRIESTMICHELET_SHADOW_STAND_L2 };
@@ -1254,6 +1272,51 @@ public:
 		animationFrames["Shadow White Knight"]["WALK_LEFT"].internalList = { WHITEKNIGHT_SHADOW_WALK_L1, WHITEKNIGHT_SHADOW_WALK_L2, WHITEKNIGHT_SHADOW_WALK_L3, WHITEKNIGHT_SHADOW_WALK_L2 };
 		animationFrames["Shadow White Knight"]["WALK_BACK"].internalList = { WHITEKNIGHT_SHADOW_WALK_B1, WHITEKNIGHT_SHADOW_WALK_B2, WHITEKNIGHT_SHADOW_WALK_B3, WHITEKNIGHT_SHADOW_WALK_B2 };
 		animationFrames["White Knight"]["SPEAKER"].internalList = { WHITEKNIGHT_Speaker };
+
+		
+		animationFrames["EnragedVagrant"]["WALK_FRONT"].internalList = { ENRAGEDVAGRANT_8, ENRAGEDVAGRANT_9, ENRAGEDVAGRANT_10, ENRAGEDVAGRANT_9 };
+		animationFrames["Shadow EnragedVagrant"]["WALK_FRONT"].internalList = { ENRAGEDVAGRANT_3, ENRAGEDVAGRANT_4, ENRAGEDVAGRANT_5, ENRAGEDVAGRANT_4 };
+
+		animationFrames["EnragedVagrant"]["STAND_FRONT"].internalList = { ENRAGEDVAGRANT_6, ENRAGEDVAGRANT_7 };
+		animationFrames["Shadow EnragedVagrant"]["STAND_FRONT"].internalList = { ENRAGEDVAGRANT_1, ENRAGEDVAGRANT_2, };
+
+		animationFrames["EnragedPriest"]["WALK_FRONT"].internalList = { ENRAGEDPRIEST_8, ENRAGEDPRIEST_9, ENRAGEDPRIEST_10, ENRAGEDPRIEST_9 };
+		animationFrames["Shadow EnragedPriest"]["WALK_FRONT"].internalList = { ENRAGEDPRIEST_3, ENRAGEDPRIEST_4, ENRAGEDPRIEST_5, ENRAGEDPRIEST_4 };
+
+		animationFrames["EnragedPriest"]["STAND_FRONT"].internalList = { ENRAGEDPRIEST_6, ENRAGEDPRIEST_7 };
+		animationFrames["EnragedPriest"]["SPEAKER"].internalList = { ENRAGEDPRIEST_11 };
+		animationFrames["Shadow EnragedPriest"]["STAND_FRONT"].internalList = { ENRAGEDPRIEST_1, ENRAGEDPRIEST_2, };
+
+		animationFrames["EnragedVilomah"]["STAND_FRONT"].internalList = { ENRAGEDVILOMAH_6, ENRAGEDVILOMAH_7 };
+		animationFrames["EnragedVilomah"]["SPEAKER"].internalList = { ENRAGEDVILOMAH_11 };
+		animationFrames["Shadow EnragedVilomah"]["STAND_FRONT"].internalList = { ENRAGEDVILOMAH_1, ENRAGEDVILOMAH_2, };
+		animationFrames["EnragedVilomah"]["WALK_FRONT"].internalList = { ENRAGEDVILOMAH_8, ENRAGEDVILOMAH_9, ENRAGEDVILOMAH_10, ENRAGEDVILOMAH_9 };
+		animationFrames["Shadow EnragedVilomah"]["WALK_FRONT"].internalList = { ENRAGEDVILOMAH_3, ENRAGEDVILOMAH_4, ENRAGEDVILOMAH_5, ENRAGEDVILOMAH_4 };
+
+		animationFrames["EnragedMagician"]["STAND_FRONT"].internalList = { ENRAGEDMAGICIAN_6, ENRAGEDMAGICIAN_7 };
+		animationFrames["Shadow EnragedMagician"]["STAND_FRONT"].internalList = { ENRAGEDMAGICIAN_1, ENRAGEDMAGICIAN_2, };
+		animationFrames["EnragedMagician"]["WALK_FRONT"].internalList = { ENRAGEDMAGICIAN_8, ENRAGEDMAGICIAN_9, ENRAGEDMAGICIAN_10, ENRAGEDMAGICIAN_9 };
+		animationFrames["Shadow EnragedMagician"]["WALK_FRONT"].internalList = { ENRAGEDMAGICIAN_3, ENRAGEDMAGICIAN_4, ENRAGEDMAGICIAN_5, ENRAGEDMAGICIAN_4 };
+
+		animationFrames["EnragedMagician"]["DEAD_FRONT"].internalList = {ENRAGEDMAGICIANDEAD};
+		animationFrames["EnragedPriest"]["DEAD_FRONT"].internalList = { ENRAGEDPRIESTDEAD };
+		animationFrames["EnragedVilomah"]["DEAD_FRONT"].internalList = { ENRAGEDVILOMAHDEAD };
+		animationFrames["EnragedVagrant"]["DEAD_FRONT"].internalList = { ENRAGEDVAGRANTDEAD };
+
+		animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_BACK"].internalList = { GIHAT_STAND_BACK_1, GIHAT_STAND_BACK_2, GIHAT_MAPACTIONFIGHT_B1, GIHAT_MAPACTIONFIGHT_B2, GIHAT_MAPACTIONFIGHT_B3 };
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_BACK"].internalList = { SHADOW_GIHAT_STAND_BACK_1, SHADOW_GIHAT_STAND_BACK_2, GIHAT_MAPACTIONFIGHT_SHADOW_B1, GIHAT_MAPACTIONFIGHT_SHADOW_B2, GIHAT_MAPACTIONFIGHT_SHADOW_B3 };
+
+		animationFrames["Angela Fleuret"]["MAPACTIONFIGHT_BACK"].internalList = { ANGELA_STAND_BACK_1, ANGELA_STAND_BACK_2, ANGELA_MAPACTIONFIGHT_B1, ANGELA_MAPACTIONFIGHT_B2, ANGELA_MAPACTIONFIGHT_B3 };
+		animationFrames["Shadow Angela Fleuret"]["MAPACTIONFIGHT_BACK"].internalList = { SHADOW_ANGELA_STAND_BACK_1, SHADOW_ANGELA_STAND_BACK_2, ANGELA_MAPACTIONFIGHT_SHADOW_B1, ANGELA_MAPACTIONFIGHT_SHADOW_B2, ANGELA_MAPACTIONFIGHT_SHADOW_B3 };
+
+		animationFrames["Olyver Sumner"]["MAPACTIONFIGHT_BACK"].internalList = { OLYVER_STAND_BACK_1, OLYVER_STAND_BACK_2, OLYVER_MAPACTIONFIGHT_B1, OLYVER_MAPACTIONFIGHT_B2, OLYVER_MAPACTIONFIGHT_B3 };
+		animationFrames["Shadow Olyver Sumner"]["MAPACTIONFIGHT_BACK"].internalList = { SHADOW_OLYVER_STAND_BACK_1, SHADOW_OLYVER_STAND_BACK_2, OLYVER_MAPACTIONFIGHT_SHADOW_B1, OLYVER_MAPACTIONFIGHT_SHADOW_B2, OLYVER_MAPACTIONFIGHT_SHADOW_B3 };
+
+		animationFrames["Hernando Pizarro"]["MAPACTIONFIGHT_BACK"].internalList = { HERNANDO_STAND_BACK_1, HERNANDO_STAND_BACK_2, HERNANDO_MAPACTIONFIGHT_B1, HERNANDO_MAPACTIONFIGHT_B2, HERNANDO_MAPACTIONFIGHT_B3 };
+		animationFrames["Shadow Hernando Pizarro"]["MAPACTIONFIGHT_BACK"].internalList = { SHADOW_HERNANDO_STAND_BACK_1, SHADOW_HERNANDO_STAND_BACK_2, HERNANDO_MAPACTIONFIGHT_SHADOW_B1, HERNANDO_MAPACTIONFIGHT_SHADOW_B2, HERNANDO_MAPACTIONFIGHT_SHADOW_B3 };
+
+		animationFrames["Tianshun Song"]["MAPACTIONFIGHT_BACK"].internalList = { TIANSHUN_STAND_BACK_1, TIANSHUN_STAND_BACK_2, TIANSHUN_MAPACTIONFIGHT_B1, TIANSHUN_MAPACTIONFIGHT_B2, TIANSHUN_MAPACTIONFIGHT_B3 };
+		animationFrames["Shadow Tianshun Song"]["MAPACTIONFIGHT_BACK"].internalList = { SHADOW_TIANSHUN_STAND_BACK_1, SHADOW_TIANSHUN_STAND_BACK_2, TIANSHUN_MAPACTIONFIGHT_SHADOW_B1, TIANSHUN_MAPACTIONFIGHT_SHADOW_B2, TIANSHUN_MAPACTIONFIGHT_SHADOW_B3 };
 	}
 	void defineSkills() {
 		animationFrames["Doublestrike"]["ACTION_FRONT"] = { DOUBLESTRIKE_1,DOUBLESTRIKE_2,DOUBLESTRIKE_3,DOUBLESTRIKE_4,DOUBLESTRIKE_5,DOUBLESTRIKE_6,DOUBLESTRIKE_7,DOUBLESTRIKE_8,DOUBLESTRIKE_9,DOUBLESTRIKE_10 };
@@ -1278,6 +1341,30 @@ public:
 		animationFrames["FineStrike1"]["ACTION_1"].internalList = { FINESTRIKE1_01,FINESTRIKE1_02,FINESTRIKE1_03,FINESTRIKE1_04,FINESTRIKE1_05,FINESTRIKE1_06,FINESTRIKE1_07,FINESTRIKE1_08,FINESTRIKE1_09,FINESTRIKE1_10,FINESTRIKE1_11,FINESTRIKE1_12 };
 
 		animationFrames["FineStrike2"]["ACTION_1"].internalList = { FINESTRIKE2_01,FINESTRIKE2_02,FINESTRIKE2_03,FINESTRIKE2_04,FINESTRIKE2_05,FINESTRIKE2_06,FINESTRIKE2_07,FINESTRIKE2_08,FINESTRIKE2_09,FINESTRIKE2_10,FINESTRIKE2_11,FINESTRIKE2_12 };
+	}
+	void defineCombatPlayerImages() {
+		animationFrames["Angela Fleuret"]["COMBAT_BACK"].internalList = { COMBAT_ANGELA_BACK_1 };
+		animationFrames["Angela Fleuret"]["COMBAT_FRONT"].internalList = { COMBAT_ANGELA_FRONT_1 };
+		animationFrames["EnragedMagician"]["COMBAT_BACK"].internalList = { COMBAT_ENRAGEDMAGICIAN_BACK_1 };
+		animationFrames["EnragedMagician"]["COMBAT_FRONT"].internalList = { COMBAT_ENRAGEDMAGICIAN_FRONT_1 };
+		animationFrames["EnragedPriest"]["COMBAT_BACK"].internalList = { COMBAT_ENRAGEDPRIEST_BACK_1 };
+		animationFrames["EnragedPriest"]["COMBAT_FRONT"].internalList = { COMBAT_ENRAGEDPRIEST_FRONT_1 };
+		animationFrames["EnragedVagrant"]["COMBAT_BACK"].internalList = { COMBAT_ENRAGEDVAGRANT_BACK_1 };
+		animationFrames["EnragedVagrant"]["COMBAT_FRONT"].internalList = { COMBAT_ENRAGEDVAGRANT_FRONT_1 };
+		animationFrames["EnragedVilomah"]["COMBAT_BACK"].internalList = { COMBAT_ENRAGEDVILOMAH_BACK_1 };
+		animationFrames["EnragedVilomah"]["COMBAT_FRONT"].internalList = { COMBAT_ENRAGEDVILOMAH_FRONT_1 };
+		animationFrames["Father Michelet"]["COMBAT_BACK"].internalList = { COMBAT_FATHERMICHELET_BACK_1 };
+		animationFrames["Father Michelet"]["COMBAT_FRONT"].internalList = { COMBAT_FATHERMICHELET_FRONT_1 };
+		animationFrames["Gihat al-Din Jaqmaq"]["COMBAT_BACK"].internalList = { COMBAT_GIHAT_BACK_1 };
+		animationFrames["Gihat al-Din Jaqmaq"]["COMBAT_FRONT"].internalList = { COMBAT_GIHAT_FRONT_1 };
+		animationFrames["Hernando Pizarro"]["COMBAT_BACK"].internalList = { COMBAT_HERNANDO_BACK_1 };
+		animationFrames["Hernando Pizarro"]["COMBAT_FRONT"].internalList = { COMBAT_HERNANDO_FRONT_1 };
+		animationFrames["Olyver Sumner"]["COMBAT_BACK"].internalList = { COMBAT_OLYVER_BACK_1 };
+		animationFrames["Olyver Sumner"]["COMBAT_FRONT"].internalList = { COMBAT_OLYVER_FRONT_1 };
+		animationFrames["SkeletonWarrior"]["COMBAT_BACK"].internalList = { COMBAT_SKELETONWARRIOR_BACK_1 };
+		animationFrames["SkeletonWarrior"]["COMBAT_FRONT"].internalList = { COMBAT_SKELETONWARRIOR_FRONT_1 };
+		animationFrames["Tianshun Song"]["COMBAT_BACK"].internalList = { COMBAT_TIANSHUN_BACK_1 };
+		animationFrames["Tianshun Song"]["COMBAT_FRONT"].internalList = { COMBAT_TIANSHUN_FRONT_1 };
 	}
 
 	string getSequenceAsString(string character, string action) {
@@ -1397,7 +1484,18 @@ public:
 			if (flags["IntroFinished"]) {}
 			cutsceneName += "+" + player1;
 		}
-
+		if (cutsceneName == "TavernMichelet1") {
+			if (flags["IntroFinished"]) {}
+			if (!flags["IntroFinished"]) {
+				int size = saveContainer.current.party.size();
+				if (size < saveContainer.partyLimit) {
+					cutsceneName += "+NotEnoughPeople";
+				}
+				if (size == saveContainer.partyLimit) {
+					cutsceneName += "+EnoughPeople";
+				}
+			}
+		}
 
 		return cutsceneName;
 	}
@@ -1659,7 +1757,15 @@ mapFloor::triangle({{49.4265079498291,4.762154072523117}, {-19.623970985412598,2
 			result.positionOnMap = loc;
 			objects.push_back(result);
 		}
-
+		bool doesAnObjectWithThisNameExist(string uniqueID) {
+			for (auto x : objects.internalList) {
+				if (x.name == uniqueID){
+					return true;
+				}
+			}
+			return false;
+		}
+			
 		string name = "";
 		int source;
 		pair<float, float> playerStartPosition;
@@ -2581,7 +2687,9 @@ mapFloor::triangle({{39.47590887546539,91.0868763923645}, {39.526793360710144,91
 	mapFloor::triangle({{20.69150060415268,83.3631157875061}, {20.893466472625732,84.20861959457397}, {16.15099161863327,84.20861959457397}}),mapFloor::triangle({{14.440201222896576,79.04058694839478}, {14.22465443611145,78.42307686805725}, {17.82085746526718,77.34041213989258}}),mapFloor::triangle({{20.893466472625732,84.20861959457397}, {21.20542675256729,86.10115051269531}, {16.46295189857483,84.92844104766846}}), }), false, Map<string, string>({ pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "GRASS"}) })),
 				mapFloor("Wood", List<mapFloor::triangle>({ mapFloor::triangle({{32.14395046234131,97.42332100868225}, {42.084380984306335,93.16425919532776}, {42.084380984306335,97.42332100868225}}),mapFloor::triangle({{62.91089653968811,61.24071478843689}, {64.63928818702698,59.19190049171448}, {63.254958391189575,58.54418873786926}}),mapFloor::triangle({{32.14395046234131,97.42332100868225}, {32.05464780330658,93.16425919532776}, {42.084380984306335,93.16425919532776}}),
 				mapFloor::triangle({{62.91089653968811,61.24071478843689}, {64.62193131446838,62.04128861427307}, {64.63928818702698,59.19190049171448}}), }), false, Map<string, string>({ pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "WOOD"}) })),
-				}), {}, { 5000, 5000 }, { Map<string, string>({pair<string,string>		({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),}) });
+				}), {}, { 5000, 5000 }, { Map<string, string>({
+					pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
+			}) });
 		maps["Tavern1"] = mapInstance("Tavern1", EMPTYMAP, { 50,50 }, List<mapObject>({
 				mapObject("Hernando Pizarro", true, true, false, imageLookup.getSequenceAsString("Hernando Pizarro","TAVERN_WAIT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{56, 48.5}, false, List<mapFloor::triangle>({mapFloor::triangle({{54.85587120056152,49.13839101791382}, {55.50876259803772,51.55308246612549}, {56.750309467315674,49.848872423172}}),mapFloor::triangle({{54.85587120056152,49.13839101791382}, {53.76160144805908,50.5159854888916}, {55.50876259803772,51.55308246612549}}),}), Map<string, string>({
 										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Hernando Pizarro"}),
@@ -2659,6 +2767,22 @@ mapFloor::triangle({{48.2275515794754,54.15087938308716}, {49.03117120265961,54.
 										pair<string, string>("don'tLoadIfPlayer", "Angela Fleuret"),
 										pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
 										pair<string, string>({"format","LightText_20"})})),
+				mapObject("Father Michelet Cutscene", true, false, false, "","0",0,0,"0","0","",{50, 53}, false, List<mapFloor::triangle>({mapFloor::triangle({{51.54890418052673,58.0529510974884}, {50.794535875320435,55.240654945373535}, {49.33348894119263,57.070523500442505}}),mapFloor::triangle({{51.43198370933533,56.87977075576782}, {50.575172901153564,53.68557572364807}, {48.915717005729675,55.76393008232117}}),mapFloor::triangle({{51.54890418052673,58.0529510974884}, {53.00514101982117,56.22187852859497}, {50.794535875320435,55.240654945373535}}),
+mapFloor::triangle({{51.43198370933533,56.87977075576782}, {53.085970878601074,54.80004549026489}, {50.575172901153564,53.68557572364807}}),}), Map<string, string>({
+										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Father Michelet"}),
+										pair<string, string>({"copy","Father Michelet Cutscene"}),
+										pair<string, string>({"cutscene","TavernMichelet1"}),
+										pair<string, string>({"x","-10"}),
+										pair<string, string>({"y","-7"}),
+										pair<string, string>({"h","50"}),
+										pair<string, string>({"w","50"}),
+										pair<string, string>("colour", "WHITE"),
+										pair<string, string>("uniqueID", mapPopupTextID),
+										pair<string, string>("anchorStyle", "TOPLEFT"),
+										pair<string, string>("shadowColour", "BLACK"),
+										pair<string, string>("don'tLoadIf", "IntroFinished"),
+										pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+										pair<string, string>({"format","LightText_20"})})),
 				mapObject("Father Michelet", true, true, false, imageLookup.getSequenceAsString("Father Michelet","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","0.9","CENTRE",{45.5, 52}, false, List<mapFloor::triangle>({mapFloor::triangle({{46.30991220474243,52.92676091194153}, {44.418954849243164,54.49073314666748}, {46.23188078403473,54.792553186416626}}),mapFloor::triangle({{46.30991220474243,52.92676091194153}, {45.14247477054596,52.35322117805481}, {44.418954849243164,54.49073314666748}}),}), Map<string, string>({
 										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Father Michelet"}),
 										pair<string, string>({"copy","Father Michelet"}),
@@ -2698,6 +2822,7 @@ mapFloor::triangle({{48.2275515794754,54.15087938308716}, {49.03117120265961,54.
 													pair<string, string>("uniqueID", mapPopupTextID),
 													pair<string, string>("anchorStyle", "TOPLEFT"),
 													pair<string, string>("shadowColour", "BLACK"),
+													pair<string, string>("don'tLoadIfNot", "IntroFinished"),
 													pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
 													pair<string, string>({"format","LightText_20"}),
 														})),

@@ -678,21 +678,25 @@ public:
             int latest_layer = -999;
 
             // draw layer x's text after drawing layer x's images
-            for (auto const& [key, val] : ImageMap.internalMap) {
-                if (latest_layer < key and not ImageMap[key].empty()) { latest_layer = key; }
-                drawTheseImagesByYOrder(ImageMap[key]);
-                for (Text * text : TextMap[key].internalList) {
+            List<int> layers;
+            for (auto x : ImageMap.getKeys().internalList) {
+                if (!ImageMap[x].empty()) {
+                    layers.addToBackIfNotAlreadyInList(x);
+                }
+            }
+            for (auto x : TextMap.getKeys().internalList) {
+                if (!TextMap[x].empty()) {
+                    layers.addToBackIfNotAlreadyInList(x);
+                }
+            }
+            layers.internalList.sort();
+
+            for (auto layer : layers.internalList) {
+                drawTheseImagesByYOrder(ImageMap[layer]);
+                for (Text* text : TextMap[layer].internalList) {
                     text->draw(*this);
                 }
             }
-            // draw any text that are on higher layers than any existing images
-            for (auto const& [key, val] : TextMap.internalMap) {
-                if (key <= latest_layer) { continue; }
-                for (Text * toDraw : TextMap[key].internalList) {
-                    toDraw->draw(*this);
-                }
-            }
-
         }
         hr = hwndRenderTarget->EndDraw();
         if (hr == D2DERR_RECREATE_TARGET){

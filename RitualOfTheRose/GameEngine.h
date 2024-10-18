@@ -316,7 +316,6 @@ public:
 	Map<string, string> data;
 };
 
-
 class Combat {
 public:
 	Combat() {
@@ -459,6 +458,8 @@ public:
 
 		defineAllSkills();
 		defineAllEquipment();
+		defineAllCombatants();
+		defineAllTeams();
 	}
 	class PowerValue {
 	public:
@@ -526,6 +527,11 @@ public:
 			skillLogicNames = _skillLogicNames;
 		}
 
+		Skill makeSkillInstance() {
+			Skill result(uniqueID, displayName, skillTree, imageSource, baseCost, baseCastingTime, baseRecharge, skillLogicNames, skillTypeTags, powerValues, purposes);
+			return result;
+		}
+
 		bool isElite() {
 			return skillTypeTags.contains("ELITE");
 		}
@@ -561,72 +567,74 @@ public:
 		int baseCost;
 		int baseCastingTime;
 		int baseRecharge;
+		int timeToRecharge;
+		bool disabled = false;
 		List<string> skillLogicNames;
 		List<string> skillTypeTags;
 		Map<string, PowerValue> powerValues;
 		List<string> purposes; // used by the AI to decide which skill to use
 	};
+	class Effect {
+		// has an affect on combat stats (for example, holyboost)
+	public:
+		Effect() {}
+		Effect(string _tag, float _influence, bool _goesUp, bool _isFlat) {
+			tag = _tag;
+			influence = _influence;
+			goesUp = _goesUp;
+			isFlat = _isFlat;
+		}
+
+		wstring getPrintout(string language, Combat& combat) {
+			wstring result;
+			if (tag.find("BOOST") != -1) {
+				result = strings[language]["Item Effect Strings"]["XBOOST"];
+				string typeName = SReplace(tag, "BOOST", "");
+				wstring typeNameLower = strings[language]["Type Names"][typeName];
+				result = WSReplace(result, L"$REPLACE1$", typeNameLower);
+				int powerAsPercentage = combat.influenceLookups[tag] * (100 * influence);
+				result = WSReplace(result, L"$REPLACE2$", to_wstring(powerAsPercentage));
+				result += L"%.\n";
+				return result;
+			}
+			if (tag.find("PLUS") != -1) {
+				result = strings[language]["Item Effect Strings"]["ATTUPP"];
+				string typeName = SReplace(tag, "PLUS", "");
+				wstring typeNameLower = strings[language]["Other Stat Names"][typeName];
+				result = WSReplace(result, L"$REPLACE1$", typeNameLower);
+				result = WSReplace(result, L"$REPLACE2$", to_wstring(int(influence)));
+				result += L".\n";
+				return result;
+			}
+			if (tag.find("ARMOUR") != -1) {
+				result = strings[language]["Item Effect Strings"]["ARMOUR"];
+				string typeName = SReplace(tag, "ARMOUR", "");
+				wstring typeNameLower = strings[language]["Type Names"][typeName];
+				result = WSReplace(result, L"$REPLACE1$", typeNameLower);
+				int powerAsPercentage = combat.influenceLookups[tag] * 100 * influence;
+				result = WSReplace(result, L"$REPLACE2$", to_wstring(powerAsPercentage));
+				result += L"%.\n";
+				return result;
+			}
+			if (combat.AttributesInOrder.contains(tag)) {
+				result = strings[language]["Item Effect Strings"]["ATTUPP"];
+				wstring typeAsWS = strings[language]["Attribute Names"][tag];
+
+				result = WSReplace(result, L"$REPLACE1$", typeAsWS);
+				result = WSReplace(result, L"$REPLACE2$", to_wstring(int(influence)));
+				result += L".\n";
+				return result;
+			}
+			return strings[language]["Unique Item Strings"][tag];
+		}
+
+		string tag;
+		float influence;
+		bool goesUp;
+		bool isFlat; // or a %
+	};
 	class Equipment {
 	public:
-		class Effect {
-		public:
-			Effect() {}
-			Effect(string _tag, float _influence, bool _goesUp, bool _isFlat) {
-				tag = _tag;
-				influence = _influence;
-				goesUp = _goesUp;
-				isFlat = _isFlat;
-			}
-			
-			wstring getPrintout(string language, Combat& combat) {
-				wstring result;
-				if (tag.find("BOOST") != -1) {
-					result = strings[language]["Item Effect Strings"]["XBOOST"];
-					string typeName = SReplace(tag, "BOOST", "");
-					wstring typeNameLower = strings[language]["Type Names"][typeName];
-					result = WSReplace(result, L"$REPLACE1$", typeNameLower);
-					int powerAsPercentage = combat.influenceLookups[tag] * (100 * influence);
-					result = WSReplace(result, L"$REPLACE2$", to_wstring(powerAsPercentage));
-					result += L"%.\n";
-					return result;
-				}
-				if (tag.find("PLUS") != -1) {
-					result = strings[language]["Item Effect Strings"]["ATTUPP"];
-					string typeName = SReplace(tag, "PLUS", "");
-					wstring typeNameLower = strings[language]["Other Stat Names"][typeName];
-					result = WSReplace(result, L"$REPLACE1$", typeNameLower);
-					result = WSReplace(result, L"$REPLACE2$", to_wstring(int(influence)));
-					result += L".\n";
-					return result;
-				}
-				if (tag.find("ARMOUR") != -1) {
-					result = strings[language]["Item Effect Strings"]["ARMOUR"];
-					string typeName = SReplace(tag, "ARMOUR", "");
-					wstring typeNameLower = strings[language]["Type Names"][typeName];
-					result = WSReplace(result, L"$REPLACE1$", typeNameLower);
-					int powerAsPercentage = combat.influenceLookups[tag] * 100 * influence;
-					result = WSReplace(result, L"$REPLACE2$", to_wstring(powerAsPercentage));
-					result += L"%.\n";
-					return result;
-				}
-				if (combat.AttributesInOrder.contains(tag)) {
-					result = strings[language]["Item Effect Strings"]["ATTUPP"];
-					wstring typeAsWS = strings[language]["Attribute Names"][tag];
-
-					result = WSReplace(result, L"$REPLACE1$", typeAsWS);
-					result = WSReplace(result, L"$REPLACE2$", to_wstring(int(influence)));
-					result += L".\n";
-					return result;
-				}
-				return strings[language]["Unique Item Strings"][tag];
-			}
-
-			string tag;
-			float influence;
-			bool goesUp;
-			bool isFlat; // or a %
-		};
-		
 		Equipment() {}
 		Equipment(string _uniqueID, string _category, int _imageSource, List<Effect> _powers, string _textColour, int _price) {
 			uniqueID = _uniqueID;
@@ -670,9 +678,41 @@ public:
 		string textColour;
 		string uniqueID;
 		string category;
-		List<Effect> powers;
+		List<Combat::Effect> powers;
 		int imageSource;
 		int price;
+	};
+	class EffectObject {
+		// is an object which is applied to a combatant (for example, poison)
+	public:
+		EffectObject() {}
+		EffectObject(string _uniqueID, List<string> _targets, int _imageRes, string _logicName, int _duration, bool _infinite, chrono::steady_clock::time_point _creationTime) {
+			uniqueID = _uniqueID;
+			imageRes = _imageRes;
+			logicName = _logicName;
+			duration = _duration;
+			roundsLeft = _duration;
+			infinite = _infinite;
+			creationTime = _creationTime;
+			targets = _targets;
+		}
+		bool operator==(const EffectObject& RHS) {
+			return RHS.creationTime == creationTime;
+		}
+		bool operator<(const EffectObject& RHS) {
+			return RHS.creationTime < creationTime;
+		}
+		bool operator>(const EffectObject& RHS) {
+			return RHS.creationTime > creationTime;
+		}
+		string uniqueID;
+		int imageRes;
+		List<string> targets;
+		string logicName;
+		int duration;
+		int roundsLeft;
+		chrono::steady_clock::time_point creationTime; // if 2 effects end on same round, order by which existed first
+		bool infinite = false;
 	};
 	class Combatant {
 	public:
@@ -689,7 +729,22 @@ public:
 			intData = _intData;
 		}
 		
-		
+		bool isDead() {
+			return combatStats["LIFE"] > 0 and combatStats["CURRENTLIFE"] == 0;
+		}
+		void setCombatStats(Combat & combat, bool reset) {
+			// set at start of combat or whenever stats change during combat
+			for (auto attribute : combat.AttributesInOrder.internalList) {
+				combatStats[attribute] = getAttValue(attribute, *&combat, true);
+			}
+			for (auto stat : combat.statsInOrder.internalList) {
+				combatStats[stat] = getPowerOfThis(defaultStats[stat], true, *&combat);
+			}
+			if (reset) {
+				combatStats["CURRENTLIFE"] = combatStats["LIFE"];
+				combatStats["CURRENTENERGY"] = combatStats["ENERGY"];
+			}
+		}
 		wstring getPrintout(string language, Combat & combat, bool includeOtherInfluences) {
 			wstring result = L"";
 			result += StringToWString(displayName) + L"\n\n\n";
@@ -858,12 +913,308 @@ public:
 		}
 
 		string uniqueID;
+		string uniqueCombatID; // if multiple copies of the same combatant are in a battle
 		string displayName;
 		Map<string, Map<string, string>> data;
-		Map<string, int> intData;
+		Map<string, int> intData; // things which influence stats go here
 		Map<string, PowerValue> defaultStats;
-		Map<string, PowerValue> combatStats; // stats that change during combat
+		Map<string, int> combatStats; // stats that change during combat
+		Map<int, Skill> combatSkills; // skills in Combat
+		List<string> currentEffects;
 	};
+	class CombatantInstance {
+	public:
+		// make these as pointers
+		CombatantInstance() {}
+		CombatantInstance(Combatant _c, string _team) {
+			c = _c;
+			team = _team;
+		}
+
+		Combatant c;
+		string team;
+	};
+	class Battle {
+	public:
+		class Round {
+		public:
+			Round() {}
+			Round(int _roundNumber, List<string> _actorOrder) {
+				roundNumber = _roundNumber;
+				actorOrder.internalList = {"WORLD"};
+				actorOrder += _actorOrder;
+			}
+			int tick() {
+				currentAct++;
+				return currentAct;
+			}
+			string whoseTurnIsIt() {
+				return actorOrder.at(currentAct);
+			}
+			bool isRoundOver() {
+				return currentAct == actorOrder.size();
+			}
+
+			int roundNumber;
+			int currentAct = 0;
+			List<string> actorOrder;
+		};
+		~Battle() {
+			for (CombatantInstance * c : party1.internalList) {
+				delete c;
+				c = NULL;
+				party1.pop_front();
+			}
+			for (CombatantInstance* c : party1allies.internalList) {
+				delete c;
+				c = NULL;
+				party1allies.pop_front();
+			}
+			for (CombatantInstance* c : party2.internalList) {
+				delete c;
+				c = NULL;
+				party2.pop_front();
+			}
+			for (CombatantInstance* c : party2allies.internalList) {
+				delete c;
+				c = NULL;
+				party2allies.pop_front();
+			}
+		}
+		Battle() {}
+		Battle(List<Combatant> _party1, List<Combatant> _party1allies, List<Combatant> _party2, List<Combatant> _party2allies, Map<string, string> _data) {
+			for (auto c : _party1.internalList) {
+				party1.push_back(new CombatantInstance(c, "TEAM1"));
+			}
+			for (auto c : _party1allies.internalList) {
+				party1allies.push_back(new CombatantInstance(c, "TEAM1ALLIES"));
+			}
+			for (auto c : _party2.internalList) {
+				party2.push_back(new CombatantInstance(c, "TEAM2"));
+			}
+			for (auto c : _party2allies.internalList) {
+				party2allies.push_back(new CombatantInstance(c, "TEAM2ALLIES"));
+			}
+			for (auto c : (party1 + party2 + party1allies + party2allies).internalList) {
+				all[c->c.uniqueCombatID] = c;
+			}
+			data = _data;
+			List<string> order = decideTurnOrder();
+			currentRound = Round(1, order); // add stuff here if any equipment starts an effect immediately
+			addCombatMessage("COMBATSTART", data, 0);
+		}
+		List<string> decideTurnOrder() {
+			/*
+			Turn order Logic:
+			Ranked by highest Speed, if tied, highest strength, if tied, random
+			*/
+			List<string> result;
+			Map<int, Map<int, List<string>>> sorted;
+			for (CombatantInstance * c : all.getValues().internalList) {
+				int speed = c->c.combatStats["SPEED"];
+				int strength = c->c.combatStats["STRENGTH"];
+				sorted[speed][strength].push_back(c->c.uniqueCombatID);
+			};
+			List<int> sortedSpeedKeys = sorted.getKeys();
+			sortedSpeedKeys.internalList.sort();
+			for (auto speed : sortedSpeedKeys.internalList) {
+				List<int> sortedStrengthKeys = sorted[speed].getKeys();
+				sortedStrengthKeys.internalList.sort();
+				for (auto strength : sortedStrengthKeys.internalList) {
+					if (sorted[speed][strength].size() == 1) {
+						result.push_back(sorted[speed][strength].front());
+					}
+					else {
+						List<string> randomized = scrambleList(sorted[speed][strength]);
+						for (auto r : randomized.internalList) {
+							result.push_back(r);
+						}
+					}
+				}
+			}
+			result.internalList.reverse();
+			return result;
+		}
+		string tick() {
+			int whichRound = currentRound.roundNumber;
+			int currentAct = currentRound.tick();
+			if (currentAct == currentRound.actorOrder.size()) {
+				currentRound = Round(whichRound + 1, decideTurnOrder());
+			}
+			return battleStatusCheck();
+		}
+		string battleStatusCheck() {
+			bool battleWon = isBattleWon();
+			bool battleLost = isBattleLost();
+
+			if (battleLost) { return "PLAYERLOSE"; }
+			if (battleWon) { return "PLAYERWIN"; }
+			return "INPROGRESS";
+		}
+		bool isBattleWon() {
+			if (winCondition == "STANDARD") {
+				bool allDead = true;
+				for (auto c : party2.internalList) {
+					if (!c->c.isDead()) { allDead = false; }
+				}
+				for (auto c : party2allies.internalList) {
+					if (!c->c.isDead()) { allDead = false; }
+				}
+				return allDead;
+			}
+		}
+		bool isBattleLost() {
+			if (loseCondition == "STANDARD") {
+				bool allDead = true;
+				for (auto c : party1.internalList) {
+					if (!c->c.isDead()) { allDead = false; }
+				}
+				return allDead;
+			}
+		}
+		List<string> getEffectNamesByTimeCreated(Map<string, EffectObject> input) {
+			List<EffectObject> sorted = input.getValues();
+			List<string> result;
+			sorted.internalList.sort();
+			for (auto const & s : sorted.internalList) {
+				result.push_back(s.uniqueID);
+			}
+			return result;
+		}
+		void addCombatMessage(string type, Map<string, string> data, int verbosity) {
+			// for top bar
+			string language = data["language"];
+			wstring message = L"";
+			if (type == "COMBATSTART") {
+				int team1Size = party1.size();
+				int team2Size = party2.size();
+				if (team1Size == 1 and team2Size == 1) {
+					message = strings[language]["Combat Messages"]["BATTLESTART1VS1"];
+				}
+				if (team1Size > 1 and team2Size == 1) {
+					message = strings[language]["Combat Messages"]["BATTLESTARTTEAMVS1"];
+				}
+				if (team1Size == 1 and team2Size > 1) {
+					message = strings[language]["Combat Messages"]["BATTLESTART1VSTEAM"];
+				}
+				if (team1Size > 1 and team2Size > 1) {
+					message = strings[language]["Combat Messages"]["BATTLESTARTTEAMVSTEAM"];
+				}
+				message = WSReplace(message, L"$PLAYER$", StringToWString(saveContainer.getCurrentMainCharacter()));
+				message = WSReplace(message, L"$OPPONENT$", strings[language]["NPCNames"][data["opponentName"]]);
+			}
+			if (type == "PLAYERTURN") {
+				message = strings[language]["Combat Messages"]["PLAYERTURN"];
+				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][data["name"]]);
+			}
+			if (type == "AITURN") {
+				message = strings[language]["Combat Messages"]["AITURN"];
+				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][data["name"]]);
+			}
+
+			combatMessages.push_front({ verbosity, message });
+		}
+		void announceCombatantTurn(string language) {
+			string who = currentRound.whoseTurnIsIt();
+			Map<string, string> data; 
+			data["language"] = language;
+			data["name"] = all[who]->c.uniqueID;
+			if (playerIsInControl()) {
+				addCombatMessage("PLAYERTURN", data,0);
+			}
+		}
+		bool playerIsInControl() {
+			string who = currentRound.whoseTurnIsIt();
+			if (who == "WORLD") { return false; }
+			string team = all[who]->team;
+			return team == "TEAM1";
+		}
+
+		Map<string, CombatantInstance*> all;
+		List<CombatantInstance*> party1;
+		List<CombatantInstance*> party1allies;
+		List<CombatantInstance*> party2allies;
+		List<CombatantInstance*> party2;
+		Map<string, string> data;
+		Map<string, Map<string, EffectObject>> allEffectsInPlay; // who -> condition name -> condition object. who can include "TEAM1", "TEAM2", "WORLD"
+		List<Map<string, string>> currentActionsInPlay; // the actor / target / skill / effect / value of the current combat action stored here so it can be printed.
+		Round currentRound;
+		string winCondition = "STANDARD";
+		string loseCondition = "STANDARD";
+		List<pair<int, wstring>> combatMessages; // verbosityLevel -> message. Higher level = less likely to show (more granular detail)
+		bool executingSomething = false; // set to true when player shouldn't be able to interact
+	};
+
+	void setUpBattle(List<Combatant> team1, List<Combatant> team1allies, List<Combatant> team2, List<Combatant> team2allies, Map<string, string> data) {
+		currentBattle = new Battle(team1, team1allies, team2, team2allies, data);
+	};
+	void tearDownBattle() {
+		delete currentBattle;
+		currentBattle = NULL;
+	}
+
+	Battle * currentBattle = NULL;
+	
+	Map<string, Map<string, pair<float, float>>> getCombatantPositionLookup() {
+		Map<string, Map<string, pair<float, float>>> results;
+
+		// positions as % of screen
+		float party1Y = 70;
+		float party1alliesY = 65;
+		float party2alliesY = 30;
+		float party2Y = 25;
+
+		results["TEAM1_4"] = Map<string, pair<float, float>>({
+				pair<string, pair<float, float>>("0", {10, party1Y}),
+				pair<string, pair<float, float>>("1", {30, party1Y}),
+				pair<string, pair<float, float>>("2", {50, party1Y}),
+				pair<string, pair<float, float>>("3", {70, party1Y}),
+			});
+		results["TEAM1_3"] = Map<string, pair<float, float>>({
+			pair<string, pair<float, float>>("0", {15, party1Y}),
+			pair<string, pair<float, float>>("1", {35, party1Y}),
+			pair<string, pair<float, float>>("2", {55, party1Y}),
+			});
+		results["TEAM1_2"] = Map<string, pair<float, float>>({
+			pair<string, pair<float, float>>("0", {25, party1Y}),
+			pair<string, pair<float, float>>("1", {45, party1Y}),
+			});
+		results["TEAM1_1"] = Map<string, pair<float, float>>({
+			pair<string, pair<float, float>>("0", {35, party1Y}),
+			});
+		results["TEAM1_ALLIES"] = Map<string, pair<float, float>>({
+				pair<string, pair<float, float>>("0", {15, party1alliesY}),
+				pair<string, pair<float, float>>("1", {35, party1alliesY}),
+				pair<string, pair<float, float>>("2", {55, party1alliesY}),
+				pair<string, pair<float, float>>("3", {75, party1alliesY}),
+			});
+		results["TEAM2_4"] = Map<string, pair<float, float>>({
+				pair<string, pair<float, float>>("0", {25, party2Y}),
+				pair<string, pair<float, float>>("1", {45, party2Y}),
+				pair<string, pair<float, float>>("2", {65, party2Y}),
+				pair<string, pair<float, float>>("3", {85, party2Y}),
+			});
+		results["TEAM2_3"] = Map<string, pair<float, float>>({
+			pair<string, pair<float, float>>("0", {35, party2Y}),
+			pair<string, pair<float, float>>("1", {55, party2Y}),
+			pair<string, pair<float, float>>("2", {75, party2Y}),
+			});
+		results["TEAM2_2"] = Map<string, pair<float, float>>({
+			pair<string, pair<float, float>>("0", {45, party2Y}),
+			pair<string, pair<float, float>>("1", {65, party2Y}),
+			});
+		results["TEAM2_1"] = Map<string, pair<float, float>>({
+			pair<string, pair<float, float>>("0", {55, party2Y}),
+			});
+		results["TEAM2_ALLIES"] = Map<string, pair<float, float>>({
+				pair<string, pair<float, float>>("0", {20, party2alliesY}),
+				pair<string, pair<float, float>>("1", {40, party2alliesY}),
+				pair<string, pair<float, float>>("2", {60, party2alliesY}),
+				pair<string, pair<float, float>>("3", {80, party2alliesY}),
+			});
+		return results;
+
+	}
 	void defineAllSkills() {
 		// DEFAULT
 		skillDefinitions["DEFAULT_ATTACK"] = Skill("DEFAULT_ATTACK", "DEFAULT_ATTACK", "Default", SKILLICON_ATTACK, 0, 0, 0, list<string>({"DAMAGE_SINGLE"}), list<string>({"PHYSICAL","ATTACK"}), Map<string, PowerValue>({
@@ -876,6 +1227,12 @@ public:
 			list<string>({"MAGICAL","HOLY", "HEAL","TARGETSALLIES"}),
 			Map<string, PowerValue>({ pair<string, PowerValue>("POWER1", PowerValue("POWER1", 40, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"})))}),
 			list<string>({"ALLYNEEDSHEALING"}));
+
+		skillDefinitions["Laying of Hands"] = Skill("Laying of Hands", "Laying of Hands", "Cleromancy", SKILLICON_LAYINGOFHANDS, 5, 1, 1,
+			list<string>({ "LIFEHEAL_SINGLE_OTHERONLY" }),
+			list<string>({ "MAGICAL","HOLY", "HEAL","TARGETSALLIES" }),
+			Map<string, PowerValue>({ pair<string, PowerValue>("POWER1", PowerValue("POWER1", 50, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))) }),
+			list<string>({ "ALLYNEEDSHEALING" }));
 
 		// HAGIOMANCY
 		skillDefinitions["Heavenstrike"] = Skill("Heavenstrike", "Heavenstrike", "Hagiomancy", SKILLICON_HEAVENSTRIKE, 10, 2, 0, 
@@ -915,6 +1272,13 @@ public:
 				}),
 			list<string>({ "DEALDAMAGE", "INEEDHEALING"}));
 
+		skillDefinitions["Atrophy"] = Skill("Atrophy", "Atrophy", "Sangromancy", SKILLICON_ATROPHY, 5, 0, 1,
+			list<string>({ "APPLY_WEAKNESS_SINGLE" }),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY" }),
+			Map<string, PowerValue>({ pair<string, PowerValue>("POWER1", PowerValue("POWER1", 3, 0, 8, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				}),
+			list<string>({ "CURSEFOE",}));
+
 		// NECROMANCY
 		skillDefinitions["Animate Skeleton Warrior"] = Skill("Animate Skeleton Warrior", "Animate Skeleton Warrior", "Necromancy", SKILLICON_ANIMATESKELETONWARRIOR, 35, 2, 5,
 			list<string>({ "ANIMATE_SKELETON_WARRIOR"}),
@@ -951,6 +1315,14 @@ public:
 				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 4, 0, 999, true, list<string>({ "STRENGTH", "Dual Weapon MasteryBOOST"}))), }),
 				list<string>({ "DEALDAMAGE" }));
 
+		skillDefinitions["Serrated Strike"] = Skill("Serrated Strike", "Serrated Strike", "Dual Weapon Mastery", SKILLICON_SERRATEDSTRIKE, 15, 0, 2,
+			list<string>({ "DAMAGE_SINGLE_PHYSICAL", "APPLY_BLEEDING_SINGLE"}),
+			list<string>({ "PHYSICAL", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 2, 0, 999, true, list<string>({ "STRENGTH", "Dual Weapon MasteryBOOST"}))),
+				pair<string, PowerValue>("POWER2", PowerValue("POWER2", 3, 0, 999, true, list<string>({ "STRENGTH", "Dual Weapon MasteryBOOST"}))), }),
+				list<string>({ "DEALDAMAGE" }));
+
 		// UMBROMANCY
 		skillDefinitions["Shadow Spike"] = Skill("Shadow Spike", "Shadow Spike", "Umbromancy", SKILLICON_SHADOWSPIKE, 15, 0, 0,
 			list<string>({ "INTERRUPT_AOE", "APPLY_BLINDNESS_AOE" }),
@@ -958,6 +1330,13 @@ public:
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 8, 1, 5, false, list<string>({ "INTELLIGENCE", "SHADOWBOOST"}))), }),
 				list<string>({ "BLINDSOMEONE", "INTERRUPTSOMEONE" }));
+
+		skillDefinitions["Chaos Storm"] = Skill("Chaos Storm", "Chaos Storm", "Umbromancy", SKILLICON_CHAOSSTORM, 15, 0, 5,
+			list<string>({ "CHAOSSTORM"}),
+			list<string>({ "MAGICAL","ELITE" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 12, 1, 99, true, list<string>({ "INTELLIGENCE", "SHADOWBOOST"}))), }),
+				list<string>({ "MANADAMAGE"}));
 
 		// 1H WEP MASTERY
 		skillDefinitions["Fine Strike"] = Skill("Fine Strike", "Fine Strike", "1H Weapon Mastery", SKILLICON_FINESTRIKE, 5, 0, 0,
@@ -974,6 +1353,16 @@ public:
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 2, 0, 15, true, list<string>({ "STRENGTH", "WayfaringBOOST"}))), }),
 				list<string>({ "DEALDAMAGE" }));
+
+		// PYROMANCY
+		skillDefinitions["Brilliant Spark"] = Skill("Brilliant Spark", "Brilliant Spark", "Pyromancy", SKILLICON_BRILLIANTSPARK, 20, 0, 0,
+			list<string>({ "DAMAGE_SINGLE_FIRE", }),
+			list<string>({ "MAGICAL", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER2", PowerValue("POWER2", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "DEALDAMAGE", "APPLY_BURNING_SINGLE" }));
 
 	}
 	void defineAllEquipment() {
@@ -996,69 +1385,177 @@ public:
 		}
 
 		// WEAPONS
-		equipmentDefinitions["Withered Secespita"] = Equipment("Withered Secespita", "Weapon", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("PIETY",1.0f,true,true), 
+		equipmentDefinitions["Withered Secespita"] = Equipment("Withered Secespita", "Weapon", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("PIETY",1.0f,true,true), 
 			}), "EQUIPMENTBLUE", 250);
-		equipmentDefinitions["Suero's Blade"] = Equipment("Suero's Blade", "Weapon", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("STRENGTH",1.0f,true,true),
+		equipmentDefinitions["Suero's Blade"] = Equipment("Suero's Blade", "Weapon", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("STRENGTH",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 250);
-		equipmentDefinitions["Blades of House JaqMaq"] = Equipment("Blades of House JaqMaq", "Weapon", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("AGILITY",1.0f,true,true),
+		equipmentDefinitions["Blades of House JaqMaq"] = Equipment("Blades of House JaqMaq", "Weapon", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("AGILITY",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 250);
-		equipmentDefinitions["Tibetan Tie Bian"] = Equipment("Tibetan Tie Bian", "Weapon", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("ENERGYREGENPLUS",5.0f,true,true),
+		equipmentDefinitions["Tibetan Tie Bian"] = Equipment("Tibetan Tie Bian", "Weapon", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("ENERGYREGENPLUS",5.0f,true,true),
 			}), "EQUIPMENTBLUE", 250);
-		equipmentDefinitions["Roger Bacon's Quill"] = Equipment("Roger Bacon's Quill", "Weapon", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("INTELLIGENCE",1.0f,true,true),
+		equipmentDefinitions["Roger Bacon's Quill"] = Equipment("Roger Bacon's Quill", "Weapon", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("INTELLIGENCE",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 250);
 
 		// ARMOUR
-		equipmentDefinitions["Vatican Vestiments"] = Equipment("Vatican Vestiments", "Armour", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("HOLYBOOST",1.0f,true,false),
+		equipmentDefinitions["Vatican Vestiments"] = Equipment("Vatican Vestiments", "Armour", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("HOLYBOOST",1.0f,true,false),
 			}), "EQUIPMENTBLUE", 250);
-		equipmentDefinitions["Martin's Cloak"] = Equipment("Martin's Cloak", "Armour", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("PHYSICALARMOUR",1.0f,true,false),
+		equipmentDefinitions["Martin's Cloak"] = Equipment("Martin's Cloak", "Armour", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("PHYSICALARMOUR",1.0f,true,false),
 			}), "EQUIPMENTBLUE", 250);
-		equipmentDefinitions["Alhambran Tunic"] = Equipment("Alhambran Tunic", "Armour", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("SHADOWBOOST",1.0f,true,false),
+		equipmentDefinitions["Alhambran Tunic"] = Equipment("Alhambran Tunic", "Armour", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("SHADOWBOOST",1.0f,true,false),
 			}), "EQUIPMENTBLUE", 250);
-		equipmentDefinitions["Insulating Gloves"] = Equipment("Insulating Gloves", "Armour", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("ELECTRICARMOUR",5.0f,true,false),
+		equipmentDefinitions["Insulating Gloves"] = Equipment("Insulating Gloves", "Armour", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("ELECTRICARMOUR",5.0f,true,false),
 			}), "EQUIPMENTBLUE", 250);
-		equipmentDefinitions["Ming Theatre Costume"] = Equipment("Ming Theatre Costume", "Armour", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("BLOODBOOST",1.0f,true,false),
+		equipmentDefinitions["Ming Theatre Costume"] = Equipment("Ming Theatre Costume", "Armour", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("BLOODBOOST",1.0f,true,false),
 			}), "EQUIPMENTBLUE", 250);
 
 		// ACCESSORIES
-		equipmentDefinitions["Cross of St Jeanne-Marie"] = Equipment("Cross of St Jeanne-Marie", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("PIETY",1.0f,true,true),
+		equipmentDefinitions["Cross of St Jeanne-Marie"] = Equipment("Cross of St Jeanne-Marie", "Accessory", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("PIETY",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 250);
-		equipmentDefinitions["Matteo Carreri's Locket"] = Equipment("Matteo Carreri's Locket", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("WAYFARINGBOOST",1.0f,true,false),
+		equipmentDefinitions["Matteo Carreri's Locket"] = Equipment("Matteo Carreri's Locket", "Accessory", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("WAYFARINGBOOST",1.0f,true,false),
 			}), "EQUIPMENTBLUE", 250);
-		equipmentDefinitions["Theoricae Novae Planetarum"] = Equipment("Theoricae Novae Planetarum", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("INTELLIGENCE",1.0f,true,true),
+		equipmentDefinitions["Theoricae Novae Planetarum"] = Equipment("Theoricae Novae Planetarum", "Accessory", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("INTELLIGENCE",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 250);
-		equipmentDefinitions["Lunyu Page Fragment"] = Equipment("Lunyu Page Fragment", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("UNHOLYBOOST",1.0f,true,false),
+		equipmentDefinitions["Lunyu Page Fragment"] = Equipment("Lunyu Page Fragment", "Accessory", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("UNHOLYBOOST",1.0f,true,false),
 			}), "EQUIPMENTBLUE", 250);
-		equipmentDefinitions["Mask of House JaqMaq"] = Equipment("Mask of House JaqMaq", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("AGILITY",1.0f,true,true),
+		equipmentDefinitions["Mask of House JaqMaq"] = Equipment("Mask of House JaqMaq", "Accessory", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("AGILITY",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 250);
-		equipmentDefinitions["Joan of Arc's Necklace"] = Equipment("Joan of Arc's Necklace", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("INTELLIGENCE",5.0f,true,true),
-			Equipment::Effect("FIREBOOST",1.5f,true,false),
-			Equipment::Effect("SELFIMMOLATE",0.0f,true,true),
+		equipmentDefinitions["Joan of Arc's Necklace"] = Equipment("Joan of Arc's Necklace", "Accessory", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("INTELLIGENCE",5.0f,true,true),
+			Combat::Effect("FIREBOOST",1.5f,true,false),
+			Combat::Effect("SELFIMMOLATE",0.0f,true,true),
 			}), "ELITESKILLYELLOW",9999);
-		equipmentDefinitions["The Eyes of St Lucy"] = Equipment("The Eyes of St Lucy", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("HOLYBOOST",0.5f,true,false),
-			Equipment::Effect("PIETY",1.0f,true,true),
+		equipmentDefinitions["The Eyes of St Lucy"] = Equipment("The Eyes of St Lucy", "Accessory", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("HOLYBOOST",0.5f,true,false),
+			Combat::Effect("PIETY",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 150);
-		equipmentDefinitions["al-Hajar al-Aswad"] = Equipment("al-Hajar al-Aswad", "Accessory", UNIMPLEMENTED_IMAGE, List<Equipment::Effect>({
-			Equipment::Effect("HOLYBOOST",1.3f,true,false),
-			Equipment::Effect("UNHOLYBOOST",1.3f,true,false),
+		equipmentDefinitions["al-Hajar al-Aswad"] = Equipment("al-Hajar al-Aswad", "Accessory", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("HOLYBOOST",1.3f,true,false),
+			Combat::Effect("UNHOLYBOOST",1.3f,true,false),
 			}), "ELITESKILLYELLOW", 9999);
 
+	}
+	void defineAllCombatants() {
+		// ALLIES
+		definedCombatants["Father Michelet"] = Combatant("Father Michelet", "Father Michelet",
+			Map<string, int>({
+				pair<string, int>("AGILITY", 1),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Father Michelet", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Father Michelet", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkills", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Strength of Reason"),
+						pair<string, string>("2", "Heal Wounds"),
+						pair<string, string>("3", "Laying of Hands"),
+						pair<string, string>("4", "DEFAULT_WAIT"),
+						})),
+					}));
+		
+		// ENRAGED
+		definedCombatants["EnragedVilomah"] = Combatant("EnragedVilomah", "EnragedVilomah", 
+			Map<string, int>({
+				pair<string, int>("AGILITY", 1),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("EnragedVilomah", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("EnragedVilomah", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkills", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Serrated Strike"),
+						pair<string, string>("2", "DEFAULT_WAIT"),
+						})),
+					}));
+		definedCombatants["EnragedPriest"] = Combatant("EnragedPriest", "EnragedPriest",
+			Map<string, int>({
+				pair<string, int>("PIETY", 1),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("EnragedPriest", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("EnragedPriest", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkills", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Heal Wounds"),
+						pair<string, string>("2", "DEFAULT_WAIT"),
+						})),
+					}));
+		definedCombatants["EnragedVagrant"] = Combatant("EnragedVagrant", "EnragedVagrant",
+			Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 1),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("EnragedVagrant", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("EnragedVagrant", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkills", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Atrophy"),
+						pair<string, string>("2", "DEFAULT_WAIT"),
+						})),
+					}));
+		definedCombatants["EnragedMagician"] = Combatant("EnragedMagician", "EnragedMagician",
+			Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 1),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("EnragedMagician", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("EnragedMagician", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkills", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Brilliant Spark"),
+						pair<string, string>("2", "DEFAULT_WAIT"),
+						})),
+					}));
+	}
+	void defineAllTeams() {
+		// pair is leader -> team
+		// EVENT
+		definedTeams["EVENT1"] = { "EnragedVilomah", List<Combatant>({
+			definedCombatants["EnragedMagician"],
+			definedCombatants["EnragedPriest"],
+			definedCombatants["EnragedVilomah"],
+			definedCombatants["EnragedVagrant"], }) };
+
+		definedTeams["EVENT2"] = { "Father Michelet", List<Combatant>({
+			definedCombatants["Father Michelet"],})};
+
+		// ENRAGED
+
+	}
+	
+
+	List<string> getAllLegalSkills() {
+		List<string> result; 
+		for (auto s : skillDefinitions.getKeys().internalList) {
+			if (skillDefinitions[s].skillTree != "Default") {
+				result.push_back(s);
+			}
+		}
+		return result;
 	}
 	List<string> getNamesOfAllSkillTreeNames(string language) {
 		Map<string, wstring> skillTrees; skillTrees.internalMap = strings[language]["Skill Tree Names"];
@@ -1079,8 +1576,35 @@ public:
 		}
 		return results;
 	}
+	List<Combatant> getThisTeam(string instruction, string teamName) {
+		List<Combatant> result;
+		if (instruction == "") {
+			return result;
+		}
+		if (instruction == "PARTY") {
+			for (auto member : saveContainer.current.party) {
+				result.push_back(loadPartyMemberAsCombatant(member));
+			}
+		}
+		else {
+			result = definedTeams[instruction].second;
+		}
 
+		for (int x = 0; x < result.size(); x++) {
+			result.at(x).uniqueCombatID = teamName + "_" + to_string(x+1) + "_" + result.at(x).uniqueID;
+			result.at(x).setCombatStats(*this, true);
+		}
+		return result;
+	}
 	Combatant loadPartyMemberAsCombatant(string name) {
+		if (currentBattle != NULL) {
+			// if in a battle, use the one from the battle instead so it picks up any status changes
+			for (auto * c : currentBattle->all.getValues().internalList) {
+				if (c->c.uniqueID == name) {
+					return c->c;
+				}
+			}
+		}
 		Map<string, string> equippedSkillNames; equippedSkillNames.internalMap = saveContainer.current.equippedSkills[name];
 		Map<string, string> equippedSkillTreeNames; equippedSkillTreeNames.internalMap = saveContainer.current.equippedSkillTrees[name];
 		Map<string, string> equipment; equipment.internalMap = saveContainer.current.equippedItems[name];
@@ -1089,7 +1613,10 @@ public:
 		data["equippedSkillNames"] = equippedSkillNames;
 		data["equipmentNames"] = equipment;
 		data["equippedSkillTreeNames"] = equippedSkillTreeNames;
-		return Combatant(name, name, attributeInvestments, data);
+		data["Images"]["Back"] = imageLookup.getSequenceAsString(name, "COMBAT_BACK");
+		data["Images"]["Front"] = imageLookup.getSequenceAsString(name, "COMBAT_FRONT");
+		Combatant result =  Combatant(name, name, attributeInvestments, data);
+		return result;
 	}
 	Map<string, Skill> getSkillsOnASkillBar(Map<string, string> skillNames, bool full) {
 		Map<string, Combat::Skill> skillsToDraw;
@@ -1111,6 +1638,8 @@ public:
 	Map<string, map<string, string>> defaultSkillChoices;
 	Map<string, map<string, string>> defaultSkillTreeChoices;
 	Map<string, map<string, string>> defaultEquipment;
+	Map<string, Combatant> definedCombatants;
+	Map<string, pair<string, List<Combatant>>> definedTeams;
 };
 Combat combat;
 
@@ -1152,13 +1681,23 @@ public:
 				}
 				return true;
 			}
+			if (type == "STOPALLSONGS") {
+				List<string> existingSongs = explorer.currentMap.getSongNames();
+				for (auto song : existingSongs.internalList) {
+					string songName = split(song, " ").at(0);
+					audio.fadeOutAndStopThis(stoi(songName), 3);
+				}
+				return true;
+			}
 			if (type == "MANAGEAUDIOSWAP") {
 				string previousMap = explorer.currentMap.name;
 				string targetMap = data["targetMap"];
 				bool unloadAudio = data.hasKey("unloadAudio");
 				
 				List<string> existingSongs = explorer.currentMap.getSongNames();
-				List<string> upcomingSongs = explorer.maps[targetMap].getSongNames();
+				List<string> upcomingSongs;
+				upcomingSongs = explorer.maps[targetMap].getSongNames();
+
 				for (auto song : existingSongs.internalList) {
 					string songName = split(song, " ").at(0);
 					if (!upcomingSongs.contains(songName)) {
@@ -1185,7 +1724,17 @@ public:
 			if (type == "SHOWMAPLOADINGSCREEN") {
 				string mapName = data["targetMap"];
 				string uniqueID = "LoadingScreen";
-				string loadingScreenSource = explorer.maps[mapName].data["LoadingScreenImage"];
+				string loadingScreenSource = "";
+				int speed = 10;
+				if (data.hasKey("speed")) {
+					speed = stoi(data["speed"]);
+				}
+				if (data.hasKey("direct")) {
+					loadingScreenSource = data["direct"];
+					}
+				else {
+					loadingScreenSource = explorer.maps[mapName].data["LoadingScreenImage"];
+				}
 				if (!graphics.doesThisImageAlreadyExist(uniqueID)) {
 					Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 						pair<string, string>("sources", loadingScreenSource),
@@ -1198,7 +1747,7 @@ public:
 						pair<string, string>("uniqueID", uniqueID), }))).run(*&gameEngine);
 					return false;
 				}
-				if (!CLOCK.hasEnoughTimePassed("loadingscreenmapfade", 10)) {
+				if (!CLOCK.hasEnoughTimePassed("loadingscreenmapfade", speed)) {
 					return false;
 				}
 				Graphics::Image* theImage = graphics.accessImageViaUniqueID(uniqueID);
@@ -1239,7 +1788,7 @@ public:
 			if (type == "RELOADMAPOBJECTS") {
 				for (auto& x : explorer.currentMap.objects.internalList) {
 					Map<string, string> data = x.data;
-					if (data.hasOneOfTheseKeys({ "don'tLoadIfNot", "don'tLoadIfPlayer" })) {
+					if (data.hasOneOfTheseKeys({ "don'tLoadIfNot", "don'tLoadIfPlayer", "don'tLoadIf"})) {
 						bool needToLoad = true;
 						if (data.hasKey("don'tLoadIfNot")) {
 							string flagName = data["don'tLoadIfNot"];
@@ -1250,12 +1799,19 @@ public:
 							bool status = saveContainer.getCurrentMainCharacter() != data["don'tLoadIfPlayer"];
 							needToLoad = status;
 						}
+						if (data.hasKey("don'tLoadIf")) {
+							string flagName = data["don'tLoadIfNot"];
+							bool status = saveContainer.current.flags[flagName];
+							needToLoad = !status;
+						}
 						if (!needToLoad) {
 							x.visible = false;
 							x.canInteract = false;
 						}
 						else {
-							x.visible = true;
+							if (x.imageSources != "") {
+								x.visible = true;
+							}
 							x.canInteract = true;
 						}
 					}
@@ -1293,7 +1849,7 @@ public:
 				string explorerName = saveContainer.getCurrentMainCharacter();
 				explorer.loadMap(mapName);
 				if (data.hasKey("putPlayerHere")) {
-					explorer.playerOnMap.position = { stoi(data["x"]), stoi(data["y"]) };
+					explorer.playerOnMap.position = { stof(data["x"]), stof(data["y"]) };
 				}
 				string direction = "STAND_FRONT";
 				if (data.hasKey("direction")) {
@@ -1405,6 +1961,9 @@ public:
 			if (type == "DRAWTEXT") {
 				string origMessage = data["message"];
 				wstring message = wstring(data["message"].begin(), data["message"].end());
+				if (message == L"$LATESTCOMBATSTRING$") {
+					message = combat.currentBattle->combatMessages.front().second;
+				}
 
 				if (data["animateExisting"] == "1") {
 					data["x"] = "0";
@@ -1475,6 +2034,7 @@ public:
 				List<string> styles = split(data["styles"], ",");
 				bool animated = data["animated"] == "TRUE";
 				if (!graphics.doesThisTextAlreadyExist(uniqueID)) {
+					data["animateExisting"] = "0";
 					Graphics::Text * theText = graphics.addText(new Graphics::Text(*&graphics, message, format, position, anchorStyle, size, colour, shadowColour, uniqueID), layer);
 					if (animated) {
 						if (styles.contains("TYPEWRITER")) {
@@ -1501,6 +2061,9 @@ public:
 							}
 						}
 						int typewriterSpeed = 5;
+						if (data.hasKey("typewriterSpeed")) {
+							typewriterSpeed = stoi(data["typewriterSpeed"]);
+						}
 						bool finished = theText->getMessage().find(L"⑤") == -1;
 						int howFarAlong = theText->howFarAlong();
 						if (CLOCK.hasEnoughTimePassed("TYPEWRITER", typewriterSpeed)) {
@@ -1611,6 +2174,19 @@ public:
 							pair<string, string>("animation_speed", "200"),
 					})).run(*&gameEngine);
 				return gameEngine.skillAnimationContainer.handleAnimation(*&gameEngine, graphics.accessPlayerImage(), graphics.accessImageViaUniqueID("victim"), "Life Drain", {}, {});
+			}
+			if (type == "DEBUGCOMBAT") {
+				Map<string, string>combatData({
+					pair<string, string>("team1","PARTY"),
+					pair<string, string>("team1allies","EVENT2"),
+					pair<string, string>("team2","EVENT1"),
+					pair<string, string>("team2allies",""),
+					pair<string, string>("background", to_string(BATTLEBACKGROUND_TOWN)),
+					pair<string, string>("song",""),
+					pair<string, string>("postBattle","RETURNTOEXPLORE"),
+					});
+				gameEngine.activeProcedure = gameEngine.makeCombatProcedure(combatData);
+				return false;
 			}
 			if (type == "CLICKANDDRAG") {				
 				//Event("Debug", "DEBUGUSERINPUT", {}).run(*&gameEngine);
@@ -1786,13 +2362,14 @@ public:
 
 						if (goingToReserve and theCurrentParty.contains(lhs) and theCurrentParty.size() > 1) {
 						// move out of party
+							string currentLeader = saveContainer.getCurrentMainCharacter();
 							theCurrentParty.internalList.remove(lhs);
 							saveContainer.current.party = theCurrentParty.internalList;
 							forceRedraw = true;
 
 							string nextLeader = saveContainer.getCurrentMainCharacter();
-							if (lhs != nextLeader) {
-								Event("PrintoutPlayer", "SWAPEXPLORERS", List<pair<string, string>>({ pair<string, string>("previous", lhs),pair<string, string>("next", nextLeader), })).run(*&gameEngine);
+							if (currentLeader != nextLeader) {
+								Event("PrintoutPlayer", "SWAPEXPLORERS", List<pair<string, string>>({ pair<string, string>("previous", currentLeader),pair<string, string>("next", nextLeader), })).run(*&gameEngine);
 							}
 						}
 						if (goingToParty and !theCurrentParty.contains(lhs) and theCurrentParty.size() < saveContainer.partyLimit) {
@@ -1933,8 +2510,8 @@ public:
 				saveContainer.current.attributeInvestments = combat.defaultAttInvestments.internalMap;
 				saveContainer.current.equippedSkillTrees = combat.defaultSkillTreeChoices.internalMap;
 				saveContainer.current.equippedItems = combat.defaultEquipment.internalMap;
-				for (auto s : saveContainer.current.party) {
-					saveContainer.current.knownSkills[s] = combat.skillDefinitions.getKeys().internalList;
+				for (auto s : saveContainer.current.allCharacters) {
+					saveContainer.current.knownSkills[s] = combat.getAllLegalSkills().internalList;
 				}
 				// test any npc
 				//saveContainer.current.party.push_front("White Knight");
@@ -1959,7 +2536,7 @@ public:
 						Args.toggle("SPEEDCHEAT");
 					}
 					if (controller.hasThisBeenPressed(VK_F2)) {
-						gameEngine.activeProcedure.eventList.push_front(Event("Debug Bezier", "DEBUGBEZIER", {}));
+						gameEngine.activeProcedure.eventList.push_front(Event("Debug Combat", "DEBUGCOMBAT", {}));
 						return false;
 					}
 					if (controller.hasThisBeenPressed(VK_F3)) {
@@ -1969,7 +2546,7 @@ public:
 						gameEngine.stateFlags["SHOWFPS"] = "1";
 					}
 					if (controller.hasThisBeenPressed(VK_F5)) {
-						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "Tavern1", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "TownCutscene5", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 						return false;
 					}
 					if (Args.get("SPEEDCHEAT") == "1") {
@@ -2098,7 +2675,7 @@ public:
 						stopExploringStartCutscene = true;
 						popUpTextNeedsToBeDrawn = false;
 					}
-					if (walkable.data.getKeys().contains("areaTransition") and userInput) {
+					if (walkable.data.getKeys().contains("areaTransition") and userInput and walkable.canInteract) {
 						currentMap = explorer.currentMap.name;
 						targetMap = walkable.data["areaTransition"];
 						futurePlayerPosition = { stof(walkable.data["playerPosX"]), stof(walkable.data["playerPosY"]) };
@@ -2125,19 +2702,21 @@ public:
 					Event("TearDownPopUpText", "TEARDOWNTEXT", Map<string, string>(pair<string, string>{"uniqueID", explorer.mapPopupTextID})).run(*&gameEngine);
 				}
 				if (stopExploringStartCutscene) {
-					Event("MakePlayerStopMoving", "ANIMATEIMAGEONMAP", Map<string, string>({
+					if (currentDirection != "") {
+						Event("MakePlayerStopMoving", "ANIMATEIMAGEONMAP", Map<string, string>({
 					pair<string, string>("whichImage", uniqueID),
 					pair <string, string>("character", character),
 					pair <string, string>("direction", currentDirection),
 					pair <string, string>("action", "STAND"),
-						})).run(*&gameEngine);
-					Event("MakePlayerStopMoving", "ANIMATEIMAGEONMAP", Map<string, string>({
-					pair<string, string>("whichImage", shadowID),
-					pair <string, string>("character", "Shadow " + character),
-					pair <string, string>("direction", currentDirection),
-					pair <string, string>("action", "STAND"),
-						})).run(*&gameEngine);
-
+							})).run(*&gameEngine);
+						Event("MakePlayerStopMoving", "ANIMATEIMAGEONMAP", Map<string, string>({
+						pair<string, string>("whichImage", shadowID),
+						pair <string, string>("character", "Shadow " + character),
+						pair <string, string>("direction", currentDirection),
+						pair <string, string>("action", "STAND"),
+							})).run(*&gameEngine);
+						
+					}
 					if (!gameEngine.storedProcedures.getKeys().contains(whichCutscene)) {
 						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, whichCutscene, saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					}
@@ -2188,11 +2767,15 @@ public:
 			if (type == "DIALOGUE") {
 				string cutscene = data["cutscene"];
 				string speakerID = data["speaker"];
+				if (speakerID.find("$ASYNC$") != -1) {
+					speakerID = SReplace(speakerID, "$ASYNC$", "");
+					gameEngine.activeProcedure.eventList.at(1).run(*&gameEngine);
+				}
 				string displayName = speakerID;
 				string line = name;
 				string direct = data["direct"]; // 1 = use string here 0 = get string from Strings.h
 				if (direct != "1") {
-					line = gameEngine.language + "_" + cutscene + "_" + line + " " + speakerID;
+					line = gameEngine.language + "_" + cutscene + "_" + line + " " + data["speaker"];
 				}
 				bool hideSpeakerName = speakerID.find("?") != -1;
 				if (hideSpeakerName) {
@@ -2309,11 +2892,11 @@ public:
 				if (gameEngine.storedMenus[baseMenuName].data["SKILLTREEEDIT"] == "2") {
 					startPosition.first += 30;
 				}
-				float gap = 10;
+				float gap = 6;
 				List<Menu::Button> dynamicButtons;
-				dynamicButtons.push_back(Menu::standardButton("CANCELSKILLTREECHOICE", "GUI_CANCELSKILLTREECHOICE", startPosition));
+				dynamicButtons.push_back(Menu::smallButton("CANCELSKILLTREECHOICE", "GUI_CANCELSKILLTREECHOICE", startPosition));
 				for (int x = 0; x < toDraw.size(); x++) {
-					dynamicButtons.push_back(Menu::standardButton(toDraw.at(x), "Skill Tree Names_" + toDraw.at(x), { startPosition.first, startPosition.second + gap * (x + 1) }));
+					dynamicButtons.push_back(Menu::smallButton(toDraw.at(x), "Skill Tree Names_" + toDraw.at(x), { startPosition.first, startPosition.second + gap * (x + 1) }));
 				}
 				gameEngine.storedMenus[whichMenu].buttons = dynamicButtons;
 			}
@@ -2971,10 +3554,13 @@ public:
 					theImage->frame = 1;
 					string hoveredOverItem = clickable.imageID;
 					if (hoveredOverItem != controller.latestMenuItemHovered) {
-						Event("PlayHoverSound", "PLAYSFX", Map<string, string>({
+						if (CLOCK.hasEnoughTimePassed("PlayASoundInTheMenu", 100)) {
+							Event("PlayHoverSound", "PLAYSFX", Map<string, string>({
 							pair<string,string>("audio",to_string(clickable.audioHover)),
 							pair<string,string>("direct","1"),
-							})).run(*&gameEngine);
+								})).run(*&gameEngine);
+							CLOCK.startClock("PlayASoundInTheMenu");
+						}
 						controller.latestMenuItemHovered = clickable.imageID;
 					}
 					if (clickable.extras.getKeys().contains("hasHoverText")) {
@@ -3702,7 +4288,7 @@ public:
 						pair<string, string>("message",who),
 						pair<string, string>("skill",whichSkill),
 						pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-						pair<string, string>("format", "LightText_20"),
+						pair<string, string>("format", "LightText_" + to_string(int(scale*20))),
 						pair<string, string>("anchorStyle", "TOPLEFT"),
 						pair<string, string>("x", desc["description"].first),
 						pair<string, string>("y", desc["description"].second),
@@ -3719,7 +4305,7 @@ public:
 							pair<string, string>("message",who),
 							pair<string, string>("skill",whichSkill),
 							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("format", "LightText_" + to_string(int(scale * 20))),
 							pair<string, string>("anchorStyle", "TOPLEFT"),
 							pair<string, string>("x", desc["name"].first),
 							pair<string, string>("y", desc["name"].second),
@@ -3734,7 +4320,7 @@ public:
 							})).run(*&gameEngine);
 						Event("DrawText", "DRAWTEXT", Map<string, string>({
 							pair<string, string>("message",gameEngine.language + "_Skill Tree Names_" + toDraw.skillTree),
-							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("format", "LightText_" + to_string(int(scale * 20))),
 							pair<string, string>("anchorStyle", "TOPLEFT"),
 							pair<string, string>("x", desc["skillTree"].first),
 							pair<string, string>("y", desc["skillTree"].second),
@@ -3749,7 +4335,7 @@ public:
 						Event("DrawText", "DRAWTEXT", Map<string, string>({
 							pair<string, string>("message",to_string(toDraw.baseCost)),
 							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("format", "LightText_" + to_string(int(scale * 20))),
 							pair<string, string>("anchorStyle", "TOPLEFT"),
 							pair<string, string>("x", desc["cost"].first),
 							pair<string, string>("y", desc["cost"].second),
@@ -3764,7 +4350,7 @@ public:
 						Event("DrawText", "DRAWTEXT", Map<string, string>({
 							pair<string, string>("message",to_string(toDraw.baseCastingTime)),
 							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("format", "LightText_" + to_string(int(scale * 20))),
 							pair<string, string>("anchorStyle", "TOPLEFT"),
 							pair<string, string>("x", desc["activation"].first),
 							pair<string, string>("y", desc["activation"].second),
@@ -3779,7 +4365,7 @@ public:
 						Event("DrawText", "DRAWTEXT", Map<string, string>({
 							pair<string, string>("message",to_string(toDraw.baseRecharge)),
 							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-							pair<string, string>("format", "LightText_20"),
+							pair<string, string>("format", "LightText_" + to_string(int(scale * 20))),
 							pair<string, string>("anchorStyle", "TOPLEFT"),
 							pair<string, string>("x", desc["recharge"].first),
 							pair<string, string>("y", desc["recharge"].second),
@@ -4387,7 +4973,15 @@ public:
 							explorer.playerOnMap.position = explorer.moveLHSCloserToRHS(current, target, (targetPositions[objectName].first == ignore), (targetPositions[objectName].second == ignore), unitOfMovement);
 						}
 						else {
-							currentPositions[objectName] = explorer.moveLHSCloserToRHS(currentPositions[objectName], targetPositions[objectName], (targetPositions[objectName].first == ignore), (targetPositions[objectName].second == ignore), unitOfMovement);
+							if (explorer.currentMap.doesAnObjectWithThisNameExist(objectName)) {
+								currentPositions[objectName] = explorer.moveLHSCloserToRHS(currentPositions[objectName], targetPositions[objectName], (targetPositions[objectName].first == ignore), (targetPositions[objectName].second == ignore), unitOfMovement);
+								if (abs(currentPositions[objectName].first - targetPositions[objectName].first) < unitOfMovement) {
+									currentPositions[objectName].first = targetPositions[objectName].first;
+								}
+								if (abs(currentPositions[objectName].second - targetPositions[objectName].second) < unitOfMovement) {
+									currentPositions[objectName].second = targetPositions[objectName].second;
+								}
+							}
 						}
 						if (CLOCK.hasEnoughTimePassed(objectName + "PLAYAUDIO", 200)) {
 							string audioName = objectAudio[objectName];
@@ -4523,6 +5117,12 @@ public:
 			if (type == "CHANGEOPACITY") {
 				string whichImage = data["uniqueID"];
 				string opacity = data["opacity"];
+				if (whichImage == "PLAYER1") {
+					whichImage = saveContainer.getCurrentMainCharacter() + "_Explore";
+				}
+				if (whichImage == "PLAYER1 Shadow") {
+					whichImage = saveContainer.getCurrentMainCharacter() + "_Shadow";
+				}
 				graphics.accessImageViaUniqueID(whichImage)->opacity = stof(opacity);
 				return true;
 			}
@@ -4560,6 +5160,245 @@ public:
 				}
 				return gameEngine.skillAnimationContainer.handleAnimation(*&gameEngine, graphics.accessImageViaUniqueID(caster), graphics.accessImageViaUniqueID(target), skillName, {}, extras);
 			}
+			if (type == "SETUPBATTLE") {
+				string team1source = data["team1"];
+				string team1alliessource = data["team1allies"];
+				string team2source = data["team2"];
+				string team2alliessource = data["team2allies"];
+				string backgroundImage = data["background"];
+				string song = data["song"];
+				string postBattle = data["postBattle"];
+				data["opponentName"] = combat.definedTeams[team2source].first;
+				data["language"] = gameEngine.language;
+
+				List<Combat::Combatant> team1 = combat.getThisTeam(team1source, "TEAM1");
+				List<Combat::Combatant> team1allies = combat.getThisTeam(team1alliessource, "TEAM1ALLIES");
+				List<Combat::Combatant> team2 = combat.getThisTeam(team2source, "TEAM2");
+				List<Combat::Combatant> team2allies = combat.getThisTeam(team2alliessource, "TEAM2ALLIES");
+
+				Map<string, Map<string, pair<float, float>>> combatPositions = combat.getCombatantPositionLookup();
+				combat.setUpBattle(team1, team1allies, team2, team2allies, data);
+
+				for (int x = 0; x < team1.size(); x++) {
+					pair<float, float> pos = combatPositions["TEAM1_" + to_string(team1.size())][to_string(x)];
+					Event("LoadImages", "LOADIMAGESFORCOMBATANT", Map<string, string>(List<pair<string, string>>({
+							pair<string, string>("sources", team1.at(x).data["Images"]["Back"]),
+							pair<string, string>("x", to_string(pos.first)),
+							pair<string, string>("y", to_string(pos.second)),
+							pair<string, string>("scale", "1"),
+							pair<string, string>("uniqueID", "TEAM1_COMBATANT_" + to_string(x) + "_" + team1.at(x).uniqueID),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["COMBATTEAM1"])),
+						}))).run(*&gameEngine);
+				}
+				for (int x = 0; x < team2.size(); x++) {
+					pair<float, float> pos = combatPositions["TEAM2_" + to_string(team2.size())][to_string(x)];
+					Event("LoadImages", "LOADIMAGESFORCOMBATANT", Map<string, string>(List<pair<string, string>>({
+							pair<string, string>("sources", team2.at(x).data["Images"]["Front"]),
+							pair<string, string>("x", to_string(pos.first)),
+							pair<string, string>("y", to_string(pos.second)),
+							pair<string, string>("scale", "0.7"),
+							pair<string, string>("uniqueID", "TEAM2_COMBATANT_" + to_string(x) + "_" + team2.at(x).uniqueID),
+							pair<string, string>("layer",to_string(imageLookup.layerDefaults["COMBATTEAM2"])),
+						}))).run(*&gameEngine);
+				}
+				for (int x = 0; x < team1allies.size(); x++) {
+					pair<float, float> pos = combatPositions["TEAM1_ALLIES"][to_string(x)];
+					Event("LoadImages", "LOADIMAGESFORCOMBATANT", Map<string, string>(List<pair<string, string>>({
+							pair<string, string>("sources", team1allies.at(x).data["Images"]["Back"]),
+							pair<string, string>("x", to_string(pos.first)),
+							pair<string, string>("y", to_string(pos.second)),
+							pair<string, string>("scale", "0.9"),
+							pair<string, string>("uniqueID", "TEAM1ALLIES_COMBATANT_" + to_string(x) + "_" + team2.at(x).uniqueID),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["COMBATTEAM1ALLIES"])),
+						}))).run(*&gameEngine);
+				}
+				for (int x = 0; x < team2allies.size(); x++) {
+					pair<float, float> pos = combatPositions["TEAM2_ALLIES"][to_string(x)];
+					Event("LoadImages", "LOADIMAGESFORCOMBATANT", Map<string, string>(List<pair<string, string>>({
+							pair<string, string>("sources", team2allies.at(x).data["Images"]["Back"]),
+							pair<string, string>("x", to_string(pos.first)),
+							pair<string, string>("y", to_string(pos.second)),
+							pair<string, string>("scale", "0.8"),
+							pair<string, string>("uniqueID", "TEAM2ALLIES_COMBATANT_" + to_string(x) + "_" + team2.at(x).uniqueID),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["COMBATTEAM2ALLIES"])),
+						}))).run(*&gameEngine);
+				}
+
+				Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", backgroundImage),
+						pair<string, string>("x", "50"),
+						pair<string, string>("y", "50"),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", "1.0"),
+						pair<string, string>("layer", "0"),
+						pair<string, string>("scale", "1.0"),
+						pair<string, string>("uniqueID", "BattleBackground"),
+							}))).run(*&gameEngine);
+				CLOCK.startClock("CombatStartWait");
+				return true;
+			}
+			if (type == "LOADIMAGESFORCOMBATANT") {
+				string sources = data["sources"];
+				string x = data["x"];
+				string y = data["y"];
+				string uniqueIDBase = data["uniqueID"];
+				string baseLayer = data["layer"];
+				string barback_life = uniqueIDBase + "_BARBACKLIFE";
+				string barback_mana = uniqueIDBase + "_BARBACKMANA";
+				string life = uniqueIDBase + "_LIFE";
+				string mana = uniqueIDBase + "_MANA";
+				string scale = data["scale"];
+				Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+					pair<string, string>("sources", sources),
+					pair<string, string>("x", x),
+					pair<string, string>("y", y),
+					pair<string, string>("anchor", "CENTRE"),
+					pair<string, string>("opacity", "1.0"),
+					pair<string, string>("layer", baseLayer),
+					pair<string, string>("scale", scale),
+					pair<string, string>("uniqueID", uniqueIDBase),
+					}))).run(*&gameEngine);
+				Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+					pair<string, string>("sources", to_string(BARBACK)),
+					pair<string, string>("x", to_string(stof(x)+3)),
+					pair<string, string>("y", to_string(stof(y) + 20)),
+					pair<string, string>("anchor", "CENTRE"),
+					pair<string, string>("opacity", "1.0"),
+					pair<string, string>("layer", to_string(stoi(baseLayer) + 1)),
+					pair<string, string>("scale", scale),
+					pair<string, string>("uniqueID", barback_life),
+					}))).run(*&gameEngine);
+				Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+					pair<string, string>("sources", to_string(LIFEBAR)),
+					pair<string, string>("x", to_string(stof(x) + 3)),
+					pair<string, string>("y", to_string(stof(y) + 20)),
+					pair<string, string>("anchor", "CENTRE"),
+					pair<string, string>("opacity", "1.0"),
+					pair<string, string>("layer", to_string(stoi(baseLayer)+2)),
+					pair<string, string>("scale", scale),
+					pair<string, string>("uniqueID", life),
+					}))).run(*&gameEngine);
+				Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+					pair<string, string>("sources", to_string(BARBACK)),
+					pair<string, string>("x", to_string(stof(x) + 3.25)),
+					pair<string, string>("y", to_string(stof(y) + 20)),
+					pair<string, string>("anchor", "CENTRE"),
+					pair<string, string>("opacity", "1.0"),
+					pair<string, string>("layer", to_string(stoi(baseLayer) + 1)),
+					pair<string, string>("scale", scale),
+					pair<string, string>("uniqueID", barback_life),
+					}))).run(*&gameEngine);
+				Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+					pair<string, string>("sources", to_string(MANABAR)),
+					pair<string, string>("x", to_string(stof(x) + 3.25)),
+					pair<string, string>("y", to_string(stof(y) + 20)),
+					pair<string, string>("anchor", "CENTRE"),
+					pair<string, string>("opacity", "1.0"),
+					pair<string, string>("layer", to_string(stoi(baseLayer) + 2)),
+					pair<string, string>("scale", scale),
+					pair<string, string>("uniqueID", mana),
+					}))).run(*&gameEngine);
+
+
+
+				return true;
+			}
+			if (type == "HANDLECOMBAT") {
+				int verbosityLevel = stoi(gameEngine.stateFlags["combatVerbosity"]);
+				int latestMessageVerbosity = combat.currentBattle->combatMessages.front().first;
+				if (latestMessageVerbosity <= verbosityLevel) {
+					Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
+					pair<string, string>("message","$LATESTCOMBATSTRING$"),
+					pair<string, string>("animateExisting","0"),
+					pair<string, string>("direct","1"),
+					pair<string, string>("format", "GoudyMedieval_20"),
+					pair<string, string>("anchorStyle", "TOPLEFT"),
+					pair<string, string>("x", "5"),
+					pair<string, string>("y", "1"),
+					pair<string, string>("w", "99"),
+					pair<string, string>("h", "33"),
+					pair<string, string>("typewriterSpeed", "0"),
+					pair<string, string>("colour", "WHITE"),
+					pair<string, string>("shadowColour", "BLACK"),
+					pair<string, string>("layer", to_string(imageLookup.layerDefaults["UI"] + 3)),
+					pair<string, string>("uniqueID", "combatText"),
+					pair<string, string>("animated", "TRUE"),
+					pair<string, string>("styles", "TYPEWRITER"),
+							}))).run(*&gameEngine);
+				}
+				else if (graphics.doesThisTextAlreadyExist("combatText")) {
+					graphics.tearDownSpecifiedText("combatText");
+				}
+				
+				if (!CLOCK.hasEnoughTimePassedDoNotResetClock("CombatStartWait", 4000)) {
+					return false;
+				}
+				string currentActor = combat.currentBattle->currentRound.whoseTurnIsIt();
+				bool finishedRound = false;
+				if (currentActor == "WORLD") {
+					finishedRound = Event("WorldTurn", "HANDLEWORLDTURN", {}).run(*&gameEngine);
+				}
+				if (combat.currentBattle->playerIsInControl()) {
+					finishedRound = Event("HandlePlayerInput", "HANDLECOMBATPLAYERINPUT", {}).run(*&gameEngine);
+				}
+				if (finishedRound) {
+					Event("TickUp", "HANDLECOMBATTICK", {}).run(*&gameEngine);
+				}
+				
+				return false;
+			}
+			if (type == "HANDLECOMBATTICK") {
+				string combatStatus = combat.currentBattle->tick();
+				// add something to make battle finish if won or lost
+				if (combatStatus == "INPROGRESS") {
+					combat.currentBattle->announceCombatantTurn(gameEngine.language);
+					graphics.tearDownSpecifiedText("combatText");
+					bool isPlayerInControl = combat.currentBattle->playerIsInControl();
+					if (isPlayerInControl) {
+						string currentActor = combat.currentBattle->currentRound.whoseTurnIsIt();
+						string who = combat.currentBattle->all[currentActor]->c.uniqueID;
+						Event("LoadSkillBar", "LOADSKILLBARHERE", Map<string, string>({
+								pair<string, string>("who", who),
+								pair<string, string>("scale", "0.75"),
+								pair<string, string>("x", "50"),
+								pair<string, string>("y", "90"),
+								pair<string, string>("full", "1"),
+							})).run(*&gameEngine);
+					}
+					return false;
+				}
+			}
+			if (type == "HANDLECOMBATPLAYERINPUT") {
+				if (Args.get("mode") == "DEBUG") {
+					if (controller.hasThisBeenPressed(VK_F1)) {
+						// make combat end instantly
+					}
+				}
+				Event("HandleSkillBarExplain", "HANDLESKILLEXPLAIN", Map<string, string>({
+						pair<string, string>("x","5"),
+						pair<string, string>("y","20"),
+						pair<string, string>("scale","1.0"),
+						pair<string, string>("full","1"),
+					})).run(*&gameEngine);
+				return false;
+			}
+			if (type == "COMBATEXECUTE") {
+				// phase that does the combat effect / runs the skill and stores the result so it can be printed later
+			}
+			if (type == "HANDLEWORLDTURN") {
+				// effects that are not applied directly to any player (e.g. rainstorm, firestorm)
+				bool doneStuff = false;
+				// do stuff
+				doneStuff = true;
+				if (!doneStuff) {
+					CLOCK.startClock("CombatWait");
+				}
+				if (doneStuff) {
+					CLOCK.startClockIfItDoesNotExist("CombatWait");
+					return CLOCK.hasEnoughTimePassed("CombatWait", 1000);
+				}
+				return false;
+			}
 			return false;
 }
 		string name;
@@ -4584,7 +5423,7 @@ public:
 	};
 	class SkillAnimationContainer {
 	public:
-		bool handleAnimation(GameEngine & gameEngine, Graphics::Image* caster, Graphics::Image* target, string skill, Map<string, Map<string, string>> numbersToDraw, Map<string,string> extras) {
+		bool handleAnimation(GameEngine & gameEngine, Graphics::Image* caster, Graphics::Image* target, string skill, Map<string, Map<string, string>> thingsToDraw, Map<string,string> extras) {
 			pair<float, float> targetLocation = target->positionAsPercentage;
 			pair<float, float> casterLocation = caster->positionAsPercentage;
 			Map<string, bool> finished; // each bubble
@@ -4852,8 +5691,8 @@ public:
 			"SKILLMANAGEMENT", Menu("SKILLMANAGEMENT", List<Menu::Button>({
 				Menu::TextBox("TEXTBOX1", "GUI_SELECTCHARACTER", "VERY_SMALL", {15, 7}),
 				Menu::standardButton("FROMSKILLMANAGETOPARTYMANAGE", "GUI_FROMPARTYTOPAUSE", {12, 90}),
-				Menu::standardButton("SKILLTREE1", "GUI_SKILLTREESELECTIONEMPTY", {45, 8}),
-				Menu::standardButton("SKILLTREE2", "GUI_SKILLTREESELECTIONEMPTY", {75, 8}),
+				Menu::smallButton("SKILLTREE1", "GUI_SKILLTREESELECTIONEMPTY", {45, 8}),
+				Menu::smallButton("SKILLTREE2", "GUI_SKILLTREESELECTIONEMPTY", {75, 8}),
 			}),Map<string, string>({
 					pair<string, string>("SKILLEXPLAIN", "2"),
 					pair<string, string>("SELECTCHARACTERTOEDIT", "1"),
@@ -4996,6 +5835,37 @@ public:
 			pair<string, string>("objectID", data["imageID"]),
 			})));
 		return Procedure("HandleChest", events);
+	}
+	Procedure makeCombatProcedure(Map<string, string> data) {
+		List<Event> events;
+		events.push_back(Event("PlayItemSound", "PLAYSFX", Map<string, string>({
+			pair<string, string>("audio", to_string(COMBATSOUNDSTART_1)),
+			pair<string, string>("direct", "1")
+			})));
+		events.push_back(Event("ShowLoadingScreen", "SHOWMAPLOADINGSCREEN", Map<string, string>({
+				pair<string, string>("direct",to_string(COMBATLOADINGSCREEN_1)),
+				pair<string, string>("speed", "50"),
+			})));
+		events.push_back(Event("TearDownOtherImages", "UNLOADIMAGESFORMAPCHANGE", {}));
+		events.push_back(Event("WaitASec", "WAIT", Map<string, string>({
+			pair<string, string>("clockID","AreaTransitionWait"),
+			pair<string, string>("waitDuration","50"),
+			})));
+		events.push_back(Event("SwapAudio", "STOPALLSONGS", {}));
+		events.push_back(Event("StartCombat", "SETUPBATTLE", data));
+		events.push_back(Event("FadeOut", "ANIMATEIMAGE", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("uniqueID", "LoadingScreen"),
+				pair<string, string>("styles", "FADEOUT"),
+				pair<string, string>("speed", "100"),
+				pair<string, string>("wait", "TRUE"), }))));
+		events.push_back(Event("TeardownImage", "TEARDOWNIMAGE", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("uniqueID", "LoadingScreen"), }))));
+		events.push_back(Event("WaitASec", "WAIT", Map<string, string>({
+			pair<string, string>("clockID","BattleStartWait"),
+			pair<string, string>("waitDuration","100"),
+			})));
+		events.push_back(Event("HandleCombatLoop", "HANDLECOMBAT", {}));
+		return Procedure("StartCombat ", events);
 	}
 	List<Event> convertDynamicStringsToDialogue(string language, string cutsceneName, string player) {
 		// dynamic as in, the line changes depending on who the player is
@@ -5225,7 +6095,7 @@ public:
 					acceptedLines.push_back(thisLine);
 					continue;
 				}
-				if (speaker != "PLAYER" and speaker != mainCharacter) {
+				if (speaker != "PLAYER" and speaker != mainCharacter and speaker != "PLAYER$ASYNC$") {
 					// Line belongs to a different playable character
 					continue;
 				}
@@ -5251,6 +6121,7 @@ public:
 		CLOCK.startClock("FPS");
 		stateFlags["QUIT"] = "0";
 		stateFlags["includeEquipmentInStatView"] = "1";
+		stateFlags["combatVerbosity"] = "0";
 	}
 	bool quit() {
 		return stateFlags["QUIT"] == "1";
