@@ -44,6 +44,8 @@ public:
         Colours["BLACK"] = { 0.0,0.0,0.0,1.0 };
         Colours["WHITE"] = { 1.0,1.0,1.0,1.0 };
         Colours["BLUE"] = { 0.0,0.0,1.0,1.0 };
+        Colours["GREEN"] = { 0.0,1.0,0.0,1.0 };
+        Colours["RED"] = { 1.0,0.0,0.0,1.0 };
         Colours["INVISIBLE"] = { 0.0,0.0,0.0,0.0 };
         Colours["DARKBROWN"] = convertIntColour({100,35,0,255});
         Colours["SKILLTEXTBLUE"] = convertIntColour({ 0,246,255,255 });
@@ -109,6 +111,8 @@ public:
         string anchorStyle;
         string unique_ID;
         float scale = 1.0f;
+        float xStretch = 1.0f;
+        float yStretch = 1.0f;
         bool operator==(const Drawable& rhs) const {
             return unique_ID == rhs.unique_ID;
         }
