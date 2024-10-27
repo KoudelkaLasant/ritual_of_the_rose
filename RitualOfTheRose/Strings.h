@@ -71,7 +71,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Light of Day", L"Deal②$POWER1$ holy damage to all undead or demonic foes." },
 			{"Strength of Reason", L"Enchant target ally with Strength of Reason for②$DURATION_1$ rounds. Their physical attacks deal an extra②$POWER_1$ holy damage." },
 			{"Exile", L"Destroy target summoned creature. Exile recharges in②$RECHARGE$ rounds." },
-			{"Life Drain", L"Curse target foe for②$DURATION_1$ rounds. Every round, you steal②$LIFESTEAL_UNHOLY_1$ life from target foe."},
+			{"Life Drain", L"Curse target foe for②$DURATION_LIFE DRAIN$ rounds. Every round, you steal②$POWER_LIFE DRAIN$ life from target foe."},
 			{"Atrophy", L"Afflict target foe with Weakness for ②$DURATION_1$ rounds. Weakness reduces all of that foe's attributes."},
 			{"Animate Skeleton Warrior", L"Animate a Skeleton Warrior that has②$EXTRALIFE_1$ life and a bonus②$EXTRASTRENGTH_1$ Strength."},
 			{"Rainstorm", L"Start a rainstorm which lasts for②$DURATION_1$ rounds and applies Wetness to everyone for②$DURATION_1$ rounds. Being wet reduces armour against cold and electric damage by 25%, but increases that of fire damage by 25%."},
@@ -107,13 +107,16 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"BATTLESTART1VS1", L"$PLAYER$ engages in combat with $OPPONENT$."},
 			{"PLAYERTURN", L"It is $PLAYER$'s turn."},
 			{"AITURN", L"$PLAYER$ is thinking..."},
+			{"DAMAGE", L"$1$ did⑥$X$⑥$TYPE$ damage to $2$!"},
+			{"LIFESTEAL", L"$1$ steals⑥$X$⑥ life from $2$!"},
+			{"WAIT", L"$1$ waits for a better opportunity..."}
 }},
 		{"Skill Actions", {
 			{"Wait", L"$WHO$ is waiting..."},
 			{"MAGICAL_STARTED", L"$PLAYER$ is casting $SKILL$..."},
 			{"PHYSICAL_STARTED", L"$PLAYER$ is preparing to use $SKILL$..."},
-			{"MAGICAL_DONE", L"$PLAYER$ cast $SKILL$$TARGET$!"},
-			{"PHYSICAL_DONE", L"$PLAYER$ used $SKILL$$TARGET$!"},
+			{"MAGICAL_DONE", L"$PLAYER$ cast $SKILL$ on $TARGET$!"},
+			{"PHYSICAL_DONE", L"$PLAYER$ used $SKILL$ on $TARGET$!"},
 			{"ON", L"on"}, // on / upon / at a target
 			{"CRITICAL_PHYSICAL", L"It was a critical hit!"},
 			{"CRITICAL_MAGICAL", L"It was lucky cast!"},

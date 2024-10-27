@@ -25,15 +25,19 @@ class Graphics {
 public:
     Graphics() {
         colourTagLookupTable[wchar_t(10112)] = "BLUE"; // ➀
-        shadowColourTagLookupTable[wchar_t(10112)] = "BLUE";
-        colourTagLookupTable[wchar_t(9313)] = "SKILLTEXTBLUE";
-        shadowColourTagLookupTable[wchar_t(9313)] = "SKILLTEXTBLUEBACKDROP";
-        colourTagLookupTable[wchar_t(9314)] = "EQUIPMENTBLUE";
-        shadowColourTagLookupTable[wchar_t(9314)] = "DARKBROWN";
-        colourTagLookupTable[wchar_t(9315)] = "ELITESKILLYELLOW";
-        shadowColourTagLookupTable[wchar_t(9315)] = "DARKBROWN";
-        colourTagLookupTable[wchar_t(9316)] = "INVISIBLE";
-        shadowColourTagLookupTable[wchar_t(9316)] = "INVISIBLE";
+        shadowColourTagLookupTable[wchar_t(10112)] = "BLUE"; // ②
+        colourTagLookupTable[wchar_t(9313)] = "SKILLTEXTBLUE"; // ②
+        shadowColourTagLookupTable[wchar_t(9313)] = "SKILLTEXTBLUEBACKDROP"; // ③
+        colourTagLookupTable[wchar_t(9314)] = "EQUIPMENTBLUE"; // ③
+        shadowColourTagLookupTable[wchar_t(9314)] = "DARKBROWN"; // ③
+        colourTagLookupTable[wchar_t(9315)] = "ELITESKILLYELLOW"; // ④
+        shadowColourTagLookupTable[wchar_t(9315)] = "DARKBROWN"; // ④
+        colourTagLookupTable[wchar_t(9316)] = "INVISIBLE"; // ⑤
+        shadowColourTagLookupTable[wchar_t(9316)] = "INVISIBLE"; // ⑤
+        colourTagLookupTable[wchar_t(9317)] = "DAMAGERED"; // ⑥
+        shadowColourTagLookupTable[wchar_t(9317)] = "DAMAGERED"; // ⑥
+        colourTagLookupTable[wchar_t(9318)] = "HEALING_GREEN"; // ⑦
+        shadowColourTagLookupTable[wchar_t(9318)] = "HEALING_GREEN"; // ⑦
         customFonts = { 
             pair<string, int>({"Centaur", IDF_CENTAUR}), 
             pair<string,int>({ "GoudyMedieval", IDF_GOUDYMEDIEVAL }),
@@ -46,7 +50,9 @@ public:
         Colours["BLUE"] = { 0.0,0.0,1.0,1.0 };
         Colours["GREEN"] = { 0.0,1.0,0.0,1.0 };
         Colours["RED"] = { 1.0,0.0,0.0,1.0 };
+        Colours["DAMAGERED"] = convertIntColour({ 213,0,0,255 });
         Colours["INVISIBLE"] = { 0.0,0.0,0.0,0.0 };
+        Colours["HEALING_GREEN"] = convertIntColour({ 16,223,0,255 });
         Colours["DARKBROWN"] = convertIntColour({100,35,0,255});
         Colours["SKILLTEXTBLUE"] = convertIntColour({ 0,246,255,255 });
         Colours["SKILLTEXTBLUEBACKDROP"] = convertIntColour({ 0,6,255,255 });
@@ -71,6 +77,15 @@ public:
             D2D1_RECT_F result;
             if (anchorStyle == "TOPLEFT") {
                 result = D2D1::RectF(position.first, position.second, position.first + size.width, position.second + size.height);
+            }
+            if (anchorStyle == "BOTTOMCENTRE") { // stretchable bars that start at bottom
+                float normalY = position.second - size.height;
+                float stretchedY = ((position.second - size.height) * yStretch) + ((position.second) * (1 - yStretch));
+                result = D2D1::RectF(
+                    position.first - (size.width / 2),
+                    stretchedY,
+                    position.first + (size.width / 2),
+                    position.second);
             }
             if (anchorStyle == "BOTTOMMIDDLE") { // slightly offset from bottom to look like origin is at player's feet
                 float smallD = size.height / 4;

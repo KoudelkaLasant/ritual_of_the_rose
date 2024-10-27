@@ -338,6 +338,28 @@ public:
 			   Menu::smallButton("COMBAT1OPENMENU", "GUI_COMBAT1BUTTON", {92, 96}),
 			});
 	}
+	static const Map<int, pair<float, float>> getEffectIconPositions(pair<float, float> anchor) {
+		Map<int, pair<float, float>> results;
+		int columnHeight = 10;
+		int itemSize = 2;
+		pair<float, float> start = anchor;
+		start.first -= 5;
+		start.second -= 10;
+
+		int currentColumn = 0;
+		int currentItem = 0;
+		for (int x = 0; x < 100; x++) {
+			float xPos = start.first + currentColumn;
+			float yPos = start.second + currentItem * itemSize;
+			results[x] = { xPos, yPos };
+			currentItem++;
+			if (currentItem == columnHeight) {
+				currentColumn++;
+				currentItem = 0;
+			}
+		}
+		return results;
+	}
 
 	string uniqueID;
 	List<Button> buttons;
@@ -496,6 +518,7 @@ public:
 		defineAllEquipment();
 		defineAllCombatants();
 		defineAllTeams();
+		defineAllEffectDefinitions();
 	}
 	class PowerValue {
 	public:
@@ -658,16 +681,14 @@ public:
 		// is an object which is applied to a combatant (for example, poison)
 	public:
 		EffectObject() {}
-		EffectObject(string _owner, string _uniqueID, List<string> _targets, int _imageRes, string _logicName, int _duration, bool _infinite, chrono::steady_clock::time_point _creationTime) {
-			owner = _owner;
+		EffectObject(string _uniqueID, string _type, int _imageRes, string _logicName, bool _infinite, List<string> _effectNames, List<string> _triggers) {
 			uniqueID = _uniqueID;
 			imageRes = _imageRes;
 			logicName = _logicName;
-			duration = _duration;
-			roundsLeft = _duration;
 			infinite = _infinite;
-			creationTime = _creationTime;
-			targets = _targets;
+			triggers = _triggers;
+			type = _type;
+			effectNames = _effectNames;
 		}
 		bool operator==(const EffectObject& RHS) {
 			return RHS.creationTime == creationTime;
@@ -680,22 +701,69 @@ public:
 		}
 		void tick() {
 			if (!infinite) {
-				TChange(roundsLeft, -1, 0, 999);
+				roundsLeft = TChange(roundsLeft, -1, 0, 999);
 			}
 		}
 		bool expired() {
 			return !infinite and roundsLeft == 0;
 		}
+		int getBorder() {
+			int result = NORMALSKILLBORDER;
+			if (type == "BANE") {
+				result = BANEBORDER;
+			}
+			if (type == "BOON") {
+				result = BOONBORDER;
+			}
+			return result;
+		}
 
 		string owner; // who made the effect
 		string uniqueID;
+		string type; // BOON, BANE or PERM (positive, negative, permanent can't be remove effect)
 		int imageRes;
-		List<string> targets;
+		int charges=  -1; // some effects have charges and will end instantly if charges reaches zero
+		string target;
 		string logicName;
-		int duration;
-		int roundsLeft;
+		int duration = -1;
+		int roundsLeft = -1;
 		chrono::steady_clock::time_point creationTime; // if 2 effects end on same round, order by which existed first
 		bool infinite = false;
+		Map<string, int> values;
+		List<string> effectNames;
+		List<string> triggers; // trigger every turn, upon creation, when it expires, etc
+	};
+	class EffectObjectInstance {
+		public:
+			EffectObjectInstance() {}
+			EffectObjectInstance(Combat & combat, string effectName, string who, string target, Map<string, int> values) {
+				e = combat.allEffectDefinitions[effectName];
+				e.owner = who;
+				e.target = target;
+				e.values = values;
+				if (values.hasKey("duration")) {
+					e.duration = values["duration"];
+				}
+				if (values.hasKey("charges")) {
+					e.charges = values["charges"];
+				}
+				if (e.duration == -1) {
+					e.infinite = true;
+				}
+			}
+			
+			Map<string, int> executeDirectly(Combat& combat) {
+				// possible that not all effects will be triggered like this
+				Map<string, int> result;
+				for (auto subeffect : e.effectNames.internalList) {
+					if (subeffect == "LIFE DRAIN") {
+						result["LIFESTEAL"] = e.values["power"];
+					}
+				}
+				return result;
+			}
+			
+			EffectObject e;
 	};
 	class CombatEvent {
 		// taking damage, gaining life, applying xyz
@@ -829,19 +897,25 @@ public:
 		
 		void takeDamage(int value) {
 			// armour, damage modifiers already calculated so apply directly
-			TChange(combatStats["CURRENTLIFE"], value*-1, 0, combatStats["LIFE"]);
+			combatStats["CURRENTLIFE"] = TChange(combatStats["CURRENTLIFE"], value*-1, 0, combatStats["LIFE"]);
 		}
 		void takeManaDamage(int value) {
 			// armour, damage modifiers already calculated so apply directly
-			TChange(combatStats["CURRENTENERGY"], value*-1, 0, combatStats["ENERGY"]);
+			combatStats["CURRENTENERGY"] = TChange(combatStats["CURRENTENERGY"], value*-1, 0, combatStats["ENERGY"]);
 		}
 		void beHealed(int value) {
 			// armour, damage modifiers already calculated so apply directly
-			TChange(combatStats["CURRENTLIFE"], value, 0, combatStats["LIFE"]);
+			combatStats["CURRENTLIFE"] = TChange(combatStats["CURRENTLIFE"], value, 0, combatStats["LIFE"]);
 		}
 		void gainEnergy(int value) {
 			// armour, damage modifiers already calculated so apply directly
-			TChange(combatStats["CURRENTENERGY"], value, 0, combatStats["ENERGY"]);
+			combatStats["CURRENTENERGY"] = TChange(combatStats["CURRENTENERGY"], value, 0, combatStats["ENERGY"]);
+		}
+		float getLifeAsPercentage() {
+			return float(combatStats["CURRENTLIFE"]) / float(combatStats["LIFE"]);
+		}
+		float getEnergyAsPercentage() {
+			return float(combatStats["CURRENTENERGY"]) / float(combatStats["ENERGY"]);
 		}
 
 		bool isDead() {
@@ -867,9 +941,9 @@ public:
 			}
 			
 		}
-		bool criticalRoll() {
+		bool criticalRoll(int criticalBoost) {
 			int diceRoll = RANDOM.getRandom(0, 100);
-			int luck = combatStats["LUCK"];
+			int luck = combatStats["LUCK"] + criticalBoost;
 			return diceRoll <= luck;
 		}
 		wstring getPrintout(string language, Combat & combat, bool includeOtherInfluences) {
@@ -1071,7 +1145,7 @@ public:
 			currentTarget = target;
 			int castingTime = getSkillActivationTime(combatSkills[skillIndex], true, *&combat);
 			int castingCost = getSkillCost(combatSkills[skillIndex], true, *&combat);
-			TChange(combatStats["CURRENTENERGY"], castingCost, 0, 999);
+			combatStats["CURRENTENERGY"] = TChange(combatStats["CURRENTENERGY"], castingCost, 0, 999);
 			combatSkills[skillIndex].timeToCast = castingTime;
 			currentlyCasting = true;
 		}
@@ -1150,13 +1224,20 @@ public:
 			List<CombatEvent> results;
 			Map<string, string> skillSData;
 			Map<string, int> skillVData;
+			for (auto [key, value] : c.combatSkills[c.indexOfSkillCurrentlyBeingCast].powerValues.internalMap) {
+				skillVData[key] = c.getPowerOfThis(value, true, *&combat);
+			}
 			bool magical = c.combatSkills[c.indexOfSkillCurrentlyBeingCast].skillTypeTags.contains("MAGICAL");
 			string target = combat.currentBattle->all[c.currentTarget]->c.uniqueCombatID;
 			wstring skillName = strings[language]["Skill Names"][c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID];
 			wstring userName = strings[language]["NPCNames"][c.uniqueID];
 			wstring targetName = strings[language]["NPCNames"][combat.currentBattle->all[c.currentTarget]->c.uniqueID];
 			skillSData["message"] = WStringToString(strings[language]["Skill Actions"]["PHYSICAL_DONE"]);
-			bool critical = c.criticalRoll();
+			int criticalBoost = 0;
+			if (skillVData.hasKey("CRITICALBOOST")) {
+				criticalBoost += skillVData["CRITICALBOOST"];
+			}
+			bool critical = c.criticalRoll(criticalBoost);
 			float criticalModifier = 1.0;
 			if (critical) {
 				criticalModifier = 2.0;
@@ -1165,17 +1246,20 @@ public:
 					skillSData["message2"] = WStringToString(strings[language]["Skill Actions"]["CRITICAL_MAGICAL"]);
 				}
 			}
+			for (auto v : skillVData.getKeys().internalList) {
+				if (v != "CRITICALBOOST") {
+					skillVData[v] *= criticalModifier;
+				}
+			}
 
 			if (magical) {
 				skillSData["message"] = WStringToString(strings[language]["Skill Actions"]["MAGICAL_DONE"]);
 			}
 			skillSData["message"] = SReplace(skillSData["message"], "$PLAYER$", WStringToString(userName));
 			skillSData["message"] = SReplace(skillSData["message"], "$SKILL$", WStringToString(skillName));
+			skillSData["message"] = SReplace(skillSData["message"], "$TARGET$", WStringToString(targetName));
 			skillSData["success"] = "1";
 
-			for (auto [key, value]  : c.combatSkills[c.indexOfSkillCurrentlyBeingCast].powerValues.internalMap) {
-				skillVData[key] = c.getPowerOfThis(value, true, *&combat);
-			}
 			for (auto skillLogicName : c.combatSkills[c.indexOfSkillCurrentlyBeingCast].skillLogicNames.internalList) {
 				List<string> combatantsAffected;
 				Map<string, string> sData = skillSData;
@@ -1186,8 +1270,6 @@ public:
 					sData["message"] = SReplace(skillSData["message"], "$TARGET$",
 						" " + WStringToString(strings[language]["Skill Actions"]["ON"]) + " " + WStringToString(targetName)
 						);
-
-
 				}
 				if (skillLogicName.find("SELF") != -1) {
 					combatantsAffected.push_back(combat.currentBattle->all[c.currentTarget]->c.uniqueCombatID);
@@ -1196,9 +1278,18 @@ public:
 				// add other targeting systems
 				
 				skillSData["message"] = sData["message"];
+
+				if (skillLogicName == "DEFAULT_WAIT") {
+					combat.currentBattle->addCombatMessage("WAIT", List<pair<string, string>>({
+						pair<string, string>("name",c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID),
+						}), 0);
+				}
+
 				results.push_back(CombatEvent(skillLogicName, "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, combatantsAffected, sData, vData));
 			}
-			combat.currentBattle->addCombatMessage("DIRECT", pair<string, string>("message", skillSData["message"]), 0);
+			if (c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID != "DEFAULT_WAIT") {
+				combat.currentBattle->addCombatMessage("DIRECT", pair<string, string>("message", skillSData["message"]), 0);
+			}
 			return results;
 		}
 
@@ -1269,17 +1360,60 @@ public:
 
 			};
 
-			void executeTheResults(Combat& combat) {
+			void executeTheResults(Combat& combat, string language) {
 				// execute the final results of what happened in the stack
 				for (auto report : ongoingReport.internalList) {
 					if (report.sData["success"] == "1") {
+						if (report.logic.find("APPLY") != -1) {
+								List<string> effectData = split(report.logic, "_");
+								for (auto currentTarget : report.combatantsAffected.internalList) {
+									string effectName = effectData.at(1);
+									int duration = report.vData["DURATION_" + effectName];
+									int power = report.vData["POWER_" + effectName];
+									Map<string, int> values = { List<pair<string, int>>({
+										pair<string, int>("duration", duration),
+										pair<string, int>("power", power),
+										}) };
+									combat.currentBattle->applyAnEffect(*&combat, effectName, combat.allEffectDefinitions[effectName], report.originalUser, currentTarget, values);
+									EffectObjectInstance* theEffect = combat.currentBattle->allEffectsInPlay[currentTarget][effectName];
+									if (theEffect->e.triggers.contains("ONAPPLY")) {
+										Map<string, int> subeffects = theEffect->executeDirectly(*&combat);
+										for (auto subeffect : subeffects.getKeys().internalList) {
+											report.vData[subeffect] = subeffects[subeffect];
+										}
+									}
+							}
+						}
 						for (auto effect : report.vData.getKeys().internalList) {
 							if (effect.find("DAMAGE") != -1) {
-								for (auto target : report.combatantsAffected.internalList) {
-									combat.currentBattle->all[target]->c.takeDamage(report.vData[effect]);
-									toPrint.push_back(Result(target, to_string(report.vData[effect]), "RED", graphics.accessImageViaUniqueID(target)->positionAsPercentage));
+								string type = split(effect, "_").at(2);
+								for (auto currentTarget : report.combatantsAffected.internalList) {
+									combat.currentBattle->all[currentTarget]->c.takeDamage(report.vData[effect]);
+									combat.currentBattle->addCombatMessage("DAMAGE", List<pair<string, string>>({
+											pair<string, string>("name",user->c.uniqueID),
+											pair<string, string>("language",language),
+											pair<string, string>("type",type),
+											pair<string, string>("damage",to_string(report.vData[effect])),
+											pair<string, string>("target",combat.currentBattle->all[currentTarget]->c.uniqueID),
+										}),0);
+									toPrint.push_back(Result(currentTarget, to_string(report.vData[effect]), "RED", graphics.accessImageViaUniqueID(currentTarget)->positionAsPercentage));
 								}
 							}
+							if (effect.find("LIFESTEAL") != -1) {
+								for (auto currentTarget : report.combatantsAffected.internalList) {
+									combat.currentBattle->all[currentTarget]->c.takeDamage(report.vData[effect]);
+									combat.currentBattle->all[user->c.uniqueCombatID]->c.beHealed(report.vData[effect]);
+									combat.currentBattle->addCombatMessage("LIFESTEAL", List<pair<string, string>>({
+											pair<string, string>("name",user->c.uniqueID),
+											pair<string, string>("language",language),
+											pair<string, string>("damage",to_string(report.vData[effect])),
+											pair<string, string>("target",combat.currentBattle->all[currentTarget]->c.uniqueID),
+										}), 0);
+									toPrint.push_back(Result(currentTarget+"damage", to_string(report.vData[effect]), "DAMAGERED", graphics.accessImageViaUniqueID(currentTarget)->positionAsPercentage));
+									toPrint.push_back(Result(user->c.uniqueCombatID+"heal", to_string(report.vData[effect]), "HEALING_GREEN", graphics.accessImageViaUniqueID(user->c.uniqueCombatID)->positionAsPercentage));
+								}
+							}
+
 						}
 					}
 				}
@@ -1298,8 +1432,8 @@ public:
 
 
 			List<Result> toPrint;
-			List<Combat::EffectObject *> allEffectsInOrder; // oldest to newest, so newest effect has the final say (LIFO)
-			List<Combat::EffectObject *> effectsThatWereTriggered;
+			List<Combat::EffectObjectInstance*> allEffectsInOrder; // oldest to newest, so newest effect has the final say (LIFO)
+			List<Combat::EffectObjectInstance*> effectsThatWereTriggered;
 			List<CombatEvent> ongoingReport; // what each effect did and why in a row
 			Combat::CombatantInstance * user = NULL;
 			Combat::CombatantInstance * target = NULL;
@@ -1471,6 +1605,23 @@ public:
 			if (type == "DIRECT") { 
 				message = StringToWString(data["message"]);
 			}
+			if (type == "DAMAGE") {
+				message = strings[language]["Combat Messages"]["DAMAGE"];
+				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][data["name"]]);
+				message = WSReplace(message, L"$X$", StringToWString(data["damage"]));
+				message = WSReplace(message, L"$TYPE$", strings[language]["Type Names"][data["type"]]);
+				message = WSReplace(message, L"$2$", strings[language]["NPCNames"][data["target"]]);
+			}
+			if (type == "LIFESTEAL") {
+				message = strings[language]["Combat Messages"]["LIFESTEAL"];
+				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][data["name"]]);
+				message = WSReplace(message, L"$X$", StringToWString(data["damage"]));
+				message = WSReplace(message, L"$2$", strings[language]["NPCNames"][data["target"]]);
+			}
+			if (type == "WAIT") {
+				message = strings[language]["Combat Messages"]["WAIT"];
+				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][data["name"]]);
+			}
 			combatMessages.push_front({ verbosity, message });
 		}
 		void announceCombatantTurn(string language) {
@@ -1552,9 +1703,18 @@ public:
 			return result;
 		}
 
+		List<EffectObjectInstance*> getAllEffectsOnXInTimeOrder(string who) {
+			List<EffectObjectInstance*> allEffectsInTimeOrder;
+			for (auto name : allEffectsInPlay[who].getKeys().internalList) {
+				allEffectsInTimeOrder.push_back(allEffectsInPlay[who][name]);
+			}
+			allEffectsInTimeOrder.internalList.sort();
+			return allEffectsInTimeOrder;
+		}
+
 		void determineCurrentSkillEffectStack(Combat & combat, string language) {
 			// what will the execution of this skill trigger?
-			List<EffectObject*> allEffectsInTimeOrder;
+			List<EffectObjectInstance*> allEffectsInTimeOrder;
 			for (auto who : allEffectsInPlay.getKeys().internalList) {
 				for (auto name : allEffectsInPlay[who].getKeys().internalList) {
 					allEffectsInTimeOrder.push_back(allEffectsInPlay[who][name]);
@@ -1573,13 +1733,22 @@ public:
 				currentEventStackObject = EventStackObject(NULL, NULL);
 			}
 			currentEventStackObject.executeTheStack();
-			currentEventStackObject.executeTheResults(*&combat);
+			currentEventStackObject.executeTheResults(*&combat, language);
 		}
 		void determineCurrentSkillEffectStackPassive(Combat& combat, string language) {
 			// if a skill effect chain is triggered by an effect starting or ending, not the use of a skill
 			currentEventStackObject = EventStackObject(NULL, NULL);
 			currentEventStackObject.executeTheStack();
-			currentEventStackObject.executeTheResults(*&combat);
+			currentEventStackObject.executeTheResults(*&combat, language);
+		}
+
+		void applyAnEffect(Combat& combat, string effectName, EffectObject effect, string source, string target, Map<string, int> values) {
+			if (allEffectsInPlay[target][effectName] != NULL) {
+				delete allEffectsInPlay[target][effectName];
+				allEffectsInPlay[target][effectName] = NULL;
+				allEffectsInPlay[target].internalMap.erase(effectName);
+			}
+			allEffectsInPlay[target][effectName] = new EffectObjectInstance(*&combat, effectName, source, target, values);
 		}
 
 		Map<string, CombatantInstance*> all;
@@ -1588,11 +1757,12 @@ public:
 		List<CombatantInstance*> party2allies;
 		List<CombatantInstance*> party2;
 		Map<string, string> data;
-		Map<string, Map<string, EffectObject *>> allEffectsInPlay; // who -> condition name -> condition object. who can include "TEAM1", "TEAM2", "WORLD"
+		Map<string, Map<string, EffectObjectInstance*>> allEffectsInPlay; // who -> condition name -> condition object. who can include "TEAM1", "TEAM2", "WORLD"
 		Round currentRound;
 		string winCondition = "STANDARD";
 		string loseCondition = "STANDARD";
 		List<pair<int, wstring>> combatMessages; // verbosityLevel -> message. Higher level = less likely to show (more granular detail)
+		List<pair<int, wstring>> messagesWaitingToBeAdded; // adding too many messages at once hides previous ones
 		bool executingSomething = true; // set to true when player shouldn't be able to interact
 		EventStackObject currentEventStackObject;
 
@@ -1720,11 +1890,11 @@ public:
 	
 		// SANGROMANCY
 		skillDefinitions["Life Drain"] = Skill("Life Drain", "Life Drain", "Sangromancy", SKILLICON_LIFEDRAIN, 10, 0, 1, "SINGLEFOE",
-			list<string>({ "LIFEDRAIN" }),
+			list<string>({ "APPLY_LIFE DRAIN_SINGLE" }),
 			list<string>({ "MAGICAL","BLOOD","UNHOLY"}),
 			Map<string, PowerValue>({ 
-				pair<string, PowerValue>("DURATION_1", PowerValue("DURATION_1", 5, 5, 8, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
-				pair<string, PowerValue>("LIFESTEAL_UNHOLY_1", PowerValue("LIFESTEAL_UNHOLY_1", 5, 1, 10, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"})))
+				pair<string, PowerValue>("DURATION_LIFE DRAIN", PowerValue("DURATION_1", 5, 5, 8, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				pair<string, PowerValue>("POWER_LIFE DRAIN", PowerValue("LIFESTEAL_UNHOLY_1", 5, 1, 10, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"})))
 				}),
 			list<string>({ "DEALDAMAGE", "INEEDHEALING"}));
 
@@ -1801,7 +1971,8 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL",}),
 			list<string>({ "PHYSICAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("CRITICALBOOST", PowerValue("CRITICALBOOST", 33, 0, 100, true, list<string>({ "STRENGTH", "1H Weapon MasteryBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH"}))),
+				pair<string, PowerValue>("CRITICALBOOST", PowerValue("CRITICALBOOST", 40, 0, 100, true, list<string>({ "STRENGTH", "1H Weapon MasteryBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }));
 
@@ -2005,7 +2176,12 @@ public:
 		// ENRAGED
 
 	}
-	
+	void defineAllEffectDefinitions() {
+		allEffectDefinitions["LIFE DRAIN"] = EffectObject("LIFE DRAIN", "BANE", SKILLICON_LIFEDRAIN, "LIFE DRAIN", false, 
+			List<string>(list<string>({ "LIFE DRAIN", })),
+			List<string>(list<string>({"EVERYTURN","ONAPPLY",})));
+	}
+
 	List<string> getAllLegalSkills() {
 		List<string> result; 
 		for (auto s : skillDefinitions.getKeys().internalList) {
@@ -2098,6 +2274,7 @@ public:
 	Map<string, map<string, string>> defaultEquipment;
 	Map<string, Combatant> definedCombatants;
 	Map<string, pair<string, List<Combatant>>> definedTeams;
+	Map<string, EffectObject> allEffectDefinitions;
 };
 Combat combat;
 
@@ -2127,6 +2304,9 @@ public:
 				string uniqueID = data["uniqueID"];
 				if (graphics.doesThisImageAlreadyExist(uniqueID)) { return true; }
 				Graphics::Image * image = graphics.addImage(new Graphics::Image(intSources, position, anchor, opacity, uniqueID), layer);
+				if (data.hasKey("yStretch")) {
+					image->yStretch = stof(data["yStretch"]);
+				}
 				bool animated = data.getKeys().contains("animated");
 				int animationSpeed = 0;
 				if (animated) {
@@ -5805,6 +5985,10 @@ public:
 				string scale = data["scale"];
 				string mode = data["mode"];
 
+				Combat::CombatantInstance* actor = combat.currentBattle->all[uniqueIDBase];
+				float lifeProportion = actor->c.getLifeAsPercentage();
+				float manaProportion = actor->c.getEnergyAsPercentage();
+
 				// if they're dead make them transparent
 
 				if (mode.find("SETUP") != -1) {
@@ -5831,11 +6015,49 @@ public:
 						pair<string, string> ("uniqueID", image),
 						}))).run(*&gameEngine);
 				}
+				Map<int, pair<float, float>> effectPositions = Menu::getEffectIconPositions(graphics.accessImageViaUniqueID(uniqueIDBase)->positionAsPercentage);
+				int effectCount = 0;
+
+				for (auto effect : combat.currentBattle->getAllEffectsOnXInTimeOrder(uniqueIDBase).internalList) {
+					string imageName = uniqueIDBase + "_" + effect->e.uniqueID + "_COMBATEFFECT";
+					string borderName = uniqueIDBase + "_" + effect->e.uniqueID + "_COMBATBORDER";
+					for (auto image : { imageName, borderName }) {
+						Event("Teardown", "TEARDOWNIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("uniqueID", image),
+							}))).run(*&gameEngine);
+					}
+					int imageSource = combat.allEffectDefinitions[effect->e.uniqueID].imageRes;
+					int borderSource = combat.allEffectDefinitions[effect->e.uniqueID].getBorder();
+					
+					Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", to_string(imageSource)),
+						pair<string, string>("x", to_string(effectPositions[effectCount].first)),
+						pair<string, string>("y", to_string(effectPositions[effectCount].second)),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", opacity),
+						pair<string, string>("layer", to_string(stoi(baseLayer) + 1)),
+						pair<string, string>("scale", "0.2"),
+						pair<string, string>("uniqueID", imageName),
+						}))).run(*&gameEngine);
+					Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", to_string(borderSource)),
+						pair<string, string>("x", to_string(effectPositions[effectCount].first)),
+						pair<string, string>("y", to_string(effectPositions[effectCount].second)),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", opacity),
+						pair<string, string>("layer", to_string(stoi(baseLayer) + 2)),
+						pair<string, string>("scale", "0.2"),
+						pair<string, string>("uniqueID", borderName),
+						}))).run(*&gameEngine);
+
+					effectCount++;
+				}
+
 				Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 				pair<string, string>("sources", to_string(BARBACK)),
 				pair<string, string>("x", to_string(stof(x) - 6.25)),
 				pair<string, string>("y", to_string(stof(y) + 10)),
-				pair<string, string>("anchor", "CENTRE"),
+				pair<string, string>("anchor", "BOTTOMCENTRE"),
 				pair<string, string>("opacity", opacity),
 				pair<string, string>("layer", to_string(stoi(baseLayer) + 1)),
 				pair<string, string>("scale", scale),
@@ -5845,17 +6067,18 @@ public:
 					pair<string, string>("sources", to_string(LIFEBAR)),
 					pair<string, string>("x", to_string(stof(x) - 6.25)),
 					pair<string, string>("y", to_string(stof(y) + 10)),
-					pair<string, string>("anchor", "CENTRE"),
+					pair<string, string>("anchor", "BOTTOMCENTRE"),
 					pair<string, string>("opacity", opacity),
 					pair<string, string>("layer", to_string(stoi(baseLayer) + 2)),
 					pair<string, string>("scale", scale),
+					pair<string, string>("yStretch", to_string(lifeProportion)),
 					pair<string, string>("uniqueID", life),
 					}))).run(*&gameEngine);
 				Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 					pair<string, string>("sources", to_string(BARBACK)),
 					pair<string, string>("x", to_string(stof(x) -6)),
 					pair<string, string>("y", to_string(stof(y) + 10)),
-					pair<string, string>("anchor", "CENTRE"),
+					pair<string, string>("anchor", "BOTTOMCENTRE"),
 					pair<string, string>("opacity", opacity),
 					pair<string, string>("layer", to_string(stoi(baseLayer) + 1)),
 					pair<string, string>("scale", scale),
@@ -5865,10 +6088,11 @@ public:
 					pair<string, string>("sources", to_string(MANABAR)),
 					pair<string, string>("x", to_string(stof(x) -6)),
 					pair<string, string>("y", to_string(stof(y) + 10)),
-					pair<string, string>("anchor", "CENTRE"),
+					pair<string, string>("anchor", "BOTTOMCENTRE"),
 					pair<string, string>("opacity", opacity),
 					pair<string, string>("layer", to_string(stoi(baseLayer) + 2)),
 					pair<string, string>("scale", scale),
+					pair<string, string>("yStretch", to_string(manaProportion)),
 					pair<string, string>("uniqueID", mana),
 					}))).run(*&gameEngine);
 
@@ -5987,7 +6211,7 @@ public:
 				int verbosityLevel = stoi(gameEngine.stateFlags["combatVerbosity"]);
 				int latestMessageVerbosity = combat.currentBattle->combatMessages.front().first;
 				Graphics::Text* theText = graphics.accessTextViaUniqueID("combatText");
-				if (latestMessageVerbosity <= verbosityLevel and theText == NULL) {
+				if (latestMessageVerbosity <= verbosityLevel) {
 					Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
 					pair<string, string>("message","$LATESTCOMBATSTRING$"),
 					pair<string, string>("animateExisting","0"),
@@ -6007,8 +6231,9 @@ public:
 					pair<string, string>("styles", "TYPEWRITER"),
 						}))).run(*&gameEngine);
 				}
-				if (theText != NULL) {
+				if (theText != NULL and theText->fullMessage != combat.currentBattle->combatMessages.front().second) {
 					theText->resetMessage(*&graphics, combat.currentBattle->combatMessages.front().second);
+					theText->startTypewriter(*&graphics);
 				}
 				if (latestMessageVerbosity > verbosityLevel) {
 					graphics.tearDownSpecifiedText("combatText");
@@ -6031,7 +6256,7 @@ public:
 				}
 				if (combat.currentBattle->executingSomething) {
 					for (auto name : combat.currentBattle->allEffectsInPlay[nextActor].getKeys().internalList) {
-						combat.currentBattle->allEffectsInPlay[nextActor][name]->tick();
+						combat.currentBattle->allEffectsInPlay[nextActor][name]->e.tick();
 					}
 					combat.currentBattle->determineCurrentSkillEffectStackPassive(*&combat, gameEngine.language);
 					thereAreEffectsToRun = combat.currentBattle->areTherePreTurnEffectsToRun();
@@ -6148,8 +6373,13 @@ public:
 			}
 			if (type == "EXECUTESKILLINCOMBAT") {
 				Event("Text", "UPDATECOMBATMESSAGES", {}).run(*&gameEngine);
+
 				if (combat.currentBattle->currentEventStackObject.isAnimationFinished()) {
-					if (CLOCK.hasEnoughTimePassed("Combat Wait", 100)) {
+					int howFar = graphics.accessTextViaUniqueID("combatText")->howFarAlong();
+					if (howFar < 100) {
+						return false;
+					}
+					if (CLOCK.hasEnoughTimePassed("Combat Wait", 800)) {
 						return true;
 					}
 					return false;
@@ -6163,7 +6393,11 @@ public:
 				Map<string, string> sData = combat.currentBattle->currentEventStackObject.getCurrentForAnimation().sData;
 
 				Map<string, string> extras = {};
-				bool result = gameEngine.skillAnimationContainer.handleAnimation(*&gameEngine, graphics.accessImageViaUniqueID(caster), graphics.accessImageViaUniqueID(target), animationName, {});
+				// Tianshun is small so move Y axis down a bit
+				if (caster.find("Tianshun Song") != -1) {
+					extras["yOffset"] = "10";
+				}
+				bool result = gameEngine.skillAnimationContainer.handleAnimation(*&gameEngine, graphics.accessImageViaUniqueID(caster), graphics.accessImageViaUniqueID(target), animationName, extras);
 				if (!result) {
 					return false;
 				}
@@ -6328,6 +6562,9 @@ public:
 					if (extras.hasKey("xOffset")) {
 						destination.first += stof(extras["xOffset"]);
 					}
+					if (extras.hasKey("yOffset")) {
+						destination.second += stof(extras["yOffset"]);
+					}
 					bezierPlots.clear();
 					for (int x = 0; x < numberOfBubbles; x++) {
 						string imageName = "LIFEBUBBLE" + to_string(x);
@@ -6380,6 +6617,57 @@ public:
 					return true;
 				}
 				return false;
+			}
+			if (procedureName == "Fine Strike") {
+				if (!started) {
+					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", imageLookup.getSequenceAsString("FineStrike1", "ACTION_1")),
+						pair<string, string>("x", "50"),
+						pair<string, string>("y", "50"),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", "1.0"),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
+						pair<string, string>("scale", "2.0"),
+						pair<string, string>("animated", "1"),
+						pair<string, string>("styles", "SINGLE"),
+						pair<string, string>("animation_speed", "20"),
+						pair<string, string>("uniqueID", "Fine Strike Skill Animation"), }))).run(*&gameEngine);
+					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", imageLookup.getSequenceAsString("FineStrike2", "ACTION_1")),
+						pair<string, string>("x", "50"),
+						pair<string, string>("y", "50"),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", "1.0"),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
+						pair<string, string>("scale", "2.0"),
+						pair<string, string>("animated", "1"),
+						pair<string, string>("styles", "SINGLE"),
+						pair<string, string>("animation_speed", "20"),
+						pair<string, string>("uniqueID", "Fine Strike Skill Animation 2"), }))).run(*&gameEngine);
+					GameEngine::Event("PlayAudio", "PLAYSFX", Map<string, string>({
+								pair<string, string>("audio","1062"),
+								pair<string, string>("direct","1"),
+								pair<string, string>("delay","0.5"),
+						})).run(*&gameEngine);
+					started = true;
+					return false;
+				}
+				Graphics::Image* theImage = graphics.accessImageViaUniqueID("Fine Strike Skill Animation");
+				Graphics::Image* theImage2 = graphics.accessImageViaUniqueID("Fine Strike Skill Animation 2");
+
+				if (theImage->animationStyles.contains("FADEOUT") and theImage->hasThisFinishedAnimating()) {
+					graphics.tearDownSpecifiedImage("Fine Strike Skill Animation");
+					graphics.tearDownSpecifiedImage("Fine Strike Skill Animation 2");
+					started = false;
+					return true;
+				}
+
+				for (auto image : { theImage, theImage2 }) {
+					if (image->hasThisFinishedAnimating() and !image->animationStyles.contains("FADEOUT")) {
+						image->animationStyles.push_back("FADEOUT");
+					}
+					return false;
+				}
 			}
 			return false;
 		}
