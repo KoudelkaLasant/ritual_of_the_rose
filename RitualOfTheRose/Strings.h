@@ -24,6 +24,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"WORLD", L"All"},
 			{"ALLFOES", L"All foes"},
 			{"EMPTY", L""},
+			{"SadBag", L"SadBag"},
 }},
 		{"Skill Tree Names", {
 			{"Cleromancy", L"Cleromancy"},
@@ -45,6 +46,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"DEFAULT_WAIT", L"Wait"},
 			{"Heal Wounds", L"Heal Wounds"},
 			{"Laying of Hands", L"Laying of Hands"},
+			{"Revitalise", L"Revitalise"},
 			{"Heavenstrike", L"Heavenstrike"},
 			{"Light of Day", L"Light of Day"},
 			{"Exile", L"Exile"},
@@ -67,22 +69,30 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"DEFAULT_WAIT", L"Skip this current turn." },
 			{"Heal Wounds", L"Heal target ally for②$LIFEHEAL_SINGLE_HOLY$ life." },
 			{"Laying of Hands", L"Heal target other ally for②$LIFEHEAL_SINGLEOTHERONLY_HOLY$ life." },
+			{"Revitalise", L"Revive target KO'd party member with②$POWER_1$% life and energy."},
 			{"Heavenstrike", L"Deal②$DAMAGE_SINGLE_HOLY$ holy damage to target foe. If the damage is fatal, all allies are healed for②$HEAVENSTRIKE$ life and Heavenstrike takes an additional 4 rounds to recharge." },
-			{"Light of Day", L"Deal②$POWER1$ holy damage to all undead or demonic foes." },
-			{"Strength of Reason", L"Enchant target ally with Strength of Reason for②$DURATION_1$ rounds. Their physical attacks deal an extra②$POWER_1$ holy damage." },
+			{"Light of Day", L"Deal②$DAMAGE_HOLY_1$ holy damage to all undead or demonic foes." },
+			{"Strength of Reason", L"Enchant target ally with Strength of Reason for②$DURATION_Strength of Reason$ rounds. Their physical attacks deal an extra②$POWER_Strength of Reason$ holy damage." },
 			{"Exile", L"Destroy target summoned creature. Exile recharges in②$RECHARGE$ rounds." },
-			{"Life Drain", L"Curse target foe for②$DURATION_LIFE DRAIN$ rounds. Every round, you steal②$POWER_LIFE DRAIN$ life from target foe."},
-			{"Atrophy", L"Afflict target foe with Weakness for ②$DURATION_1$ rounds. Weakness reduces all of that foe's attributes."},
-			{"Animate Skeleton Warrior", L"Animate a Skeleton Warrior that has②$EXTRALIFE_1$ life and a bonus②$EXTRASTRENGTH_1$ Strength."},
-			{"Rainstorm", L"Start a rainstorm which lasts for②$DURATION_1$ rounds and applies Wetness to everyone for②$DURATION_1$ rounds. Being wet reduces armour against cold and electric damage by 25%, but increases that of fire damage by 25%."},
+			{"Life Drain", L"Curse target foe for②$DURATION_Life Drain$ rounds. Every round, you steal②$POWER_Life Drain$ life from target foe."},
+			{"Atrophy", L"Afflict target foe with Weakness for②$DURATION_1$ rounds. Weakness reduces all of that foe's attributes."},
+			{"Animate Skeleton Warrior", L"Animate a Skeleton Warrior that has②$LIFE$ life and②$STRENGTH$ Strength."},
+			{"Rainstorm", L"Start a rainstorm which lasts for②$DURATION_Rainstorm$ rounds and applies Wetness to everyone for②$DURATION_Rainstorm$ rounds. Being wet reduces armour against cold and electric damage by 25%, but increases that against fire damage by 10%."},
 			{"Plasma Pulse", L"Target foe is struck for②$DAMAGE_ELECTRIC_1$ electric damage and is left concussed for②$DURATION_1$ rounds, making their spells 50% more likely to fail."},
 			{"Doublestrike", L"Strike target foe twice. Each strike deals an extra②$DAMAGE_PHYSICAL_1$ damage."},
 			{"Serrated Strike", L"Strike target foe an extra for②$DAMAGE_PHYSICAL_1$ damage and make them bleed for②$DURATION_1$ seconds. Bleeding damages foes every round spent casting a spell."},
 			{"Shadow Spike", L"Target foe and all adjacent foes are interrupted and blinded for 1 round. Shadow Spike takes an additional②$RECHARGE$ rounds to recharge."},
 			{"Chaos Storm", L"For 5 rounds, all foes lose②$DAMAGE_MANA$ mana every round."},
 			{"Fine Strike", L"Strike target foe. This attack is②$CRITICALBOOST$% more likely to be a critical hit."},
-			{ "Gentleman's Riposte", L"For②$DURATION_1$ rounds, the next time an ally would be struck by a foe's physical attack, the attack is blocked and a physical attack is attempted against that foe."},
+			{ "Gentleman's Riposte", L"For②$DURATION_Gentleman's Riposte$ rounds, the next time an ally would be struck by a foe's physical attack, the attack is blocked and a physical attack is attempted against that foe."},
 			{ "Brilliant Spark", L"Deal②$DAMAGE_FIRE_1$ fire damage to target foe and set them on fire for②$DURATION_1$ rounds." },
+}},
+		{"Effect Names", {
+			{"Wet", L"Wet"},
+			{"UNDEAD", L"Undead"},
+}},
+		{"Effect Descriptions", {
+			{"UNDEAD", L"Undead creatures take double damage from holy sources, and healing which comes from holy sources is only half as effective."},
 }},
 		{"Other Stat Names", {
 			{"LIFEREGEN", L"Life⑳Regeneration"},
@@ -109,17 +119,21 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"AITURN", L"$PLAYER$ is thinking..."},
 			{"DAMAGE", L"$1$ did⑥$X$⑥$TYPE$ damage to $2$!"},
 			{"LIFESTEAL", L"$1$ steals⑥$X$⑥ life from $2$!"},
-			{"WAIT", L"$1$ waits for a better opportunity..."}
+			{"WAIT", L"$1$ waits for a better opportunity..."},
+			{"VICTORY", L"$1$'s team was victorious!"}
 }},
 		{"Skill Actions", {
 			{"Wait", L"$WHO$ is waiting..."},
-			{"MAGICAL_STARTED", L"$PLAYER$ is casting $SKILL$..."},
-			{"PHYSICAL_STARTED", L"$PLAYER$ is preparing to use $SKILL$..."},
-			{"MAGICAL_DONE", L"$PLAYER$ cast $SKILL$ on $TARGET$!"},
-			{"PHYSICAL_DONE", L"$PLAYER$ used $SKILL$ on $TARGET$!"},
-			{"ON", L"on"}, // on / upon / at a target
+			{"MAGICAL_STARTED", L"$PLAYER$ starts casting $SKILL$!"},
+			{"PHYSICAL_STARTED", L"$PLAYER$ starts using $SKILL$!"},
+			{"MAGICAL_INPROGRESS", L"$PLAYER$ is still casting $SKILL$!"},
+			{"PHYSICAL_INPROGRESS", L"$PLAYER$ is still preparing to use $SKILL$!"},
+			{"MAGICAL_DONE", L"$PLAYER$ cast $SKILL$$ON$$TARGET$!"},
+			{"PHYSICAL_DONE", L"$PLAYER$ used $SKILL$$ON$$TARGET$!"},
+			{"ON", L" on "}, // on / upon / at a target
 			{"CRITICAL_PHYSICAL", L"It was a critical hit!"},
 			{"CRITICAL_MAGICAL", L"It was lucky cast!"},
+			{"SUMMONFAILNOSPACE",L"$PLAYER$ could not summon the $WHAT$ because there were no free spaces to summon into!"},
 }},
 		{"Item Type Names", {
 			{"Armour", L"Armour"},
@@ -254,6 +268,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"COMBAT1CANCEL", L"Cancel"},
 			{"COMBATEXPLAINBASE", L"Using $REPLACE$ on..."},
 			{"COMBATEXPLAIN", L""},
+			{"BATTLEWIN", L""},
 }},
 		{"Map Pop Up Text", {
 			{"Dead Horse", L"Press the Spacebar to interact with objects of interest"},
@@ -976,6 +991,9 @@ map<string, map<string, map<string, wstring>>> strings = {
 		{ "TavernTeleport", {
 			{"1 $AREATRANSITION$", L"Tavern1$52.5,55$STAND_LEFT$direction=STAND_LEFT"},
 		}},
+		{ "TownTeleport", {
+			{"1 $AREATRANSITION$", L"BénouvilleTown1$48,60$STAND_FRONT$direction=STAND_FRONT"},
+		} },
 		{ "TavernTianshun1+Angela Fleuret", {
 			{"1 Angela Fleuret", L"Good evening, little one. My... I'd wager you've come a long way to be here."},
 			{"2 Tianshun Song?$DIRECT$", L"And here I was, trying so hard to blend in with the crowd."},

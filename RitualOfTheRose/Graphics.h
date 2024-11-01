@@ -1039,6 +1039,15 @@ public:
         }
         return result;
     }
+    List<Image*> allImages() {
+        List<Image*> result;
+        for (auto layer : ImageMap.getKeys().internalList) {
+            for (auto x : ImageMap[layer].internalList) {
+                result.push_back(x);
+            }
+        }
+        return result;
+    }
 
     List<chrono::milliseconds> RenderSpeedHistory;
 

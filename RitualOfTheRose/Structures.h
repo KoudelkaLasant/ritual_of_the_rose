@@ -29,6 +29,12 @@ struct List {
 		return false;
 	}
 	bool doTheseListsHaveAnythingInCommon(List<T>& list2) {
+		for (auto item : list2.internalList) {
+			if (contains(item)) {
+				return true;
+			}
+		}
+		return false;
 	}
 	bool sameContents(List<T>& list2) {
 		if (size() != list2.size()) {
@@ -81,10 +87,12 @@ struct List {
 		return *this;
 	}
 	List<T> operator+(const List<T>& RHS) {
+		List<T> newResult;
+		newResult.internalList = internalList;
 		for (auto x : RHS.internalList) {
-			internalList.push_back(x);
+			newResult.push_back(x);
 		}
-		return *this;
+		return newResult;
 	}
 	bool operator==(List<T>& RHS) {
 		return sameContents(RHS);
