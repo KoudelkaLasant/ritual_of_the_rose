@@ -111,6 +111,17 @@ public:
                     position.first + (size.width / 2.0f),
                     position.second + (size.height / 2.0f));
             }
+            if (anchorStyle == "CENTREXSTRETCH") {
+                float normalX1 = position.first - (size.width / 2.0f) + (48.5 * (1- xStretch));
+                float normalX2 = position.first + (size.width / 2.0f);
+                float stretchedX2 = normalX1 + (size.width * xStretch);
+                result = D2D1::RectF(
+                    normalX1,
+                    position.second - (size.height / 2.0f),
+                    stretchedX2,
+                    position.second + (size.height / 2.0f));
+                int e = 1;
+            }
             return result;
         }
         pair<float, float> getAbsolutePosition(D2D1_SIZE_F renderTargetSize) {

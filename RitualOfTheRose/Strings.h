@@ -25,6 +25,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"ALLFOES", L"All foes"},
 			{"EMPTY", L""},
 			{"SadBag", L"SadBag"},
+			{"Skeleton Warrior", L"Skeleton Warrior"},
 }},
 		{"Skill Tree Names", {
 			{"Cleromancy", L"Cleromancy"},
@@ -78,21 +79,30 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Atrophy", L"Afflict target foe with Weakness for②$DURATION_1$ rounds. Weakness reduces all of that foe's attributes."},
 			{"Animate Skeleton Warrior", L"Animate a Skeleton Warrior that has②$LIFE$ life and②$STRENGTH$ Strength."},
 			{"Rainstorm", L"Start a rainstorm which lasts for②$DURATION_Rainstorm$ rounds and applies Wetness to everyone for②$DURATION_Rainstorm$ rounds. Being wet reduces armour against cold and electric damage by 25%, but increases that against fire damage by 10%."},
-			{"Plasma Pulse", L"Target foe is struck for②$DAMAGE_ELECTRIC_1$ electric damage and is left concussed for②$DURATION_1$ rounds, making their spells 50% more likely to fail."},
-			{"Doublestrike", L"Strike target foe twice. Each strike deals an extra②$DAMAGE_PHYSICAL_1$ damage."},
-			{"Serrated Strike", L"Strike target foe an extra for②$DAMAGE_PHYSICAL_1$ damage and make them bleed for②$DURATION_1$ seconds. Bleeding damages foes every round spent casting a spell."},
+			{"Plasma Pulse", L"Target foe is struck for②$DAMAGE_SINGLE_ELECTRIC$ electric damage and is left concussed for②$DURATION_CONCUSSED$ rounds, making their spells 50% more likely to fail."},
+			{"Doublestrike", L"Strike target foe twice. Each strike deals ②$DAMAGE_SINGLE_PHYSICAL$ damage."},
+			{"Serrated Strike", L"Strike target foe for②$DAMAGE_SINGLE_PHYSICAL$ damage and make them bleed for②$DURATION_BLEEDING$ seconds. Bleeding damages foes every round spent casting a spell."},
 			{"Shadow Spike", L"Target foe and all adjacent foes are interrupted and blinded for 1 round. Shadow Spike takes an additional②$RECHARGE$ rounds to recharge."},
 			{"Chaos Storm", L"For 5 rounds, all foes lose②$DAMAGE_MANA$ mana every round."},
 			{"Fine Strike", L"Strike target foe. This attack is②$CRITICALBOOST$% more likely to be a critical hit."},
-			{ "Gentleman's Riposte", L"For②$DURATION_Gentleman's Riposte$ rounds, the next time an ally would be struck by a foe's physical attack, the attack is blocked and a physical attack is attempted against that foe."},
-			{ "Brilliant Spark", L"Deal②$DAMAGE_FIRE_1$ fire damage to target foe and set them on fire for②$DURATION_1$ rounds." },
+			{"Gentleman's Riposte", L"For②$DURATION_Gentleman's Riposte$ rounds, the next time an ally would be struck by a foe's physical attack, the attack is blocked and a physical attack is attempted against that foe."},
+			{"Brilliant Spark", L"Deal②$DAMAGE_FIRE_SINGLE$ fire damage to target foe and set them on fire for②$DURATION_BURNING$ rounds." },
 }},
 		{"Effect Names", {
-			{"Wet", L"Wet"},
+			{"WET", L"Wet"},
+			{"CONCUSSED", L"Concussed"},
 			{"UNDEAD", L"Undead"},
+			{"BLEEDING", L"Bleeding"},
+			{"BLIND", L"Blind"},
+			{"BURNING", L"Burning"},
 }},
 		{"Effect Descriptions", {
 			{"UNDEAD", L"Undead creatures take double damage from holy sources, and healing which comes from holy sources is only half as effective."},
+			{"WET", L"While wet, you suffer a 25% armour penality against cold and electric damage, but gain a 10% boost against fire damage."},
+			{"CONCUSSED", L"While concussed, your spells have a 50% chance of failing upon being cast." },
+			{"BLEEDING", L"While bleeding, you will lose 40 life upon casting a spell."},
+			{"BLIND", L"While blind, your physical skills have a 50% chance of failing upon being executed."},
+			{"BURNING", L"Every turn you spend on fire costs you 20 life."},
 }},
 		{"Other Stat Names", {
 			{"LIFEREGEN", L"Life⑳Regeneration"},
@@ -117,8 +127,8 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"BATTLESTART1VS1", L"$PLAYER$ engages in combat with $OPPONENT$."},
 			{"PLAYERTURN", L"It is $PLAYER$'s turn."},
 			{"AITURN", L"$PLAYER$ is thinking..."},
-			{"DAMAGE", L"$1$ did⑥$X$⑥$TYPE$ damage to $2$!"},
-			{"LIFESTEAL", L"$1$ steals⑥$X$⑥ life from $2$!"},
+			{"DAMAGE", L"$1$ deals⑥$X$⑥$TYPE$⑥damage to $2$!"},
+			{"LIFESTEAL", L"$1$ steals⑥$X$⑥life from $2$!"},
 			{"WAIT", L"$1$ waits for a better opportunity..."},
 			{"VICTORY", L"$1$'s team was victorious!"}
 }},
@@ -128,8 +138,9 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"PHYSICAL_STARTED", L"$PLAYER$ starts using $SKILL$!"},
 			{"MAGICAL_INPROGRESS", L"$PLAYER$ is still casting $SKILL$!"},
 			{"PHYSICAL_INPROGRESS", L"$PLAYER$ is still preparing to use $SKILL$!"},
-			{"MAGICAL_DONE", L"$PLAYER$ cast $SKILL$$ON$$TARGET$!"},
-			{"PHYSICAL_DONE", L"$PLAYER$ used $SKILL$$ON$$TARGET$!"},
+			{"MAGICAL_DONE", L"$PLAYER$ casts $SKILL$$ON$$TARGET$!"},
+			{"PHYSICAL_DONE", L"$PLAYER$ uses $SKILL$$ON$$TARGET$!"},
+			{"WORLD_DONE", L"$PLAYER$ casts $SKILL$!"},
 			{"ON", L" on "}, // on / upon / at a target
 			{"CRITICAL_PHYSICAL", L"It was a critical hit!"},
 			{"CRITICAL_MAGICAL", L"It was lucky cast!"},
@@ -189,6 +200,8 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"TOMEOF", L"Tome of "},
 			{"TEACHES", L"Teaches the skill $REPLACE$. Can only be used once."},
 			{"SELFIMMOLATE",L"You are set on fire at the start of every round."},
+			{"GOLD_1", L"Livre"},
+			{"GOLD_X", L"Livres"}
 }},
 		{"Attribute Names", {
 			{"STRENGTH", L"Strength"},
@@ -268,7 +281,8 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"COMBAT1CANCEL", L"Cancel"},
 			{"COMBATEXPLAINBASE", L"Using $REPLACE$ on..."},
 			{"COMBATEXPLAIN", L""},
-			{"BATTLEWIN", L""},
+			{"BATTLEWIN", L"$PLAYER$'s team was victorious in this battle."},
+			{"BATTLEREWARD", L"$PLAYER$ claims the following spoils of war:\n"},
 }},
 		{"Map Pop Up Text", {
 			{"Dead Horse", L"Press the Spacebar to interact with objects of interest"},
@@ -631,7 +645,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"18 $CHANGEANIMATIONSPEED$", L"Gihat Attacking$50$SINGLE_FADEIN"},
 			{"19 $MOVEOBJECTS$", L"Gihat Attacking$55,10,NOAUDIO$10"},
 			{"19.01 $PLAYSFX$", L"1053_44100_1"},
-			{"19.1 $LOADOBJECT$", L"Doublestrike_55_10_7_50_Doublestrike_ACTION_FRONT_2.0_1.0_0_CENTRE"}, // x_y_layer_animSpeed_sources_sources_sources_scale_opacity_followplayer
+			{"19.1 $LOADOBJECT$", L"Doublestrike_55_10_7_50_Doublestrike_ACTION_1_2.0_1.0_0_CENTRE"}, // x_y_layer_animSpeed_sources_sources_sources_scale_opacity_followplayer
 			{"19.2 $CHANGEANIMATIONSPEED$", L"Doublestrike$50$SINGLE_FADEOUTWHENFINISHED"}, // x_y_layer_animSpeed_sources_sources_sources_scale_opacity
 			{"20 $CHANGEANIMATIONSPEED$", L"Gihat Attacking$50$SINGLE_FADEOUT"},
 			{"21 $MOVEOBJECTS$", L"Gihat Attacking$55,15,NOAUDIO$10"},

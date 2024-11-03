@@ -163,6 +163,11 @@ public:
 		result.buttonContent = buttonMessage;
 		result.position = position;
 		result.anchorStyle = "CENTRE";
+		if (size == "LARGE") {
+			result.sources = List<int>({ TEXTBOX_LARGE });
+			result.width = 30;
+			result.height = 30;
+		}
 		if (size == "SMALL") {
 			result.sources = List<int>({ TEXTBOX_SMALL });
 			result.width = 30;
@@ -745,6 +750,7 @@ public:
 		Map<string, int> values;
 		List<string> effectNames;
 		List<string> triggers; // trigger every turn, upon creation, when it expires, etc
+		int timeCreated;
 	};
 	class EffectObjectInstance {
 		public:
@@ -756,6 +762,7 @@ public:
 				e.values = values;
 				if (values.hasKey("duration")) {
 					e.duration = values["duration"];
+					e.roundsLeft = e.duration;
 				}
 				if (values.hasKey("charges")) {
 					e.charges = values["charges"];
@@ -767,13 +774,13 @@ public:
 			}
 			
 			bool operator==(const EffectObjectInstance * RHS) {
-				return RHS->timeCreated == timeCreated;
+				return RHS->e.timeCreated == e.timeCreated;
 			}
 			bool operator<(const EffectObjectInstance * RHS) {
-				return RHS->timeCreated < timeCreated;
+				return RHS->e.timeCreated < e.timeCreated;
 			}
 			bool operator>(const EffectObjectInstance * RHS) {
-				return RHS->timeCreated > timeCreated;
+				return RHS->e.timeCreated > e.timeCreated;
 			}
 
 			Map<string, int> executeDirectly(Combat& combat) {
@@ -781,10 +788,10 @@ public:
 				Map<string, int> result;
 				for (auto subeffect : e.effectNames.internalList) {
 					if (subeffect == "Life Drain") {
-						result["LIFESTEAL"] = e.values["power"];
+						result["LIFESTEAL_SINGLE_UNHOLY"] = e.values["power"];
 					}
 					if (subeffect == "Rainstorm") {
-						result["APPLY_Wet_ALL"] = e.values["duration"];
+						result["APPLY_WET_ALL"] = e.values["duration"];
 					}
 				}
 				return result;
@@ -792,35 +799,6 @@ public:
 			
 			EffectObject e;
 			string uniqueID; // effect name + who
-			int timeCreated;
-	};
-	class CombatEvent {
-		// taking damage, gaining life, applying xyz
-	public:
-		CombatEvent() {};
-		CombatEvent(string _logic, string _type, string _sourceName, string _originalUser, List<string> _combatantsAffected, Map<string, string> _sData, Map<string, int> _vData) {
-			logic = _logic;
-			type = _type;
-			sourceName = _sourceName;
-			originalUser = _originalUser;
-			combatantsAffected = _combatantsAffected;
-			sData = _sData;
-			vData = _vData;
-		}
-
-		string getTemporaryID() {
-			// use this to stop the game from playing the same animation multiple times in a row when one skill has multiple effects that are played sequentially
-			string result = sourceName + "_" + originalUser;
-			return result;
-		}
-
-		string logic;
-		string type; // skill being used or an effect that already exists (Skill object or EffectObject instance)
-		string sourceName;
-		string originalUser;
-		List<string> combatantsAffected;
-		Map<string, string> sData;
-		Map<string, int> vData;
 	};
 	class Skill {
 	public:
@@ -940,6 +918,43 @@ public:
 		List<string> skillTypeTags;
 		Map<string, PowerValue> powerValues;
 		List<string> purposes; // used by the AI to decide which skill to use
+	};
+	class CombatEvent {
+		// taking damage, gaining life, applying xyz
+	public:
+		CombatEvent() {};
+		CombatEvent(string _logic, string _type, string _sourceName, string _originalUser, List<string> _combatantsAffected, Map<string, string> _sData, Map<string, int> _vData) {
+			logic = _logic;
+			type = _type;
+			sourceName = _sourceName;
+			originalUser = _originalUser;
+			combatantsAffected = _combatantsAffected;
+			sData = _sData;
+			vData = _vData;
+		}
+		CombatEvent(Combat& combat, EffectObjectInstance* e) {
+			logic = e->e.logicName;
+			type = e->e.type;
+			sourceName = e->e.uniqueID;
+			originalUser = e->e.owner;
+			combatantsAffected = e->e.target;
+			vData = e->executeDirectly(*&combat);
+			sData["success"] = "1";
+		}
+
+		string getTemporaryID() {
+			// use this to stop the game from playing the same animation multiple times in a row when one skill has multiple effects that are played sequentially
+			string result = sourceName + "_" + originalUser;
+			return result;
+		}
+
+		string logic;
+		string type; // skill being used or an effect that already exists (Skill object or EffectObject instance)
+		string sourceName;
+		string originalUser;
+		List<string> combatantsAffected;
+		Map<string, string> sData;
+		Map<string, int> vData;
 	};
 	class Combatant {
 	public:
@@ -1467,6 +1482,10 @@ public:
 			}
 			return results;
 		}
+		List<CombatantInstance*> getAlliesNextToMeForAoE(Combat& combat) {
+			List<CombatantInstance*> result;
+			return result;
+		}
 		List<string> getAllPossiblePositionsICouldPutASummon(Combat& combat) {
 			Map<string, Map<string, pair<float, float>>> lookup = combat.getCombatantPositionLookup();
 			List<string> alreadyOccupied;
@@ -1494,6 +1513,7 @@ public:
 
 			return result;
 		}
+
 
 		List<CombatEvent> startSkillExecution(Combat & combat, string language) {
 			List<CombatEvent> results;
@@ -1552,43 +1572,49 @@ public:
 				Map<string, string> sData = skillSData;
 				Map<string, int> vData = skillVData;
 
-				if (skillLogicName.find("_SINGLE") != -1) {
+				if (skillLogicName.find("_SINGLE") != -1 or skillLogicName.find("_SELF") != -1) {
 					combatantsAffected.push_back(combat.currentBattle->getThisCombatant(c.currentTarget)->c.uniqueCombatID);
 					sData["message"] = SReplace(skillSData["message"], "$TARGET$",
 						" " + WStringToString(strings[language]["Skill Actions"]["ON"]) + " " + WStringToString(targetName)
 						);
-				}
-				if (skillLogicName.find("_SELF") != -1) {
-					combatantsAffected.push_back(combat.currentBattle->getThisCombatant(c.currentTarget)->c.uniqueCombatID);
+					skillSData["message"] = sData["message"];
+					results.push_back(CombatEvent(skillLogicName, "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, combatantsAffected, sData, vData));
 				}
 				if (skillLogicName.find("_WORLD") != -1) {
 					combatantsAffected.push_back("WORLD");
+					sData["message"] = SReplace(WStringToString(strings[language]["Skill Actions"]["WORLD_DONE"]), "$PLAYER$", WStringToString(userName));
+					sData["message"] = SReplace(sData["message"], "$SKILL$", WStringToString(skillName));
+					skillSData["message"] = sData["message"];
+					results.push_back(CombatEvent(skillLogicName, "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, combatantsAffected, sData, vData));
 				}
 				if (skillLogicName.find("_ALL") != -1) {
 					for (CombatantInstance* actor : combat.currentBattle->getAllCombatants().internalList) {
 						combatantsAffected.push_back(actor->c.uniqueCombatID);
 					}
+					results.push_back(CombatEvent(skillLogicName, "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, combatantsAffected, sData, vData));
+					sData["message"] = SReplace(WStringToString(strings[language]["Skill Actions"]["WORLD_DONE"]), "$PLAYER$", WStringToString(userName));
+					sData["message"] = SReplace(sData["message"], "$SKILL$", WStringToString(skillName));
+					skillSData["message"] = sData["message"];
+				}
+				if (skillLogicName.find("_AOE") != -1) {
+					List<CombatantInstance*> targets = combat.currentBattle->getThisCombatant(target);
+					List<CombatantInstance*> adjacent = targets.at(0)->getAlliesNextToMeForAoE(*&combat);
+					string newLogicName = SReplace(skillLogicName, "_AOE_", "_SINGLE_");
+					for (CombatantInstance* target : targets.internalList) {
+						results.push_back(CombatEvent(newLogicName, "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, {target->c.uniqueCombatID}, sData, vData));
+					}
 				}
 				// add other targeting systems
-				
-				skillSData["message"] = sData["message"];
-
-				if (skillLogicName == "DEFAULT_WAIT") {
-					combat.currentBattle->addCombatMessage("WAIT", List<pair<string, string>>({
-						pair<string, string>("name",c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID),
-						}), 0);
-				}
-
-				results.push_back(CombatEvent(skillLogicName, "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, combatantsAffected, sData, vData));
 			}
-			if (c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID != "DEFAULT_WAIT") {
-				combat.currentBattle->addCombatMessage("DIRECT", pair<string, string>("message", skillSData["message"]), 0);
-			}
-			else {
+			if (c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID == "DEFAULT_WAIT") {
 				combat.currentBattle->addCombatMessage("WAIT", List<pair<string, string>>({
 					pair<string, string>("language", language),
 					pair<string, string>("name", c.uniqueID),
 					}), 0);
+				results.push_back(CombatEvent("DEFAULT_WAIT", "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, {c.uniqueCombatID}, {}, {}));
+			}
+			else {
+				combat.currentBattle->addCombatMessage("DIRECT", pair<string, string>("message", skillSData["message"]), 0);
 			}
 			return results;
 		}
@@ -1650,13 +1676,7 @@ public:
 				pair<float, float> startingPosition;
 			};
 			EventStackObject() {};
-			EventStackObject(Combat::CombatantInstance* _user, Combat::CombatantInstance* _target) {
-				user = _user;
-				target = _target;
-			}
-			EventStackObject(Combat::CombatantInstance * _user, Combat::CombatantInstance* _target, List<CombatEvent> _ongoingReport) {
-				user = _user;
-				target = _target;
+			EventStackObject(List<CombatEvent> _ongoingReport) {
 				ongoingReport = _ongoingReport;
 			}
 			void executeTheStack(Combat & combat) {
@@ -1673,10 +1693,22 @@ public:
 					for (auto t : report.combatantsAffected.internalList) {
 						targets.push_back(combat.currentBattle->getThisCombatant(t));
 					}
-					
 					List<string> reportKeys = report.vData.getKeys();
-					for (auto v : reportKeys.internalList) {
-						if (v.find("DAMAGE_SINGLE_") != -1) { // this is a damage packet
+
+					if (report.logic.find("LIFESTEAL_SINGLE") != -1) {
+						for (EffectObjectInstance* effect : allEffects.internalList) {
+							if (effect->e.target == "WORLD") { continue; }
+							CombatantInstance* target = combat.currentBattle->getThisCombatant(effect->e.target);
+							if (targets.contains(target)) {
+								if (effect->e.logicName == "LIFESTEAL_SINGLE_UNHOLY") {
+									report.vData["LIFESTEAL_SINGLE_UNHOLY"] = effect->e.values["power"];
+								}
+							}
+						}
+					}
+					
+					if (report.logic.find("DAMAGE_SINGLE") != -1) {
+						for (auto v : reportKeys.internalList) {
 							for (EffectObjectInstance* effect : allEffects.internalList) {
 								if (effect->e.target == report.originalUser) { // this effect is on the user
 									if (effect->e.triggers.contains("ONDOINGPHYSICALATTACK")) {
@@ -1693,14 +1725,25 @@ public:
 								}
 								CombatantInstance* target = combat.currentBattle->getThisCombatant(effect->e.target);
 								if (targets.contains(target)) { // this effect is on the victim
-									if (report.vData.hasKey("DAMAGE_SINGLE_HOLY") and effect->e.triggers.contains("ONTAKINGHOLYDAMAGE")) {
+									if (v == "DAMAGE_SINGLE_ELECTRIC" and effect->e.triggers.contains("ONTAKINGELECTRICDAMAGE")) {
+										if (effect->e.logicName == "WET") {
+											report.vData["DAMAGE_SINGLE_ELECTRIC"] *= 2;
+										}
+									}
+									if (v == "DAMAGE_SINGLE_COLD" and effect->e.triggers.contains("ONTAKINGCOLDDAMAGE")) {
+										if (effect->e.logicName == "WET") {
+											report.vData["DAMAGE_SINGLE_COLD"] *= 2;
+										}
+									}
+									if (v == "DAMAGE_SINGLE_HOLY" and effect->e.triggers.contains("ONTAKINGHOLYDAMAGE")) {
 										if (effect->e.logicName == "UNDEAD") {
 											report.vData["DAMAGE_SINGLE_HOLY"] *= 2;
 										}
 									}
 								}
 							}
-						}
+					}
+
 					}
 				}
 			};
@@ -1708,10 +1751,11 @@ public:
 			void executeTheResults(Combat& combat, string language) {
 				// execute the final results of what happened in the stack
 				for (auto & report : ongoingReport.internalList) {
+					string user = report.originalUser;
 					if (report.sData["success"] == "1") {
 						if (report.logic.find("APPLY_") != -1) {
 								List<string> effectData = split(report.logic, "_");
-								if (report.combatantsAffected.contains("ALL")) {
+								if (report.combatantsAffected.contains("ALL") or report.logic.find("_ALL") != -1) {
 									report.combatantsAffected = combat.currentBattle->all.getKeys();
 								}
 								for (auto currentTarget : report.combatantsAffected.internalList) {
@@ -1733,75 +1777,82 @@ public:
 							}
 						}
 						if (report.logic.find("SUMMON_") != -1) {
-							List<string> validSlots = user->getAllPossiblePositionsICouldPutASummon(*&combat);
+							List<string> validSlots = combat.currentBattle->getThisCombatant(user)->getAllPossiblePositionsICouldPutASummon(*&combat);
 							List<string> summonData = split(report.logic, "_");
 							Map<string, int> vData = report.vData; // extra stats
 							Combatant toSummon = combat.definedCombatants[summonData.at(1)];
 
 							if (validSlots.empty()) {
 								Map<string, string> failData;
-								failData["name"] = user->c.uniqueID;
+								failData["name"] = combat.currentBattle->getThisCombatant(user)->c.uniqueID;
 								failData["language"] = language;
 								failData["summon"] = toSummon.uniqueID;
 								combat.currentBattle->addCombatMessage("FAILEDSUMMONNOSPACE",failData, 0);
-								user->c.currentTarget = user->c.uniqueCombatID;
+								combat.currentBattle->getThisCombatant(user)->c.currentTarget = user;
 								report.sourceName = "FAILEDSKILL"; // don't animate anything
 							}
 							else {
 								toSummon.intData = vData;
 								toSummon.slot = validSlots.at(0);
-								string targetTeam = user->team + "_ALLIES";
+								string targetTeam = combat.currentBattle->getThisCombatant(user)->team + "_ALLIES";
 								string targetUniqueCombatID = targetTeam + "_" + toSummon.slot + "_" + toSummon.uniqueID;
 								string direction = "BACK";
-								if (user->team == "TEAM2" or user->team == "TEAM2_ALLIES") {
+								if (combat.currentBattle->getThisCombatant(user)->team == "TEAM2" or combat.currentBattle->getThisCombatant(user)->team == "TEAM2_ALLIES") {
 									direction = "FRONT";
 								}
 								toSummon.uniqueCombatID = targetUniqueCombatID;
-								CombatantInstance* summoned = new CombatantInstance(toSummon, user->team + "_ALLIES");
+								CombatantInstance* summoned = new CombatantInstance(toSummon, combat.currentBattle->getThisCombatant(user)->team + "_ALLIES");
 								summoned->c.setCombatStats(*&combat, true);
 								summoned->c.combatStats["CURRENTLIFE"] = vData["LIFE"]; // give them life described in the skill
 								summoned->c.combatStats["LIFE"] = vData["LIFE"]; // give them life described in the skill
 								combat.currentBattle->addNewCombatantDuringBattle(*&combat, summoned);
-								user->c.currentTarget = targetUniqueCombatID;
+								combat.currentBattle->getThisCombatant(user)->c.currentTarget = targetUniqueCombatID;
 								report.sData["SUMMONTHIS"] = toSummon.uniqueID;
 								report.sData["SUMMONTHIS_DIRECTION"] = direction;
 								report.sData["SUMMONTHIS_TEAMNAME"] = targetTeam;
 								report.sData["SUMMONTHIS_SLOT"] = toSummon.slot;
+								report.combatantsAffected.internalList = list<string>({targetUniqueCombatID});
 							}
 						}
-						for (auto effect : report.vData.getKeys().internalList) {
-							if (effect.find("DAMAGE") != -1) {
-								string type = split(effect, "_").at(2);
-								for (auto currentTarget : report.combatantsAffected.internalList) {
-									combat.currentBattle->getThisCombatant(currentTarget)->c.takeDamage(report.vData[effect]);
-									combat.currentBattle->addCombatMessage("DAMAGE", List<pair<string, string>>({
-											pair<string, string>("name",user->c.uniqueID),
-											pair<string, string>("language",language),
-											pair<string, string>("type",type),
-											pair<string, string>("damage",to_string(report.vData[effect])),
-											pair<string, string>("target",combat.currentBattle->all[currentTarget]->c.uniqueID),
-										}),0);
-									toPrint.push_back(Result(currentTarget, to_string(report.vData[effect]), "RED", graphics.accessImageViaUniqueID(currentTarget)->positionAsPercentage));
+						if (report.logic.find("DAMAGE_") != -1) {
+							for (auto effect : report.vData.getKeys().internalList) {
+								if (effect.find("DAMAGE_") != -1) {
+									string type = split(effect, "_").at(2);
+									for (auto currentTarget : report.combatantsAffected.internalList) {
+										combat.currentBattle->getThisCombatant(currentTarget)->c.takeDamage(report.vData[effect]);
+										combat.currentBattle->addCombatMessage("DAMAGE", List<pair<string, string>>({
+												pair<string, string>("name",combat.currentBattle->getThisCombatant(user)->c.uniqueID),
+												pair<string, string>("language",language),
+												pair<string, string>("type",type),
+												pair<string, string>("damage",to_string(report.vData[effect])),
+												pair<string, string>("target",combat.currentBattle->all[currentTarget]->c.uniqueID),
+											}), 0);
+										toPrint.push_back(Result(currentTarget, to_string(report.vData[effect]), "RED", graphics.accessImageViaUniqueID(currentTarget)->positionAsPercentage));
+									}
 								}
 							}
-							if (effect.find("LIFESTEAL") != -1) {
-								for (auto currentTarget : report.combatantsAffected.internalList) {
-									combat.currentBattle->getThisCombatant(currentTarget)->c.takeDamage(report.vData[effect]);
-									combat.currentBattle->getThisCombatant(user->c.uniqueCombatID)->c.beHealed(report.vData[effect]);
-									combat.currentBattle->addCombatMessage("LIFESTEAL", List<pair<string, string>>({
-											pair<string, string>("name",user->c.uniqueID),
-											pair<string, string>("language",language),
-											pair<string, string>("damage",to_string(report.vData[effect])),
-											pair<string, string>("target",combat.currentBattle->getThisCombatant(currentTarget)->c.uniqueID),
-										}), 0);
-									toPrint.push_back(Result(currentTarget+"damage", to_string(report.vData[effect]), "DAMAGERED", graphics.accessImageViaUniqueID(currentTarget)->positionAsPercentage));
-									toPrint.push_back(Result(user->c.uniqueCombatID+"heal", to_string(report.vData[effect]), "HEALING_GREEN", graphics.accessImageViaUniqueID(user->c.uniqueCombatID)->positionAsPercentage));
+						}
+						if (report.logic.find("LIFESTEAL_") != -1) {
+								for (auto effect : report.vData.getKeys().internalList) {
+									if (effect.find("LIFESTEAL") != -1) {
+										for (auto currentTarget : report.combatantsAffected.internalList) {
+											combat.currentBattle->getThisCombatant(currentTarget)->c.takeDamage(report.vData[effect]);
+											combat.currentBattle->getThisCombatant(user)->c.beHealed(report.vData[effect]);
+											combat.currentBattle->addCombatMessage("LIFESTEAL", List<pair<string, string>>({
+													pair<string, string>("name",combat.currentBattle->getThisCombatant(user)->c.uniqueID),
+													pair<string, string>("language",language),
+													pair<string, string>("damage",to_string(report.vData[effect])),
+													pair<string, string>("target",combat.currentBattle->getThisCombatant(currentTarget)->c.uniqueID),
+												}), 0);
+											toPrint.push_back(Result(currentTarget + "damage", to_string(report.vData[effect]), "DAMAGERED", graphics.accessImageViaUniqueID(currentTarget)->positionAsPercentage));
+											toPrint.push_back(Result(user + "heal", to_string(report.vData[effect]), "HEALING_GREEN", graphics.accessImageViaUniqueID(user)->positionAsPercentage));
+										}
+									}
 								}
 							}
 						}
 					}
 				}
-			}
 
 			CombatEvent getCurrentForAnimation() {
 				return ongoingReport.at(counter);
@@ -1828,37 +1879,9 @@ public:
 			List<Combat::EffectObjectInstance*> allEffectsInOrder; // oldest to newest, so newest effect has the final say (LIFO)
 			List<Combat::EffectObjectInstance*> effectsThatWereTriggered;
 			List<CombatEvent> ongoingReport; // what each effect did and why in a row
-			Combat::CombatantInstance * user = NULL;
-			Combat::CombatantInstance * target = NULL;
 			int counter = 0;
 		};
 		~Battle() {
-			for (CombatantInstance * c : party1.internalList) {
-				delete c;
-				c = NULL;
-				party1.pop_front();
-			}
-			for (CombatantInstance* c : party1allies.internalList) {
-				delete c;
-				c = NULL;
-				party1allies.pop_front();
-			}
-			for (CombatantInstance* c : party2.internalList) {
-				delete c;
-				c = NULL;
-				party2.pop_front();
-			}
-			for (CombatantInstance* c : party2allies.internalList) {
-				delete c;
-				c = NULL;
-				party2allies.pop_front();
-			}
-			for (auto who : allEffectsInPlay.getKeys().internalList) {
-				for (auto name : allEffectsInPlay[who].getKeys().internalList) {
-					delete allEffectsInPlay[who][name];
-					allEffectsInPlay[who][name] = NULL;
-				}
-			}
 		}
 		Battle() {}
 		Battle(Combat & combat, List<Combatant> _party1, List<Combatant> _party1allies, List<Combatant> _party2, List<Combatant> _party2allies, Map<string, string> _data) {
@@ -1879,6 +1902,12 @@ public:
 				all[party2allies.back()->c.uniqueCombatID] = party2allies.back();
 			}
 			data = _data;
+			if (data.hasKey("direction")) {
+				playerDirectionBeforeBattle = data["direction"];
+			}
+			if (data.hasKey("x")) {
+				playerPositionBeforeBattle = {stof(data["x"]), stof(data["y"])};
+			}
 			List<string> order = decideTurnOrder();
 			currentRound = Round(1, order); // add stuff here if any equipment starts an effect immediately
 			for (CombatantInstance* actor : all.getValues().internalList) {
@@ -1893,10 +1922,49 @@ public:
 				}
 			}
 		}
+		void endBattle() {
+			graphics.tearDownSpecifiedText("");
+			for (CombatantInstance* c : all.getValues().internalList) {
+				delete c;
+				c = NULL;
+			}
+			for (auto who : allEffectsInPlay.getKeys().internalList) {
+				for (auto name : allEffectsInPlay[who].getKeys().internalList) {
+					delete allEffectsInPlay[who][name];
+					allEffectsInPlay[who][name] = NULL;
+				}
+			}
+		}
+		List<Graphics::Image*> getAllImagesAssociatedWithThisBattle(Combat & combat) {
+			List<Graphics::Image*> results;
+			results.push_back(graphics.accessImageViaUniqueID("BattleBackground"));
+			for (CombatantInstance* actor : getAllCombatants().internalList) {
+				string uniqueIDBase = actor->c.uniqueCombatID;
+				string barback_life = uniqueIDBase + "_BARBACKLIFE";
+				string barback_mana = uniqueIDBase + "_BARBACKMANA";
+				string life = uniqueIDBase + "_LIFE";
+				string mana = uniqueIDBase + "_MANA";
+				for (auto imageName : { uniqueIDBase , barback_life, barback_mana, life, mana }) {
+					results.push_back(graphics.accessImageViaUniqueID(imageName));
+				}
+				List <Combat::EffectObjectInstance*> effectObjectInstances = combat.currentBattle->getAllEffectsOnXInTimeOrderOldestFirst(uniqueIDBase);
+				for (Combat::EffectObjectInstance* effect : effectObjectInstances.internalList) {
+					string imageName = uniqueIDBase + "$" + effect->e.uniqueID + "$COMBATEFFECT";
+					string borderName = uniqueIDBase + "$" + effect->e.uniqueID + "$COMBATBORDER";
+					if (graphics.accessImageViaUniqueID(imageName) != NULL) {
+						results.push_back(graphics.accessImageViaUniqueID(imageName));
+						results.push_back(graphics.accessImageViaUniqueID(borderName));
+					}
+				}
+			}
+			return results;
+		}
 		void loadAnyPreExistingEffectsForThisCombatant(Combat & combat, CombatantInstance * actor) {
 			if (actor->c.data.hasKey("Effects")) {
 				for (auto effect : actor->c.data["Effects"].getKeys().internalList) {
-					applyAnEffect(*&combat, effect, combat.allEffectDefinitions[effect], actor->c.uniqueCombatID, actor->c.uniqueCombatID, {});
+					applyAnEffect(*&combat, effect, combat.allEffectDefinitions[effect], actor->c.uniqueCombatID, actor->c.uniqueCombatID, List<pair<string, int>>({
+							pair<string, int>("duration",stoi(actor->c.data["Effects"][effect])),
+						}));
 				}
 			}
 		}
@@ -2055,7 +2123,28 @@ public:
 			if (type == "VICTORY") {
 				message = strings[language]["Combat Messages"]["VICTORY"];
 				string leader = saveContainer.getCurrentMainCharacter();
-				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][leader]);
+				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][leader]);
+				combatMessages.push_front({ verbosity, message });
+
+				if (!rewardForWinning.getKeys().empty()) {
+					message = strings[language]["GUI"]["BATTLEREWARD"];
+					combatMessages.push_front({ verbosity, message });
+					for (auto item : rewardForWinning.getKeys().internalList) {
+						wstring itemName = L"";
+						if (item == "GOLD" and rewardForWinning[item] == 1) {
+							itemName = strings[language]["Unique Item Strings"]["GOLD_1"];
+						}
+						if (item == "GOLD" and rewardForWinning[item] > 1) {
+							itemName = strings[language]["Unique Item Strings"]["GOLD_X"];
+						}
+						if (item != "GOLD") {
+							itemName = strings[language]["Item Names"][item];
+						}
+						message = to_wstring(rewardForWinning[item]) + L" " + itemName;
+						combatMessages.push_front({ verbosity, message });
+					}
+					return;
+				}
 			}
 			combatMessages.push_front({ verbosity, message });
 		}
@@ -2160,12 +2249,21 @@ public:
 			return results;
 		}
 		List<EffectObjectInstance*> getAllEffectsOnXInTimeOrderOldestFirst(string who) {
+			List<EffectObjectInstance*> allEffectsOnX;
 			List<EffectObjectInstance*> allEffectsInTimeOrder;
+			List<int> timesInOrder;
 			for (auto name : allEffectsInPlay[who].getKeys().internalList) {
-				allEffectsInTimeOrder.push_back(allEffectsInPlay[who][name]);
+				allEffectsOnX.push_back(allEffectsInPlay[who][name]);
+				timesInOrder.push_back(allEffectsInPlay[who][name]->e.timeCreated);
 			}
-			allEffectsInTimeOrder.internalList.sort();
-			allEffectsInTimeOrder.internalList.reverse();
+			timesInOrder.internalList.sort();
+			for (auto time : timesInOrder.internalList) {
+				for (EffectObjectInstance* effect : allEffectsOnX.internalList) {
+					if (effect->e.timeCreated == time and !allEffectsInTimeOrder.contains(effect)) {
+						allEffectsInTimeOrder.push_back(effect);
+					}
+				}
+			}
 			return allEffectsInTimeOrder;
 		}
 		List<EffectObjectInstance*> getAllEffectsOnXThatAreThisType(string who, string type) {
@@ -2194,18 +2292,28 @@ public:
 			if (actor != NULL) {
 				skill = actor->c.getSkillBeingCast();
 				CombatantInstance* target = all[actor->c.currentTarget];
-				currentEventStackObject = EventStackObject(actor, target, actor->startSkillExecution(*&combat, language));
+				currentEventStackObject = EventStackObject(actor->startSkillExecution(*&combat, language));
 			}
 			else {
-				currentEventStackObject = EventStackObject(NULL, NULL);
+				currentEventStackObject = EventStackObject();
 			}
 			currentEventStackObject.executeTheStack(*&combat);
 			currentEventStackObject.executeTheResults(*&combat, language);
 			actor->c.finishCasting(*&combat);
 		}
 		void determineCurrentSkillEffectStackPassive(Combat& combat, string language) {
-			// if a skill effect chain is triggered by an effect starting or ending, not the use of a skill
-			currentEventStackObject = EventStackObject(NULL, NULL);
+			// if a skill effect chain is triggered by an effect starting, ticking, or ending, not the use of a skill
+			currentEventStackObject = EventStackObject();
+			string nextActor = currentRound.whoseTurnIsNext();
+			for (EffectObjectInstance* effect : allEffectsInPlay[nextActor].getValues().internalList){
+				if (effect->e.triggers.contains("EVERYTURN")) {
+					currentEventStackObject.ongoingReport.push_back(CombatEvent(*&combat, effect));
+				}
+				if (effect->e.triggers.contains("ONEND")) {}
+				if (effect->e.roundsLeft == 0 and !effect->e.infinite) {
+					removeAnEffect(nextActor, effect->e.uniqueID);
+				}
+			}
 			currentEventStackObject.executeTheStack(*&combat);
 			currentEventStackObject.executeTheResults(*&combat, language);
 		}
@@ -2217,8 +2325,15 @@ public:
 				allEffectsInPlay[target].internalMap.erase(effectName);
 			}
 			allEffectsInPlay[target][effectName] = new EffectObjectInstance(*&combat, effectName, source, target, values);
-			allEffectsInPlay[target][effectName]->timeCreated = addToEffectClock();
+			allEffectsInPlay[target][effectName]->e.timeCreated = addToEffectClock();
 			
+		}
+		void removeAnEffect(string who, string name) {
+			if (allEffectsInPlay[who][name] != NULL) {
+				delete allEffectsInPlay[who][name];
+				allEffectsInPlay[who][name] = NULL;
+				allEffectsInPlay[who].internalMap.erase(name);
+			}
 		}
 		int addToEffectClock() {
 			effectClock.internalList.sort();
@@ -2230,7 +2345,6 @@ public:
 			return result;
 		}
 
-		
 		List<CombatantInstance*> party1;
 		List<CombatantInstance*> party1allies;
 		List<CombatantInstance*> party2allies;
@@ -2246,6 +2360,9 @@ public:
 		bool executingSomething = true; // set to true when player shouldn't be able to interact
 		EventStackObject currentEventStackObject;
 		Map<string, int> rewardForWinning;
+		bool combatEnding = false;
+		string playerDirectionBeforeBattle = "STAND_FRONT";
+		pair<float, float> playerPositionBeforeBattle = {50,50};
 	private:
 		Map<string, CombatantInstance*> all;
 	};
@@ -2254,6 +2371,10 @@ public:
 		currentBattle = new Battle(*this, team1, team1allies, team2, team2allies, data);
 	};
 	void tearDownBattle() {
+		for (Graphics::Image* image : currentBattle->getAllImagesAssociatedWithThisBattle(*this).internalList) {
+			graphics.tearDownSpecifiedImage(image->unique_ID);
+		}
+		currentBattle->endBattle();
 		delete currentBattle;
 		currentBattle = NULL;
 	}
@@ -2379,11 +2500,12 @@ public:
 	
 		// SANGROMANCY
 		skillDefinitions["Life Drain"] = Skill("Life Drain", "Life Drain", "Sangromancy", SKILLICON_LIFEDRAIN, 10, 0, 1, "SINGLEFOE",
-			list<string>({ "APPLY_Life Drain_SINGLE" }),
+			list<string>({ "APPLY_Life Drain_SINGLE", "LIFESTEAL_SINGLE_UNHOLY"}),
 			list<string>({ "MAGICAL","BLOOD","UNHOLY"}),
 			Map<string, PowerValue>({ 
-				pair<string, PowerValue>("DURATION_Life Drain", PowerValue("DURATION_1", 5, 5, 8, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
-				pair<string, PowerValue>("POWER_Life Drain", PowerValue("LIFESTEAL_UNHOLY_1", 5, 1, 10, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"})))
+				pair<string, PowerValue>("DURATION_Life Drain", PowerValue("DURATION_Life Drain", 5, 5, 8, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				pair<string, PowerValue>("POWER_Life Drain", PowerValue("POWER_Life Drain", 5, 1, 10, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				pair<string, PowerValue>("LIFESTEAL_SINGLE_UNHOLY", PowerValue("POWER_Life Drain", 5, 1, 10, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"})))
 				}),
 			list<string>({ "DEALDAMAGE", "HEALSELF"}), 1060);
 
@@ -2406,19 +2528,21 @@ public:
 
 		// METEOMANCY
 		skillDefinitions["Rainstorm"] = Skill("Rainstorm", "Rainstorm", "Meteomancy", SKILLICON_RAINSTORM, 15, 0, 0, "ALL", // 1
-			list<string>({ "APPLY_Rainstorm_WORLD", "APPLY_Wet_ALL"}),
+			list<string>({ "APPLY_Rainstorm_WORLD", "APPLY_WET_ALL"}),
 			list<string>({ "MAGICAL","WATER","ELEMENTAL"}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Rainstorm", PowerValue("DURATION_Rainstorm", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),}),
+				pair<string, PowerValue>("DURATION_Rainstorm", PowerValue("DURATION_Rainstorm", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
+				pair<string, PowerValue>("DURATION_WET", PowerValue("DURATION_WET", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
+				}),
 				list<string>({ "MAKEITRAIN" }), RAINSTORM_WAV);
 
 		// ELECTROMANCY
 		skillDefinitions["Plasma Pulse"] = Skill("Plasma Pulse", "Plasma Pulse", "Electromancy", SKILLICON_PLASMAPULSE, 35, 2, 5, "SINGLEFOE",
-			list<string>({ "DAMAGE_SINGLE_ELECTRIC", "APPLY_CONCUSSION", }),
+			list<string>({ "DAMAGE_SINGLE_ELECTRIC", "APPLY_CONCUSSED_SINGLE"}),
 			list<string>({ "MAGICAL","ELECTRIC", "ELEMENTAL", "ELITE"}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_ELECTRIC_1", PowerValue("DAMAGE_ELECTRIC_1", 70, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("DURATION_1", PowerValue("DURATION_1", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_ELECTRIC", PowerValue("DAMAGE_SINGLE_ELECTRIC", 70, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_CONCUSSED", PowerValue("DURATION_CONCUSSED", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE",}), -1);
 
@@ -2427,27 +2551,27 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", "DAMAGE_SINGLE_PHYSICAL" }),
 			list<string>({ "PHYSICAL",}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_PHYSICAL_1", PowerValue("DAMAGE_PHYSICAL_1", 4, 0, 999, true, list<string>({ "STRENGTH", "Dual Weapon MasteryBOOST"}))), }),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 10, 0, 999, true, list<string>({ "STRENGTH", "Dual Weapon MasteryBOOST"}))), }),
 				list<string>({ "DEALDAMAGE" }), DOUBLESTRIKE_1_WAV);
 
 		skillDefinitions["Serrated Strike"] = Skill("Serrated Strike", "Serrated Strike", "Dual Weapon Mastery", SKILLICON_SERRATEDSTRIKE, 15, 0, 2, "SINGLEFOE",
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", "APPLY_BLEEDING_SINGLE"}),
 			list<string>({ "PHYSICAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_PHYSICAL_1", PowerValue("DAMAGE_PHYSICAL_1", 2, 0, 999, true, list<string>({ "STRENGTH", "Dual Weapon MasteryBOOST"}))),
-				pair<string, PowerValue>("DURATION_1", PowerValue("DURATION_1", 3, 0, 999, true, list<string>({ "STRENGTH", "Dual Weapon MasteryBOOST"}))), }),
-				list<string>({ "DEALDAMAGE" }), -1);
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 12, 0, 999, true, list<string>({ "STRENGTH", "Dual Weapon MasteryBOOST"}))),
+				pair<string, PowerValue>("DURATION_BLEEDING", PowerValue("DURATION_BLEEDING", 3, 0, 999, true, list<string>({ "STRENGTH", "Dual Weapon MasteryBOOST"}))), }),
+				list<string>({ "DEALDAMAGE" }), SERRATEDSTRIKE_WAV);
 
 		// UMBROMANCY
 		skillDefinitions["Shadow Spike"] = Skill("Shadow Spike", "Shadow Spike", "Umbromancy", SKILLICON_SHADOWSPIKE, 15, 0, 0, "SINGLEFOE",
-			list<string>({ "INTERRUPT_AOE", "APPLY_BLINDNESS_AOE" }),
+			list<string>({ "INTERRUPT_AOE_SHADOW", "APPLY_BLIND_AOE" }),
 			list<string>({ "MAGICAL","ELITE"}),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("RECHARGE", PowerValue("RECHARGE", 8, 1, 5, false, list<string>({ "INTELLIGENCE", "SHADOWBOOST"}))),
 				}),
-			list<string>({ "BLINDFOE", "INTERRUPTFOE" }), -1);
+			list<string>({ "BLINDFOE", "INTERRUPTFOE" }), SHADOWSPIKE_WAV);
 
-		skillDefinitions["Chaos Storm"] = Skill("Chaos Storm", "Chaos Storm", "Umbromancy", SKILLICON_CHAOSSTORM, 15, 0, 5, "ALLFOES",
+		skillDefinitions["Chaos Storm"] = Skill("Chaos Storm", "Chaos Storm", "Umbromancy", SKILLICON_CHAOSSTORM, 15, 1, 5, "ALLFOES",
 			list<string>({ "CHAOSSTORM"}),
 			list<string>({ "MAGICAL","ELITE" }),
 			Map<string, PowerValue>({
@@ -2473,14 +2597,14 @@ public:
 				list<string>({ "DEALDAMAGE" }), GENTLEMANRIPOSTE_WAV);
 
 		// PYROMANCY
-		skillDefinitions["Brilliant Spark"] = Skill("Brilliant Spark", "Brilliant Spark", "Pyromancy", SKILLICON_BRILLIANTSPARK, 20, 0, 0, "SINGLEFOE",
-			list<string>({ "DAMAGE_SINGLE_FIRE", }),
+		skillDefinitions["Brilliant Spark"] = Skill("Brilliant Spark", "Brilliant Spark", "Pyromancy", SKILLICON_BRILLIANTSPARK, 20, 0, 1, "SINGLEFOE",
+			list<string>({ "DAMAGE_FIRE_SINGLE", "APPLY_BURNING_SINGLE"}),
 			list<string>({ "MAGICAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_FIRE_1", PowerValue("DAMAGE_FIRE_1", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("DURATION_1", PowerValue("DURATION_1", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_FIRE_SINGLE", PowerValue("DAMAGE_FIRE_SINGLE", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_BURNING", PowerValue("DURATION_BURNING", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
 				}),
-				list<string>({ "DEALDAMAGE", "APPLY_BURNING_SINGLE" }), -1);
+				list<string>({ "DEALDAMAGE", "APPLY_BURNING_SINGLE" }), BRILLIANTSPARK_WAV);
 
 	}
 	void defineAllEquipment() {
@@ -2569,7 +2693,9 @@ public:
 	}
 	void defineAllCombatants() {
 		//DEBUG
-		definedCombatants["SadBag"] = Combatant("SadBag", "SadBag", {},
+		definedCombatants["SadBag"] = Combatant("SadBag", "SadBag", Map<string, int>({
+				pair<string, int>("VITALITY", 10),
+			}),
 			Map<string, Map<string, string>>({
 					pair<string, Map<string, string>>("Images", Map<string, string>({
 						pair<string, string>("Back", imageLookup.getSequenceAsString("SadBag", "COMBAT_BACK")),
@@ -2577,6 +2703,7 @@ public:
 					})),
 					pair<string, Map<string, string>>("Effects", Map<string, string>({
 						pair<string, string>("UNDEAD", "1"),
+						pair<string, string>("CONCUSSED", "999"),
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
 						pair<string, string>("0", "DEFAULT_WAIT"),
@@ -2674,7 +2801,7 @@ public:
 		// pair is leader -> team
 		// DEBUG
 		definedTeams["DEBUG"] = { "SadBag", List<Combatant>({
-			definedCombatants["SadBag"], }) };
+			definedCombatants["SadBag"], definedCombatants["SadBag"] }) };
 
 		// EVENT
 		definedTeams["EVENT1"] = { "EnragedVilomah", List<Combatant>({
@@ -2691,21 +2818,37 @@ public:
 	}
 	void defineAllEffectDefinitions() {
 		// originate from skills
-		allEffectDefinitions["Life Drain"] = EffectObject("Life Drain", "BANE", SKILLICON_LIFEDRAIN, "Life Drain", false, 
-			List<string>(list<string>({ "Life Drain", })),
+		allEffectDefinitions["Life Drain"] = EffectObject("Life Drain", "BANE", SKILLICON_LIFEDRAIN, "LIFESTEAL_SINGLE_UNHOLY", false, 
+			List<string>(list<string>({ "LIFESTEAL_SINGLE_UNHOLY", })),
 			List<string>(list<string>({"EVERYTURN","ONAPPLY",})));
 
 		allEffectDefinitions["Gentleman's Riposte"] = EffectObject("Gentleman's Riposte", "BOON", SKILLICON_GENTLEMANSRIPOSTE, "Gentleman's Riposte", false,
 			List<string>(list<string>({ "Gentleman's Riposte", })),
 			List<string>(list<string>({ "ANYALLYATTACKEDPHYSICAL",})));
 
-		allEffectDefinitions["Rainstorm"] = EffectObject("Rainstorm", "NEUTRAL", SKILLICON_RAINSTORM, "Rainstorm", false,
+		allEffectDefinitions["Rainstorm"] = EffectObject("Rainstorm", "NEUTRAL", SKILLICON_RAINSTORM, "APPLY_WET_ALL", false,
 			List<string>(list<string>({ "Rainstorm", })),
-			List<string>(list<string>({ "EVERYROUND", "ONAPPLY"})));
+			List<string>(list<string>({ "EVERYTURN", "ONAPPLY"})));
 
-		allEffectDefinitions["Wet"] = EffectObject("Wet", "NEUTRAL", EFFECTICON_WET, "Wet", false,
-			List<string>(list<string>({ "Wet", })),
-			List<string>(list<string>({ "WHENTAKINGDAMAGE" })));
+		allEffectDefinitions["WET"] = EffectObject("WET", "NEUTRAL", EFFECTICON_WET, "WET", false,
+			List<string>(list<string>({ "WET", })),
+			List<string>(list<string>({ "ONTAKINGCOLDDAMAGE",  "ONTAKINGELECTRICDAMAGE" })));
+
+		allEffectDefinitions["CONCUSSED"] = EffectObject("CONCUSSED", "BANE", EFFECTICON_CONCUSSED, "CONCUSSED", false,
+			List<string>(list<string>({ "CONCUSSED", })),
+			List<string>(list<string>({ "WHENCASTINGASPELL"})));
+
+		allEffectDefinitions["BLEEDING"] = EffectObject("BLEEDING", "BANE", EFFECTICON_BLEEDING, "BLEEDING", false,
+			List<string>(list<string>({ "BLEEDING", })),
+			List<string>(list<string>({ "WHENCASTINGASPELL" })));
+
+		allEffectDefinitions["BLIND"] = EffectObject("BLIND", "BANE", EFFECTICON_BLIND, "BLIND", false,
+			List<string>(list<string>({ "BLIND", })),
+			List<string>(list<string>({ "WHENATTACKING" })));
+
+		allEffectDefinitions["BURNING"] = EffectObject("BURNING", "BANE", EFFECTICON_BURNING, "BURNING", false,
+			List<string>(list<string>({ "BURNING", })),
+			List<string>(list<string>({ "EVERYTURN" })));
 
 		allEffectDefinitions["Strength of Reason"] = EffectObject("Strength of Reason", "BOON", SKILLICON_STRENGTHOFREASON, "Strength of Reason", false,
 			List<string>(list<string>({ "Strength of Reason", })),
@@ -2843,6 +2986,9 @@ public:
 				if (data.hasKey("yStretch")) {
 					image->yStretch = stof(data["yStretch"]);
 				}
+				if (data.hasKey("xStretch")) {
+					image->xStretch = stof(data["xStretch"]);
+				}
 				bool animated = data.getKeys().contains("animated");
 				int animationSpeed = 0;
 				if (animated) {
@@ -2861,6 +3007,20 @@ public:
 				for (auto song : existingSongs.internalList) {
 					string songName = split(song, " ").at(0);
 					audio.fadeOutAndStopThis(stoi(songName), 3);
+				}
+				return true;
+			}
+			if (type == "PLAYALLSONGSFORTHISMAP") {
+				// for when combat ends and we go back to explore mode
+				List<string> existingSongs = explorer.currentMap.getSongNames();
+				for (auto song : existingSongs.internalList) {
+					string songName = split(song, " ").at(0);
+					string volumeName = split(song, " ").at(1);
+					float volume = audio.volumes[volumeName];
+					if (!audio.isThisAudioLoaded(stoi(songName))) {
+						audio.loadAudio(stoi(songName));
+					}
+					audio.playSound(stoi(songName), volume, true, true, 0);
 				}
 				return true;
 			}
@@ -3354,7 +3514,7 @@ public:
 			if (type == "DEBUGCOMBAT") {
 				Map<string, string>combatData({
 					pair<string, string>("team1","PARTY"),
-					pair<string, string>("team1allies","EVENT2"),
+					pair<string, string>("team1allies",""),
 					pair<string, string>("team2","DEBUG"),
 					pair<string, string>("team2allies",""),
 					pair<string, string>("background", to_string(BATTLEBACKGROUND_TOWN)),
@@ -3362,7 +3522,16 @@ public:
 					pair<string, string>("postBattle","RETURNTOEXPLORE"),
 					pair<string, string>("LOOT$GOLD", "1"),
 					pair<string, string>("LOOT$Tome of Chaos Storm", "1"),
+					pair<string, string>("direction", "STAND_FRONT"),
+					pair<string, string>("x", "50"),
+					pair<string, string>("y", "50"),
 					});
+				Graphics::Image* explorerImage = graphics.accessImageViaUniqueID(saveContainer.getCurrentMainCharacter() + "_Explore");
+				if (explorerImage != NULL and explorerImage->direction != "") {
+					combatData["direction"] = "STAND_" + explorerImage->direction;
+					combatData["x"] = to_string(explorer.playerOnMap.position.first);
+					combatData["y"] = to_string(explorer.playerOnMap.position.second);
+				}
 				gameEngine.activeProcedure = gameEngine.makeCombatProcedure(combatData);
 				return false;
 			}
@@ -4827,6 +4996,15 @@ public:
 					}
 				}
 				if (menu.data.hasKey("AUDIOMANAGEMENT")) {
+					Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+							pair<string, string>("uniqueID", "AmbienceVolume_TEXT"),
+						})).run(*&gameEngine);
+					Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+						pair<string, string>("uniqueID", "MusicVolume_TEXT"),
+						})).run(*&gameEngine);
+					Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+							pair<string, string>("uniqueID", "SFXVolume_TEXT"),
+						})).run(*&gameEngine);
 					for (auto node : audio.volumes.getKeys().internalList) {
 						Event("TearDown", "TEARDOWNIMAGE", pair<string, string>("uniqueID", node + "_IMAGE")).run(*&gameEngine);
 						Event("TearDown", "TEARDOWNIMAGE", pair<string, string>("uniqueID", node + "_KNOB_IMAGE")).run(*&gameEngine);
@@ -6726,6 +6904,9 @@ public:
 				string mana = who + "_MANA";
 
 				for (auto image : List<string>({ barback_life, barback_mana, life, mana }).internalList) {
+					if (graphics.accessImageViaUniqueID(image) == NULL) {
+						return false;
+					} 
 					graphics.accessImageViaUniqueID(image)->opacity = stof(opacity);
 				}
 				return false;
@@ -6746,11 +6927,14 @@ public:
 				string lifeMessage = "Life: " + to_string(life) + "/" + to_string(lifeTotal);
 				string energyMessage = "Energy: " + to_string(energy) + "/" + to_string(energyTotal);
 
+				float lifeProportion = combatant->c.getLifeAsPercentage();
+				float manaProportion = combatant->c.getEnergyAsPercentage();
+
 				Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 					pair<string, string>("sources", to_string(BARBACK_H)),
 					pair<string, string>("x", x),
 					pair<string, string>("y", y),
-					pair<string, string>("anchor", "CENTRE"),
+					pair<string, string>("anchor", "CENTREXSTRETCH"),
 					pair<string, string>("opacity", "1.0"),
 					pair<string, string>("layer", to_string(stoi(baseLayer) + 1)),
 					pair<string, string>("scale", scale),
@@ -6760,17 +6944,18 @@ public:
 					pair<string, string>("sources", to_string(LIFEBAR_H)),
 					pair<string, string>("x", x),
 					pair<string, string>("y", y),
-					pair<string, string>("anchor", "CENTRE"),
+					pair<string, string>("anchor", "CENTREXSTRETCH"),
 					pair<string, string>("opacity", "1.0"),
 					pair<string, string>("layer", to_string(stoi(baseLayer) + 2)),
 					pair<string, string>("scale", scale),
 					pair<string, string>("uniqueID", "LIFE_H"),
+					pair<string, string>("xStretch", to_string(lifeProportion)),
 					}))).run(*&gameEngine);
 				Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 					pair<string, string>("sources", to_string(BARBACK_H)),
 					pair<string, string>("x", x),
 					pair<string, string>("y", to_string(stof(y) + 3.15)),
-					pair<string, string>("anchor", "CENTRE"),
+					pair<string, string>("anchor", "CENTREXSTRETCH"),
 					pair<string, string>("opacity", "1.0"),
 					pair<string, string>("layer", to_string(stoi(baseLayer) + 1)),
 					pair<string, string>("scale", scale),
@@ -6780,11 +6965,12 @@ public:
 					pair<string, string>("sources", to_string(MANABAR_H)),
 					pair<string, string>("x", x),
 					pair<string, string>("y", to_string(stof(y) + 3.15)),
-					pair<string, string>("anchor", "CENTRE"),
+					pair<string, string>("anchor", "CENTREXSTRETCH"),
 					pair<string, string>("opacity", "1.0"),
 					pair<string, string>("layer", to_string(stoi(baseLayer) + 2)),
 					pair<string, string>("scale", scale),
 					pair<string, string>("uniqueID", "MANA_H"),
+					pair<string, string>("xStretch", to_string(manaProportion)),
 					}))).run(*&gameEngine);
 				Event("LifeMessage", "DRAWTEXT", List<pair<string, string>>({
 								pair<string, string>("message", lifeMessage),
@@ -6869,10 +7055,6 @@ public:
 
 				bool finishedRound = false;
 				bool thereAreEffectsToRun = false;
-				if (currentActor == "WORLD") {
-					// run world effects
-					
-				}
 								
 				if (combat.currentBattle->executingSomething) {
 					for (auto name : combat.currentBattle->allEffectsInPlay[nextActor].getKeys().internalList) {
@@ -6911,8 +7093,13 @@ public:
 				string combatStatus = combat.currentBattle->tick();
 				// add something to make battle finish if won or lost
 				if (combatStatus == "PLAYERWIN") {
-					combat.currentBattle->addCombatMessage("VICTORY", {}, 0);
-					
+					combat.currentBattle->addCombatMessage("VICTORY", List<pair<string, string>>({
+							pair<string, string>("language", gameEngine.language),
+						}), 0);
+					gameEngine.activeProcedure.eventList.push_front(Event("EndCombat", "ENDCOMBAT", {}));
+					CLOCK.startClock("EndOfCombat");
+					Event("Text", "UPDATECOMBATMESSAGES", {}).run(*&gameEngine);
+					return false;
 				}
 				if (combatStatus == "INPROGRESS") {
 					combat.currentBattle->announceCombatantTurn(gameEngine.language);
@@ -6939,7 +7126,7 @@ public:
 						Event("LoadLifeBars", "LOADLIFEBARSHORIZONTAL", Map<string, string>(List<pair<string, string>>({
 								pair<string, string>("actor", currentActor),
 								pair<string, string>("x", "50"),
-								pair<string, string>("y", "86"),
+								pair<string, string>("y", "84"),
 								pair<string, string>("scale", "0.66"),
 								pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
 							}))).run(*&gameEngine);
@@ -7034,7 +7221,7 @@ public:
 					return false;
 				}
 				string caster = combat.currentBattle->currentEventStackObject.getCurrentForAnimation().originalUser;
-				string target = combat.currentBattle->getCurrentCombatant()->c.currentTarget;
+				string target = combat.currentBattle->currentEventStackObject.getCurrentForAnimation().combatantsAffected.front();
 				if (target == "WORLD") {
 					target = "BattleBackground";
 				}
@@ -7197,7 +7384,47 @@ public:
 					}))).run(*&gameEngine);
 				return false;
 			}
-			if (type == "")
+			if (type == "ENDCOMBAT") {
+				if (!CLOCK.hasEnoughTimePassedDoNotResetClock("EndOfCombat", 500)) {
+					return false;
+				}
+				if (combat.currentBattle->battleStatusCheck() == "PLAYERLOSE") {
+					// teleport them back to the tavern
+				}
+				if (!combat.currentBattle->combatEnding) {
+					for (Graphics::Image* image : combat.currentBattle->getAllImagesAssociatedWithThisBattle(*&combat).internalList) {
+						graphics.bumpLayer(image, 100);
+						image->animationStyles = { "SINGLE","FADEOUT" };
+						image->animationSpeed = 40;
+						image->animated = true;
+					}
+					combat.currentBattle->combatEnding = true;
+					Event("SwapAudio", "STOPALLSONGS", {}).run(*&gameEngine);
+					Event("LoadNewMap", "LOADMAP", Map<string, string>({
+						pair<string, string>("targetMap",explorer.currentMap.name),
+						pair<string, string>("putPlayerHere", "1"),
+						pair<string, string>("x",to_string(combat.currentBattle->playerPositionBeforeBattle.first)),
+						pair<string, string>("y",to_string(combat.currentBattle->playerPositionBeforeBattle.second)),
+						pair<string, string>("direction", combat.currentBattle->playerDirectionBeforeBattle),
+						})).run(*&gameEngine);
+				}
+				bool finished = true;
+
+				for (Graphics::Image* image : combat.currentBattle->getAllImagesAssociatedWithThisBattle(*&combat).internalList) {
+					if (!image->hasThisFinishedAnimating()) {
+						finished = false;
+					}
+				}
+				if (finished) {
+					combat.tearDownBattle();
+					gameEngine.activeProcedure.eventList.clear();
+					gameEngine.activeProcedure.eventList.push_front(Event("Explore", "EXPLORE", List<pair<string, string>>({
+							pair<string, string>("audio", "1"),
+						})));
+					return false;
+				}
+				return false;
+			}
 			return false;
 }
 		string name;
@@ -7227,7 +7454,11 @@ public:
 			pair<float, float> casterLocation = caster->positionAsPercentage;
 			Map<string, bool> finished; // each bubble
 
-			List<string> defaultAnimateOnTarget = list<string>({"Strength of Reason", "Laying of Hands", "Cure Wounds"});
+			List<string> defaultAnimateOnTarget = list<string>({"Strength of Reason", "Laying of Hands", "Cure Wounds", "Serrated Strike", "Shadow Spike", "Brilliant Spark", "BURNING"});
+
+			if (procedureName == "BURNING") {
+				extras["audioSource"] = "6414";
+			}
 
 			if (defaultAnimateOnTarget.contains(procedureName)) {
 				if (!started) {
@@ -7262,6 +7493,9 @@ public:
 				return false;
 			}
 
+			if (procedureName == "DEFAULT_WAIT") {
+				return true;
+			}
 			if (procedureName == "DEFAULT_ATTACK") {
 				if (!started) {
 					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
@@ -7287,6 +7521,39 @@ public:
 				Graphics::Image* theImage = graphics.accessImageViaUniqueID("Default Attack Skill Animation");
 				if (theImage != NULL  and theImage->hasThisFinishedAnimating()) {
 					graphics.tearDownSpecifiedImage("Default Attack Skill Animation");
+					return false;
+				}
+				if (theImage == NULL) {
+					started = false;
+					return true;
+				}
+				return false;
+			}
+			if (procedureName == "Doublestrike") {
+				if (!started) {
+					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", imageLookup.getSequenceAsString("Doublestrike", "ACTION_1")),
+						pair<string, string>("x", to_string(targetLocation.first)),
+						pair<string, string>("y", to_string(targetLocation.second)),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", "1.0"),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
+						pair<string, string>("scale", "2.0"),
+						pair<string, string>("animated", "1"),
+						pair<string, string>("styles", "SINGLE"),
+						pair<string, string>("animation_speed", "50"),
+						pair<string, string>("uniqueID", "Doublestrike Skill Animation"), }))).run(*&gameEngine);
+					GameEngine::Event("PlayAudio", "PLAYSFX", Map<string, string>({
+								pair<string, string>("audio","1053"),
+								pair<string, string>("direct","1"),
+								pair<string, string>("delay","0.1"),
+						})).run(*&gameEngine);
+					started = true;
+					return false;
+				}
+				Graphics::Image* theImage = graphics.accessImageViaUniqueID("Doublestrike Skill Animation");
+				if (theImage != NULL and theImage->hasThisFinishedAnimating()) {
+					graphics.tearDownSpecifiedImage("Doublestrike Skill Animation");
 					return false;
 				}
 				if (theImage == NULL) {
@@ -7579,11 +7846,95 @@ public:
 				}
 				return false;
 			}
+			if (procedureName == "Plasma Pulse") {
+				if (!started) {
+					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", imageLookup.getSequenceAsString("PlasmaPulse1", "ACTION_1")),
+						pair<string, string>("x", "50"),
+						pair<string, string>("y", "50"),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", "1.0"),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
+						pair<string, string>("scale", "2.0"),
+						pair<string, string>("animated", "1"),
+						pair<string, string>("styles", "SINGLE"),
+						pair<string, string>("animation_speed", "20"),
+						pair<string, string>("uniqueID", "PlasmaPulse1"), }))).run(*&gameEngine);
+					GameEngine::Event("PlayAudio", "PLAYSFX", Map<string, string>({
+								pair<string, string>("audio","1058"),
+								pair<string, string>("direct","1"),
+								pair<string, string>("delay","0.0"),
+						})).run(*&gameEngine);
+					started = true;
+					return false;
+				}
+				Graphics::Image* theImage = graphics.accessImageViaUniqueID("PlasmaPulse1");
+				Graphics::Image* theImage2 = graphics.accessImageViaUniqueID("PlasmaPulse2");
+				Graphics::Image* theImage3 = graphics.accessImageViaUniqueID("PlasmaPulse3");
+				Graphics::Image* theImage4 = graphics.accessImageViaUniqueID("PlasmaPulse4");
+				if (theImage != NULL and theImage->hasThisFinishedAnimating()) {
+					graphics.tearDownSpecifiedImage("PlasmaPulse1");
+					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", imageLookup.getSequenceAsString("PlasmaPulse1", "ACTION_2")),
+						pair<string, string>("x", "50"),
+						pair<string, string>("y", "50"),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", "1.0"),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
+						pair<string, string>("scale", "2.0"),
+						pair<string, string>("animated", "1"),
+						pair<string, string>("styles", "SINGLE"),
+						pair<string, string>("animation_speed", "20"),
+						pair<string, string>("uniqueID", "PlasmaPulse2"), }))).run(*&gameEngine);
+					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", imageLookup.getSequenceAsString("PlasmaPulse4", "ACTION_1")),
+						pair<string, string>("x", to_string(casterLocation.first)),
+						pair<string, string>("y", to_string(casterLocation.second - 15)),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", "1.0"),
+						pair<string, string>("layer", "1"),
+						pair<string, string>("scale", "1.0"),
+						pair<string, string>("animated", "1"),
+						pair<string, string>("styles", "LOOP"),
+						pair<string, string>("animation_speed", "40"),
+						pair<string, string>("uniqueID", "PlasmaPulse4"), }))).run(*&gameEngine);
+					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", imageLookup.getSequenceAsString("PlasmaPulse5", "ACTION_1")),
+						pair<string, string>("x", to_string(targetLocation.first)),
+						pair<string, string>("y", to_string(targetLocation.second)),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", "1.0"),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
+						pair<string, string>("scale", "2.0"),
+						pair<string, string>("animated", "1"),
+						pair<string, string>("styles", "LOOP"),
+						pair<string, string>("animation_speed", "40"),
+						pair<string, string>("uniqueID", "PlasmaPulse5"), }))).run(*&gameEngine);
+					GameEngine::Event("PlayAudio", "PLAYSFX", Map<string, string>({
+								pair<string, string>("audio","1059"),
+								pair<string, string>("direct","1"),
+								pair<string, string>("delay","0.0"),
+						})).run(*&gameEngine);
+				}
+				if (theImage2 != NULL and theImage2->hasThisFinishedAnimating()) {
+					started = false;
+					for (auto image : { "PlasmaPulse2", "PlasmaPulse3", "PlasmaPulse4", "PlasmaPulse5" }) {
+						graphics.tearDownSpecifiedImage(image);
+					}
+					return true;
+				}
+				if (theImage3 != NULL and theImage3->hasThisFinishedAnimating()) {
+					theImage3->opacity = 0.0;
+				}
 
+
+				
+			}
 			return false;
 		}
 		bool runDefaultTextAnimation(GameEngine & gameEngine, string textName, string colour, string message, pair<float, float> start) {
 			Graphics::Text* textPopUp = graphics.accessTextViaUniqueID(textName);
+			pair<float, float> destination = { start.first, start.second - 10 };
 			if (textPopUp == NULL) {
 				CLOCK.startClock(textName);
 				CLOCK.startClock(textName + "MOVE");
@@ -7591,7 +7942,7 @@ public:
 								pair<string, string>("message", message),
 								pair<string, string>("direct", "1"),
 								pair<string, string>("format", "Centaur_20"),
-								pair<string, string>("anchorStyle", "CENTER"),
+								pair<string, string>("anchorStyle", "CENTRE"),
 								pair<string, string>("x", to_string(start.first)),
 								pair<string, string>("y", to_string(start.second)),
 								pair<string, string>("w", "50"),
@@ -7601,11 +7952,12 @@ public:
 								pair<string, string>("layer",  to_string(imageLookup.layerDefaults["BUTTONS"])),
 								pair<string, string>("uniqueID", textName),
 					})).run(*&gameEngine);
+				return false;
 			}
 			if (CLOCK.hasEnoughTimePassed(textName + "MOVE", 80)) {
 				graphics.accessTextViaUniqueID(textName)->positionAsPercentage.second -= 1;
 			}
-			if (CLOCK.hasEnoughTimePassed(textName, 800)) {
+			if (textPopUp->positionAsPercentage == destination) {
 				return true;
 			}
 			
@@ -7878,7 +8230,7 @@ public:
 			"COMBAT1", Menu("COMBAT1", Menu::getDefaultCombatMenuButtons(), Map<string, string>({}))),
 		pair<string, Menu>(
 			"COMBATRESULT", Menu("COMBATRESULT", List<Menu::Button>({
-			Menu::TextBox("TEXTBOX1", "GUI_BATTLEWIN", "SMALL", {50, 10}),
+			Menu::TextBox("TEXTBOX1", "GUI_POSTBATTLE", "LARGE", {50, 10}),
 			}), Map<string, string>({}))),
 	});
 	Procedure makeDynamicCutsceneProcedure(string language, string cutsceneName, string player, string postProcedure) {
