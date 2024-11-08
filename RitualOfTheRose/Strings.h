@@ -93,7 +93,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Chaos Storm", L"For 5 rounds, all foes lose②$DAMAGE_MANA$ mana every round."},
 			{"Fine Strike", L"Strike target foe. This attack is②$CRITICALBOOST$% more likely to be a critical hit."},
 			{"Gentleman's Riposte", L"For②$DURATION_Gentleman's Riposte$ rounds, the next time an ally would be struck by a foe's physical attack, the attack is blocked and a physical attack is attempted against that foe."},
-			{"Brilliant Spark", L"Deal②$DAMAGE_FIRE_SINGLE$ fire damage to target foe and set them on fire for②$DURATION_BURNING$ rounds." },
+			{"Brilliant Spark", L"Deal②$DAMAGE_SINGLE_FIRE$ fire damage to target foe and set them on fire for②$DURATION_BURNING$ rounds." },
 }},
 		{"Effect Names", {
 			{"WET", L"Wet"},
@@ -144,6 +144,8 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"WAIT", L"$1$ waits for a better opportunity..."},
 			{"VICTORY", L"$1$'s team was victorious!"},
 			{"FAILED_NO_TARGETS", L"$PLAYER$ tried to use $SKILL$ but it failed because there are no valid targets left to use it on!"},
+			{"SKILLFAIL", L"$PLAYER$ tried to use $SKILL$, but it failed$REASON$!"},
+			{"DUETOCONCUSSED", L" due to a nasty head injury"}
 }},
 		{"Skill Actions", {
 			{"Wait", L"$WHO$ is waiting..."},

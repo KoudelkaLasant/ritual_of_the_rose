@@ -1241,7 +1241,23 @@ public:
 				skillSData["message"] = SReplace(skillSData["message"], "$TARGET$", WStringToString(targetName));
 				skillSData["message"] = SReplace(skillSData["message"], "$ON$", WStringToString(strings[language]["Skill Actions"]["ON"]));
 			}
+
 			skillSData["success"] = "1";
+			// decide if skill attempt should succeed at all
+			List<EffectObjectInstance*> allEffects = combat.currentBattle->getAllEffectsInTimeOrderOldestFirst();
+			for (EffectObjectInstance* effect : allEffects.internalList) {
+				if (effect->e.target == c.uniqueCombatID) {
+					if (effect->e.logicName == "CONCUSSED" and c.getSkillBeingCast().skillTypeTags.contains("MAGICAL")) {
+						int diceRoll = RANDOM.getRandom(1, 100);
+						if (diceRoll < 999) {
+							skillSData["success"] = "0";
+							skillSData["failReason"] = "CONCUSSED";
+						}
+					}
+				}
+			}
+
+			
 			if (c.combatSkills[c.indexOfSkillCurrentlyBeingCast].audioSource != -1) {
 				skillSData["audioSource"] = to_string(c.combatSkills[c.indexOfSkillCurrentlyBeingCast].audioSource);
 			}
@@ -1289,7 +1305,7 @@ public:
 					pair<string, string>("language", language),
 					pair<string, string>("name", c.uniqueID),
 					}), 0);
-				results.push_back(CombatEvent("DEFAULT_WAIT", "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, { c.uniqueCombatID }, {}, {}));
+				results.push_back(CombatEvent("DEFAULT_WAIT", "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, { c.uniqueCombatID }, skillSData, {}));
 			}
 			else {
 				combat.currentBattle->addCombatMessage("DIRECT", pair<string, string>("message", skillSData["message"]), 0);
@@ -1364,18 +1380,13 @@ public:
 					allEffects.internalList.reverse();
 					CombatantInstance* user = combat.currentBattle->getThisCombatant(report.originalUser);
 					List<CombatantInstance* > targets;
-					if (report.type == "SKILL" and user->c.currentlyCasting) {
-						for (EffectObjectInstance * effect : allEffects.internalList) {
-							if (effect->e.target == report.originalUser) {
-								if (effect->e.logicName == "CONCUSSED" and user->c.getSkillBeingCast().skillTypeTags.contains("MAGICAL")) {
-									report.vData["FAILCHANCE"] = 50;
-								}
-							}
-						}
+
+					if (report.logic == "BURNING") {
+						report.logic = "DAMAGE_SINGLE_FIRE";
+						report.vData["DAMAGE_SINGLE_FIRE"] = 20;
 					}
 
 					if (report.combatantsAffected.contains("WORLD")) {
-						report.sData["success"] = "1";
 						return;
 					}
 					for (auto t : report.combatantsAffected.internalList) {
@@ -1432,7 +1443,12 @@ public:
 								if (targets.contains(target)) { // this effect is on the victim
 									if (v == "DAMAGE_SINGLE_ELECTRIC" and effect->e.triggers.contains("ONTAKINGELECTRICDAMAGE")) {
 										if (effect->e.logicName == "WET") {
-											report.vData["DAMAGE_SINGLE_ELECTRIC"] *= 2;
+											report.vData["DAMAGE_SINGLE_ELECTRIC"] *= 1.25;
+										}
+									}
+									if (v == "DAMAGE_SINGLE_FIRE" and effect->e.triggers.contains("ONTAKINGFIREDAMAGE")) {
+										if (effect->e.logicName == "WET") {
+											report.vData["DAMAGE_SINGLE_FIRE"] *= 0.9;
 										}
 									}
 									if (v == "DAMAGE_SINGLE_COLD" and effect->e.triggers.contains("ONTAKINGCOLDDAMAGE")) {
@@ -1499,9 +1515,13 @@ public:
 						}
 					}
 				}
+
 			};
 
 			void executeTheResults(Combat& combat, string language) {
+				// don't repeat fail messages for every failed effect belonging to one skill
+				List<string> failedSkillExecutions;
+
 				// execute the final results of what happened in the stack
 				for (auto& report : ongoingReport.internalList) {
 					string user = report.originalUser;
@@ -1622,6 +1642,18 @@ public:
 							}
 						}
 					}
+					if (report.sData["success"] != "1") {
+						Map<string, string> failData;
+						failData["name"] = combat.currentBattle->getThisCombatant(user)->c.uniqueID;
+						failData["language"] = language;
+						failData["skill"] = report.sourceName;
+						failData["failReason"] = report.sData["failReason"];
+						if (!failedSkillExecutions.contains(report.sourceName)) {
+							combat.currentBattle->addCombatMessage("FAILEDSKILL", failData, 0);
+						}
+						failedSkillExecutions.push_back(report.sourceName);
+						report.sourceName = "FAILEDSKILL";
+					}
 				}
 			}
 
@@ -1631,18 +1663,18 @@ public:
 
 			void animationTick() {
 				counter++;
-				if (counter == 0 or counter == ongoingReport.size()) {
+				if (counter == 0 or counter >= ongoingReport.size()) {
 					return;
 				}
 				string previousAnimation = ongoingReport.at(counter - 1).getTemporaryID();
 				string currentAnimation = getCurrentForAnimation().getTemporaryID();
-				while (previousAnimation == currentAnimation and counter < ongoingReport.size()) {
+				while (previousAnimation == currentAnimation and counter <= ongoingReport.size()) {
 					animationTick();
 				}
 
 			}
 			bool isAnimationFinished() {
-				return counter == ongoingReport.size();
+				return counter >= ongoingReport.size();
 			}
 
 
@@ -1828,9 +1860,9 @@ public:
 		bool areTherePreTurnEffectsToRun() {
 			return currentEventStackObject.ongoingReport.size() > 0;
 		}
-		void addCombatMessage(string type, Map<string, string> data, int verbosity) {
+		void addCombatMessage(string type, Map<string, string> combatMessageData, int verbosity) {
 			// for top bar
-			string language = data["language"];
+			string language = combatMessageData["language"];
 			wstring message = L"";
 			if (type == "COMBATSTART") {
 				int team1Size = party1.size();
@@ -1848,61 +1880,61 @@ public:
 					message = strings[language]["Combat Messages"]["BATTLESTARTTEAMVSTEAM"];
 				}
 				message = WSReplace(message, L"$PLAYER$", StringToWString(saveContainer.getCurrentMainCharacter()));
-				message = WSReplace(message, L"$OPPONENT$", strings[language]["NPCNames"][data["opponentName"]]);
+				message = WSReplace(message, L"$OPPONENT$", strings[language]["NPCNames"][combatMessageData["opponentName"]]);
 			}
 			if (type == "PLAYERTURN") {
 				message = strings[language]["Combat Messages"]["PLAYERTURN"];
-				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][data["name"]]);
+				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][combatMessageData["name"]]);
 			}
 			if (type == "AITURN") {
 				message = strings[language]["Combat Messages"]["AITURN"];
-				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][data["name"]]);
+				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][combatMessageData["name"]]);
 			}
 			if (type == "STARTCASTING") {
-				message = strings[language]["Skill Actions"][data["skillType"] + "_STARTED"];
-				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][data["name"]]);
-				message = WSReplace(message, L"$SKILL$", strings[language]["Skill Names"][data["skill"]]);
+				message = strings[language]["Skill Actions"][combatMessageData["skillType"] + "_STARTED"];
+				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][combatMessageData["name"]]);
+				message = WSReplace(message, L"$SKILL$", strings[language]["Skill Names"][combatMessageData["skill"]]);
 			}
 			if (type == "STILLCASTING") {
-				message = strings[language]["Skill Actions"][data["skillType"] + "_INPROGRESS"];
-				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][data["name"]]);
-				message = WSReplace(message, L"$SKILL$", strings[language]["Skill Names"][data["skill"]]);
+				message = strings[language]["Skill Actions"][combatMessageData["skillType"] + "_INPROGRESS"];
+				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][combatMessageData["name"]]);
+				message = WSReplace(message, L"$SKILL$", strings[language]["Skill Names"][combatMessageData["skill"]]);
 			}
 			if (type == "DIRECT") {
-				message = StringToWString(data["message"]);
+				message = StringToWString(combatMessageData["message"]);
 			}
 			if (type == "DAMAGE") {
 				message = strings[language]["Combat Messages"]["DAMAGE"];
-				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][data["name"]]);
-				message = WSReplace(message, L"$X$", StringToWString(data["damage"]));
-				message = WSReplace(message, L"$TYPE$", strings[language]["Type Names"][data["type"]]);
-				message = WSReplace(message, L"$2$", strings[language]["NPCNames"][data["target"]]);
+				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][combatMessageData["name"]]);
+				message = WSReplace(message, L"$X$", StringToWString(combatMessageData["damage"]));
+				message = WSReplace(message, L"$TYPE$", strings[language]["Type Names"][combatMessageData["type"]]);
+				message = WSReplace(message, L"$2$", strings[language]["NPCNames"][combatMessageData["target"]]);
 			}
 			if (type == "LIFESTEAL") {
 				message = strings[language]["Combat Messages"]["LIFESTEAL"];
-				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][data["name"]]);
-				message = WSReplace(message, L"$X$", StringToWString(data["damage"]));
-				message = WSReplace(message, L"$2$", strings[language]["NPCNames"][data["target"]]);
+				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][combatMessageData["name"]]);
+				message = WSReplace(message, L"$X$", StringToWString(combatMessageData["damage"]));
+				message = WSReplace(message, L"$2$", strings[language]["NPCNames"][combatMessageData["target"]]);
 			}
 			if (type == "LIFEHEAL") {
-				if (data["name"] == data["target"]) {
+				if (combatMessageData["name"] == combatMessageData["target"]) {
 					message = strings[language]["Combat Messages"]["LIFEHEAL_SELF"];
 				}
 				else {
 					message = strings[language]["Combat Messages"]["LIFEHEAL_OTHER"];
 				}
-				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][data["name"]]);
-				message = WSReplace(message, L"$X$", StringToWString(data["damage"]));
-				message = WSReplace(message, L"$2$", strings[language]["NPCNames"][data["target"]]);
+				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][combatMessageData["name"]]);
+				message = WSReplace(message, L"$X$", StringToWString(combatMessageData["damage"]));
+				message = WSReplace(message, L"$2$", strings[language]["NPCNames"][combatMessageData["target"]]);
 			}
 			if (type == "WAIT") {
 				message = strings[language]["Combat Messages"]["WAIT"];
-				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][data["name"]]);
+				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][combatMessageData["name"]]);
 			}
 			if (type == "FAILEDSUMMONNOSPACE") {
 				message = strings[language]["Skill Actions"]["FAILEDSUMMONNOSPACE"];
-				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][data["name"]]);
-				message = WSReplace(message, L"$WHAT$", strings[language]["NPCNames"][data["summon"]]);
+				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][combatMessageData["name"]]);
+				message = WSReplace(message, L"$WHAT$", strings[language]["NPCNames"][combatMessageData["summon"]]);
 			}
 			if (type == "VICTORY") {
 				message = strings[language]["Combat Messages"]["VICTORY"];
@@ -1932,9 +1964,15 @@ public:
 			}
 			if (type == "FAILED_NO_TARGETS") {
 				message = strings[language]["Combat Messages"]["FAILED_NO_TARGETS"];
-				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"]["name"]);
-				message = WSReplace(message, L"$SKILL$", strings[language]["NPCNames"]["skill"]);
-				message = WSReplace(message, L"$TARGET$", strings[language]["NPCNames"]["target"]);
+				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][combatMessageData["name"]]);
+				message = WSReplace(message, L"$SKILL$", strings[language]["NPCNames"][combatMessageData["skill"]]);
+				message = WSReplace(message, L"$TARGET$", strings[language]["NPCNames"][combatMessageData["target"]]);
+			}
+			if (type == "FAILEDSKILL") {
+				message = strings[language]["Combat Messages"]["SKILLFAIL"];
+				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][combatMessageData["name"]]);
+				message = WSReplace(message, L"$SKILL$", strings[language]["Skill Names"][combatMessageData["skill"]]);
+				message = WSReplace(message, L"$REASON$", strings[language]["Combat Messages"]["DUETO" + combatMessageData["failReason"]]);
 			}
 			combatMessages.push_front({ verbosity, message });
 		}
@@ -2313,7 +2351,7 @@ public:
 
 		// NECROMANCY
 		skillDefinitions["Animate Skeleton Warrior"] = Skill("Animate Skeleton Warrior", "Animate Skeleton Warrior", "Necromancy", SKILLICON_ANIMATESKELETONWARRIOR, 55, 1, 8, "SELF", // debug 0, real = 2
-			list<string>({ "SUMMON_Skeleton Warrior" }),
+			list<string>({ "SUMMON_Skeleton Warrior_SELF" }),
 			list<string>({ "MAGICAL","UNHOLY", "ELITE", "SUMMON" }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 80, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
@@ -2394,10 +2432,10 @@ public:
 
 		// PYROMANCY
 		skillDefinitions["Brilliant Spark"] = Skill("Brilliant Spark", "Brilliant Spark", "Pyromancy", SKILLICON_BRILLIANTSPARK, 20, 0, 1, "SINGLEFOE",
-			list<string>({ "DAMAGE_FIRE_SINGLE", "APPLY_BURNING_SINGLE" }),
+			list<string>({ "DAMAGE_SINGLE_FIRE", "APPLY_BURNING_SINGLE" }),
 			list<string>({ "MAGICAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_FIRE_SINGLE", PowerValue("DAMAGE_FIRE_SINGLE", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_FIRE", PowerValue("DAMAGE_SINGLE_FIRE", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("DURATION_BURNING", PowerValue("DURATION_BURNING", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE", "APPLY_BURNING_SINGLE" }), BRILLIANTSPARK_WAV);
@@ -2490,7 +2528,7 @@ public:
 	void defineAllCombatants() {
 		//DEBUG
 		definedCombatants["SadBag"] = Combatant("SadBag", "SadBag", Map<string, int>({
-				pair<string, int>("VITALITY", 0),
+				pair<string, int>("AGILITY", 0),
 			}),
 			Map<string, Map<string, string>>({
 					pair<string, Map<string, string>>("Images", Map<string, string>({
@@ -2502,7 +2540,7 @@ public:
 						pair<string, string>("CONCUSSED", "999"),
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
-						pair<string, string>("0", "Brilliant Spark"),
+						pair<string, string>("0", "DEFAULT_ATTACK"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 				}));
@@ -2597,7 +2635,7 @@ public:
 		// pair is leader -> team
 		// DEBUG
 		definedTeams["DEBUG"] = { "SadBag", List<Combatant>({
-			definedCombatants["SadBag"], definedCombatants["SadBag"] }) };
+			definedCombatants["SadBag"]}) };
 
 		// EVENT
 		definedTeams["EVENT1"] = { "EnragedVilomah", List<Combatant>({
@@ -2628,7 +2666,7 @@ public:
 
 		allEffectDefinitions["WET"] = EffectObject("WET", "NEUTRAL", EFFECTICON_WET, "WET", false,
 			List<string>(list<string>({ "WET", })),
-			List<string>(list<string>({ "ONTAKINGCOLDDAMAGE",  "ONTAKINGELECTRICDAMAGE" })));
+			List<string>(list<string>({ "ONTAKINGCOLDDAMAGE",  "ONTAKINGELECTRICDAMAGE", "ONTAKINGFIREDAMAGE"})));
 
 		allEffectDefinitions["CONCUSSED"] = EffectObject("CONCUSSED", "BANE", EFFECTICON_CONCUSSED, "CONCUSSED", false,
 			List<string>(list<string>({ "CONCUSSED", })),

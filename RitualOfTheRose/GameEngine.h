@@ -2608,19 +2608,21 @@ public:
 					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "COMBAT1")).run(*&gameEngine);
 					gameEngine.storedMenus["COMBAT1"].buttons = Menu::getDefaultCombatMenuButtons();
 					combat.currentBattle->executingSomething = true;
+					gameEngine.activeProcedure.eventList.clear();
+					gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "HANDLECOMBAT", {}));
+					gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "PRINTSKILLSTACKRESULTS", {}));
+					gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "EXECUTESKILLINCOMBAT", {}));
+					gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "DETERMINESKILLEFFECTSTACK", List<pair<string, string>>({
+							pair<string, string>("passive", "1"),
+						})));
 					if (actor->c.finishedCasting()) {
 						// skill had a 0 round activation cost = cast now
-						gameEngine.activeProcedure.eventList.clear();
-						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "HANDLECOMBAT", {}));
 						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "PRINTSKILLSTACKRESULTS", {}));
 						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "EXECUTESKILLINCOMBAT", {}));
-						combat.currentBattle->determineCurrentSkillEffectStack(*&combat, gameEngine.language);
-						return false;
+						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "DETERMINESKILLEFFECTSTACK", List<pair<string, string>>({
+							pair<string, string>("active", "1"),
+							})));
 					}
-					gameEngine.activeProcedure.eventList.clear();
-					combat.currentBattle->determineCurrentSkillEffectStackPassive(*&combat, gameEngine.language);
-					gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "HANDLECOMBAT", {}));
-					gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "EXECUTESKILLINCOMBAT", {}));
 					return false;
 				}
 				if (buttonLogic.find("GOTOCODEXBUTTON") != -1) {
@@ -4214,21 +4216,7 @@ public:
 				bool thereAreEffectsToRun = false;
 								
 				if (combat.currentBattle->executingSomething) {
-					for (auto name : combat.currentBattle->allEffectsInPlay[nextActor].getKeys().internalList) {
-						combat.currentBattle->allEffectsInPlay[nextActor][name]->e.tick();
-					}
-					combat.currentBattle->determineCurrentSkillEffectStackPassive(*&combat, gameEngine.language);
-					thereAreEffectsToRun = combat.currentBattle->areTherePreTurnEffectsToRun();
-					if (thereAreEffectsToRun) {
-						gameEngine.activeProcedure.eventList.clear();
-						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "HANDLECOMBAT", {}));
-						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "HANDLECOMBATTICK", {}));
-						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "PRINTSKILLSTACKRESULTS", {}));
-						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "EXECUTESKILLINCOMBAT", {}));
-					}
-					else {
-						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "HANDLECOMBATTICK", {}));
-					}
+					gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "HANDLECOMBATTICK", {}));
 					combat.currentBattle->executingSomething = false;
 					return false;
 				}
@@ -4304,6 +4292,14 @@ public:
 							}))).run(*&gameEngine);
 					}
 					if (currentActor == "WORLD") {
+						gameEngine.activeProcedure.eventList.clear();
+						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "HANDLECOMBAT", {}));
+						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "PRINTSKILLSTACKRESULTS", {}));
+						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "EXECUTESKILLINCOMBAT", {}));
+						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "DETERMINESKILLEFFECTSTACK", List<pair<string, string>>({
+								pair<string, string>("passive", "1"),
+							})));
+						combat.currentBattle->executingSomething = true;
 						return false;
 					}
 					if (!isPlayerInControl) {
@@ -4360,7 +4356,15 @@ public:
 
 				return false;
 			}
-			if (type == "DETERMINESKILLEFFECTSTACK") {}
+			if (type == "DETERMINESKILLEFFECTSTACK") {
+				if (data["passive"] == "1") {
+					combat.currentBattle->determineCurrentSkillEffectStackPassive(*&combat, gameEngine.language);
+				}
+				else if (data["active"] == "1") {
+					combat.currentBattle->determineCurrentSkillEffectStack(*&combat, gameEngine.language);
+				}
+				return true;
+			}
 			if (type == "EXECUTESKILLINCOMBAT") {
 				Event("Text", "UPDATECOMBATMESSAGES", {}).run(*&gameEngine);
 
@@ -4378,6 +4382,7 @@ public:
 					}
 					return false;
 				}
+
 				string caster = combat.currentBattle->currentEventStackObject.getCurrentForAnimation().originalUser;
 				if (combat.currentBattle->currentEventStackObject.getCurrentForAnimation().combatantsAffected.empty()) {
 					combat.currentBattle->currentEventStackObject.animationTick();
@@ -4388,6 +4393,10 @@ public:
 					target = "BattleBackground";
 				}
 				string animationName = combat.currentBattle->currentEventStackObject.getCurrentForAnimation().sourceName;
+				if (animationName == "FAILEDSKILL") {
+					combat.currentBattle->currentEventStackObject.animationTick();
+					return true;
+				}
 				Map<string, string> sData = combat.currentBattle->currentEventStackObject.getCurrentForAnimation().sData;
 
 				Map<string, string> extras = {};
@@ -4454,6 +4463,7 @@ public:
 					Combat::Battle::EventStackObject::Result P = combat.currentBattle->currentEventStackObject.toPrint.at(x);
 					int yOffset = 2 * x;
 					pair<float, float> thisPosition = P.startingPosition;
+					thisPosition.second -= 10;
 					string currentUniqueID = P.uniqueID + "_" + to_string(x);
 					thisPosition.second += yOffset;
 					bool currentFinished = gameEngine.skillAnimationContainer.runDefaultTextAnimation(*&gameEngine, currentUniqueID, P.colour, P.message, thisPosition);
@@ -4629,7 +4639,7 @@ public:
 					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 						pair<string, string>("sources", imageLookup.getSequenceAsString(procedureName, "ACTION_1")),
 						pair<string, string>("x", to_string(targetLocation.first)),
-						pair<string, string>("y", to_string(targetLocation.second)),
+						pair<string, string>("y", to_string(targetLocation.second - 15)),
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
@@ -4911,7 +4921,7 @@ public:
 					started = true;
 				}
 
-				if (started and CLOCK.hasEnoughTimePassed("FailedSkillAnimation", 2500)) {
+				if (started and CLOCK.hasEnoughTimePassed("FailedSkillAnimation", 1500)) {
 					started = false;
 					return true;
 				}
