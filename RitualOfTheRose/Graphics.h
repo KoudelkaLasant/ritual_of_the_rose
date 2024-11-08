@@ -36,15 +36,15 @@ public:
         shadowColourTagLookupTable[wchar_t(9316)] = "INVISIBLE"; // ⑤
         colourTagLookupTable[wchar_t(9317)] = "DAMAGERED"; // ⑥
         shadowColourTagLookupTable[wchar_t(9317)] = "DAMAGERED"; // ⑥
-        colourTagLookupTable[wchar_t(9318)] = "HEALING_GREEN"; // ⑦
-        shadowColourTagLookupTable[wchar_t(9318)] = "HEALING_GREEN"; // ⑦
+        colourTagLookupTable[wchar_t(9318)] = "HEALINGGREEN"; // ⑦
+        shadowColourTagLookupTable[wchar_t(9318)] = "HEALINGGREEN"; // ⑦
         customFonts = { 
             pair<string, int>({"Centaur", IDF_CENTAUR}), 
             pair<string,int>({ "GoudyMedieval", IDF_GOUDYMEDIEVAL }),
             pair<string,int>({ "LightText", IDF_LIGHT }),
             pair<string,int>({ "Tower", IDF_TOWER }),
         };
-        customFontSizes = {5,10,12,13,14,15,16,17,18,19,20,25,30,35,37,40};
+        customFontSizes = {5,10,12,13,14,15,16,17,18,19,20,25,30,35,37,40,50};
         Colours["BLACK"] = { 0.0,0.0,0.0,1.0 };
         Colours["WHITE"] = { 1.0,1.0,1.0,1.0 };
         Colours["BLUE"] = { 0.0,0.0,1.0,1.0 };
@@ -52,7 +52,7 @@ public:
         Colours["RED"] = { 1.0,0.0,0.0,1.0 };
         Colours["DAMAGERED"] = convertIntColour({ 213,0,0,255 });
         Colours["INVISIBLE"] = { 0.0,0.0,0.0,0.0 };
-        Colours["HEALING_GREEN"] = convertIntColour({ 16,223,0,255 });
+        Colours["HEALINGGREEN"] = convertIntColour({ 16,223,0,255 });
         Colours["DARKBROWN"] = convertIntColour({100,35,0,255});
         Colours["SKILLTEXTBLUE"] = convertIntColour({ 0,246,255,255 });
         Colours["SKILLTEXTBLUEBACKDROP"] = convertIntColour({ 0,6,255,255 });
@@ -387,6 +387,18 @@ public:
             D2D1_RECT_F position = getPosition(graphics);
             bool insideX = position.left <= click.first and position.right >= click.first;
             bool insideY = position.top <= click.second and position.bottom >= click.second;
+            return insideX and insideY;
+        }
+        bool isTheCursorCloseToThis(Graphics& graphics, pair<float, float> click) {
+            if (getWhichTexture() == NULL) { return false; }
+            D2D1_SIZE_F size = getWhichTexture()->GetSize();
+            size.height *= 5;
+            size.width *= 2;
+            D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
+            pair<float, float> position = getAbsolutePosition(renderTargetSize);
+            D2D1_RECT_F rect = getRect(position, size);
+            bool insideX = rect.left <= click.first and rect.right >= click.first;
+            bool insideY = rect.top <= click.second and rect.bottom >= click.second;
             return insideX and insideY;
         }
         void resetSources(Graphics & graphics, List<int> _sources) {
@@ -770,7 +782,7 @@ public:
         
     }
     void loadCursors() {
-        Map<string, int> cursorsToLoad = list <pair<string, int>>({ {"DEFAULT", CURSOR_DEFAULT}, {"SELECTED", CURSOR_SELECTED} });
+        Map<string, int> cursorsToLoad = list <pair<string, int>>({ {"DEFAULT", CURSOR_DEFAULT}, {"SELECTED", CURSOR_SELECTED}, {"NONE", CURSOR_NONE}});
         for (auto const& [key, value] :cursorsToLoad.internalMap) {
             HICON defaultCursor = LoadIcon(hinstance, MAKEINTRESOURCE(value));
             ICONINFO iconinfo;
@@ -934,6 +946,7 @@ public:
         return accessImageViaUniqueID(uniqueID) != NULL;
     }
     void changeCursor(string name) {
+        if (CurrentCursor == name) { return; }
         CurrentCursor = name;
         HCURSOR hCursor = Cursors[CurrentCursor];
         SetCursor(hCursor);

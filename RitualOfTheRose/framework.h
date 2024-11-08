@@ -43,7 +43,8 @@ using namespace std;
 #include "json.hpp"
 using json = nlohmann::json;
 #include <fstream>
-
+#include <wrl/client.h>
+using Microsoft::WRL::ComPtr;
 
 
 #ifndef HINST_THISCOMPONENT

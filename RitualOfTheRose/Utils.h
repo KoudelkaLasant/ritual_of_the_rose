@@ -735,6 +735,7 @@ public:
 		stats = data["stats"];
 		money = data["money"];
 		enemiesDefeated = data["enemies defeated"];
+		codexPages = data["codex pages"];
 		loaded = true;
 		}
 		void saveToDisk(filesystem::path filepath) {
@@ -752,6 +753,7 @@ public:
 			data["equipped skilltrees"] = equippedSkillTrees;
 			data["all characters"] = allCharacters;
 			data["enemies defeated"] = enemiesDefeated;
+			data["codex pages"] = codexPages;
 			ofstream file(filepath);
 			file << data;
 		}
@@ -769,6 +771,7 @@ public:
 			stats = RHS.stats;
 			money = RHS.money;
 			enemiesDefeated = RHS.enemiesDefeated;
+			codexPages = RHS.codexPages;
 			loaded = true;
 			return *this;
 		}
@@ -779,6 +782,7 @@ public:
 		map<string, map<string, string>> equippedSkills;
 		map<string, map<string, string>> equippedSkillTrees;
 		map<string, list<string>> knownSkills;
+		map<string, list<string>> codexPages;
 		map<string, int> inventory;
 		map<string, int> itemsSold;
 		list<string> allCharacters;
@@ -972,6 +976,34 @@ public:
 };
 SaveContainer saveContainer;
 
+class Codex {
+public:
+	Codex() {
+		nameSources["people"] = "NPCNames";
+		contentSources["people"] = "NPCDescriptions";
+	}
+
+	void unlockEveryCodexPage() {
+		Map<string, list<string>> result;
+		for (auto person : saveContainer.current.allCharacters) {
+			result["people"].push_back(person);
+		}
+		saveContainer.current.codexPages = result.internalMap;
+	}
+	Map<string, List<string>> getUnlockedCodex() {
+		Map<string, List<string>> result;
+		for (auto [key, value] : saveContainer.current.codexPages) {
+			for (auto listValue : value) {
+				result[key].push_back(listValue);
+			}
+		}
+		return result;
+	}
+	Map<string, string> nameSources;
+	Map<string, string> contentSources;
+};
+Codex codex;
+
 class ImageLookup {
 public:
 	ImageLookup() {
@@ -979,6 +1011,7 @@ public:
 		defineCharacters();
 		defineSkills();
 		defineCombatPlayerImages();
+		defineCodexImages();
 
 		animationFrames["EMPTY"]["SPEAKER"].internalList = { EMPTYOBJECT };
 		animationFrames["LampLight1"]["STAND_FRONT"].internalList = { 
@@ -1379,7 +1412,7 @@ public:
 
 		animationFrames["PlasmaPulse5"]["ACTION_1"] = { PLASMAPULSE5_1,PLASMAPULSE5_2,PLASMAPULSE5_3,PLASMAPULSE5_4,PLASMAPULSE5_5,PLASMAPULSE5_6,PLASMAPULSE5_7,PLASMAPULSE5_8,PLASMAPULSE5_9,PLASMAPULSE5_10 };
 
-		animationFrames["Heavenstrike2"]["ACTION_1"] = { HEAVENSTRKE2_01,HEAVENSTRKE2_02,HEAVENSTRKE2_03,HEAVENSTRKE2_04,HEAVENSTRKE2_05,HEAVENSTRKE2_06,HEAVENSTRKE2_07,HEAVENSTRKE2_08,HEAVENSTRKE2_09,HEAVENSTRKE2_10, };
+		animationFrames["Heavenstrike2"]["ACTION_1"] = { HEAVENSTRKE2_00, HEAVENSTRKE2_01,HEAVENSTRKE2_02,HEAVENSTRKE2_03,HEAVENSTRKE2_04,HEAVENSTRKE2_05,HEAVENSTRKE2_06,HEAVENSTRKE2_07,HEAVENSTRKE2_08,HEAVENSTRKE2_09,HEAVENSTRKE2_10, };
 
 		animationFrames["Life Drain"]["ACTION_1"].internalList = { LIFEDRAINBUBBLE };
 
@@ -1407,6 +1440,9 @@ public:
 
 		animationFrames["BURNING"]["ACTION_1"].internalList = { BURNING_1,BURNING_2,BURNING_3,BURNING_4,BURNING_5,BURNING_6,BURNING_7,BURNING_8,BURNING_9,BURNING_10,BURNING_11,BURNING_12,BURNING_13,BURNING_14,BURNING_15,BURNING_16,BURNING_17,BURNING_18,BURNING_19,BURNING_20,BURNING_21,BURNING_22,BURNING_23,BURNING_24,BURNING_25,BURNING_26,BURNING_27,BURNING_28,BURNING_29,BURNING_30,BURNING_31,BURNING_32,BURNING_33,BURNING_34,BURNING_35,BURNING_36,BURNING_37,BURNING_38,BURNING_39,BURNING_40,BURNING_41,BURNING_42,BURNING_43,BURNING_44,BURNING_45,BURNING_46,BURNING_47,BURNING_48,BURNING_49,BURNING_50,BURNING_51,BURNING_52,BURNING_53,BURNING_54,BURNING_55,BURNING_56,BURNING_57,BURNING_58,BURNING_59,BURNING_60,BURNING_61,BURNING_62,BURNING_63,BURNING_64,BURNING_65,BURNING_66,BURNING_67,BURNING_68, };
 
+		animationFrames["Parchment"]["STAND_FRONT"].internalList = { PARCHMENT_PAGE };
+
+		animationFrames["ParchmentFold"]["STAND_FRONT"].internalList = { PARCHMENTFOLD_1,PARCHMENTFOLD_2,PARCHMENTFOLD_3,PARCHMENTFOLD_4,PARCHMENTFOLD_5,PARCHMENTFOLD_6,PARCHMENTFOLD_7,PARCHMENTFOLD_8,PARCHMENTFOLD_9,PARCHMENTFOLD_10,PARCHMENTFOLD_11,PARCHMENTFOLD_12,PARCHMENTFOLD_13,PARCHMENTFOLD_14,PARCHMENTFOLD_15,PARCHMENTFOLD_16,PARCHMENTFOLD_17,PARCHMENTFOLD_18,PARCHMENTFOLD_19,PARCHMENTFOLD_20,PARCHMENTFOLD_21,PARCHMENTFOLD_22,PARCHMENTFOLD_23,PARCHMENTFOLD_24,PARCHMENTFOLD_25,PARCHMENTFOLD_26, };
 	}
 	void defineCombatPlayerImages() {
 		animationFrames["Angela Fleuret"]["COMBAT_BACK"].internalList = { COMBAT_ANGELA_BACK_1 };
@@ -1431,6 +1467,13 @@ public:
 		animationFrames["Tianshun Song"]["COMBAT_FRONT"].internalList = { COMBAT_TIANSHUN_FRONT_1 };
 		animationFrames["Skeleton Warrior"]["COMBAT_BACK"].internalList = { ANIMATESKELETONWARRIORBACK_34 };
 		animationFrames["Skeleton Warrior"]["COMBAT_FRONT"].internalList = { ANIMATESKELETONWARRIORFRONT_34 };
+	}
+	void defineCodexImages() {
+		animationFrames["Codex"]["Angela Fleuret"].internalList = { CODEXPAGE_ANGELAFLEURET };
+		animationFrames["Codex"]["Olyver Sumner"].internalList = { CODEXPAGE_OLYVERSUMNER };
+		animationFrames["Codex"]["Tianshun Song"].internalList = { CODEXPAGE_TIANSHUNSONG };
+		animationFrames["Codex"]["Hernando Pizarro"].internalList = { CODEXPAGE_HERNANDOPIZARRO };
+		animationFrames["Codex"]["Gihat al-Din Jaqmaq"].internalList = { CODEXPAGE_GIHATALDINJAQMAQ };
 	}
 
 	string getSequenceAsString(string character, string action) {
@@ -1849,7 +1892,7 @@ mapFloor::triangle({{49.4265079498291,4.762154072523117}, {-19.623970985412598,2
 	};
 	void defineAllMaps() {
 		maps["RoadToBénouville"] = mapInstance("RoadToBénouville", MAP_DEBUG, { 45,8 /*51,55*/ }, List<mapObject>({
-		mapObject::getOnetimeTrigger("HorsemanCutsceneDEBUG"/*"HorsemanCutscene1"*/,List<mapFloor::triangle>({mapFloor::triangle({{47.42600917816162,9.98448133468628}, {48.882490396499634,6.590679287910461}, {48.918330669403076,10.155074298381805}}),mapFloor::triangle({{48.918330669403076,10.155074298381805}, {50.9097695350647,6.964127719402313}, {50.94560980796814,10.528524219989777}}),mapFloor::triangle({{48.882490396499634,6.590679287910461}, {49.91276562213898,5.539841949939728}, {50.9097695350647,6.964127719402313}}),
+		mapObject::getOnetimeTrigger("HorsemanCutscene1",List<mapFloor::triangle>({mapFloor::triangle({{47.42600917816162,9.98448133468628}, {48.882490396499634,6.590679287910461}, {48.918330669403076,10.155074298381805}}),mapFloor::triangle({{48.918330669403076,10.155074298381805}, {50.9097695350647,6.964127719402313}, {50.94560980796814,10.528524219989777}}),mapFloor::triangle({{48.882490396499634,6.590679287910461}, {49.91276562213898,5.539841949939728}, {50.9097695350647,6.964127719402313}}),
 mapFloor::triangle({{48.94671440124512,12.747283279895782}, {48.918330669403076,10.155074298381805}, {50.50344467163086,12.811049818992615}}),mapFloor::triangle({{50.46741962432861,15.510085225105286}, {50.50344467163086,12.811049818992615}, {52.088552713394165,15.467023849487305}}),mapFloor::triangle({{52.088552713394165,15.467023849487305}, {54.11888360977173,12.615998089313507}, {55.40493726730347,14.890195429325104}}),
 mapFloor::triangle({{50.94560980796814,10.528524219989777}, {50.50344467163086,12.811049818992615}, {48.918330669403076,10.155074298381805}}),mapFloor::triangle({{47.42600917816162,9.98448133468628}, {47.411930561065674,6.761273741722107}, {48.882490396499634,6.590679287910461}}),mapFloor::triangle({{48.918330669403076,10.155074298381805}, {48.882490396499634,6.590679287910461}, {50.9097695350647,6.964127719402313}}),
 mapFloor::triangle({{48.882490396499634,6.590679287910461}, {48.882490396499634,5.7226985692977905}, {49.91276562213898,5.539841949939728}}),mapFloor::triangle({{48.94671440124512,12.747283279895782}, {47.42600917816162,9.98448133468628}, {48.918330669403076,10.155074298381805}}),mapFloor::triangle({{50.46741962432861,15.510085225105286}, {48.94671440124512,12.747283279895782}, {50.50344467163086,12.811049818992615}}),
