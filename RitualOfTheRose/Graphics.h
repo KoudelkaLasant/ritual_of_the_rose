@@ -38,11 +38,12 @@ public:
         shadowColourTagLookupTable[wchar_t(9317)] = "DAMAGERED"; // ⑥
         colourTagLookupTable[wchar_t(9318)] = "HEALINGGREEN"; // ⑦
         shadowColourTagLookupTable[wchar_t(9318)] = "HEALINGGREEN"; // ⑦
+        colourTagLookupTable[wchar_t(9319)] = "HEALINGBLUE"; // ⑧
+        shadowColourTagLookupTable[wchar_t(9319)] = "HEALINGBLUE"; // ⑧
         customFonts = { 
             pair<string, int>({"Centaur", IDF_CENTAUR}), 
             pair<string,int>({ "GoudyMedieval", IDF_GOUDYMEDIEVAL }),
             pair<string,int>({ "LightText", IDF_LIGHT }),
-            pair<string,int>({ "Tower", IDF_TOWER }),
         };
         customFontSizes = {5,10,12,13,14,15,16,17,18,19,20,25,30,35,37,40,50};
         Colours["BLACK"] = { 0.0,0.0,0.0,1.0 };
@@ -53,6 +54,7 @@ public:
         Colours["DAMAGERED"] = convertIntColour({ 213,0,0,255 });
         Colours["INVISIBLE"] = { 0.0,0.0,0.0,0.0 };
         Colours["HEALINGGREEN"] = convertIntColour({ 16,223,0,255 });
+        Colours["HEALINGBLUE"] = convertIntColour({ 71,205,255,255 });
         Colours["DARKBROWN"] = convertIntColour({100,35,0,255});
         Colours["SKILLTEXTBLUE"] = convertIntColour({ 0,246,255,255 });
         Colours["SKILLTEXTBLUEBACKDROP"] = convertIntColour({ 0,6,255,255 });
@@ -683,6 +685,9 @@ public:
                 if (SUCCEEDED(hr)) {
                     WriteTextFormats.add({ font.first + "_" + to_string(size), textFormat});
                     }
+                else {
+                    throw exception("Failed to load this font.");
+                }
                 }
             }
         

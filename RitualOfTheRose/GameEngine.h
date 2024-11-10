@@ -1041,7 +1041,12 @@ public:
 				if (force or (moving and CLOCK.hasEnoughTimePassed("EXPLORE",exploreAnimationSpeeds["MOVE"]))) {
 					explorer.tryToMovePlayer(newDirection);
 					if (data["audio"] != "0") {
-						explorer.playWalkingAudio();
+						if (data["noaudioyet"] == "1") {
+							data["noaudioyet"] = "0";
+						}
+						else {
+							explorer.playWalkingAudio();
+						}
 					}
 					Event("Map Move", "MAPMOVE", {}).run(*&gameEngine);
 					image->opacity = 1.0;
@@ -1860,7 +1865,9 @@ public:
 			}
 			if (type == "HANDLEMENU") {
 				//Event("Debug", "DEBUGUSERINPUT", {}).run(*&gameEngine);
-				graphics.changeCursor("DEFAULT");
+				if (graphics.CurrentCursor == "NONE") {
+					graphics.changeCursor("DEFAULT");
+				}
 				string whichMenu = data["uniqueID"];
 				List<Menu::Button> clickables = gameEngine.storedMenus[whichMenu].getButtonsToLoad();
 
@@ -3136,7 +3143,7 @@ public:
 				}	
 				if (isMouseHoveredOverAnySkill and namingStyle == "COMBAT") {
 					string textColour = "WHITE";
-					Combat::EffectObjectInstance* toDraw = combat.currentBattle->allEffectsInPlay[who][whichSkill];
+					Combat::EffectObjectInstance* toDraw = combat.currentBattle->getThisEffect(who, whichSkill);
 					if (!graphics.doesThisImageAlreadyExist(skillExplainID)) {
 						Event("DrawText", "DRAWTEXT", Map<string, string>({
 						pair<string, string>("message",""),
@@ -4235,7 +4242,7 @@ public:
 				Event("Teardown", "TEARDOWNPLAYERDESCRIPTIONCOMBAT", Map<string, string>(List<pair<string, string>>({
 						pair<string, string>("actor", combat.currentBattle->currentRound.whoseTurnIsIt()),
 					}))).run(*&gameEngine);
-				string combatStatus = combat.currentBattle->tick();
+				string combatStatus = combat.currentBattle->tick(*&combat);
 				// add something to make battle finish if won or lost
 				if (combatStatus == "PLAYERWIN") {
 					combat.currentBattle->addCombatMessage("VICTORY", List<pair<string, string>>({
@@ -4369,6 +4376,14 @@ public:
 				Event("Text", "UPDATECOMBATMESSAGES", {}).run(*&gameEngine);
 
 				if (combat.currentBattle->currentEventStackObject.isAnimationFinished()) {
+					if (combat.currentBattle->currentEventStackObject.ongoingReport.empty()) {
+						return true;
+					}
+					for (auto report : combat.currentBattle->currentEventStackObject.ongoingReport.internalList) {
+						if (report.sData["success"] != "1") { 
+							graphics.tearDownSpecifiedText("combatText");
+							return true; }
+					}
 					int howFar = graphics.accessTextViaUniqueID("combatText")->howFarAlong();
 					if (howFar < 100) {
 						CLOCK.startClock("Combat Wait");
@@ -4377,7 +4392,8 @@ public:
 					if (!combat.currentBattle->currentEventStackObject.toPrint.empty()) {
 						return true;
 					}
-					if (CLOCK.hasEnoughTimePassed("Combat Wait", 800)) {
+					if (CLOCK.hasEnoughTimePassed("Combat Wait", 500)) {
+						data["mostRecentMessage"] = WStringToString(graphics.accessTextViaUniqueID("combatText")->fullMessage);
 						return true;
 					}
 					return false;
@@ -4393,10 +4409,6 @@ public:
 					target = "BattleBackground";
 				}
 				string animationName = combat.currentBattle->currentEventStackObject.getCurrentForAnimation().sourceName;
-				if (animationName == "FAILEDSKILL") {
-					combat.currentBattle->currentEventStackObject.animationTick();
-					return true;
-				}
 				Map<string, string> sData = combat.currentBattle->currentEventStackObject.getCurrentForAnimation().sData;
 
 				Map<string, string> extras = {};
@@ -4627,11 +4639,33 @@ public:
 			Map<string, bool> finished; // each bubble
 			int casterLayer = graphics.whichLayerIsThisImageOn(caster);
 			int targetLayer = graphics.whichLayerIsThisImageOn(target);
+			bool willResurrect = false; // requires fading a combatant back in
+			if (combat.skillDefinitions.hasKey(procedureName) and combat.skillDefinitions[procedureName].purposes.contains("RESURRECT")) {
+				willResurrect = true;
+			}
 
-			List<string> defaultAnimateOnTarget = list<string>({"Strength of Reason", "Laying of Hands", "Heal Wounds", "Serrated Strike", "Shadow Spike", "Brilliant Spark", "BURNING",});
+
+			List<string> defaultAnimateOnTarget = list<string>({"Revitalise","Strength of Reason", "Laying of Hands", "Heal Wounds", "Serrated Strike", "Shadow Spike", "Brilliant Spark", "BURNING", "BLEEDING"});
+
 
 			if (procedureName == "BURNING") {
 				extras["audioSource"] = "6414";
+			}
+			if (procedureName == "BLEEDING") {
+				extras["audioSource"] = "6193";
+			}
+			if (procedureName == "Heal Wounds") {
+				// skills that are not called Heal Wounds may kick off a Heal Wounds animation
+				extras["audioSource"] = "6120";
+			}
+
+			if (willResurrect and !started) {
+				CLOCK.startClock("RESURRECTWAIT");
+			}
+			if (CLOCK.hasEnoughTimePassed("RESURRECTWAIT", 200), willResurrect and started and !target->animationStyles.contains("FADEIN")) {
+				target->animationStyles.internalList = {"SINGLE","FADEIN"};
+				target->animated = true;
+				target->frame = 0;
 			}
 
 			if (defaultAnimateOnTarget.contains(procedureName)) {
@@ -4661,6 +4695,11 @@ public:
 					if (theImage->hasThisFinishedAnimating()) {
 						graphics.tearDownSpecifiedImage("Default Skill Animation");
 						started = false;
+						if (target->animationStyles.contains("FADEIN")) {
+							target->animationStyles.internalList = {};
+							target->animated = false;
+							target->frame = 0;
+						}
 						return true;
 					}
 				}
@@ -5104,6 +5143,40 @@ public:
 
 				
 			}
+			if (procedureName == "Atrophy") {
+				if (!started) {
+					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", imageLookup.getSequenceAsString("Atrophy", "ACTION_1")),
+						pair<string, string>("x", to_string(targetLocation.first)),
+						pair<string, string>("y", to_string(targetLocation.second)),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", "1.0"),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
+						pair<string, string>("scale", "1.0"),
+						pair<string, string>("animated", "1"),
+						pair<string, string>("styles", "SINGLE"),
+						pair<string, string>("animation_speed", "50"),
+						pair<string, string>("uniqueID", "Default Skill Animation"), }))).run(*&gameEngine);
+					GameEngine::Event("PlayAudio", "PLAYSFX", Map<string, string>({
+								pair<string, string>("audio","6500"),
+								pair<string, string>("direct","1"),
+								pair<string, string>("delay","0"),
+						})).run(*&gameEngine);
+					started = true;
+					return false;
+				}
+				Graphics::Image* theImage = graphics.accessImageViaUniqueID("Default Skill Animation");
+				if (theImage != NULL and theImage->hasThisFinishedAnimating()) {
+					graphics.tearDownSpecifiedImage("Default Skill Animation");
+					return false;
+				}
+				if (theImage == NULL) {
+					started = false;
+					return true;
+				}
+				return false;
+			}
+
 			return false;
 		}
 		bool runDefaultTextAnimation(GameEngine & gameEngine, string textName, string colour, string message, pair<float, float> start) {
@@ -5457,7 +5530,8 @@ public:
 		if (walkableData["don'tAddExploreAtTheEnd"] != "1") {
 			events.push_back(Event("Explore", "EXPLORE", Map<string, string>(List<pair<string, string>>({
 				pair<string, string>("force","1"),
-				pair<string, string>("audio","0"), }))));
+				pair<string, string>("noaudioyet","1"),
+				pair<string, string>("audio","1"), }))));
 		}
 		return Procedure("AreaTransition", events);
 	}
@@ -5796,6 +5870,10 @@ public:
 			Event("ShowFPS", "SHOWFPS", {}).run(*this);
 		}
 		activeProcedure.run(*this);
+	}
+	void changeLanguage(string lang) {
+		language = lang;
+		combat.language = lang;
 	}
 
 	Procedure activeProcedure;

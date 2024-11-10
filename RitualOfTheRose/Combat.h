@@ -805,6 +805,18 @@ public:
 				}
 				slot++;
 			}
+			// if this combatant is in a battle and suffering from WEAKNESS, reduce all atts before calculating power
+			if (combat.currentBattle != NULL) {
+				for (EffectObjectInstance* effect : combat.currentBattle->getAllEffectsOnXInTimeOrderOldestFirst(uniqueCombatID).internalList) {
+					if (effect->e.logicName == "WEAKNESS") {
+						for (auto v : percentInfluences.getKeys().internalList) {
+							if (v.find("_ATT") != -1) {
+								percentInfluences[v] = TChange(percentInfluences[v], -2, 0, 9999);
+							}
+						}
+					}
+				}
+			}
 			return P.getResultantValue(*&combat, percentInfluences, flatInfluences);
 		}
 		int getAttValue(string att, Combat& combat, bool includeOtherInfluences) {
@@ -950,7 +962,7 @@ public:
 					if (actor->c.currentlyCasting) {
 						result.addToBackIfNotAlreadyInList("INTERRUPTFOE");
 					}
-					for (EffectObjectInstance* effect : combat.currentBattle->allEffectsInPlay[actor->c.uniqueCombatID].getValues().internalList) {
+					for (EffectObjectInstance* effect : combat.currentBattle->getAllEffectsOnXInTimeOrderOldestFirst(actor->c.uniqueCombatID).internalList) {
 						if (effect->e.uniqueID == "UNDEAD") {
 							result.addToBackIfNotAlreadyInList("DEALDAMAGE_HOLY");
 							result.addToBackIfNotAlreadyInList("KILLUNDEAD");
@@ -977,7 +989,10 @@ public:
 					if (actor->c.isDead()) {
 						result.addToBackIfNotAlreadyInList("RESURRECT");
 					}
-					List<string> effectsOnThisActor = combat.currentBattle->allEffectsInPlay[actor->c.uniqueCombatID].getKeys();
+					List<string> effectsOnThisActor;
+					for (EffectObjectInstance* effect : combat.currentBattle->getAllEffectsOnXInTimeOrderOldestFirst(actor->c.uniqueCombatID).internalList) {
+						effectsOnThisActor.push_back(effect->e.uniqueID);
+					}
 					for (auto s : buffsICouldUseOnAllies.internalList) {
 						if (!effectsOnThisActor.contains(s)) {
 							ICouldBuff = true;
@@ -1146,6 +1161,15 @@ public:
 			}
 			return results;
 		}
+		List<CombatantInstance*> getMyDeadPartyMembers(Combat& combat) {
+			List<CombatantInstance*> result;
+			for (CombatantInstance* actor : getMyTeam(*&combat).internalList) {
+				if (actor->c.isDead()) {
+					result.push_back(actor);
+				}
+			}
+			return result;
+		}
 		List<string> getAllPossiblePositionsICouldPutASummon(Combat& combat) {
 			Map<string, Map<string, pair<float, float>>> lookup = combat.getCombatantPositionLookup();
 			List<string> alreadyOccupied;
@@ -1192,6 +1216,7 @@ public:
 				return;
 			}
 			target = validTargets.at(0);
+			c.currentTarget = target->c.uniqueCombatID;
 		}
 
 		List<CombatEvent> startSkillExecution(Combat& combat, string language) {
@@ -1245,16 +1270,60 @@ public:
 			skillSData["success"] = "1";
 			// decide if skill attempt should succeed at all
 			List<EffectObjectInstance*> allEffects = combat.currentBattle->getAllEffectsInTimeOrderOldestFirst();
+			List<CombatantInstance*> allOpponents = getMyFoesThatAreAlive(*&combat);
+
+			// go through all effects
+			List<pair<string,string>> effectsThatNeedToBeRemoved;
 			for (EffectObjectInstance* effect : allEffects.internalList) {
+				// effect is on any opponent
+				for (CombatantInstance* actor : allOpponents.internalList) {
+					if (effect->e.target == actor->c.uniqueCombatID) {
+						if (effect->e.triggers.contains("ANYALLYATTACKEDPHYSICAL") and !magical) {
+							if (effect->e.logicName == "Gentleman's Riposte") { // this will fail if the user doesn't have DEFAULT_ATTACK as their 0th skill!
+								skillSData["success"] = "0";
+								skillSData["failReason"] = "ATTACKBLOCKED";
+								string foeUsingRiposte = actor->c.uniqueCombatID;
+								Map<string, int> riposteVData;
+								Map<string, string> riposteSData;
+								for (auto [key, value] : actor->c.combatSkills[0].powerValues.internalMap) {
+									riposteVData[key] = actor->c.getPowerOfThis(value, true, *&combat);
+								}
+								riposteSData["success"] = "1";
+								results.push_back(CombatEvent("DAMAGE_SINGLE_PHYSICAL", "SKILL", "DEFAULT_ATTACK", foeUsingRiposte, {c.uniqueCombatID}, riposteSData, riposteVData));
+								effectsThatNeedToBeRemoved.push_back(pair<string, string>(foeUsingRiposte, effect->e.uniqueID));
+							}
+						}
+					}
+				}
+				// effect is on the user
 				if (effect->e.target == c.uniqueCombatID) {
+					if (effect->e.logicName == "BLEEDING" and c.getSkillBeingCast().skillTypeTags.contains("MAGICAL")) {
+						Map<string, string> bleedingSData;
+						Map<string, int> bleedingVData;
+						bleedingSData["success"] = "1";
+						bleedingVData["DAMAGE_SINGLE_PHYSICAL"] = 40;
+						string user = effect->e.owner;
+						string victim = c.uniqueCombatID;
+						results.push_back(CombatEvent("DAMAGE_SINGLE_PHYSICAL", "SKILL", "BLEEDING", user, { victim }, bleedingSData, bleedingVData));
+					}
 					if (effect->e.logicName == "CONCUSSED" and c.getSkillBeingCast().skillTypeTags.contains("MAGICAL")) {
 						int diceRoll = RANDOM.getRandom(1, 100);
-						if (diceRoll < 999) {
+						if (diceRoll < 75) {
 							skillSData["success"] = "0";
 							skillSData["failReason"] = "CONCUSSED";
 						}
 					}
+					if (effect->e.logicName == "BLIND" and c.getSkillBeingCast().skillTypeTags.contains("PHYSICAL")) {
+						int diceRoll = RANDOM.getRandom(1, 100);
+						if (diceRoll < 75) {
+							skillSData["success"] = "0";
+							skillSData["failReason"] = "BLIND";
+						}
+					}
 				}
+			}
+			for (auto eff : effectsThatNeedToBeRemoved.internalList) {
+				combat.currentBattle->removeAnEffect(eff.first, eff.second);
 			}
 
 			
@@ -1396,6 +1465,22 @@ public:
 					}
 					List<string> reportKeys = report.vData.getKeys();
 
+					if (report.logic.find("INTERRUPT_SINGLE") != -1) {
+						// put here anything that can prevent interruption
+						for (CombatantInstance* actor : targets.internalList) {
+							if (actor->c.currentlyCasting) {
+								Map<string, string> interruptedData;
+								interruptedData["language"] = combat.language;
+								interruptedData["name"] = actor->c.uniqueID;
+								interruptedData["interrupter"] = user->c.uniqueID;
+								interruptedData["interruption"] = report.sourceName;
+								interruptedData["skill"] = actor->c.combatSkills[actor->c.indexOfSkillCurrentlyBeingCast].uniqueID;
+								actor->c.finishCasting(*&combat);
+								combat.currentBattle->addCombatMessage("INTERRUPTED", interruptedData, 0);
+							}
+						}
+					}
+
 					if (report.logic.find("LIFEHEAL_SINGLE") != -1) {
 						for (auto v : reportKeys.internalList) {
 							for (EffectObjectInstance* effect : allEffects.internalList) {
@@ -1467,7 +1552,9 @@ public:
 
 					}
 				
-					
+					if (report.logic.find("RESURRECT_SINGLE") != -1) {
+						// any effects which impact resurrection (such as res prevention)
+					}
 				}
 
 				// predict if targets will die during resolution
@@ -1504,11 +1591,11 @@ public:
 					if (report.sData.hasKey("THISPERSONDIED")) {
 						List<string> whoDied = split(report.sData["THISPERSONDIED"], "$");
 						if (report.vData.hasKey("HEAVENSTRIKE")) {
-							ongoingReport.push_back(CombatEvent("DELAYTHISSKILLRECHARGE", "SKILL", "HEAL WOUNDS", report.originalUser, {}, {}, List<pair<string, int>>(
+							ongoingReport.push_back(CombatEvent("DELAYTHISSKILLRECHARGE", "SKILL", "Heal Wounds", report.originalUser, {}, {}, List<pair<string, int>>(
 								pair<string, int>("DELAYTHISSKILLRECHARGE", report.vData["SKILLRECHARGEDELAY"]))));
 							List<CombatantInstance*> targets = combat.currentBattle->getThisCombatant(report.originalUser)->getMyTeam(*&combat);
 							for (CombatantInstance* target : targets.internalList) {
-								ongoingReport.push_back(CombatEvent("LIFEHEAL_SINGLE_HOLY", "HEAL WOUNDS", "HEAL WOUNDS", report.originalUser, List<string>(target->c.uniqueCombatID), List<pair<string,string>>(
+								ongoingReport.push_back(CombatEvent("LIFEHEAL_SINGLE_HOLY", "Heal Wounds", "Heal Wounds", report.originalUser, List<string>(target->c.uniqueCombatID), List<pair<string,string>>(
 									pair<string, string>("success", "1")), List<pair<string, int>>(
 									pair<string, int>("LIFEHEAL_SINGLE_HOLY", report.vData["HEAVENSTRIKE"]))));
 							}
@@ -1641,7 +1728,34 @@ public:
 								}
 							}
 						}
-					}
+						if (report.logic.find("RESURRECT_") != -1) {
+							int resPower = 1;
+							string type = split(report.logic, "_").at(2);
+							for (auto v : report.vData.getKeys().internalList) {
+								if (v.find("RESURRECT_SINGLE_") != -1) {
+									resPower = report.vData[v];
+									break;
+								}
+							}
+							float asPercentage = 100 / resPower;
+							for (auto currentTarget : report.combatantsAffected.internalList) {
+								int lifeGain = (combat.currentBattle->getThisCombatant(currentTarget)->c.combatStats["LIFE"]/100) * asPercentage;
+								int manaGain = (combat.currentBattle->getThisCombatant(currentTarget)->c.combatStats["ENERGY"]/100) * asPercentage;
+								combat.currentBattle->getThisCombatant(currentTarget)->c.beHealed(lifeGain);
+								combat.currentBattle->getThisCombatant(currentTarget)->c.combatStats["CURRENTENERGY"] = 0;
+								combat.currentBattle->getThisCombatant(currentTarget)->c.gainEnergy(manaGain);
+								combat.currentBattle->addCombatMessage("RESURRECT", List<pair<string, string>>({
+										pair<string, string>("name",combat.currentBattle->getThisCombatant(user)->c.uniqueID),
+										pair<string, string>("language",language),
+										pair<string, string>("type",type),
+										pair<string, string>("damage",to_string(resPower)),
+										pair<string, string>("target",combat.currentBattle->all[currentTarget]->c.uniqueID),
+									}), 0);
+								toPrint.push_back(Result(currentTarget, to_string(resPower), "HEALINGGREEN", graphics.accessImageViaUniqueID(currentTarget)->positionAsPercentage));
+								toPrint.push_back(Result(currentTarget, to_string(resPower), "HEALINGBLUE", graphics.accessImageViaUniqueID(currentTarget)->positionAsPercentage));
+							}
+						}
+}
 					if (report.sData["success"] != "1") {
 						Map<string, string> failData;
 						failData["name"] = combat.currentBattle->getThisCombatant(user)->c.uniqueID;
@@ -1668,13 +1782,13 @@ public:
 				}
 				string previousAnimation = ongoingReport.at(counter - 1).getTemporaryID();
 				string currentAnimation = getCurrentForAnimation().getTemporaryID();
-				while (previousAnimation == currentAnimation and counter <= ongoingReport.size()) {
+				while (previousAnimation == currentAnimation and counter < ongoingReport.size()) {
 					animationTick();
 				}
 
 			}
 			bool isAnimationFinished() {
-				return counter >= ongoingReport.size();
+				return counter == ongoingReport.size();
 			}
 
 
@@ -1813,7 +1927,7 @@ public:
 			result.internalList.reverse();
 			return result;
 		}
-		string tick() {
+		string tick(Combat & combat) {
 			currentEventStackObject = EventStackObject();
 			int whichRound = currentRound.roundNumber;
 			int currentAct = currentRound.tick();
@@ -1821,12 +1935,18 @@ public:
 				currentRound = Round(whichRound + 1, decideTurnOrder());
 			}
 			string who = currentRound.whoseTurnIsIt();
+			tickDownTheirEffects(who);
 			if (all.getKeys().contains(who)) {
 				all[who]->c.tickDownIfCasting();
 				all[who]->c.tickDownRechargingSkills();
 				all[who]->c.passiveManaRegen();
 			}
 			return battleStatusCheck();
+		}
+		void tickDownTheirEffects(string who) {
+			for (EffectObjectInstance* effect : getAllEffectsOnXInTimeOrderOldestFirst(who).internalList) {
+				effect->e.tick();
+			}
 		}
 		string battleStatusCheck() {
 			bool battleWon = isBattleWon();
@@ -1974,6 +2094,19 @@ public:
 				message = WSReplace(message, L"$SKILL$", strings[language]["Skill Names"][combatMessageData["skill"]]);
 				message = WSReplace(message, L"$REASON$", strings[language]["Combat Messages"]["DUETO" + combatMessageData["failReason"]]);
 			}
+			if (type == "INTERRUPTED") {
+				message = strings[language]["Combat Messages"]["INTERRUPTED"];
+				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][combatMessageData["name"]]);
+				message = WSReplace(message, L"$SKILL$", strings[language]["Skill Names"][combatMessageData["skill"]]);
+				message = WSReplace(message, L"$INTERRUPTER$", strings[language]["NPCNames"][combatMessageData["interrupter"]]);
+				message = WSReplace(message, L"$INTERRUPTION$", strings[language]["Skill Names"][combatMessageData["interruption"]]);
+			}
+			if (type == "RESURRECT") {
+				message = strings[language]["Combat Messages"]["RESURRECT"];
+				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][combatMessageData["name"]]);
+				message = WSReplace(message, L"$X$", StringToWString(combatMessageData["damage"]));
+				message = WSReplace(message, L"$2$", strings[language]["NPCNames"][combatMessageData["target"]]);
+			}
 			combatMessages.push_front({ verbosity, message });
 		}
 		void announceCombatantTurn(string language) {
@@ -2035,6 +2168,9 @@ public:
 			}
 			if (targetLogic == "SINGLEOTHERALLY") {
 				results = combatant->getAllMyOtherAlliesNotMe(*&combat);
+			}
+			if (targetLogic == "DEADPARTYMEMBER") {
+				results = combatant->getMyDeadPartyMembers(*&combat);
 			}
 			if (List<string>({ "SELF", "ALL", "ALLALLIES", "ALLFOES" }).contains(targetLogic)) {
 				results.push_back(combatant); // use on "self" but the effect hits the right place
@@ -2124,7 +2260,13 @@ public:
 			if (actor != NULL) {
 				skill = actor->c.getSkillBeingCast();
 				CombatantInstance* target = all[actor->c.currentTarget];
-				currentEventStackObject = EventStackObject(actor->startSkillExecution(*&combat, language));
+				actor->changeTargetOrCancelCastingIfCurrentTargetIsNowInapplicable(*&combat, language);
+				if (actor->c.currentlyCasting) {
+					currentEventStackObject = EventStackObject(actor->startSkillExecution(*&combat, language));
+				}
+				else {
+					currentEventStackObject = EventStackObject();
+				}
 			}
 			else {
 				currentEventStackObject = EventStackObject();
@@ -2167,6 +2309,15 @@ public:
 				allEffectsInPlay[who].internalMap.erase(name);
 			}
 		}
+		EffectObjectInstance* getThisEffect(string who, string name) {
+			if (!allEffectsInPlay.hasKey(who)) {
+				throw exception("No one with that name.");
+			}
+			if (!allEffectsInPlay[who].hasKey(name)) {
+				throw exception("This combatant does not have this effect.");
+			}
+			return allEffectsInPlay[who][name];
+		}
 		int addToEffectClock() {
 			effectClock.internalList.sort();
 			if (effectClock.empty()) {
@@ -2183,7 +2334,6 @@ public:
 		List<CombatantInstance*> party2;
 		Map<string, string> data;
 		List<int> effectClock; // used to know when an effect was made
-		Map<string, Map<string, EffectObjectInstance*>> allEffectsInPlay; // who -> condition name -> condition object. who can include "TEAM1", "TEAM2", "WORLD"
 		Round currentRound;
 		string winCondition = "STANDARD";
 		string loseCondition = "STANDARD";
@@ -2197,6 +2347,7 @@ public:
 		pair<float, float> playerPositionBeforeBattle = { 50,50 };
 	private:
 		Map<string, CombatantInstance*> all;
+		Map<string, Map<string, EffectObjectInstance*>> allEffectsInPlay; // who -> condition name -> condition object. who can include "TEAM1", "TEAM2", "WORLD"
 	};
 
 	void setUpBattle(List<Combatant> team1, List<Combatant> team1allies, List<Combatant> team2, List<Combatant> team2allies, Map<string, string> data) {
@@ -2293,11 +2444,11 @@ public:
 			Map<string, PowerValue>({ pair<string, PowerValue>("LIFEHEAL_SINGLE_HOLY", PowerValue("LIFEHEAL_SINGLE_HOLY", 80, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))) }),
 			list<string>({ "HEALALLY" }), HEALWOUNDS_WAV);
 
-		skillDefinitions["Revitalise"] = Skill("Revitalise", "Revitalise", "Cleromancy", SKILLICON_REVITALISE, 25, 2, 10, "DEADPARTYMEMBER",
-			list<string>({ "RESURRECT" }),
+		skillDefinitions["Revitalise"] = Skill("Revitalise", "Revitalise", "Cleromancy", SKILLICON_REVITALISE, 25, 0, 0, "DEADPARTYMEMBER", // 25 2 10
+			list<string>({ "RESURRECT_SINGLE_HOLY" }),
 			list<string>({ "MAGICAL","HOLY", "HEAL","TARGETSALLIES" }),
-			Map<string, PowerValue>({ pair<string, PowerValue>("POWER_1", PowerValue("POWER_1", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))) }),
-			list<string>({ "RESURRECT" }), HEALWOUNDS_WAV);
+			Map<string, PowerValue>({ pair<string, PowerValue>("RESURRECT_SINGLE_HOLY", PowerValue("RESURRECT_SINGLE_HOLY", 10, 0, 100, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))) }),
+			list<string>({ "RESURRECT" }), REVITALISE_WAV);
 
 		// HAGIOMANCY
 		skillDefinitions["Heavenstrike"] = Skill("Heavenstrike", "Heavenstrike", "Hagiomancy", SKILLICON_HEAVENSTRIKE, 10, 2, 0, "SINGLEFOE",
@@ -2307,7 +2458,7 @@ public:
 				pair<string, PowerValue>("DAMAGE_SINGLE_HOLY", PowerValue("DAMAGE_SINGLE_HOLY", 70, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))),
 				pair<string, PowerValue>("SKILLRECHARGEDELAY", PowerValue("DAMAGE_SINGLE_HOLY", 4, 4, 4, true, list<string>())),
 				pair<string, PowerValue>("HEAVENSTRIKE", PowerValue("HEAVENSTRIKE", 30, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))) }),
-				list<string>({ "DEALDAMAGE", "DEALDAMAGE_HOLY" }), -1);
+				list<string>({ "DEALDAMAGE", "DEALDAMAGE_HOLY" }), HEALWOUNDS_WAV);
 
 		skillDefinitions["Light of Day"] = Skill("Light of Day", "Light of Day", "Hagiomancy", SKILLICON_LIGHTOFDAY, 5, 0, 0, "ALLUNDEADORDEMONICFOES",
 			list<string>({ "LIGHT OF DAY" }),
@@ -2342,12 +2493,12 @@ public:
 				}),
 			list<string>({ "DEALDAMAGE", "HEALSELF" }), 1060);
 
-		skillDefinitions["Atrophy"] = Skill("Atrophy", "Atrophy", "Sangromancy", SKILLICON_ATROPHY, 5, 0, 1, "SINGLEFOE",
+		skillDefinitions["Atrophy"] = Skill("Atrophy", "Atrophy", "Sangromancy", SKILLICON_ATROPHY, 5, 0, 0, "SINGLEFOE",
 			list<string>({ "APPLY_WEAKNESS_SINGLE" }),
 			list<string>({ "MAGICAL","BLOOD","UNHOLY" }),
-			Map<string, PowerValue>({ pair<string, PowerValue>("DURATION_1", PowerValue("DURATION_1", 3, 0, 8, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+			Map<string, PowerValue>({ pair<string, PowerValue>("DURATION_WEAKNESS", PowerValue("DURATION_WEAKNESS", 5, 0, 15, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
 				}),
-			list<string>({ "CURSEFOE", }), -1);
+			list<string>({ "CURSEFOE", }), ATROPHY_WAV);
 
 		// NECROMANCY
 		skillDefinitions["Animate Skeleton Warrior"] = Skill("Animate Skeleton Warrior", "Animate Skeleton Warrior", "Necromancy", SKILLICON_ANIMATESKELETONWARRIOR, 55, 1, 8, "SELF", // debug 0, real = 2
@@ -2528,7 +2679,7 @@ public:
 	void defineAllCombatants() {
 		//DEBUG
 		definedCombatants["SadBag"] = Combatant("SadBag", "SadBag", Map<string, int>({
-				pair<string, int>("AGILITY", 0),
+				pair<string, int>("PIETY", 100),
 			}),
 			Map<string, Map<string, string>>({
 					pair<string, Map<string, string>>("Images", Map<string, string>({
@@ -2537,10 +2688,9 @@ public:
 					})),
 					pair<string, Map<string, string>>("Effects", Map<string, string>({
 						pair<string, string>("UNDEAD", "1"),
-						pair<string, string>("CONCUSSED", "999"),
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
-						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("0", "Revitalise"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 				}));
@@ -2635,7 +2785,7 @@ public:
 		// pair is leader -> team
 		// DEBUG
 		definedTeams["DEBUG"] = { "SadBag", List<Combatant>({
-			definedCombatants["SadBag"]}) };
+			definedCombatants["SadBag"], definedCombatants["SadBag"]}) };
 
 		// EVENT
 		definedTeams["EVENT1"] = { "EnragedVilomah", List<Combatant>({
@@ -2683,6 +2833,10 @@ public:
 		allEffectDefinitions["BURNING"] = EffectObject("BURNING", "BANE", EFFECTICON_BURNING, "BURNING", false,
 			List<string>(list<string>({ "BURNING", })),
 			List<string>(list<string>({ "EVERYTURN" })));
+
+		allEffectDefinitions["WEAKNESS"] = EffectObject("WEAKNESS", "BANE", EFFECTICON_WEAKNESS, "WEAKNESS", false,
+			List<string>(list<string>({ "WEAKNESS", })),
+			List<string>(list<string>({  })));
 
 		allEffectDefinitions["Strength of Reason"] = EffectObject("Strength of Reason", "BOON", SKILLICON_STRENGTHOFREASON, "Strength of Reason", false,
 			List<string>(list<string>({ "Strength of Reason", })),
@@ -2788,5 +2942,6 @@ public:
 	Map<string, Combatant> definedCombatants;
 	Map<string, pair<string, List<Combatant>>> definedTeams;
 	Map<string, EffectObject> allEffectDefinitions;
+	string language = "ENG";
 };
 Combat combat;
