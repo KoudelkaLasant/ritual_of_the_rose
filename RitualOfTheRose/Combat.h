@@ -155,6 +155,11 @@ public:
 		defineAllCombatants();
 		defineAllTeams();
 		defineAllEffectDefinitions();
+
+		layerScaleLookup["TEAM1"] = "1.0";
+		layerScaleLookup["TEAM1ALLIES"] = "0.9";
+		layerScaleLookup["TEAM2ALLIES"] = "0.8";
+		layerScaleLookup["TEAM2"] = "0.7";
 	}
 	class PowerValue {
 	public:
@@ -328,7 +333,7 @@ public:
 		}
 		void tick() {
 			if (!infinite) {
-				roundsLeft = TChange(roundsLeft, -1, -1, 999);
+				roundsLeft = TChange(roundsLeft, -1, 0, 999);
 			}
 		}
 		bool expired() {
@@ -952,6 +957,7 @@ public:
 				List<string> result;
 				result.addToBackIfNotAlreadyInList("DEALDAMAGE");
 				result.addToBackIfNotAlreadyInList("CURSEFOE");
+				result.addToBackIfNotAlreadyInList("STEALLIFEFORMASTER");
 				if (me->getAllPossiblePositionsICouldPutASummon(*&combat).size() > 0) {
 					result.addToBackIfNotAlreadyInList("SUMMON");
 				}
@@ -1087,7 +1093,9 @@ public:
 					pair<string, int>("CURSEFOE",90),
 					pair<string, int>("ENCHANTSELF", 90),
 					pair<string, int>("ENCHANTALLY", 90),
+					pair<string, int>("SUMMON",80),
 					pair<string, int>("DEALDAMAGE",20),
+					pair<string, int>("STEALLIFEFORMASTER",100),
 					});
 				for (auto strat : allStrategiesICouldFollow.internalList) {
 					if (strategyToPriorityMap.getKeys().contains(strat)) {
@@ -1368,6 +1376,16 @@ public:
 					}
 				}
 				// add other targeting systems
+				if (skillLogicName == "STEALLIFEFORMASTER") {
+					Map<string, int> unholyDmg; unholyDmg["DAMAGE_SINGLE_UNHOLY"] = vData["STEALLIFEFORMASTER"];
+					Map<string, int> unholyHealing; unholyHealing["LIFEHEAL_SINGLE_UNHOLY"] = vData["STEALLIFEFORMASTER"];
+					results.push_back(CombatEvent("DAMAGE_SINGLE_UNHOLY", "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, List<string>(combat.currentBattle->getThisCombatant(c.currentTarget)->c.uniqueCombatID), sData, unholyDmg));
+					string nameOfSummoner = c.data["EXTRAS"]["WHOSUMMONEDME"];
+					if (combat.currentBattle->doesThisCombatantExist(nameOfSummoner) and
+						!combat.currentBattle->getThisCombatant(nameOfSummoner)->c.isDead()) {
+						results.push_back(CombatEvent("LIFEHEAL_SINGLE_UNHOLY", "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, List<string>(nameOfSummoner), sData, unholyHealing));
+					}
+				}
 			}
 			if (c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID == "DEFAULT_WAIT") {
 				combat.currentBattle->addCombatMessage("WAIT", List<pair<string, string>>({
@@ -1526,6 +1544,9 @@ public:
 								}
 								CombatantInstance* target = combat.currentBattle->getThisCombatant(effect->e.target);
 								if (targets.contains(target)) { // this effect is on the victim
+									if (effect->e.uniqueID == "Fragile") {
+										report.vData[v] *= 100;
+									}
 									if (v == "DAMAGE_SINGLE_ELECTRIC" and effect->e.triggers.contains("ONTAKINGELECTRICDAMAGE")) {
 										if (effect->e.logicName == "WET") {
 											report.vData["DAMAGE_SINGLE_ELECTRIC"] *= 1.25;
@@ -1555,6 +1576,8 @@ public:
 					if (report.logic.find("RESURRECT_SINGLE") != -1) {
 						// any effects which impact resurrection (such as res prevention)
 					}
+
+
 				}
 
 				// predict if targets will die during resolution
@@ -1683,6 +1706,7 @@ public:
 								summoned->c.setCombatStats(*&combat, true);
 								summoned->c.combatStats["CURRENTLIFE"] = vData["LIFE"]; // give them life described in the skill
 								summoned->c.combatStats["LIFE"] = vData["LIFE"]; // give them life described in the skill
+								summoned->c.data["EXTRAS"]["WHOSUMMONEDME"] = user;
 								combat.currentBattle->addNewCombatantDuringBattle(*&combat, summoned);
 								combat.currentBattle->getThisCombatant(user)->c.currentTarget = targetUniqueCombatID;
 								report.sData["SUMMONTHIS"] = toSummon.uniqueID;
@@ -1840,7 +1864,6 @@ public:
 			}
 		}
 		void endBattle() {
-			graphics.tearDownSpecifiedText("");
 			for (CombatantInstance* c : all.getValues().internalList) {
 				delete c;
 				c = NULL;
@@ -2059,12 +2082,9 @@ public:
 			if (type == "VICTORY") {
 				message = strings[language]["Combat Messages"]["VICTORY"];
 				string leader = saveContainer.getCurrentMainCharacter();
-				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][leader]);
-				combatMessages.push_front({ verbosity, message });
 
 				if (!rewardForWinning.getKeys().empty()) {
-					message = strings[language]["GUI"]["BATTLEREWARD"];
-					combatMessages.push_front({ verbosity, message });
+					message += strings[language]["GUI"]["BATTLEREWARD"];
 					for (auto item : rewardForWinning.getKeys().internalList) {
 						wstring itemName = L"";
 						if (item == "GOLD" and rewardForWinning[item] == 1) {
@@ -2076,11 +2096,10 @@ public:
 						if (item != "GOLD") {
 							itemName = strings[language]["Item Names"][item];
 						}
-						message = to_wstring(rewardForWinning[item]) + L" " + itemName;
-						combatMessages.push_front({ verbosity, message });
+						message += to_wstring(rewardForWinning[item]) + L" " + itemName + L"\n";
 					}
-					return;
 				}
+				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][leader]) + L"\n";
 			}
 			if (type == "FAILED_NO_TARGETS") {
 				message = strings[language]["Combat Messages"]["FAILED_NO_TARGETS"];
@@ -2431,6 +2450,11 @@ public:
 
 		skillDefinitions["DEFAULT_WAIT"] = Skill("DEFAULT_WAIT", "DEFAULT_WAIT", "Default", SKILLICON_WAIT, 0, 0, 0, "SELF", {}, {}, {}, list<string>({ "WAIT" }), -1);
 
+		// used by the animated mound of leeches
+		skillDefinitions["DEFAULT_LEECHSKILL"] = Skill("DEFAULT_LEECHSKILL", "DEFAULT_LEECHSKILL", "Default", SKILLICON_WAIT, 0, 0, 0, "SINGLEFOE", {"STEALLIFEFORMASTER"}, list<string>({ "MAGICAL","UNHOLY" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("STEALLIFEFORMASTER",PowerValue("STEALLIFEFORMASTER",7,0,999,true,list<string>({"INTELLIGENCE"}))) }), list<string>({"STEALLIFEFORMASTER"}), 1060);
+
 		// CLEROMANCY
 		skillDefinitions["Heal Wounds"] = Skill("Heal Wounds", "Heal Wounds", "Cleromancy", SKILLICON_HEALWOUNDS, 10, 1, 1, "SINGLEALLY",
 			list<string>({ "LIFEHEAL_SINGLE_HOLY" }),
@@ -2510,6 +2534,15 @@ public:
 				}),
 				list<string>({ "SUMMON", }), 5686);
 
+		skillDefinitions["Animate Mound of Leeches"] = Skill("Animate Mound of Leeches", "Animate Mound of Leeches", "Necromancy", SKILLICON_ANIMATEMOUNDOFLEECHES, 40, 1, 10, "SELF",
+			list<string>({ "SUMMON_Mound of Leeches_SELF" }),
+			list<string>({ "MAGICAL","UNHOLY", "SUMMON" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("INTELLIGENCE", PowerValue("INTELLIGENCE", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				}),
+				list<string>({ "SUMMON", }), 7064);
+
 		// METEOMANCY
 		skillDefinitions["Rainstorm"] = Skill("Rainstorm", "Rainstorm", "Meteomancy", SKILLICON_RAINSTORM, 15, 0, 0, "ALL", // 1
 			list<string>({ "APPLY_Rainstorm_WORLD", "APPLY_WET_ALL" }),
@@ -2552,7 +2585,7 @@ public:
 			list<string>({ "MAGICAL","ELITE" }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("RECHARGE", PowerValue("RECHARGE", 8, 1, 5, false, list<string>({ "INTELLIGENCE", "SHADOWBOOST"}))),
-				pair<string, PowerValue>("DURATION_BLIND", PowerValue("DURATION_BLIND", 1, 1, 1, false, list<string>())),
+				pair<string, PowerValue>("DURATION_BLIND", PowerValue("DURATION_BLIND", 2, 2, 2, false, list<string>())),
 				}),
 				list<string>({ "BLINDFOE", "INTERRUPTFOE" }), SHADOWSPIKE_WAV);
 
@@ -2688,9 +2721,10 @@ public:
 					})),
 					pair<string, Map<string, string>>("Effects", Map<string, string>({
 						pair<string, string>("UNDEAD", "1"),
+						//pair<string, string>("Fragile", "1"),
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
-						pair<string, string>("0", "Revitalise"),
+						pair<string, string>("0", "DEFAULT_ATTACK"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 				}));
@@ -2707,6 +2741,21 @@ public:
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
 						pair<string, string>("0", "DEFAULT_ATTACK"),
+						})),
+				}));
+
+		definedCombatants["Mound of Leeches"] = Combatant("Mound of Leeches", "Mound of Leeches", {},
+			Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Mound of Leeches", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Mound of Leeches", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_LEECHSKILL"),
+						pair<string, string>("6", "DEFAULT_LEECHSKILL"),
 						})),
 				}));
 
@@ -2785,7 +2834,7 @@ public:
 		// pair is leader -> team
 		// DEBUG
 		definedTeams["DEBUG"] = { "SadBag", List<Combatant>({
-			definedCombatants["SadBag"], definedCombatants["SadBag"]}) };
+			definedCombatants["SadBag"]}) };
 
 		// EVENT
 		definedTeams["EVENT1"] = { "EnragedVilomah", List<Combatant>({
@@ -2846,8 +2895,32 @@ public:
 		allEffectDefinitions["UNDEAD"] = EffectObject("UNDEAD", "PERM", EFFECTICON_UNDEAD, "UNDEAD", true,
 			List<string>(list<string>({ "UNDEAD", })),
 			List<string>(list<string>({ "ONTAKINGHOLYDAMAGE", "ONBEINGHEALED" })));
-	}
 
+		allEffectDefinitions["Fragile"] = EffectObject("Fragile", "PERM", EFFECTICON_UNDEAD, "Fragile", true,
+			List<string>(list<string>({ "Fragile", })),
+			List<string>(list<string>({ "ONTAKINGDAMAGE" })));
+	}
+	void newGame() {
+		saveContainer.current = SaveContainer::SaveFile();
+		saveContainer.current.equippedSkills = defaultSkillChoices.internalMap;
+		saveContainer.current.attributeInvestments = defaultAttInvestments.internalMap;
+		saveContainer.current.equippedSkillTrees = defaultSkillTreeChoices.internalMap;
+		saveContainer.current.equippedItems = defaultEquipment.internalMap;
+		List<string> allStartingCharacters = getAllStartingCharacters();
+		// add all to allCharacters then remove them when game actually starts
+		saveContainer.current.allCharacters = allStartingCharacters.internalList;
+		for (auto character : allStartingCharacters.internalList) {
+			for (auto skill : defaultSkillChoices[character]) {
+					saveContainer.current.knownSkills[character].push_back(skill.second);
+			}
+				
+		}
+		saveContainer.current.party = { "Angela Fleuret" };
+	}
+	List<string> getAllStartingCharacters() {
+		List<string> results = List<string>({ "Angela Fleuret", "Tianshun Song", "Olyver Sumner", "Hernando Pizarro","Gihat al-Din Jaqmaq" });
+		return results;
+	}
 	List<string> getAllLegalSkills() {
 		List<string> result;
 		for (auto s : skillDefinitions.getKeys().internalList) {
@@ -2943,5 +3016,6 @@ public:
 	Map<string, pair<string, List<Combatant>>> definedTeams;
 	Map<string, EffectObject> allEffectDefinitions;
 	string language = "ENG";
+	Map<string, string> layerScaleLookup;
 };
 Combat combat;

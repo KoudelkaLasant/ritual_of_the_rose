@@ -216,11 +216,11 @@ public:
 		// for party rearrange
 		return List<pair<float, float>>({ pair<float, float>(35,25),pair<float, float>(53,25),pair<float, float>(71,25),pair<float, float>(89,25) });
 	}
-	static const Map<int, List<pair<float, float>>> getPlayerCardReformGridPositions(float xOffset, float yOffset) {
+	static const Map<int, List<pair<float, float>>> getPlayerCardReformGridPositions(float xOffset, float yOffset, float xSpace) {
 		Map<int, List<pair<float, float>>> results;
 
-		List<pair<float, float>> firstRow({ pair<float, float>(xOffset,yOffset),pair<float, float>(5 + xOffset,yOffset),pair<float, float>(10 + xOffset,yOffset),
-			pair<float, float>(15 + xOffset,yOffset), pair<float, float>(20 + xOffset,yOffset) });
+		List<pair<float, float>> firstRow({ pair<float, float>(xOffset,yOffset),pair<float, float>(xSpace + xOffset,yOffset),pair<float, float>(xSpace*2 + xOffset,yOffset),
+			pair<float, float>(xSpace*3 + xOffset,yOffset), pair<float, float>(xSpace*4 + xOffset,yOffset) });
 		for (int x = 1; x < 6; x++) {
 			List<pair<float, float>> currentRow = firstRow;
 			for (int y = 0; y < currentRow.size(); y++) {

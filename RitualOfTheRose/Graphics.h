@@ -44,6 +44,8 @@ public:
             pair<string, int>({"Centaur", IDF_CENTAUR}), 
             pair<string,int>({ "GoudyMedieval", IDF_GOUDYMEDIEVAL }),
             pair<string,int>({ "LightText", IDF_LIGHT }),
+            pair<string,int>({ "Morris Roman", IDF_MORRIS }),
+            pair<string, int>({"HighTowerText", IDF_HIGHTOWER}),
         };
         customFontSizes = {5,10,12,13,14,15,16,17,18,19,20,25,30,35,37,40,50};
         Colours["BLACK"] = { 0.0,0.0,0.0,1.0 };
@@ -58,7 +60,7 @@ public:
         Colours["DARKBROWN"] = convertIntColour({100,35,0,255});
         Colours["SKILLTEXTBLUE"] = convertIntColour({ 0,246,255,255 });
         Colours["SKILLTEXTBLUEBACKDROP"] = convertIntColour({ 0,6,255,255 });
-        Colours["ELITESKILLYELLOW"] = convertIntColour({ 254,251,111,255 });
+        Colours["ELITESKILLYELLOW"] = convertIntColour({ 255,234,52,255 });
         Colours["OBVIOUSPINK"] = convertIntColour({ 255,155,251,255 });
         Colours["EQUIPMENTBLUE"] = convertIntColour({ 135,217,255,255 });
     }
@@ -68,7 +70,22 @@ public:
         tearDownAllLoadedFonts();
         SafeRelease("Releasing D2D Factory.", & D2DFactory);
         SafeRelease("Releasing IWICFactory", & IWICFactory);
-        SafeRelease("Releasing DWrite Factory.", & DWriteFactory);
+        for (auto ex : DWriteFactories.getKeys().internalList) {
+            SafeRelease("", &DWriteFactories[ex]);
+            DWriteFactories.internalMap.erase(ex);
+        }
+        for (auto ex : fontSetBuilders.getKeys().internalList) {
+            SafeRelease("", &fontSetBuilders[ex]);
+            fontSetBuilders.internalMap.erase(ex);
+        }
+        for (auto ex : customFontSets.getKeys().internalList) {
+            SafeRelease("", &customFontSets[ex]);
+            customFontSets.internalMap.erase(ex);
+        }
+        for (auto ex : fontCollections.getKeys().internalList) {
+            SafeRelease("", &fontCollections[ex]);
+            fontCollections.internalMap.erase(ex);
+        }
         SafeRelease("Releasing hwndRenderTarget.", & hwndRenderTarget);
     }
     class Drawable {
@@ -365,12 +382,12 @@ public:
                 }
             }
             if (animationStyles.contains("LOOP")) { 
-                if (CLOCK.hasEnoughTimePassed(unique_ID + "_FADE", animationSpeed)) {
+                if (CLOCK.hasEnoughTimePassed(unique_ID + "_LOOP", animationSpeed)) {
                     frame++;
                 }
             }
             if (animationStyles.contains("FADEOUT")) {
-                if (CLOCK.hasEnoughTimePassed(unique_ID + "_FADE", animationSpeed)) {
+                if (CLOCK.hasEnoughTimePassed(unique_ID + "_FADEOUT", animationSpeed)) {
                     opacity = TChange(opacity, -0.07f, 0.0f, 1.0f);
                 }
             }
@@ -380,7 +397,7 @@ public:
                 }
             }
             if (animationStyles.contains("FADEIN")) {
-                if (CLOCK.hasEnoughTimePassed(unique_ID + "_FADE", animationSpeed)) {
+                if (CLOCK.hasEnoughTimePassed(unique_ID + "_FADEIN", animationSpeed)) {
                     opacity = TChange(opacity, 0.07f, 0.0f, 1.0f);
                 }
             }
@@ -416,6 +433,10 @@ public:
                 }
             }
         }
+        void forceThisImageToGoToLastFrameAndStayThere() {
+            animated = false;
+            frame = sources.size() - 1;
+        }
 
         List<int> sources;
         int frame = 0;
@@ -432,9 +453,10 @@ public:
         Text() {
             tearDownSelf();
         }
-        Text(Graphics & graphics, wstring _message, string _format, pair<float, float> _positionAsPercentage, string _anchorStyle, pair<float, float> _size, vector<float> _colour, vector<float> _shadowColour, string _unique_ID) {
+        Text(Graphics & graphics, wstring _message, string _format, pair<float, float> _positionAsPercentage, string _anchorStyle, pair<float, float> _size, vector<float> _colour, vector<float> _shadowColour, string _unique_ID, bool _animated, List<string> _animationStyles, int _animationSpeed) {
             message = _message;
             format = _format;
+            font = split(format, "_").at(0);
             positionAsPercentage = _positionAsPercentage;
             anchorStyle = _anchorStyle;
             size = _size;
@@ -442,6 +464,12 @@ public:
             unique_ID = _unique_ID;
             shadowColour = _shadowColour;
             resetText(*&graphics);
+            animated = _animated;
+            animationStyles = _animationStyles;
+            if (animated and animationStyles.contains("TYPEWRITER")) {
+                startTypewriter(*&graphics);
+            }
+            animationSpeed = _animationSpeed;
         }
         void tearDownSelf() {
             SafeRelease("Releasing the brush", &theBrush);
@@ -491,8 +519,8 @@ public:
             shadowP.x -= 1;
             shadowP.y += 1;
 
-            hr = graphics.DWriteFactory->CreateTextLayout(removeTagsBeforePrinting(graphics, message).c_str(), message.size(), graphics.WriteTextFormats[format], size_as_d2d.width, size_as_d2d.height, &textLayout);
-            hr = graphics.DWriteFactory->CreateTextLayout(removeTagsBeforePrinting(graphics, message).c_str(), message.size(), graphics.WriteTextFormats[format], size_as_d2d.width, size_as_d2d.height, &shadowTextLayout);
+            hr = graphics.DWriteFactories[font]->CreateTextLayout(removeTagsBeforePrinting(graphics, message).c_str(), message.size(), graphics.WriteTextFormats[format], size_as_d2d.width, size_as_d2d.height, &textLayout);
+            hr = graphics.DWriteFactories[font]->CreateTextLayout(removeTagsBeforePrinting(graphics, message).c_str(), message.size(), graphics.WriteTextFormats[format], size_as_d2d.width, size_as_d2d.height, &shadowTextLayout);
 
             for (auto const& [key, value] : subcolours.internalMap) {
                 for (auto const& range : subcolours[key].internalList) {
@@ -520,6 +548,7 @@ public:
             return message;
         }
         void draw(Graphics& graphics) {
+            animate(*&graphics);
             graphics.hwndRenderTarget->DrawTextLayout(shadowP, shadowTextLayout, shadowBrush);
             graphics.hwndRenderTarget->DrawTextLayout(P, textLayout, theBrush);
         }
@@ -565,6 +594,49 @@ public:
             fullMessage = message;
             message = L"⑤" + message;
             resetText(*&graphics);
+            animated = true;
+        }
+        bool animate(Graphics & graphics) { // return true if finished
+            bool finished = getMessage().find(L"⑤") == -1;
+            if (CLOCK.hasEnoughTimePassed("TYPEWRITER_" + unique_ID, animationSpeed)) {
+                if (finished) {
+                    return true;
+                }
+                if (getMessage() == L"") { return false; } // not ready to be animated yet
+                wstring message = getMessage();
+                int textLength = message.size();
+                int howFar = message.find(L"⑤");
+                int howFarAsPercentage = howFarAlong();
+                int nextLoc = howFar;
+                if (howFar < textLength - 1) {
+                    nextLoc = howFar + 1;
+                    wchar_t nextChar = message.at(nextLoc);
+                    List<wchar_t> skipThese = graphics.colourTagLookupTable.getKeys();
+                    for (auto x : { 33,63,46 }) {
+                        skipThese.push_back(wchar_t(x));
+                    }
+                    while (nextLoc < message.size() - 1 and skipThese.contains(nextChar)) {
+                        nextLoc += 1;
+                        nextChar = message.at(nextLoc);
+                    }
+                }
+                else {
+                    nextLoc += 1;
+                }
+                wstring current = fullMessage;
+                if (howFar < current.size()) {
+                    current.replace(nextLoc, 1, L"⑤");
+                }
+                resetMessage(*&graphics, current);
+                if (animationStyles.contains("PARCHMENT") and howFarAsPercentage < 50 and CLOCK.hasEnoughTimePassed("ParchmentSoundWait", 15)) {
+                    audio.playRandomSFXFromThisCollection("PARCHMENT", audio.volumes["SFXVolume"] / 2);
+                    CLOCK.startClock("ParchmentSoundWait");
+                }
+            }
+            if (getMessage().find(L"⑤") == -1) {
+                CLOCK.startClock("TypewriterFinished");
+            }
+            return false;
         }
         int howFarAlong() {
             int index = message.find(L"⑤");
@@ -574,6 +646,7 @@ public:
         }
         static wstring commonTextReplacements(string language, wstring input) {
             Map<wstring, wstring> replacements;
+            if (!saveContainer.current.loaded) { return input; }
             replacements[L"$DEFAULTBUYBACK$"] = strings[language]["Default Merchant Dialogue"]["Buy Back"];
             replacements[L"$DEFAULTBUY$"] = strings[language]["Default Merchant Dialogue"]["Buy"];
             replacements[L"$SELL$"] = strings[language]["Default Merchant Dialogue"]["Sell"];
@@ -590,10 +663,14 @@ public:
         }
 
         string format;
+        string font;
         pair<float, float> size;
         vector<float> colour = {0.0,0.0,0.0,1.0};
         vector<float> shadowColour = { 0.0,0.0,0.0,1.0 };
         int tagLimit = 10;
+        bool animated = false;
+        List<string> animationStyles;
+        int animationSpeed;
         Map<string, List<DWRITE_TEXT_RANGE>> subcolours;
         Map<string, List<DWRITE_TEXT_RANGE>> shadowSubColours;
         ID2D1SolidColorBrush* theBrush = NULL;
@@ -625,30 +702,19 @@ public:
             IID_IWICImagingFactory,
             reinterpret_cast<void**>(&IWICFactory)
         );
-        hr = DWriteCreateFactory(
-            DWRITE_FACTORY_TYPE_SHARED,
-            __uuidof(DWriteFactory),
-            reinterpret_cast<IUnknown**>(&DWriteFactory)
-        );
-        IDWriteTextFormat* textFormat = NULL;
-        hr = DWriteFactory->CreateTextFormat(L"Times New Roman",
-            NULL,
-            DWRITE_FONT_WEIGHT_NORMAL,
-            DWRITE_FONT_STYLE_NORMAL,
-            DWRITE_FONT_STRETCH_NORMAL,
-            20,
-            L"",
-            &textFormat);
-        if (SUCCEEDED(hr)) {
-            WriteTextFormats.add({ "DEFAULT", textFormat });
-        }
-
-        hr = DWriteFactory->CreateFontSetBuilder(&fontSetBuilder);
 
         for (auto const & font : customFonts.internalList) {
+            IDWriteFactory5* DWriteFactory = NULL;
+            IDWriteFontSet* customFontSet = NULL;
+            IDWriteFontCollection1* fontCollection = NULL;
+            IDWriteFontSetBuilder1* fontSetBuilder = NULL;
+
+            hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_ISOLATED, __uuidof(DWriteFactory),reinterpret_cast<IUnknown**>(&DWriteFactory));
+
             idwriteinmemoryfontfileloaders[font.first] = NULL;
             hr = DWriteFactory->CreateInMemoryFontFileLoader(&idwriteinmemoryfontfileloaders[font.first]);
             hr = DWriteFactory->RegisterFontFileLoader(idwriteinmemoryfontfileloaders[font.first]);
+            hr = DWriteFactory->CreateFontSetBuilder(&fontSetBuilder);
             idwritefontfiles[font.first] = NULL;
             HINSTANCE hInstance = ::GetModuleHandle(nullptr);
             HRSRC  hFntRes = FindResource(hInstance, MAKEINTRESOURCE(font.second), L"BINARY");
@@ -667,13 +733,16 @@ public:
             idwritefontfacereferences[font.first] = NULL;
             DWriteFactory->CreateFontFaceReference(idwritefontfiles[font.first], 0, DWRITE_FONT_SIMULATIONS_NONE, &idwritefontfacereferences[font.first]);
             fontSetBuilder->AddFontFaceReference(idwritefontfacereferences[font.first]);
-        }
+            hr = fontSetBuilder->CreateFontSet(&customFontSet);
+            hr = DWriteFactory->CreateFontCollectionFromFontSet(customFontSet, &fontCollection);
 
-        hr = fontSetBuilder->CreateFontSet(&customFontSet);
-        hr = DWriteFactory->CreateFontCollectionFromFontSet(customFontSet, &fontCollection);
+            DWriteFactories[font.first] = DWriteFactory;
+            customFontSets[font.first] = customFontSet;
+            fontCollections[font.first] = fontCollection;
+            fontSetBuilders[font.first] = fontSetBuilder;
 
-        for (auto const& font : customFonts.internalList) {
             for (auto const& size : customFontSizes.internalList) {
+                IDWriteTextFormat* textFormat = NULL;
                 hr = DWriteFactory->CreateTextFormat(wstring(font.first.begin(), font.first.end()).c_str(),
                     fontCollection,
                     DWRITE_FONT_WEIGHT_NORMAL,
@@ -683,14 +752,14 @@ public:
                     L"",
                     &textFormat);
                 if (SUCCEEDED(hr)) {
-                    WriteTextFormats.add({ font.first + "_" + to_string(size), textFormat});
-                    }
+                    WriteTextFormats.add({ font.first + "_" + to_string(size), textFormat });
+                }
                 else {
                     throw exception("Failed to load this font.");
                 }
-                }
             }
-        
+        }
+
        loadCursors();
 
         return hr;
@@ -720,7 +789,7 @@ public:
 
             hwndRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
 
-            hwndRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
+            hwndRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
 
             int latest_layer = -999;
 
@@ -956,6 +1025,9 @@ public:
         HCURSOR hCursor = Cursors[CurrentCursor];
         SetCursor(hCursor);
     }
+    RECT getRectOfWholeScreen() {
+        return makeRect(0, 0, controller.actualRenderSizeAsFloat.first, controller.actualRenderSizeAsFloat.second);
+    }
     RECT makeRect(float top, float left, float bottom, float right) {
         RECT result;
         result.left = left;
@@ -1084,18 +1156,18 @@ public:
     HINSTANCE hinstance;
 	ID2D1Factory * D2DFactory;
     IWICImagingFactory * IWICFactory;
-    IDWriteFontSetBuilder1* fontSetBuilder;
-    IDWriteFontSet* customFontSet;
-    IDWriteFontCollection1* fontCollection;
     List<pair<string, int>> customFonts;
     List<int> customFontSizes;
     Map<string, IDWriteTextFormat *> WriteTextFormats;
     Map<string, IDWriteInMemoryFontFileLoader*> idwriteinmemoryfontfileloaders;
     Map<string, IDWriteFontFile*> idwritefontfiles;
     Map<string, HANDLE> addfontmemresourcefonts;
-    Map<string, IDWriteFontSetBuilder1*> idwritefontsetbuilders;
     Map<string, IDWriteFontFaceReference*> idwritefontfacereferences;
-    IDWriteFactory5* DWriteFactory;
+    Map<string, IDWriteFactory5*> DWriteFactories;
+    Map<string, IDWriteFontSetBuilder1*> fontSetBuilders;
+    Map<string, IDWriteFontSet*> customFontSets;
+    Map<string, IDWriteFontCollection1*> fontCollections;
+
     ID2D1HwndRenderTarget* hwndRenderTarget;
     Map<int, List<Image *>> ImageMap;
     Map<int, List<Text *>> TextMap;
