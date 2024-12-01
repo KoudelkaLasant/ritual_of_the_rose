@@ -898,7 +898,6 @@ public:
 				return true;
 			}
 			if (type == "EXPLORE") {
-				//Event("userInput", "DEBUGWALKING", { }).run(*&gameEngine);
 				//Event("", "DEBUGUSERINPUT", {}).run(*&gameEngine);
 
 				graphics.changeCursor("NONE");
@@ -923,6 +922,8 @@ public:
 					}
 					if (controller.hasThisBeenPressed(VK_F3)) {
 						saveContainer.current.flags["debugFlag"] = true;
+						saveContainer.current.flags["WaterPuzzleActivated"] = true;
+						saveContainer.current.flags["ChapelRightWingKeyToCorridor"] = true;
 					}
 					if (controller.hasThisBeenPressed(VK_F4)) {
 						gameEngine.stateFlags["SHOWFPS"] = "1";
@@ -945,6 +946,7 @@ public:
 					}
 					if (Args.get("SPEEDCHEAT") == "1") {
 						exploreAnimationSpeeds["MOVE"] = 10;
+						Event("userInput", "DEBUGWALKING", { }).run(*&gameEngine);
 					}
 					
 				}
@@ -1059,18 +1061,41 @@ public:
 					for (auto walkable : explorer.getObjectsInRange().internalList) {
 						// objects that are stepped on but don't require interaction
 						if (walkable.data.hasKey("GoingUp")) {
+							bool needToChangeAudio = false;
+							bool up = false;
 							if (walkable.data["GoingUp"] == "1" and gameEngine.stateFlags["GoingUp"] == "") { // first step to going up
 								gameEngine.stateFlags["GoingUp"] = "1";
 							}
 							if (walkable.data["GoingUp"] == "2" and gameEngine.stateFlags["GoingUp"] == "1") { // going up
 								gameEngine.stateFlags["GoingUp"] = "2";
 								string imageName = walkable.data["image"];
+								string obstructionName = walkable.data["obstruction"];
+								
 								graphics.bumpLayer(graphics.accessImageViaUniqueID(imageName), -2);
+								explorer.getThisMapObject(obstructionName).obstruction = true;
+								needToChangeAudio = true;
+								up = true;
 							}
 							if (walkable.data["GoingUp"] == "1" and gameEngine.stateFlags["GoingUp"] == "2") { // going down
 								gameEngine.stateFlags["GoingUp"] = "";
 								string imageName = walkable.data["image"];
+								string obstructionName = walkable.data["obstruction"];
 								graphics.bumpLayer(graphics.accessImageViaUniqueID(imageName), 2);
+								explorer.getThisMapObject(obstructionName).obstruction = false;
+								needToChangeAudio = true;
+							}
+							if (walkable.data.hasKey("audioSwap") and needToChangeAudio) {
+								List<string> audioSwapData = split(walkable.data["audioSwap"], "=");
+								string floorName = audioSwapData.at(0);
+								string audioSourceName = audioSwapData.at(1);
+								if (!up) {
+									audioSourceName = audioSwapData.at(2);
+								}
+								for (int x = 0; x < explorer.currentMap.walkables.size(); x++) {
+									if (explorer.currentMap.walkables.at(x).uniqueID == floorName) {
+										explorer.currentMap.walkables.at(x).data["audio source"] = audioSourceName;
+									}
+								}
 							}
 						}
 					}
@@ -1085,6 +1110,7 @@ public:
 						explorer.disableThisObject(walkable.name);
 						saveContainer.current.flags[walkable.name + "_TRIGGERED"] = true;
 						whichCutscene = walkable.data["cutscene"];
+						whichCutscene = FlagDependentCutsceneNameFinder::getNameOfCutsceneDependingOnFlags(whichCutscene);
 						stopExploringStartCutscene = true;
 					}
 					if (walkable.data.getKeys().contains("cutscene") and userInput and walkable.canInteract) {
@@ -1189,6 +1215,7 @@ public:
 					speakerID = SReplace(speakerID, "$ASYNC$", "");
 					bool finishedNextEvent = gameEngine.activeProcedure.eventList.at(1).run(*&gameEngine);
 					if (finishedNextEvent) {
+						graphics.tearDownSpecifiedText("speakerDialogueText");
 						return true;
 					}
 				}
@@ -3755,7 +3782,7 @@ return true;
 				float unitOfMovement = explorer.unitOfMovement / 2;
 				if (CLOCK.hasEnoughTimePassed("MOVEOBJECTSON", speed)) {
 					explorer.playerOnMap.position = explorer.moveLHSCloserToRHS(currentPosition, targetPosition, false, false, unitOfMovement);
-					if (CLOCK.hasEnoughTimePassed("PLAYERPLAYAUDIO", 500)) {
+					if (CLOCK.hasEnoughTimePassed("PLAYERPLAYAUDIO", 500) and audioName != "NOAUDIO") {
 						Event("Audio", "PLAYSFX", Map<string, string>({
 										pair<string, string>("audio", audioName) })).run(*&gameEngine);
 					}
@@ -3942,13 +3969,71 @@ return true;
 				else {
 					image = graphics.accessImageViaUniqueID(uniqueID);
 				}
-
 				List<int> sources = imageLookup.animationFrames[character][action + "_" + direction];
 				image->resetSources(*&graphics, sources);
 				image->action = action;
 				image->animationSpeed = explorer.getAnimationSpeeds()[action];
 				image->direction = direction;
 				Event("UpdateMap", "MAPMOVE", {}).run(*&gameEngine);
+				return true;
+			}
+			if (type == "RUNPUZZLELOGIC") {
+				bool playAudio = false;
+				if (CLOCK.hasEnoughTimePassed("PuzzleAudio", 100)) {
+					playAudio = true;
+				}
+				string whichPuzzle = data["whichPuzzle"];
+				if (whichPuzzle == "WATERPUZZLE1") {
+					if (playAudio) {
+						Event("audio", "PLAYSFX", List<pair<string, string>>({
+								pair<string, string>("audio","7261"),
+								pair<string, string>("direct","1"),
+								pair<string, string>("delay","0.0"),
+							})).run(*&gameEngine);
+					}
+					Map<string, string> puzzleStatus = explorer.puzzleContainer.loadCurrentWaterPuzzle1Status();
+					if (puzzleStatus["WaterPuzzleActivated"] == "OFF") {
+						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "WaterPuzzle1NoWater", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+						return false;
+					}
+					Explorer::mapObject whichObject = explorer.getObjectsThatAreClose().at(0);
+					pair<Map<string, string>, string> results = explorer.puzzleContainer.runWaterPuzzle1Logic(whichObject.name);
+					List<Explorer::mapObject> fontDefinitions = explorer.puzzleContainer.getWaterPuzzle1({ 50,35 });
+					if (results.second == "NoMoreWater") {
+						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "WaterPuzzle1NoMoreSwitches", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+						return false;
+					}
+					if (results.second == "Broken") {
+						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "WaterPuzzle1Broken", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+						return false;
+					}
+					if (results.second == "ON" and playAudio) {
+						Event("audio", "PLAYSFX", List<pair<string, string>>({
+							pair<string, string>("audio","7262"),
+							pair<string, string>("direct","1"),
+							pair<string, string>("delay","0.0"),
+							})).run(*&gameEngine);
+					} 
+					for (auto object : fontDefinitions.internalList) {
+						string objectName = object.name;
+						if (objectName.find("FONT") == -1) { 
+							continue; }
+						Graphics::Image* theImage = graphics.accessImageViaUniqueID(objectName);
+						string character = object.data["character"];
+						string direction = object.data["direction"];
+						string action = results.first[objectName];
+						List<int> sources = imageLookup.getSequence(character, action + "_" + direction);
+						if (sources.empty()) {
+							throw exception("Can't have an image with no sources.");
+						}
+						theImage->resetSources(*&graphics, sources);
+						for (int x = 0; x < explorer.currentMap.objects.size(); x++) {
+							if (objectName == explorer.currentMap.objects.at(x).name) {
+								explorer.currentMap.objects.at(x).imageSources = imageLookup.getSequenceAsString(character, action + "_" + direction);
+							}
+						}
+					}
+				}
 				return true;
 			}
 			if (type == "CHANGEANIMATIONSPEED") {
@@ -6243,6 +6328,13 @@ return true;
 					data["uniqueID"] = parsedData.at(0);
 					data["status"] = parsedData.at(1);
 					results.push_back(Event("SetFlag", "SETFLAGANDSAVE", data));
+					continue;
+				}
+				if (speaker == "$RUNPUZZLELOGIC$") {
+					Map<string, string> data;
+					data["whichPuzzle"] = WStringToString(val);
+					results.push_back(Event("Puzzle", "RUNPUZZLELOGIC", data));
+					continue;
 				}
 				if (speaker != "PLAYER" and speaker != mainCharacter and speaker != "PLAYER$ASYNC$" and speaker != "EMPTY$ASYNC$") {
 					// Line belongs to a different playable character

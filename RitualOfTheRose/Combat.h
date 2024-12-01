@@ -2660,6 +2660,9 @@ public:
 		equipmentDefinitions["Roger Bacon's Quill"] = Equipment("Roger Bacon's Quill", "Weapon", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
 			Combat::Effect("INTELLIGENCE",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 250);
+		equipmentDefinitions["Licinia Eucharis' Wand"] = Equipment("Roger Bacon's Quill", "Weapon", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({
+			Combat::Effect("PIETY",1.1f,true,true),
+			}), "EQUIPMENTBLUE", 280);
 
 		// ARMOUR
 		equipmentDefinitions["Vatican Vestiments"] = Equipment("Vatican Vestiments", "Armour", UNIMPLEMENTED_IMAGE, List<Combat::Effect>({

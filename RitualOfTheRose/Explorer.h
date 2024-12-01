@@ -1,0 +1,2579 @@
+#pragma once
+#include "Utils.h"
+
+class Explorer {
+public:
+	Explorer() {
+		defineAllMaps();
+	}
+	class obstruction {
+	public:
+		class triangle {
+		public:
+			triangle() {}
+			triangle(list<pair<float, float>> _points) {
+				points = _points;
+			}
+			List<pair<float, float>> points;
+			bool isSteppedOn(pair<float, float> playerPosition) {
+				float denominator = ((points.at(1).second - points.at(2).second) * (points.at(0).first - points.at(2).first) + (points.at(2).first - points.at(1).first) * (points.at(0).second - points.at(2).second));
+				float a = ((points.at(1).second - points.at(2).second) * (playerPosition.first - points.at(2).first) + (points.at(2).first - points.at(1).first) * (playerPosition.second - points.at(2).second)) / denominator;
+				float b = ((points.at(2).second - points.at(0).second) * (playerPosition.first - points.at(2).first) + (points.at(0).first - points.at(2).first) * (playerPosition.second - points.at(2).second)) / denominator;
+				float c = 1 - a - b;
+				bool result = ((0 <= a && a <= 1) && (0 <= b && b <= 1) && (0 <= c && c <= 1));
+				return result;
+			}
+		};
+		bool isSteppedOn(pair<float, float> playerPosition) {
+			for (auto x : triangles.internalList) {
+				if (x.isSteppedOn(playerPosition)) {
+					return true;
+				}
+			}
+			return false;
+		}
+		List <triangle> triangles;
+	};
+	class mapFloor : public obstruction {
+	public:
+		mapFloor() {}
+		mapFloor(string _uniqueID, List<triangle> _triangles, bool _isTraversable, Map<string, string> _data) {
+			uniqueID = _uniqueID;
+			triangles = _triangles;
+			traversable = _isTraversable;
+			data = _data;
+		}
+		bool hasAudio() {
+			return data["audio"] == "1";
+		}
+		string audioSource() {
+			return data["audio source"];
+		}
+		void playAudio() {
+			if (CLOCK.hasEnoughTimePassed("Explorer Footstep", 500)) {
+				audio.playRandomSFXFromThisCollection(audioSource(), audio.volumes["SFXVolume"]);
+			}
+		}
+
+		string uniqueID;
+		bool traversable = true;
+		Map<string, string> data;
+
+	};
+	class mapObject : public obstruction {
+	public:
+		mapObject() {};
+		mapObject(string _name, bool _canInteract, bool _visible, bool _tracksToPlayer, string _imageSources, string _animated, int _animationSpeed,
+			int _layer, string _opacity, string _scale, string _anchor, pair<float, float> _positionOnMap, bool _isObstruction, List<mapFloor::triangle> _triangles, Map<string, string> _data) {
+			name = _name;
+			canInteract = _canInteract;
+			visible = _visible;
+			tracksToPlayer = _tracksToPlayer;
+			imageSources = _imageSources;
+			animationSpeed = _animationSpeed;
+			positionOnMap = _positionOnMap;
+			anchor = _anchor;
+			layer = _layer;
+			opacity = _opacity;
+			animated = _animated;
+			obstruction = _isObstruction;
+			triangles = _triangles;
+			data = _data;
+			scale = _scale;
+		}
+		bool isSteppedOn(pair<float, float> position) {
+			for (auto x : triangles.internalList) {
+				if (x.isSteppedOn(position)) {
+					return true;
+				}
+			}
+			return false;
+		}
+		bool isSteppedNear(pair<float, float> position) {
+			if (!data.hasKey("expandedInteractionX")) {
+				return isSteppedOn(position);
+			}
+			List<mapFloor::triangle> toCheck = mapObject::resize(triangles, stof(data["expandedInteractionX"]), stof(data["expandedInteractionY"]), positionOnMap);
+
+
+			for (auto x : toCheck.internalList) {
+				if (x.isSteppedOn(position)) {
+					return true;
+				}
+			}
+			return false;
+
+		}
+		static mapObject getTreasureChest(string _uniqueID, pair<float, float> _position, string _appearance, string contents) {
+			mapObject result;
+			result.name = _uniqueID;
+			result.data["uniqueID"] = _uniqueID;
+			result.canInteract = true;
+			result.visible = true;
+			result.tracksToPlayer = false;
+			string xOffsetForTextOnMap = "-2";
+			if (_appearance == "NORMAL_FRONT") {
+				result.imageSources = imageLookup.getSequenceAsString("Chest1", "STAND_FRONT");
+				result.data["ChestImageSource"] = "Chest1";
+			}
+			if (_appearance == "NORMAL2_FRONT") {
+				xOffsetForTextOnMap = "-4";
+				result.imageSources = imageLookup.getSequenceAsString("Chest2", "STAND_FRONT");
+				result.data["ChestImageSource"] = "Chest2";
+			}
+			result.opacity = "1.0";
+			result.animated = "0";
+			result.animationSpeed = 100;
+			result.layer = imageLookup.layerDefaults["SMALLOBJECTS"];
+			result.anchor = "CENTRE";
+			result.positionOnMap = _position;
+			result.data["contents"] = contents;
+			result.obstruction = true;
+			// the treasure chest is 3% of the size of a map. Shrink these triangles to X% and move them to the coordiantes
+			List<mapFloor::triangle> chestTriangles;
+			if (_appearance == "NORMAL_FRONT") {
+				chestTriangles = { mapFloor::triangle({{49.4265079498291,4.762154072523117}, {-2.8783023357391357,48.89237880706787}, {48.81502389907837,29.82090711593628}}),mapFloor::triangle({{-19.547539949417114,13.16099464893341}, {49.4265079498291,4.762154072523117}, {42.853039503097534,-8.155468851327896}}),mapFloor::triangle({{33.22214484214783,-18.321406841278076}, {-19.547539949417114,13.16099464893341}, {42.853039503097534,-8.155468851327896}}),
+mapFloor::triangle({{49.4265079498291,4.762154072523117}, {-19.623970985412598,25.84931254386902}, {-2.8783023357391357,48.89237880706787}}),mapFloor::triangle({{-19.547539949417114,13.16099464893341}, {-19.623970985412598,25.84931254386902}, {49.4265079498291,4.762154072523117}}),mapFloor::triangle({{33.22214484214783,-18.321406841278076}, {-19.47110742330551,0.47267675399780273}, {-19.547539949417114,13.16099464893341}}), };
+			}
+			if (_appearance == "NORMAL2_FRONT") {
+				chestTriangles = { mapFloor::triangle({{29.89441156387329,-15.748412907123566}, {-27.801993489265442,34.07939672470093}, {29.928600788116455,34.07939672470093}}),mapFloor::triangle({{29.89441156387329,-15.748412907123566}, {-27.880877256393433,-15.748415887355804}, {-27.801993489265442,34.07939672470093}}), };
+			}
+			result.triangles = mapObject::convertFrom100toX(chestTriangles, 0.03, _position);
+			if (saveContainer.current.flags[_uniqueID + "_OPENED"]) {
+				result.imageSources = imageLookup.getSequenceAsString("Chest1", "OPEN_FRONT");
+				result.data["open"] = "1";
+			}
+			else {
+				result.data["open"] = "0";
+				result.data["message"] = "$LANGUAGE$_Map Pop Up Text_Open Chest";
+				result.data["copy"] = _uniqueID;
+				result.data["imageID"] = _uniqueID;
+				result.data["colour"] = "WHITE";
+				result.data["shadowColour"] = "BLACK";
+				result.data["anchorStyle"] = "TOPLEFT";
+				result.data["x"] = xOffsetForTextOnMap;
+				result.data["y"] = "-10";
+				result.data["h"] = "50";
+				result.data["w"] = "50";
+				result.data["format"] = "LightText_20";
+				result.data["layer"] = to_string(imageLookup.layerDefaults["TEXTONMAP"]);
+				result.data["uniqueID"] = "mappopuptextID";
+				result.data["expandedInteractionX"] = "1";
+				result.data["expandedInteractionY"] = "1.2";
+				result.data["isAChest"] = "1";
+			}
+			return result;
+		}
+		static mapObject getOnetimeTrigger(string _uniqueID, List<mapFloor::triangle> zone) {
+			// no image, invisible, can be stepped on, if interact = 1 do the cutscene if 0 nothing
+			mapObject result;
+			result.name = _uniqueID;
+			result.visible = false;
+			if (saveContainer.current.flags[_uniqueID + "_TRIGGERED"]) {
+				result.canInteract = false;
+				return result;
+			}
+			result.triangles = zone;
+			result.canInteract = true;
+			result.data["cutscene"] = _uniqueID;
+			result.data["trigger"] = "1";
+			return result;
+		}
+		static List<mapFloor::triangle> convertFrom100toX(List<mapFloor::triangle> input, float scale, pair<float, float> position) {
+			for (auto& t : input.internalList) {
+				for (auto& p : t.points.internalList) {
+					p.first *= scale;
+					p.second *= scale;
+					p.first += position.first;
+					p.second += position.second;
+				}
+			}
+			return input;
+		}
+		static List<mapFloor::triangle> resize(List<mapFloor::triangle> input, float scaleX, float scaleY, pair<float, float> position) {
+			for (auto& t : input.internalList) {
+				for (auto& p : t.points.internalList) {
+					if (p.first > position.first) {
+						p.first *= scaleX;
+					}
+					else {
+						p.first *= (1.0f + (1.0 - scaleX));
+					}
+					if (p.second > position.second) {
+						p.second *= scaleY;
+					}
+					else {
+						p.second *= (1.0f + (1.0 - scaleY));
+					}
+				}
+			}
+			return input;
+		}
+
+
+		string name = "";
+		string anchor;
+		bool canInteract = false;
+		bool visible = false;
+		bool tracksToPlayer = false; // if true it follows the player around the map, i.e. fog or light effect
+		string animated = "0";
+		string imageSources;
+		int animationSpeed = 1;
+		pair<float, float> positionOnMap;
+		int layer = 1;
+		string opacity = "1.0f";
+		string scale = "1.0f";
+		bool obstruction = false;
+		Map<string, string> data; // if interacting with this object triggers something
+	};
+	class mapInstance {
+	public:
+		mapInstance() {}
+		mapInstance(string _name, int _source, pair<float, float> _playerStartPosition, List<mapObject> _objects, List<mapFloor> _walkables, Map<string, bool> _flags, pair<float, float> _imageSize,
+			Map<string, string> _data) {
+			name = _name;
+			source = _source;
+			playerStartPosition = _playerStartPosition;
+			objects = _objects;
+			walkables = _walkables;
+			flags = _flags;
+			imageSize = _imageSize;
+			data = _data;
+		}
+		List<string> getSongNames() {
+			List<string> result;
+			for (auto x : data.getKeys().internalList) {
+				if (x.find("song") != -1) {
+					result.push_back(data[x]);
+				}
+			}
+			return result;
+		}
+		List<string> getAmbienceNames() {
+			List<string> result;
+			for (auto x : data.getKeys().internalList) {
+				if (x.find("ambience") != -1) {
+					result.push_back(data[x]);
+				}
+			}
+			return result;
+		}
+		void addNewCutsceneObject(string uniqueID, string characterName, string dirplusaction, pair<float, float> loc, int animationSpeed, int layer) {
+			mapObject result;
+			result.visible = true;
+			result.canInteract = false;
+			result.animationSpeed = animationSpeed;
+			result.tracksToPlayer = false;
+			result.animated = "1";
+			result.layer = layer;
+			result.imageSources = imageLookup.getSequenceAsString(characterName, dirplusaction);
+			result.positionOnMap = loc;
+			objects.push_back(result);
+		}
+		bool doesAnObjectWithThisNameExist(string uniqueID) {
+			for (auto x : objects.internalList) {
+				if (x.name == uniqueID) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		string name = "";
+		int source;
+		pair<float, float> playerStartPosition;
+		List<mapObject> objects;
+		List<mapFloor> walkables;
+		Map<string, bool> flags; // can influence what gets drawn and how
+		pair<float, float> imageSize;
+		Map<string, string> data;
+	};
+	struct playerObject {
+		pair<float, float> position;
+	};
+	struct camera {
+		pair<float, float> position;
+	};
+	class puzzles {
+	public:
+		puzzles() {
+		}
+		pair<Map<string, string>, string> runWaterPuzzle1Logic(string whichObject) {
+			// whichFont - status
+						/*
+						x
+					x		x
+				x		x		x
+			x		x		x
+				x		x		x
+					x		x
+
+								9
+					7		8
+				4		5		6
+			1		2		3
+				10		11		12
+					13		14
+								15
+			*/
+			List<int> chain1 = List<int>({1,4,7,5,3,6,8,9});
+			List<int> chain2 = List<int>({1,10,13,11,14,15});
+
+			Map<string, string> result = loadCurrentWaterPuzzle1Status();
+			int fontsOn = 0;
+			for (auto [key, value] : result.internalMap) {
+				if (key.find("FONT") != -1 and key.find("FLOOR") == -1 and value == "ON") {
+					fontsOn++;
+				}
+			}
+			if (result["WaterPuzzleActivated"] == "OFF") {
+				return { result, "NoChange" };
+			}
+			string currentStatusOfCurrentObject = result[whichObject];
+			if (currentStatusOfCurrentObject == "OFF" and fontsOn >= waterPuzzle1FontsAllowed) {
+				return {result, "NoMoreWater"};
+			}
+			if (whichObject == "FONT2") {
+				return { result, "Broken" };
+			}
+			if (currentStatusOfCurrentObject == "ON" and whichObject == "FONT1") {
+				// turn all off
+				for (auto res : result.getKeys().internalList) {
+					if (res.find("FONT") != -1) {
+						result[res] = "OFF";
+						result[res + "FLOOR"] = "OFF";
+					}
+				}
+			}
+			if (currentStatusOfCurrentObject == "OFF") {
+				if (whichObject == "FONT1") {
+					result[whichObject] = "ON";
+					result[whichObject + "FLOOR"] = "ON";
+				}
+				if (whichObject == "FONT4" and areAllTheseOn(result, { 1 }, "FONT")) {result[whichObject] = "ON";result[whichObject + "FLOOR"] = "ON";}
+				if (whichObject == "FONT7" and areAllTheseOn(result, List<int>({ 1, 4 }), "FONT")) {result[whichObject] = "ON";result[whichObject + "FLOOR"] = "ON";}
+				if (whichObject == "FONT5" and areAllTheseOn(result, List<int>({ 1, 4, 7 }), "FONT")) {result[whichObject] = "ON";result[whichObject + "FLOOR"] = "ON";}
+				if (whichObject == "FONT3" and areAllTheseOn(result, List<int>({ 1, 4, 7, 5 }), "FONT")) {result[whichObject] = "ON";result[whichObject + "FLOOR"] = "ON";}
+				if (whichObject == "FONT6" and areAllTheseOn(result, List<int>({ 1, 4, 7, 5, 3 }), "FONT")) { result[whichObject] = "ON"; result[whichObject + "FLOOR"] = "ON"; }
+				if (whichObject == "FONT8" and areAllTheseOn(result, List<int>({ 1, 4, 7, 5, 3, 6 }), "FONT")) { result[whichObject] = "ON"; result[whichObject + "FLOOR"] = "ON"; }
+				if (whichObject == "FONT9" and areAllTheseOn(result, List<int>({ 1, 4, 7, 5, 3, 6, 8 }), "FONT")) { result[whichObject] = "ON"; result[whichObject + "FLOOR"] = "ON"; }
+
+				if (whichObject == "FONT10" and areAllTheseOn(result, { 1 }, "FONT")) { result[whichObject] = "ON"; result[whichObject + "FLOOR"] = "ON"; }
+				if (whichObject == "FONT13" and areAllTheseOn(result, List<int>({ 1,10 }), "FONT")) { result[whichObject] = "ON"; result[whichObject + "FLOOR"] = "ON"; }
+				if (whichObject == "FONT11" and areAllTheseOn(result, List<int>({ 1,10 }), "FONT")) { result[whichObject] = "ON"; result[whichObject + "FLOOR"] = "ON"; }
+				if (whichObject == "FONT14" and areAllTheseOn(result, List<int>({ 1,10, 13, 11 }), "FONT")) { result[whichObject] = "ON"; result[whichObject + "FLOOR"] = "ON"; }
+				if (whichObject == "FONT15" and areAllTheseOn(result, List<int>({ 1,10, 13, 11,14 }), "FONT")) { result[whichObject] = "ON"; result[whichObject + "FLOOR"] = "ON"; }
+			}
+			for (auto res : result.getKeys().internalList) {
+				if (res.find("FONT") != -1 and res.find("FLOOR") == -1) {
+					bool isOn = result[res] == "ON";
+					saveContainer.current.flags["WATERPUZZLE1" + res] = isOn;
+				}
+			}
+			saveContainer.save();
+			return {result, result[whichObject]};
+		}
+		bool areAllTheseOn(Map<string, string> status, List<int> which, string keyword) {
+			for (auto key : which.internalList) {
+				string keyAsString = keyword + to_string(key);
+				if (status[keyAsString] == "OFF") {
+						return false;
+					}
+			}
+			return true;
+		}
+		List<mapObject> getWaterPuzzle1(pair<float, float> position) {
+			Map<string, string> status = loadCurrentWaterPuzzle1Status();
+			List<mapObject> results;
+			// distances = 0.45, 2.8
+			float x = 4.55;
+			float y = 2.8;
+			mapObject puzzleStart;
+			puzzleStart.name = "PUZZLESTARTFLOOR";
+			puzzleStart.data["uniqueID"] = "PUZZLESTARTFLOOR";
+			puzzleStart.anchor = "CENTRE";
+			puzzleStart.positionOnMap = {position.first - 8.1, position.second};
+			puzzleStart.canInteract = false;
+			puzzleStart.visible = true;
+			puzzleStart.obstruction = false;
+			puzzleStart.layer = imageLookup.layerDefaults["PLAYER"] - 1;
+			puzzleStart.imageSources = imageLookup.getSequenceAsString("WATERFONTSTARTFLOOR", status["WaterPuzzleActivated"] + "_FRONT");
+			puzzleStart.animated = "1";
+			puzzleStart.animationSpeed = 90;
+			results.push_back(puzzleStart);
+			/*			
+						x
+					x		x
+				x		x		x
+			x		x		x
+				x		x		x	
+					x		x
+
+								9
+					7		8
+				4		5		6
+			1		2		3
+				10		11		12
+					13		14
+								15
+			
+			*/
+
+			for (auto res : getFont("FONT1", "WATERFONTDUO", "RIGHT", status["FONT1"], {position.first - 8.1, position.second}).internalList) { results.push_back(res); }
+			for (auto res : getFont("FONT2", "WATERFONTBROKEN", "FRONT", status["FONT2"], { position.first, position.second }).internalList) { results.push_back(res); }
+			for (auto res : getFont("FONT3", "WATERFONTDUO", "RIGHT", status["FONT3"], { position.first + 8.1, position.second }).internalList) { results.push_back(res); }
+
+			for (auto res : getFont("FONT4", "WATERFONTTRIS", "FRONT", status["FONT4"], { position.first - 4.05, position.second - 2.8 }).internalList) { results.push_back(res); }
+			for (auto res : getFont("FONT5", "WATERFONTDUO", "FRONT", status["FONT5"], { position.first + 4.05, position.second - 2.8 }).internalList) { results.push_back(res); }
+			for (auto res : getFont("FONT6", "WATERFONTDUO", "LEFT", status["FONT6"], { position.first + 12.15, position.second - 2.8 }).internalList) { results.push_back(res); }
+
+			for (auto res : getFont("FONT7", "WATERFONTDUO", "FRONT", status["FONT7"], { position.first, position.second - 5.6 }).internalList) { results.push_back(res); }
+			for (auto res : getFont("FONT8", "WATERFONTMONO", "BACK", status["FONT8"], { position.first + 8.1, position.second - 5.6 }).internalList) { results.push_back(res); }
+
+			for (auto res : getFont("FONT9", "WATERFONTMONO", "FRONT", status["FONT9"], { position.first + 12.15, position.second - 8.4 }).internalList) { results.push_back(res); }
+
+			for (auto res : getFont("FONT10", "WATERFONTDUO", "RIGHT", status["FONT10"], { position.first - 4.05, position.second + 2.8 }).internalList) { results.push_back(res); }
+			for (auto res : getFont("FONT11", "WATERFONTDUO2", "FRONT", status["FONT11"], { position.first + 4.05, position.second + 2.8 }).internalList) { results.push_back(res); }
+			for (auto res : getFont("FONT12", "WATERFONTBROKEN", "LEFT", status["FONT12"], { position.first + 12.15, position.second + 2.8 }).internalList) { results.push_back(res); }
+
+			for (auto res : getFont("FONT13", "WATERFONTMONO", "BACK", status["FONT13"], { position.first, position.second + 5.6 }).internalList) { results.push_back(res); }
+			for (auto res : getFont("FONT14", "WATERFONTMONO", "RIGHT", status["FONT14"], { position.first + 8.1, position.second + 5.6 }).internalList) { results.push_back(res); }
+			for (auto res : getFont("FONT15", "WATERFONTSECRETEND", "FRONT", status["FONT15"], { position.first + 12.15, position.second + 8.4 }).internalList) { results.push_back(res); }
+
+
+			return results;
+		}
+		List<mapObject> getFont(string uniqueID, string type, string direction, string status, pair<float, float> position) {
+			List<mapFloor::triangle> fontTriangles = List<mapFloor::triangle>({ mapFloor::triangle({{20.29440402984619,15.218010544776917}, {-8.58709141612053,23.781627416610718}, {8.741944283246994,23.781627416610718}}),mapFloor::triangle({{19.940221309661865,2.893342450261116}, {-20.150218904018402,15.218007564544678}, {20.29440402984619,15.218010544776917}}),mapFloor::triangle({{19.940221309661865,2.893342450261116}, {-15.702112019062042,-0.04478186892811209}, {-19.808906316757202,2.8933385387063026}}), mapFloor::triangle({{20.29440402984619,15.218010544776917}, {-20.150218904018402,15.218007564544678}, {-8.58709141612053,23.781627416610718}}),mapFloor::triangle({{19.940221309661865,2.893342450261116}, {-19.808906316757202,2.8933385387063026}, {-20.150218904018402,15.218007564544678}}),mapFloor::triangle({{19.940221309661865,2.893342450261116}, {15.833427011966705,-0.0447787664597854}, {-15.702112019062042,-0.04478186892811209}}) });
+			fontTriangles = mapObject::convertFrom100toX(fontTriangles, 0.03, position);
+			mapObject result;
+			result.name = uniqueID;
+			result.data["uniqueID"] = uniqueID;
+			result.canInteract = true;
+			result.visible = true;
+			result.layer = imageLookup.layerDefaults["PLAYER"];
+			result.anchor = "CENTRE";
+			result.positionOnMap = position;
+			result.obstruction = true;
+			result.triangles = fontTriangles;
+			result.data["message"] = "$LANGUAGE$_Map Pop Up Text_Turn Handle";
+			result.data["copy"] = uniqueID;
+			result.data["imageID"] = uniqueID;
+			result.data["colour"] = "WHITE";
+			result.data["shadowColour"] = "BLACK";
+			result.data["anchorStyle"] = "CENTRE";
+			result.data["x"] = "0";
+			result.data["y"] = "-10";
+			result.data["h"] = "50";
+			result.data["w"] = "50";
+			result.data["format"] = "LightText_20";
+			result.data["layer"] = to_string(imageLookup.layerDefaults["TEXTONMAP"]);
+			result.data["uniqueID"] = "mappopuptextID";
+			result.data["expandedInteractionX"] = "1.02";
+			result.data["expandedInteractionY"] = "1.02";
+			result.data["cutscene"] = "WaterPuzzle1RunPuzzle";
+			result.data["character"] = type;
+			result.data["direction"] = direction;
+			result.animated = "1";
+			result.animationSpeed = 90;
+			result.imageSources = imageLookup.getSequenceAsString(type, status + "_" + direction );
+			mapObject result2;
+			result2.name = uniqueID + "FLOOR";
+			result2.data["uniqueID"] = uniqueID + "FLOOR";
+			result2.anchor = "CENTRE";
+			result2.positionOnMap = position;
+			result2.canInteract = false;
+			result2.visible = true;
+			result2.obstruction = false;
+			result2.layer = imageLookup.layerDefaults["PLAYER"] - 1;
+			result2.imageSources = imageLookup.getSequenceAsString(type + "FLOOR", status + "_" + direction);
+			result2.animated = "1";
+			result2.animationSpeed = 90;
+			result2.data["character"] = type + "FLOOR";
+			result2.data["direction"] = direction;
+			return List<mapObject>({ result, result2 });
+		}
+		Map<string, string> loadCurrentWaterPuzzle1Status() {
+			Map<string, bool> flags; flags.internalMap = saveContainer.current.flags;
+			Map<string, string> result;
+			if (flags["WaterPuzzleActivated"]) {
+				result["WaterPuzzleActivated"] = "ON";
+			}
+			else {
+				result["WaterPuzzleActivated"] = "OFF";
+			}
+			for (int x = 1; x <= waterPuzzle1FontCount; x++) {
+				result["FONT" + to_string(x)] = "OFF";
+				result["FONT" + to_string(x) + "FLOOR"] = "OFF";
+				if (flags["WATERPUZZLE1FONT" + to_string(x)]) {
+					result["FONT" + to_string(x)] = "ON";
+					result["FONT" + to_string(x) + "FLOOR"] = "ON";
+				}
+			}
+			return result;
+		}
+		int waterPuzzle1FontCount = 15;
+		int waterPuzzle1FontsAllowed = 8;
+	};
+	puzzles puzzleContainer;
+	void defineAllMaps() {
+		maps["RoadToBénouville"] = mapInstance("RoadToBénouville", MAP_DEBUG, { 45,8 /*51,55*/ }, List<mapObject>({
+			mapObject::getOnetimeTrigger("HorsemanCutscene1",List<mapFloor::triangle>({mapFloor::triangle({{47.42600917816162,9.98448133468628}, {48.882490396499634,6.590679287910461}, {48.918330669403076,10.155074298381805}}),mapFloor::triangle({{48.918330669403076,10.155074298381805}, {50.9097695350647,6.964127719402313}, {50.94560980796814,10.528524219989777}}),mapFloor::triangle({{48.882490396499634,6.590679287910461}, {49.91276562213898,5.539841949939728}, {50.9097695350647,6.964127719402313}}),
+mapFloor::triangle({{48.94671440124512,12.747283279895782}, {48.918330669403076,10.155074298381805}, {50.50344467163086,12.811049818992615}}),mapFloor::triangle({{50.46741962432861,15.510085225105286}, {50.50344467163086,12.811049818992615}, {52.088552713394165,15.467023849487305}}),mapFloor::triangle({{52.088552713394165,15.467023849487305}, {54.11888360977173,12.615998089313507}, {55.40493726730347,14.890195429325104}}),
+mapFloor::triangle({{50.94560980796814,10.528524219989777}, {50.50344467163086,12.811049818992615}, {48.918330669403076,10.155074298381805}}),mapFloor::triangle({{47.42600917816162,9.98448133468628}, {47.411930561065674,6.761273741722107}, {48.882490396499634,6.590679287910461}}),mapFloor::triangle({{48.918330669403076,10.155074298381805}, {48.882490396499634,6.590679287910461}, {50.9097695350647,6.964127719402313}}),
+mapFloor::triangle({{48.882490396499634,6.590679287910461}, {48.882490396499634,5.7226985692977905}, {49.91276562213898,5.539841949939728}}),mapFloor::triangle({{48.94671440124512,12.747283279895782}, {47.42600917816162,9.98448133468628}, {48.918330669403076,10.155074298381805}}),mapFloor::triangle({{50.46741962432861,15.510085225105286}, {48.94671440124512,12.747283279895782}, {50.50344467163086,12.811049818992615}}),
+mapFloor::triangle({{52.088552713394165,15.467023849487305}, {50.50344467163086,12.811049818992615}, {54.11888360977173,12.615998089313507}}),mapFloor::triangle({{50.94560980796814,10.528524219989777}, {54.11888360977173,12.615998089313507}, {50.50344467163086,12.811049818992615}}),})),
+			mapObject("AT_EnterTown", true, false, false, "", "0", 0, 0, "1", "1.0", "CENTRE", { 55, 3 }, false, List<mapFloor::triangle>({mapFloor::triangle({{50.96829533576965,2.710600197315216}, {56.24496936798096,-0.025719404220581055}, {56.244683265686035,2.710600197315216}}),mapFloor::triangle({{56.244462728500366,4.765757918357849}, {50.96829533576965,2.710600197315216}, {56.244683265686035,2.710600197315216}}),mapFloor::triangle({{50.96829533576965,2.710600197315216}, {49.12346601486206,-0.025719404220581055}, {56.24496936798096,-0.025719404220581055}}),
+mapFloor::triangle({{56.244462728500366,4.765757918357849}, {50.94001889228821,4.765757918357849}, {50.96829533576965,2.710600197315216}}),}), Map<string, string>({
+											pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Enter Bénouville"}),
+											pair<string, string>({"copy","AT_EnterTown"}),
+											pair<string, string>({"areaTransition","BénouvilleTown1"}),
+											pair<string, string>({"direction","STAND_BACK"}),
+											pair<string, string>({"playerPosX","62"}),
+											pair<string, string>({"playerPosY","96"}),
+											pair<string, string>({"audio","STONESTEPS"}),
+											pair<string, string>({"x","0"}),
+											pair<string, string>({"y","0"}),
+											pair<string, string>({"h","50"}),
+											pair<string, string>({"w","50"}),
+											pair<string, string>("colour", "WHITE"),
+											pair<string, string>("uniqueID", mapPopupTextID),
+											pair<string, string>("anchorStyle", "TOPLEFT"),
+											pair<string, string>("shadowColour", "BLACK"),
+											pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+											pair<string, string>({"format","LightText_20"}),
+			})),
+			mapObject("FilmGrain1", false, true, true, imageLookup.getSequenceAsString("FilmGrain1","STAND_FRONT"),"1",1,imageLookup.layerDefaults["WEATHER"],"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+			mapObject("TopLayer", false, true, false, imageLookup.getSequenceAsString("RoadToTownTop","ACTION_1"),"0",0,imageLookup.layerDefaults["ENVIRONMENT"] - 1,"1.0","2.0","CENTRE",{50, 50}, false, {}, {}),
+			mapObject("Lamp1", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{60.5f, 20.0f}, false, {}, {}),
+			mapObject("Lamp2", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{49.3, 29.7}, false, {}, {}),
+			mapObject("Lamp3", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{34.9, 18.0}, false, {}, {}),
+			mapObject("Lamp4", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{46.8, 13.7}, false, {}, {}),
+			mapObject("Lamp5", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{49.2, 1.2}, false, {}, {}),
+			mapObject("Well", false, true, false, imageLookup.getSequenceAsString("Well","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{42, 26.6}, false, {}, {}),
+			mapObject("Lamp6", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{56.9, 1.2}, false, {}, {}),
+			mapObject("DeadHorse", true, false, false, "","0",0,imageLookup.layerDefaults["SMALLOBJECTS"],"1.0","1.0","CENTRE",{54.6, 16.9}, false, List<mapFloor::triangle>({mapFloor::triangle({{50.72616934776306,23.629747331142426}, {56.28034472465515,16.637805104255676}, {50.594234466552734,16.637805104255676}}),mapFloor::triangle({{50.72616934776306,23.629747331142426}, {56.76738619804382,23.295582830905914}, {56.28034472465515,16.637805104255676}}),}), Map<string, string>({
+										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Dead Horse"}),
+										pair<string, string>({"copy","DeadHorse"}),
+										pair<string, string>({"cutscene","DeadHorse"}),
+										pair<string, string>({"x","0"}),
+										pair<string, string>({"y","0"}),
+										pair<string, string>({"h","50"}),
+										pair<string, string>({"w","50"}),
+										pair<string, string>("colour", "WHITE"),
+										pair<string, string>("uniqueID", mapPopupTextID),
+										pair<string, string>("anchorStyle", "TOPLEFT"),
+										pair<string, string>("shadowColour", "BLACK"),
+										pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+										pair<string, string>({"format","LightText_20"})})),
+			mapObject("DeadWoman", true, true, false, imageLookup.getSequenceAsString("DeadWoman1","STAND_FRONT"),"0",0,imageLookup.layerDefaults["SMALLOBJECTS"],"1.0","1.0","CENTRE",{44.7, 21}, false, List<mapFloor::triangle>({mapFloor::triangle({{43.252843618392944,23.397547006607056}, {45.84275484085083,18.938007950782776}, {41.23336672782898,20.89352011680603}}),mapFloor::triangle({{43.252843618392944,23.397547006607056}, {47.981709241867065,21.335013210773468}, {45.84275484085083,18.938007950782776}}),}), Map<string, string>({
+										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Corpse of a female villager"}),
+										pair<string, string>({"copy","DeadWoman"}),
+										pair<string, string>({"cutscene","DeadWoman"}),
+										pair<string, string>({"x","-10"}),
+										pair<string, string>({"y","-10"}),
+										pair<string, string>({"h","50"}),
+										pair<string, string>({"w","50"}),
+										pair<string, string>("colour", "WHITE"),
+										pair<string, string>("uniqueID", mapPopupTextID),
+										pair<string, string>("anchorStyle", "TOPLEFT"),
+										pair<string, string>("shadowColour", "BLACK"),
+										pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+										pair<string, string>({"format","LightText_20"})})),
+			mapObject("LeaveBénouville", true, false, false, "","0",0,0,"1.0","1.0","CENTRE",{57, 96}, false, List<mapFloor::triangle>({mapFloor::triangle({{68.51502060890198,99.87432956695557}, {48.152658343315125,93.04946660995483}, {48.152658343315125,99.87432956695557}}),mapFloor::triangle({{68.51502060890198,99.87432956695557}, {68.51502060890198,93.04946660995483}, {48.152658343315125,93.04946660995483}}),}), Map<string, string>({
+										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Leave Bénouville"}),
+										pair<string, string>({"copy","LeaveBénouville"}),
+										pair<string, string>({"cutscene","Leave Bénouville"}),
+										pair<string, string>({"x","0"}),
+										pair<string, string>({"y","0"}),
+										pair<string, string>({"h","50"}),
+										pair<string, string>({"w","50"}),
+										pair<string, string>("colour", "WHITE"),
+										pair<string, string>("uniqueID", mapPopupTextID),
+										pair<string, string>("anchorStyle", "TOPLEFT"),
+										pair<string, string>("shadowColour", "BLACK"),
+										pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+										pair<string, string>({"format","LightText_20"})})),
+			mapObject("DeadMan", true, true, false, imageLookup.getSequenceAsString("DeadMan1", "STAND_FRONT"), "0", 0, imageLookup.layerDefaults["SMALLOBJECTS"], "1.0","1.0", "CENTRE", { 37.9, 26.1 }, false, List<mapFloor::triangle>({ mapFloor::triangle({{33.55035483837128,27.531203627586365}, {41.157734394073486,24.36063140630722}, {33.66403877735138,24.066226184368134}}),mapFloor::triangle({{33.55035483837128,27.531203627586365}, {41.06677174568176,28.645145893096924}, {41.157734394073486,24.36063140630722}}),}), Map<string, string>({
+										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Corpse of a male villager"}),
+										pair<string, string>({"copy","DeadMan"}),
+										pair<string, string>({"cutscene","DeadMan"}),
+										pair<string, string>({"x","-10"}),
+										pair<string, string>({"y","-10"}),
+										pair<string, string>({"h","50"}),
+										pair<string, string>({"w","50"}),
+										pair<string, string>("colour", "WHITE"),
+										pair<string, string>("uniqueID", mapPopupTextID),
+										pair<string, string>("anchorStyle", "TOPLEFT"),
+										pair<string, string>("shadowColour", "BLACK"),
+										pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+										pair<string, string>({"format","LightText_20"}) })),
+			mapObject("Fog1", false, true, true, imageLookup.getSequenceAsString("Fog2","STAND_FRONT"),"1",2500,imageLookup.layerDefaults["ENVIRONMENT"] + 1,"1","1.0","CENTRE",{0, 0}, false, {}, {}),
+			mapObject("OldBookManShadow", true, true, false, imageLookup.getSequenceAsString("Shadow OldBookMan", "STAND_FRONT"), "1", 800, imageLookup.layerDefaults["PLAYERSHADOW"], "1.0", "1.0","CENTRE", { 9, 37 }, false, List<mapFloor::triangle>({ mapFloor::triangle({{12.475095689296722,35.404083132743835}, {6.834037601947784,39.8309051990509}, {7.403770089149475,35.25550961494446}}),mapFloor::triangle({{12.475095689296722,35.404083132743835}, {12.759986519813538,40.50284922122955}, {6.834037601947784,39.8309051990509}}),}), Map<string, string>({})),
+			mapObject("OldBookMan", true, true, false, imageLookup.getSequenceAsString("OldBookMan", "STAND_FRONT"), "1", 800, imageLookup.layerDefaults["PLAYER"], "1.0", "1.0","CENTRE", { 9, 37 }, false, List<mapFloor::triangle>({ mapFloor::triangle({{12.475095689296722,35.404083132743835}, {6.834037601947784,39.8309051990509}, {7.403770089149475,35.25550961494446}}),mapFloor::triangle({{12.475095689296722,35.404083132743835}, {12.759986519813538,40.50284922122955}, {6.834037601947784,39.8309051990509}}),}), Map<string, string>({
+										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to OldBookMan"}),
+										pair<string, string>({"copy","OldBookMan"}),
+										pair<string, string>({"x","5"}),
+										pair<string, string>({"y","-5"}),
+										pair<string, string>({"h","50"}),
+										pair<string, string>({"w","50"}),
+										pair<string, string>("Merchant", "1"),
+										pair<string, string>("colour", "WHITE"),
+										pair<string, string>("uniqueID", mapPopupTextID),
+										pair<string, string>("anchorStyle", "TOPLEFT"),
+										pair<string, string>("shadowColour", "BLACK"),
+										pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+										pair<string, string>({"format","LightText_20"}) })),
+			mapObject("AT_Door", true, false, false, "","0",0,0,"1","1.0","CENTRE",{36.2, 19.1}, false, List<mapFloor::triangle>({mapFloor::triangle({{37.298646569252014,20.028436183929443}, {35.527339577674866,21.976549923419952}, {35.056111216545105,20.607496798038483}}),mapFloor::triangle({{37.298646569252014,20.028436183929443}, {37.60534226894379,21.315868198871613}, {35.527339577674866,21.976549923419952}}),}), Map<string, string>({
+										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Enter House"}),
+										pair<string, string>({"copy","AT_Door"}),
+										pair<string, string>({"areaTransition","House1Inside1"}),
+										pair<string, string>({"direction","STAND_BACK"}),
+										pair<string, string>({"playerPosX","46"}),
+										pair<string, string>({"playerPosY","53"}),
+										pair<string, string>({"audio","WOODENDOOR"}),
+										pair<string, string>({"x","-5"}),
+										pair<string, string>({"y","-10"}),
+										pair<string, string>({"h","50"}),
+										pair<string, string>({"w","50"}),
+										pair<string, string>("colour", "WHITE"),
+										pair<string, string>("uniqueID", mapPopupTextID),
+										pair<string, string>("anchorStyle", "TOPLEFT"),
+										pair<string, string>("shadowColour", "BLACK"),
+										pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+										pair<string, string>({"format","LightText_20"}),
+			})),
+			}), List<mapFloor>({
+			mapFloor("GrassFloor", List<mapFloor::triangle>({mapFloor::triangle({{43.571436405181885,100.0}, {50.17085075378418,43.96422207355499}, {42.67935752868652,43.96422207355499}}),mapFloor::triangle({{42.67935752868652,43.96422207355499}, {45.86067199707031,34.00440216064453}, {39.01277184486389,34.00440216064453}}),mapFloor::triangle({{39.01277184486389,34.00440216064453}, {45.009586215019226,23.523083329200745}, {38.076019287109375,23.014554381370544}}),
+			mapFloor::triangle({{61.50498986244202,34.00440216064453}, {100.07518529891968,43.96422505378723}, {100.07518529891968,34.00440514087677}}),mapFloor::triangle({{45.86067199707031,34.00440216064453}, {52.96544432640076,43.96422207355499}, {61.50498986244202,34.00440216064453}}),mapFloor::triangle({{100.07518529891968,4.586407914757729}, {61.50498986244202,0.0}, {61.50498986244202,4.58640493452549}}),
+		mapFloor::triangle({{61.50498986244202,20.45578807592392}, {100.07518529891968,4.586407914757729}, {61.50498986244202,4.58640493452549}}),mapFloor::triangle({{36.98071539402008,4.58640493452549}, {43.09951066970825,0.0}, {36.66390776634216,0.0}}),mapFloor::triangle({{44.76052224636078,20.45578807592392}, {61.50498986244202,4.58640493452549}, {43.47192645072937,4.58640493452549}}),
+		mapFloor::triangle({{100.07518529891968,43.96422505378723}, {62.45462894439697,100.0}, {100.07518529891968,100.0}}),mapFloor::triangle({{45.86067199707031,34.00440216064453}, {61.50498986244202,23.523081839084625}, {45.009586215019226,23.523083329200745}}),mapFloor::triangle({{100.07518529891968,34.00440514087677}, {61.50498986244202,23.523081839084625}, {61.50498986244202,34.00440216064453}}),
+		mapFloor::triangle({{38.076019287109375,23.014554381370544}, {44.76052224636078,20.45578807592392}, {37.005507946014404,20.4557865858078}}),mapFloor::triangle({{37.005507946014404,20.4557865858078}, {43.47192645072937,4.58640493452549}, {36.98071539402008,4.58640493452549}}),mapFloor::triangle({{45.009586215019226,23.523083329200745}, {61.50498986244202,20.45578807592392}, {44.76052224636078,20.45578807592392}}),
+		mapFloor::triangle({{100.07518529891968,23.523084819316864}, {61.50498986244202,20.45578807592392}, {61.50498986244202,23.523081839084625}}),mapFloor::triangle({{0.0,20.45578807592392}, {34.178343415260315,4.58640493452549}, {0.0,4.58640493452549}}),mapFloor::triangle({{0.0,23.523081839084625}, {35.39458215236664,20.97281813621521}, {0.0,20.45578807592392}}),
+		mapFloor::triangle({{0.0,4.58640493452549}, {33.885544538497925,0.0}, {0.0,0.0}}),mapFloor::triangle({{0.0,23.523081839084625}, {36.05641424655914,34.00440216064453}, {36.39649152755737,23.523083329200745}}),mapFloor::triangle({{0.0,43.96422207355499}, {36.05641424655914,34.00440216064453}, {0.0,34.00440216064453}}),
+		mapFloor::triangle({{0.0,100.0}, {39.445146918296814,43.96422207355499}, {0.0,43.96422207355499}}),mapFloor::triangle({{34.178343415260315,4.58640493452549}, {37.005507946014404,20.4557865858078}, {36.98071539402008,4.58640493452549}}),mapFloor::triangle({{34.178343415260315,4.58640493452549}, {36.66390776634216,0.0}, {33.885544538497925,0.0}}),
+		mapFloor::triangle({{36.39649152755737,23.523083329200745}, {39.01277184486389,34.00440216064453}, {38.076019287109375,23.014554381370544}}),mapFloor::triangle({{39.445146918296814,43.96422207355499}, {39.01277184486389,34.00440216064453}, {36.05641424655914,34.00440216064453}}),mapFloor::triangle({{40.269625186920166,100.0}, {42.67935752868652,43.96422207355499}, {39.445146918296814,43.96422207355499}}),
+		mapFloor::triangle({{43.571436405181885,100.0}, {51.21951699256897,100.0}, {50.17085075378418,43.96422207355499}}),mapFloor::triangle({{42.67935752868652,43.96422207355499}, {50.17085075378418,43.96422207355499}, {45.86067199707031,34.00440216064453}}),mapFloor::triangle({{39.01277184486389,34.00440216064453}, {45.86067199707031,34.00440216064453}, {45.009586215019226,23.523083329200745}}),
+		mapFloor::triangle({{61.50498986244202,34.00440216064453}, {52.96544432640076,43.96422207355499}, {100.07518529891968,43.96422505378723}}),mapFloor::triangle({{45.86067199707031,34.00440216064453}, {50.17085075378418,43.96422207355499}, {52.96544432640076,43.96422207355499}}),mapFloor::triangle({{100.07518529891968,4.586407914757729}, {100.07518529891968,2.9802322387695312e-06}, {61.50498986244202,0.0}}),
+		mapFloor::triangle({{61.50498986244202,20.45578807592392}, {100.07518529891968,20.45578956604004}, {100.07518529891968,4.586407914757729}}),mapFloor::triangle({{36.98071539402008,4.58640493452549}, {43.47192645072937,4.58640493452549}, {43.09951066970825,0.0}}),mapFloor::triangle({{44.76052224636078,20.45578807592392}, {61.50498986244202,20.45578807592392}, {61.50498986244202,4.58640493452549}}),
+		mapFloor::triangle({{100.07518529891968,43.96422505378723}, {52.96544432640076,43.96422207355499}, {62.45462894439697,100.0}}),mapFloor::triangle({{45.86067199707031,34.00440216064453}, {61.50498986244202,34.00440216064453}, {61.50498986244202,23.523081839084625}}),mapFloor::triangle({{100.07518529891968,34.00440514087677}, {100.07518529891968,23.523084819316864}, {61.50498986244202,23.523081839084625}}),
+		mapFloor::triangle({{38.076019287109375,23.014554381370544}, {45.009586215019226,23.523083329200745}, {44.76052224636078,20.45578807592392}}),mapFloor::triangle({{37.005507946014404,20.4557865858078}, {44.76052224636078,20.45578807592392}, {43.47192645072937,4.58640493452549}}),mapFloor::triangle({{45.009586215019226,23.523083329200745}, {61.50498986244202,23.523081839084625}, {61.50498986244202,20.45578807592392}}),
+		mapFloor::triangle({{100.07518529891968,23.523084819316864}, {100.07518529891968,20.45578956604004}, {61.50498986244202,20.45578807592392}}),mapFloor::triangle({{0.0,20.45578807592392}, {35.39458215236664,20.97281813621521}, {34.178343415260315,4.58640493452549}}),mapFloor::triangle({{0.0,23.523081839084625}, {36.39649152755737,23.523083329200745}, {35.39458215236664,20.97281813621521}}),
+		mapFloor::triangle({{0.0,4.58640493452549}, {34.178343415260315,4.58640493452549}, {33.885544538497925,0.0}}),mapFloor::triangle({{0.0,23.523081839084625}, {0.0,34.00440216064453}, {36.05641424655914,34.00440216064453}}),mapFloor::triangle({{0.0,43.96422207355499}, {39.445146918296814,43.96422207355499}, {36.05641424655914,34.00440216064453}}),
+		mapFloor::triangle({{0.0,100.0}, {40.269625186920166,100.0}, {39.445146918296814,43.96422207355499}}),mapFloor::triangle({{34.178343415260315,4.58640493452549}, {35.39458215236664,20.97281813621521}, {37.005507946014404,20.4557865858078}}),mapFloor::triangle({{34.178343415260315,4.58640493452549}, {36.98071539402008,4.58640493452549}, {36.66390776634216,0.0}}),
+		mapFloor::triangle({{36.39649152755737,23.523083329200745}, {36.05641424655914,34.00440216064453}, {39.01277184486389,34.00440216064453}}),mapFloor::triangle({{39.445146918296814,43.96422207355499}, {42.67935752868652,43.96422207355499}, {39.01277184486389,34.00440216064453}}),mapFloor::triangle({{40.269625186920166,100.0}, {43.571436405181885,100.0}, {42.67935752868652,43.96422207355499}}),}),false, Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "GRASS"})})),
+			mapFloor("WoodFloor", List<mapFloor::triangle>({mapFloor::triangle({{37.005507946014404,20.4557865858078}, {36.39649152755737,23.523083329200745}, {35.39458215236664,20.97281813621521}}),mapFloor::triangle({{37.005507946014404,20.4557865858078}, {38.076019287109375,23.014554381370544}, {36.39649152755737,23.523083329200745}}),}),
+				false, Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "WOOD"})})),
+			mapFloor("StoneFloor", List<mapFloor::triangle>({mapFloor::triangle({{43.47192645072937,4.58640493452549}, {61.50498986244202,0.0}, {43.09951066970825,0.0}}),
+		mapFloor::triangle({{53.09876203536987,43.96422207355499}, {51.21951699256897,100.0}, {50.17085075378418,43.96422207355499}}),
+		mapFloor::triangle({{43.47192645072937,4.58640493452549}, {61.50498986244202,4.58640493452549}, {61.50498986244202,0.0}}),
+		mapFloor::triangle({{53.09876203536987,43.96422207355499}, {62.45462894439697,100.0}, {51.21951699256897,100.0}}),}), false, Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "STONE"})})),
+			mapFloor("Walkable", List<mapFloor::triangle>({mapFloor::triangle({{56.409090757369995,84.11365747451782}, {48.95790219306946,99.01602268218994}, {58.32327604293823,99.01602268218994}}),mapFloor::triangle({{56.409090757369995,84.11365747451782}, {56.69816732406616,52.426278591156006}, {51.22690200805664,52.426278591156006}}),mapFloor::triangle({{51.22690200805664,43.17668974399567}, {53.78797650337219,46.73760533332825}, {56.69816732406616,43.17668974399567}}),
+		mapFloor::triangle({{51.22690200805664,43.17668974399567}, {56.69816732406616,37.51395642757416}, {49.18171763420105,37.187260389328}}),mapFloor::triangle({{45.75563967227936,43.17668974399567}, {20.253488421440125,41.367724537849426}, {21.099352836608887,45.86978852748871}}),mapFloor::triangle({{20.253488421440125,41.367724537849426}, {0.7176756858825684,45.86978852748871}, {21.099352836608887,45.86978852748871}}),
+		mapFloor::triangle({{14.84365314245224,22.325602173805237}, {0.7176756858825684,18.91578882932663}, {0.7176756858825684,22.325602173805237}}),mapFloor::triangle({{0.7176756858825684,18.91578882932663}, {14.473368227481842,14.809629321098328}, {0.7176756858825684,14.809629321098328}}),mapFloor::triangle({{14.473368227481842,14.809629321098328}, {4.930481314659119,12.489937245845795}, {0.7176756858825684,14.809629321098328}}),
+		mapFloor::triangle({{4.930481314659119,12.489937245845795}, {11.069545149803162,1.7711609601974487}, {4.930481314659119,1.7711609601974487}}),mapFloor::triangle({{25.638803839683533,12.295009940862656}, {25.365564227104187,16.636018455028534}, {30.643922090530396,15.309351682662964}}),mapFloor::triangle({{11.069545149803162,1.7711609601974487}, {15.852071344852448,10.81363558769226}, {14.69796895980835,1.7711624503135681}}),
+	mapFloor::triangle({{0.7176756858825684,39.37466740608215}, {16.428416967391968,32.5550377368927}, {0.7176756858825684,32.55504071712494}}),mapFloor::triangle({{0.7176756858825684,32.55504071712494}, {14.412814378738403,25.735414028167725}, {0.7176756858825684,25.735414028167725}}),mapFloor::triangle({{35.928815603256226,22.28292226791382}, {37.00892925262451,20.508450269699097}, {37.574702501297,21.74929529428482}}),
+	mapFloor::triangle({{14.412814378738403,25.735414028167725}, {0.7176756858825684,22.325602173805237}, {0.7176756858825684,25.735414028167725}}),mapFloor::triangle({{25.112950801849365,24.15255606174469}, {32.011452317237854,24.94175285100937}, {30.711272358894348,22.862792015075684}}),mapFloor::triangle({{32.011452317237854,24.94175285100937}, {35.283029079437256,29.562664031982422}, {34.35523211956024,23.0474054813385}}),
+	mapFloor::triangle({{36.48173213005066,23.58163148164749}, {37.574702501297,21.74929529428482}, {38.14047574996948,22.990140318870544}}),mapFloor::triangle({{32.436954975128174,19.135470688343048}, {30.194365978240967,14.588676393032074}, {28.888151049613953,14.775575697422028}}),mapFloor::triangle({{35.928815603256226,22.28292226791382}, {36.48173213005066,23.58163148164749}, {35.10341942310333,22.988635301589966}}),
+	mapFloor::triangle({{45.55982947349548,20.328429341316223}, {44.489115476608276,23.975835740566254}, {41.85015261173248,21.659284830093384}}),mapFloor::triangle({{30.329573154449463,19.46827918291092}, {28.888151049613953,14.775575697422028}, {26.02885067462921,15.719172358512878}}),mapFloor::triangle({{40.79534113407135,26.822954416275024}, {39.365559816360474,30.083242058753967}, {35.283029079437256,29.562664031982422}}),
+	mapFloor::triangle({{41.15120470523834,27.904421091079712}, {43.14132332801819,30.57653307914734}, {39.365559816360474,30.083242058753967}}),mapFloor::triangle({{43.14132332801819,30.57653307914734}, {43.19913685321808,27.694016695022583}, {45.69516181945801,29.04760241508484}}),mapFloor::triangle({{45.69516181945801,29.04760241508484}, {43.17961633205414,26.720523834228516}, {46.51808142662048,25.763723254203796}}),
+	mapFloor::triangle({{41.85015261173248,21.659284830093384}, {41.1347359418869,26.018506288528442}, {38.14047574996948,22.990140318870544}}),mapFloor::triangle({{42.80505180358887,26.06889009475708}, {44.489115476608276,23.975835740566254}, {45.49221396446228,24.859747290611267}}),mapFloor::triangle({{43.17961633205414,26.720523834228516}, {45.49221396446228,24.859747290611267}, {46.51808142662048,25.763723254203796}}),
+	mapFloor::triangle({{52.160751819610596,19.51773315668106}, {53.209251165390015,23.281770944595337}, {53.05097699165344,23.289769887924194}}),mapFloor::triangle({{55.63579201698303,18.122999370098114}, {59.937602281570435,20.150715112686157}, {55.63579201698303,19.27337348461151}}),mapFloor::triangle({{55.63579201698303,19.27337348461151}, {61.40407919883728,22.59443998336792}, {53.209251165390015,23.281770944595337}}),
+	mapFloor::triangle({{67.4842119216919,28.42770516872406}, {50.79437494277954,32.81976878643036}, {51.82164907455444,29.17156219482422}}),mapFloor::triangle({{53.209251165390015,23.281770944595337}, {61.40369772911072,25.52335262298584}, {52.84892916679382,25.52335262298584}}),mapFloor::triangle({{61.40369772911072,25.52335262298584}, {51.82164907455444,29.17156219482422}, {52.84892916679382,25.52335262298584}}),
+	mapFloor::triangle({{45.75563967227936,43.17668974399567}, {49.18171763420105,37.187260389328}, {45.75563967227936,37.038350105285645}}),mapFloor::triangle({{51.22690200805664,46.73760533332825}, {45.75563967227936,43.17668974399567}, {45.75563967227936,46.73760533332825}}),mapFloor::triangle({{47.866201400756836,84.11365747451782}, {51.22690200805664,52.426278591156006}, {45.75563967227936,52.426278591156006}}),
+	mapFloor::triangle({{64.95198011398315,84.11365747451782}, {58.32327604293823,99.01602268218994}, {67.68865585327148,99.01602268218994}}),mapFloor::triangle({{50.79437494277954,32.81976878643036}, {56.69816732406616,37.51395642757416}, {49.18171763420105,37.187260389328}}),mapFloor::triangle({{66.43429398536682,42.67500340938568}, {56.69816732406616,37.51395642757416}, {56.69816732406616,43.17668974399567}}),
+	mapFloor::triangle({{68.94510388374329,32.81976878643036}, {72.21961617469788,27.64536738395691}, {73.74469041824341,32.81976878643036}}),mapFloor::triangle({{68.94510388374329,32.81976878643036}, {71.88587784767151,37.955498695373535}, {56.69816732406616,37.51395642757416}}),mapFloor::triangle({{51.98812484741211,18.27288717031479}, {45.55982947349548,20.328429341316223}, {44.63401734828949,18.92685443162918}}),
+	mapFloor::triangle({{47.84349203109741,22.889067232608795}, {52.160751819610596,19.51773315668106}, {53.05097699165344,23.289769887924194}}),mapFloor::triangle({{48.992958664894104,25.7653146982193}, {51.104480028152466,28.884437680244446}, {47.402188181877136,29.858967661857605}}),mapFloor::triangle({{46.51808142662048,25.763723254203796}, {47.402188181877136,29.858967661857605}, {45.69516181945801,29.04760241508484}}),
+	mapFloor::triangle({{47.84349203109741,22.889067232608795}, {45.49221396446228,24.859747290611267}, {44.489115476608276,23.975835740566254}}),mapFloor::triangle({{46.51808142662048,25.763723254203796}, {48.41822385787964,24.327191710472107}, {48.992958664894104,25.7653146982193}}),mapFloor::triangle({{53.05097699165344,23.289769887924194}, {48.41822385787964,24.327191710472107}, {47.84349203109741,22.889067232608795}}),
+	mapFloor::triangle({{52.20814347267151,25.766906142234802}, {48.41822385787964,24.327191710472107}, {52.76750922203064,24.20814037322998}}),mapFloor::triangle({{43.14132332801819,30.57653307914734}, {39.365559816360474,32.3360949754715}, {39.365559816360474,30.083242058753967}}),mapFloor::triangle({{35.283029079437256,29.562664031982422}, {39.365559816360474,32.3360949754715}, {39.365559816360474,30.083242058753967}}),
+	mapFloor::triangle({{43.14132332801819,32.82938599586487}, {46.023595333099365,32.59912431240082}, {46.11753821372986,33.69433879852295}}),mapFloor::triangle({{46.023595333099365,32.59912431240082}, {47.69207239151001,33.86508226394653}, {46.11753821372986,33.69433879852295}}),mapFloor::triangle({{44.24490034580231,11.806239932775497}, {41.35455787181854,4.575447738170624}, {47.04160690307617,4.761527478694916}}),
+	mapFloor::triangle({{36.58044934272766,13.886196911334991}, {41.35455787181854,4.575447738170624}, {33.14061164855957,6.1720110476017}}),mapFloor::triangle({{25.638803839683533,12.295009940862656}, {31.578153371810913,13.562016189098358}, {28.182879090309143,8.703697472810745}}),mapFloor::triangle({{31.578153371810913,13.562016189098358}, {33.14061164855957,6.1720110476017}, {28.182879090309143,8.703697472810745}}),
+	mapFloor::triangle({{47.04160690307617,4.761527478694916}, {47.42600917816162,9.98448133468628}, {44.24490034580231,11.806239932775497}}),mapFloor::triangle({{47.42600917816162,9.98448133468628}, {48.67419898509979,6.1746396124362946}, {48.918330669403076,10.155074298381805}}),mapFloor::triangle({{48.918330669403076,10.155074298381805}, {50.9097695350647,6.964127719402313}, {50.94560980796814,10.528524219989777}}),
+	mapFloor::triangle({{48.67419898509979,6.1746396124362946}, {49.91276562213898,5.539841949939728}, {50.9097695350647,6.964127719402313}}),mapFloor::triangle({{50.94560980796814,10.528524219989777}, {56.71147704124451,6.964127719402313}, {56.74731731414795,10.528524219989777}}),mapFloor::triangle({{50.96829533576965,2.710600197315216}, {56.24496936798096,-0.025719404220581055}, {56.244683265686035,2.710600197315216}}),
+	mapFloor::triangle({{50.9097695350647,6.964127719402313}, {56.244462728500366,4.765757918357849}, {56.71147704124451,6.964127719402313}}),mapFloor::triangle({{56.244462728500366,4.765757918357849}, {50.96829533576965,2.710600197315216}, {56.244683265686035,2.710600197315216}}),mapFloor::triangle({{48.94671440124512,12.747283279895782}, {48.918330669403076,10.155074298381805}, {50.50344467163086,12.811049818992615}}),
+	mapFloor::triangle({{50.46741962432861,15.510085225105286}, {50.50344467163086,12.811049818992615}, {52.088552713394165,15.467023849487305}}),mapFloor::triangle({{47.42600917816162,9.98448133468628}, {44.582581520080566,13.52628767490387}, {44.24490034580231,11.806239932775497}}),mapFloor::triangle({{48.94671440124512,12.747283279895782}, {44.60830092430115,16.226571798324585}, {44.582581520080566,13.52628767490387}}),
+	mapFloor::triangle({{52.088552713394165,15.467023849487305}, {54.11888360977173,12.615998089313507}, {55.40493726730347,14.890195429325104}}),mapFloor::triangle({{55.40493726730347,14.890195429325104}, {57.7343225479126,12.42094561457634}, {58.72132182121277,14.313367009162903}}),mapFloor::triangle({{50.94560980796814,10.528524219989777}, {50.50344467163086,12.811049818992615}, {48.918330669403076,10.155074298381805}}),
+	mapFloor::triangle({{56.74731731414795,10.528524219989777}, {54.11888360977173,12.615998089313507}, {50.94560980796814,10.528524219989777}}),mapFloor::triangle({{57.7343225479126,12.42094561457634}, {65.53108096122742,10.528524219989777}, {65.53108096122742,12.42094561457634}}),mapFloor::triangle({{58.72132182121277,14.313367009162903}, {65.53108096122742,12.42094561457634}, {65.53108096122742,14.313367009162903}}),
+	mapFloor::triangle({{56.74731731414795,10.528524219989777}, {65.53108096122742,6.964127719402313}, {65.53108096122742,10.528524219989777}}),mapFloor::triangle({{65.53108096122742,4.751096665859222}, {56.71147704124451,6.964127719402313}, {56.244462728500366,4.765757918357849}}),mapFloor::triangle({{30.711272358894348,22.862792015075684}, {34.35523211956024,23.0474054813385}, {34.04190540313721,21.865569055080414}}),
+	mapFloor::triangle({{35.10341942310333,22.988635301589966}, {36.48173213005066,23.58163148164749}, {34.35523211956024,23.0474054813385}}),mapFloor::triangle({{51.22690200805664,52.426278591156006}, {45.75563967227936,50.29851794242859}, {45.75563967227936,52.426278591156006}}),mapFloor::triangle({{56.69816732406616,52.426278591156006}, {51.22690200805664,50.29851794242859}, {51.22690200805664,52.426278591156006}}),
+	mapFloor::triangle({{45.75563967227936,47.924575209617615}, {51.22690200805664,46.73760533332825}, {45.75563967227936,46.73760533332825}}),mapFloor::triangle({{53.47152352333069,47.92457818984985}, {51.22690200805664,46.73760533332825}, {51.22690200805664,47.92457818984985}}),mapFloor::triangle({{56.69816732406616,50.29851794242859}, {51.22690200805664,49.11154806613922}, {51.22690200805664,50.29851794242859}}),
+	mapFloor::triangle({{45.75563967227936,50.29851794242859}, {51.22690200805664,49.11154806613922}, {45.75563967227936,49.11154508590698}}),mapFloor::triangle({{48.7857311964035,50.94045400619507}, {53.550052642822266,46.095672249794006}, {48.7857311964035,46.095672249794006}}),mapFloor::triangle({{53.78797650337219,46.73760533332825}, {56.66423439979553,46.73760533332825}, {56.69816732406616,43.17668974399567}}),
+	mapFloor::triangle({{51.22690200805664,49.11154806613922}, {56.69816732406616,47.92904555797577}, {51.22690200805664,47.92457818984985}}),mapFloor::triangle({{39.17883038520813,25.58600902557373}, {38.14047574996948,22.990140318870544}, {39.74739611148834,25.532087683677673}}),mapFloor::triangle({{37.376514077186584,25.61688721179962}, {36.48173213005066,23.58163148164749}, {39.17883038520813,25.58600902557373}}),
+	mapFloor::triangle({{37.961217761039734,26.580342650413513}, {40.79534113407135,26.822954416275024}, {35.283029079437256,29.562664031982422}}),mapFloor::triangle({{39.74739611148834,25.532087683677673}, {41.1347359418869,26.018506288528442}, {40.088462829589844,26.320040225982666}}),mapFloor::triangle({{40.088462829589844,26.320040225982666}, {40.79534113407135,26.822954416275024}, {39.93552327156067,26.437121629714966}}),
+	mapFloor::triangle({{35.05798876285553,26.265668869018555}, {34.35523211956024,23.0474054813385}, {34.95745658874512,25.559699535369873}}),mapFloor::triangle({{37.376514077186584,25.61688721179962}, {34.95745658874512,25.559699535369873}, {34.35523211956024,23.0474054813385}}),mapFloor::triangle({{35.05798876285553,26.265668869018555}, {37.961217761039734,26.580342650413513}, {35.283029079437256,29.562664031982422}}),
+	mapFloor::triangle({{30.711272358894348,22.862792015075684}, {32.436954975128174,19.135470688343048}, {30.329573154449463,19.46827918291092}}),mapFloor::triangle({{34.36081111431122,21.524284780025482}, {32.436954975128174,19.135470688343048}, {34.04190540313721,21.865569055080414}}),mapFloor::triangle({{26.02885067462921,15.719172358512878}, {24.616236984729767,20.074045658111572}, {30.329573154449463,19.46827918291092}}),
+	mapFloor::triangle({{56.409090757369995,84.11365747451782}, {47.866201400756836,84.11365747451782}, {48.95790219306946,99.01602268218994}}),mapFloor::triangle({{56.409090757369995,84.11365747451782}, {64.95198011398315,84.11365747451782}, {56.69816732406616,52.426278591156006}}),mapFloor::triangle({{51.22690200805664,43.17668974399567}, {51.22690200805664,46.73760533332825}, {53.78797650337219,46.73760533332825}}),
+	mapFloor::triangle({{51.22690200805664,43.17668974399567}, {56.69816732406616,43.17668974399567}, {56.69816732406616,37.51395642757416}}),mapFloor::triangle({{45.75563967227936,43.17668974399567}, {45.75563967227936,37.038350105285645}, {20.253488421440125,41.367724537849426}}),mapFloor::triangle({{20.253488421440125,41.367724537849426}, {0.7176756858825684,39.37466740608215}, {0.7176756858825684,45.86978852748871}}),
+	mapFloor::triangle({{14.84365314245224,22.325602173805237}, {15.379007160663605,18.625155091285706}, {0.7176756858825684,18.91578882932663}}),mapFloor::triangle({{0.7176756858825684,18.91578882932663}, {15.379007160663605,18.625155091285706}, {14.473368227481842,14.809629321098328}}),mapFloor::triangle({{14.473368227481842,14.809629321098328}, {13.1720170378685,12.489937245845795}, {4.930481314659119,12.489937245845795}}),
+	mapFloor::triangle({{4.930481314659119,12.489937245845795}, {13.1720170378685,12.489937245845795}, {11.069545149803162,1.7711609601974487}}),mapFloor::triangle({{25.638803839683533,12.295009940862656}, {22.91545867919922,14.052563905715942}, {25.365564227104187,16.636018455028534}}),mapFloor::triangle({{11.069545149803162,1.7711609601974487}, {13.1720170378685,12.489937245845795}, {15.852071344852448,10.81363558769226}}),
+	mapFloor::triangle({{0.7176756858825684,39.37466740608215}, {20.253488421440125,41.367724537849426}, {16.428416967391968,32.5550377368927}}),mapFloor::triangle({{0.7176756858825684,32.55504071712494}, {16.428416967391968,32.5550377368927}, {14.412814378738403,25.735414028167725}}),mapFloor::triangle({{35.928815603256226,22.28292226791382}, {35.37590205669403,20.984214544296265}, {37.00892925262451,20.508450269699097}}),
+	mapFloor::triangle({{14.412814378738403,25.735414028167725}, {14.84365314245224,22.325602173805237}, {0.7176756858825684,22.325602173805237}}),mapFloor::triangle({{25.112950801849365,24.15255606174469}, {33.026671409606934,30.587339401245117}, {32.011452317237854,24.94175285100937}}),mapFloor::triangle({{32.011452317237854,24.94175285100937}, {33.026671409606934,30.587339401245117}, {35.283029079437256,29.562664031982422}}),
+	mapFloor::triangle({{36.48173213005066,23.58163148164749}, {35.928815603256226,22.28292226791382}, {37.574702501297,21.74929529428482}}),mapFloor::triangle({{32.436954975128174,19.135470688343048}, {32.794931530952454,18.85164976119995}, {30.194365978240967,14.588676393032074}}),mapFloor::triangle({{45.55982947349548,20.328429341316223}, {47.84349203109741,22.889067232608795}, {44.489115476608276,23.975835740566254}}),
+	mapFloor::triangle({{30.329573154449463,19.46827918291092}, {32.436954975128174,19.135470688343048}, {28.888151049613953,14.775575697422028}}),mapFloor::triangle({{40.79534113407135,26.822954416275024}, {41.15120470523834,27.904421091079712}, {39.365559816360474,30.083242058753967}}),mapFloor::triangle({{41.15120470523834,27.904421091079712}, {42.646223306655884,28.02833616733551}, {43.14132332801819,30.57653307914734}}),
+	mapFloor::triangle({{43.14132332801819,30.57653307914734}, {42.646223306655884,28.02833616733551}, {43.19913685321808,27.694016695022583}}),mapFloor::triangle({{45.69516181945801,29.04760241508484}, {43.19913685321808,27.694016695022583}, {43.17961633205414,26.720523834228516}}),mapFloor::triangle({{41.85015261173248,21.659284830093384}, {44.489115476608276,23.975835740566254}, {41.1347359418869,26.018506288528442}}),
+	mapFloor::triangle({{42.80505180358887,26.06889009475708}, {41.1347359418869,26.018506288528442}, {44.489115476608276,23.975835740566254}}),mapFloor::triangle({{43.17961633205414,26.720523834228516}, {42.80505180358887,26.06889009475708}, {45.49221396446228,24.859747290611267}}),mapFloor::triangle({{52.160751819610596,19.51773315668106}, {55.63579201698303,19.27337348461151}, {53.209251165390015,23.281770944595337}}),
+	mapFloor::triangle({{55.63579201698303,18.122999370098114}, {61.51499152183533,18.122999370098114}, {59.937602281570435,20.150715112686157}}),mapFloor::triangle({{55.63579201698303,19.27337348461151}, {59.937602281570435,20.150715112686157}, {61.40407919883728,22.59443998336792}}),mapFloor::triangle({{67.4842119216919,28.42770516872406}, {68.94510388374329,32.81976878643036}, {50.79437494277954,32.81976878643036}}),
+	mapFloor::triangle({{53.209251165390015,23.281770944595337}, {61.40407919883728,22.59443998336792}, {61.40369772911072,25.52335262298584}}),mapFloor::triangle({{61.40369772911072,25.52335262298584}, {67.4842119216919,28.42770516872406}, {51.82164907455444,29.17156219482422}}),mapFloor::triangle({{45.75563967227936,43.17668974399567}, {51.22690200805664,43.17668974399567}, {49.18171763420105,37.187260389328}}),
+	mapFloor::triangle({{51.22690200805664,46.73760533332825}, {51.22690200805664,43.17668974399567}, {45.75563967227936,43.17668974399567}}),mapFloor::triangle({{47.866201400756836,84.11365747451782}, {56.409090757369995,84.11365747451782}, {51.22690200805664,52.426278591156006}}),mapFloor::triangle({{64.95198011398315,84.11365747451782}, {56.409090757369995,84.11365747451782}, {58.32327604293823,99.01602268218994}}),
+	mapFloor::triangle({{50.79437494277954,32.81976878643036}, {68.94510388374329,32.81976878643036}, {56.69816732406616,37.51395642757416}}),mapFloor::triangle({{66.43429398536682,42.67500340938568}, {71.88587784767151,37.955498695373535}, {56.69816732406616,37.51395642757416}}),mapFloor::triangle({{68.94510388374329,32.81976878643036}, {67.4842119216919,28.42770516872406}, {72.21961617469788,27.64536738395691}}),
+	mapFloor::triangle({{68.94510388374329,32.81976878643036}, {73.74469041824341,32.81976878643036}, {71.88587784767151,37.955498695373535}}),mapFloor::triangle({{51.98812484741211,18.27288717031479}, {52.160751819610596,19.51773315668106}, {45.55982947349548,20.328429341316223}}),mapFloor::triangle({{47.84349203109741,22.889067232608795}, {45.55982947349548,20.328429341316223}, {52.160751819610596,19.51773315668106}}),
+	mapFloor::triangle({{48.992958664894104,25.7653146982193}, {52.20814347267151,25.766906142234802}, {51.104480028152466,28.884437680244446}}),mapFloor::triangle({{46.51808142662048,25.763723254203796}, {48.992958664894104,25.7653146982193}, {47.402188181877136,29.858967661857605}}),mapFloor::triangle({{47.84349203109741,22.889067232608795}, {48.41822385787964,24.327191710472107}, {45.49221396446228,24.859747290611267}}),
+	mapFloor::triangle({{46.51808142662048,25.763723254203796}, {45.49221396446228,24.859747290611267}, {48.41822385787964,24.327191710472107}}),mapFloor::triangle({{53.05097699165344,23.289769887924194}, {52.76750922203064,24.20814037322998}, {48.41822385787964,24.327191710472107}}),mapFloor::triangle({{52.20814347267151,25.766906142234802}, {48.992958664894104,25.7653146982193}, {48.41822385787964,24.327191710472107}}),
+	mapFloor::triangle({{43.14132332801819,30.57653307914734}, {43.14132332801819,32.82938599586487}, {39.365559816360474,32.3360949754715}}),mapFloor::triangle({{35.283029079437256,29.562664031982422}, {33.026671409606934,30.587339401245117}, {39.365559816360474,32.3360949754715}}),mapFloor::triangle({{43.14132332801819,32.82938599586487}, {43.14132332801819,30.57653307914734}, {46.023595333099365,32.59912431240082}}),
+	mapFloor::triangle({{46.023595333099365,32.59912431240082}, {47.69207239151001,31.58455491065979}, {47.69207239151001,33.86508226394653}}),mapFloor::triangle({{44.24490034580231,11.806239932775497}, {42.1939343214035,12.28756457567215}, {41.35455787181854,4.575447738170624}}),mapFloor::triangle({{36.58044934272766,13.886196911334991}, {42.1939343214035,12.28756457567215}, {41.35455787181854,4.575447738170624}}),
+	mapFloor::triangle({{25.638803839683533,12.295009940862656}, {30.643922090530396,15.309351682662964}, {31.578153371810913,13.562016189098358}}),mapFloor::triangle({{31.578153371810913,13.562016189098358}, {36.58044934272766,13.886196911334991}, {33.14061164855957,6.1720110476017}}),mapFloor::triangle({{47.04160690307617,4.761527478694916}, {47.195008397102356,6.11434206366539}, {47.42600917816162,9.98448133468628}}),
+	mapFloor::triangle({{47.42600917816162,9.98448133468628}, {47.195008397102356,6.11434206366539}, {48.67419898509979,6.1746396124362946}}),mapFloor::triangle({{48.918330669403076,10.155074298381805}, {48.67419898509979,6.1746396124362946}, {50.9097695350647,6.964127719402313}}),mapFloor::triangle({{48.67419898509979,6.1746396124362946}, {48.882490396499634,5.7226985692977905}, {49.91276562213898,5.539841949939728}}),
+	mapFloor::triangle({{50.94560980796814,10.528524219989777}, {50.9097695350647,6.964127719402313}, {56.71147704124451,6.964127719402313}}),mapFloor::triangle({{50.96829533576965,2.710600197315216}, {49.12346601486206,-0.025719404220581055}, {56.24496936798096,-0.025719404220581055}}),mapFloor::triangle({{50.9097695350647,6.964127719402313}, {50.94001889228821,4.765757918357849}, {56.244462728500366,4.765757918357849}}),
+	mapFloor::triangle({{56.244462728500366,4.765757918357849}, {50.94001889228821,4.765757918357849}, {50.96829533576965,2.710600197315216}}),mapFloor::triangle({{48.94671440124512,12.747283279895782}, {47.42600917816162,9.98448133468628}, {48.918330669403076,10.155074298381805}}),mapFloor::triangle({{50.46741962432861,15.510085225105286}, {48.94671440124512,12.747283279895782}, {50.50344467163086,12.811049818992615}}),
+	mapFloor::triangle({{47.42600917816162,9.98448133468628}, {48.94671440124512,12.747283279895782}, {44.582581520080566,13.52628767490387}}),mapFloor::triangle({{48.94671440124512,12.747283279895782}, {50.46741962432861,15.510085225105286}, {44.60830092430115,16.226571798324585}}),mapFloor::triangle({{52.088552713394165,15.467023849487305}, {50.50344467163086,12.811049818992615}, {54.11888360977173,12.615998089313507}}),
+	mapFloor::triangle({{55.40493726730347,14.890195429325104}, {54.11888360977173,12.615998089313507}, {57.7343225479126,12.42094561457634}}),mapFloor::triangle({{50.94560980796814,10.528524219989777}, {54.11888360977173,12.615998089313507}, {50.50344467163086,12.811049818992615}}),mapFloor::triangle({{56.74731731414795,10.528524219989777}, {57.7343225479126,12.42094561457634}, {54.11888360977173,12.615998089313507}}),
+	mapFloor::triangle({{57.7343225479126,12.42094561457634}, {56.74731731414795,10.528524219989777}, {65.53108096122742,10.528524219989777}}),mapFloor::triangle({{58.72132182121277,14.313367009162903}, {57.7343225479126,12.42094561457634}, {65.53108096122742,12.42094561457634}}),mapFloor::triangle({{56.74731731414795,10.528524219989777}, {56.71147704124451,6.964127719402313}, {65.53108096122742,6.964127719402313}}),
+	mapFloor::triangle({{65.53108096122742,4.751096665859222}, {65.53108096122742,6.964127719402313}, {56.71147704124451,6.964127719402313}}),mapFloor::triangle({{30.711272358894348,22.862792015075684}, {32.011452317237854,24.94175285100937}, {34.35523211956024,23.0474054813385}}),mapFloor::triangle({{51.22690200805664,52.426278591156006}, {51.22690200805664,50.29851794242859}, {45.75563967227936,50.29851794242859}}),
+	mapFloor::triangle({{56.69816732406616,52.426278591156006}, {56.69816732406616,50.29851794242859}, {51.22690200805664,50.29851794242859}}),mapFloor::triangle({{45.75563967227936,47.924575209617615}, {51.22690200805664,47.92457818984985}, {51.22690200805664,46.73760533332825}}),mapFloor::triangle({{53.47152352333069,47.92457818984985}, {53.78797650337219,46.73760533332825}, {51.22690200805664,46.73760533332825}}),
+	mapFloor::triangle({{56.69816732406616,50.29851794242859}, {56.69816732406616,49.11154806613922}, {51.22690200805664,49.11154806613922}}),mapFloor::triangle({{45.75563967227936,50.29851794242859}, {51.22690200805664,50.29851794242859}, {51.22690200805664,49.11154806613922}}),mapFloor::triangle({{48.7857311964035,50.94045400619507}, {53.550052642822266,50.94045400619507}, {53.550052642822266,46.095672249794006}}),
+	mapFloor::triangle({{51.22690200805664,49.11154806613922}, {56.69816732406616,49.11154806613922}, {56.69816732406616,47.92904555797577}}),mapFloor::triangle({{39.17883038520813,25.58600902557373}, {36.48173213005066,23.58163148164749}, {38.14047574996948,22.990140318870544}}),mapFloor::triangle({{37.376514077186584,25.61688721179962}, {34.35523211956024,23.0474054813385}, {36.48173213005066,23.58163148164749}}),
+	mapFloor::triangle({{37.961217761039734,26.580342650413513}, {39.93552327156067,26.437121629714966}, {40.79534113407135,26.822954416275024}}),mapFloor::triangle({{39.74739611148834,25.532087683677673}, {38.14047574996948,22.990140318870544}, {41.1347359418869,26.018506288528442}}),mapFloor::triangle({{40.088462829589844,26.320040225982666}, {41.1347359418869,26.018506288528442}, {40.79534113407135,26.822954416275024}}),
+	mapFloor::triangle({{35.05798876285553,26.265668869018555}, {35.283029079437256,29.562664031982422}, {34.35523211956024,23.0474054813385}}),mapFloor::triangle({{30.711272358894348,22.862792015075684}, {34.04190540313721,21.865569055080414}, {32.436954975128174,19.135470688343048}}),mapFloor::triangle({{34.36081111431122,21.524284780025482}, {32.794931530952454,18.85164976119995}, {32.436954975128174,19.135470688343048}}),
+	mapFloor::triangle({{26.02885067462921,15.719172358512878}, {24.694694578647614,15.66227376461029}, {24.616236984729767,20.074045658111572}}),}), true, Map<string, string>({})),
+			mapFloor("Trans", List<mapFloor::triangle>({mapFloor::triangle({{43.38904917240143,7.563062757253647}, {31.48369789123535,15.224528312683105}, {44.944414496421814,16.091090440750122}}),mapFloor::triangle({{46.79390788078308,13.37292343378067}, {45.05474865436554,16.049426794052124}, {44.831475615501404,12.381072342395782}}),mapFloor::triangle({{43.38904917240143,7.563062757253647}, {31.43555521965027,11.303985118865967}, {31.48369789123535,15.224528312683105}}),
+	mapFloor::triangle({{46.79390788078308,13.37292343378067}, {46.32799029350281,15.946558117866516}, {45.05474865436554,16.049426794052124}}),}), false, Map<string, string>({{"trans","0"}})),
+				}), {}, { 5000, 5000 }, Map<string, string>({
+				pair<string,string>({"song1",to_string(WINDOUTSIDE1_WAV) + " " + "AmbienceVolume"}),
+				pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
+					}));
+		maps["House1Inside1"] = mapInstance("House1Inside1", EMPTYMAP, { 46,53 }, List<mapObject>({
+										mapObject("House1Inside1AsObject", false, true, false, imageLookup.getSequenceAsString("House1Inside1AsObject","STAND_FRONT"),"0",0,imageLookup.layerDefaults["Map"] + 1,"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+										mapObject("FilmGrain1", false, true, true, imageLookup.getSequenceAsString("FilmGrain1","STAND_FRONT"),"1",1,imageLookup.layerDefaults["WEATHER"],"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+										mapObject("AT_Door", true, false, false, "","0",0,0,"1","1.0","CENTRE",{46, 54}, false, List<mapFloor::triangle>({mapFloor::triangle({{44.78374421596527,54.089611768722534}, {46.707287430763245,51.44556760787964}, {47.589874267578125,53.23103070259094}}),mapFloor::triangle({{44.78374421596527,54.089611768722534}, {43.931591510772705,52.344727516174316}, {46.707287430763245,51.44556760787964}}),}), Map<string, string>({
+																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Leave House"}),
+																		pair<string, string>({"copy","AT_Door"}),
+																		pair<string, string>({"areaTransition","RoadToBénouville"}),
+																		pair<string, string>({"direction","STAND_FRONT"}),
+																		pair<string, string>({"playerPosX","36.4"}),
+																		pair<string, string>({"playerPosY","21"}),
+																		pair<string, string>({"audio","WOODENDOOR"}),
+																		pair<string, string>({"x","0"}),
+																		pair<string, string>({"y","0"}),
+																		pair<string, string>({"h","50"}),
+																		pair<string, string>({"w","50"}),
+																		pair<string, string>("colour", "WHITE"),
+																		pair<string, string>("uniqueID", mapPopupTextID),
+																		pair<string, string>("anchorStyle", "TOPLEFT"),
+																		pair<string, string>("shadowColour", "BLACK"),
+																		pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																		pair<string, string>({"format","LightText_20"}),
+											})),
+										mapObject("AT_Stairs", true, false, false, "","0",0,0,"1","1.0","CENTRE",{49, 46}, false, List<mapFloor::triangle>({mapFloor::triangle({{47.162121534347534,46.98895812034607}, {52.725422382354736,43.473583459854126}, {47.90157377719879,48.25414419174194}}),mapFloor::triangle({{47.162121534347534,46.98895812034607}, {51.98596715927124,42.42135286331177}, {52.725422382354736,43.473583459854126}}),}), Map<string, string>({
+																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Go Upstairs"}),
+																		pair<string, string>({"copy","AT_Stairs"}),
+																		pair<string, string>({"areaTransition","House1Inside2"}),
+																		pair<string, string>({"direction","STAND_FRONT"}),
+																		pair<string, string>({"playerPosX","51"}),
+																		pair<string, string>({"playerPosY","45"}),
+																		pair<string, string>({"audio","WOODENSTAIRS"}),
+																		pair<string, string>({"x","0"}),
+																		pair<string, string>({"y","0"}),
+																		pair<string, string>({"h","50"}),
+																		pair<string, string>({"w","50"}),
+																		pair<string, string>("colour", "WHITE"),
+																		pair<string, string>("uniqueID", mapPopupTextID),
+																		pair<string, string>("anchorStyle", "TOPLEFT"),
+																		pair<string, string>("shadowColour", "BLACK"),
+																		pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																		pair<string, string>({"format","LightText_20"}),
+											})),
+										mapObject("Fireplace", true, true, false, imageLookup.getSequenceAsString("Fireplace1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["Map"] + 2,"1.0","1.0","CENTRE",{53.6, 49.2}, false, List<mapFloor::triangle>({mapFloor::triangle({{52.78176665306091,47.05861508846283}, {52.88730263710022,51.08172297477722}, {50.99630951881409,47.94119894504547}}),mapFloor::triangle({{52.78176665306091,47.05861508846283}, {54.733604192733765,50.480109453201294}, {52.88730263710022,51.08172297477722}}),}), Map<string, string>({
+																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_A Roaring Fireplace"}),
+																		pair<string, string>({"copy","Fireplace"}),
+																		pair<string, string>({"cutscene","Fireplace1"}),
+																		pair<string, string>({"x","5"}),
+																		pair<string, string>({"y","0"}),
+																		pair<string, string>({"h","50"}),
+																		pair<string, string>({"w","50"}),
+																		pair<string, string>("colour", "WHITE"),
+																		pair<string, string>("uniqueID", mapPopupTextID),
+																		pair<string, string>("anchorStyle", "TOPLEFT"),
+																		pair<string, string>("shadowColour", "BLACK"),
+																		pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																		pair<string, string>({"format","LightText_20"})})),
+				}), List<mapFloor>({
+	mapFloor("Walkable", List<mapFloor::triangle>({mapFloor::triangle({{45.79947292804718,51.260411739349365}, {44.93342936038971,53.57964038848877}, {46.94136381149292,52.92918682098389}}),mapFloor::triangle({{47.162121534347534,46.98895812034607}, {45.80681324005127,50.14413595199585}, {44.362592697143555,47.89978265762329}}),mapFloor::triangle({{46.94136381149292,52.92918682098389}, {46.95880115032196,50.853925943374634}, {45.79947292804718,51.260411739349365}}),
+mapFloor::triangle({{48.06930422782898,52.55924463272095}, {48.11813235282898,50.4474401473999}, {46.95880115032196,50.853925943374634}}),mapFloor::triangle({{49.1972416639328,52.18930244445801}, {49.27746057510376,50.04095435142517}, {48.11813235282898,50.4474401473999}}),mapFloor::triangle({{50.3251850605011,51.81936025619507}, {51.59047245979309,49.22996759414673}, {49.27746057510376,50.04095435142517}}),
+mapFloor::triangle({{52.57557034492493,51.08126401901245}, {52.7554452419281,48.821502923965454}, {51.59047245979309,49.22996759414673}}),mapFloor::triangle({{46.95880115032196,50.853925943374634}, {45.80681324005127,50.14413595199585}, {45.79947292804718,51.260411739349365}}),mapFloor::triangle({{47.90157377719879,48.25414419174194}, {48.11813235282898,50.4474401473999}, {49.41757321357727,47.47089147567749}}),
+mapFloor::triangle({{49.41757321357727,47.47089147567749}, {49.27746057510376,50.04095435142517}, {49.83961284160614,47.57797718048096}}),mapFloor::triangle({{49.83961284160614,47.57797718048096}, {51.59047245979309,49.22996759414673}, {51.19330286979675,47.28615880012512}}),mapFloor::triangle({{51.19330286979675,47.28615880012512}, {52.7554452419281,48.821502923965454}, {52.187734842300415,47.12257981300354}}),
+mapFloor::triangle({{47.162121534347534,46.98895812034607}, {52.725422382354736,43.473583459854126}, {47.90157377719879,48.25414419174194}}),mapFloor::triangle({{46.94136381149292,52.92918682098389}, {45.05603313446045,53.894245624542236}, {47.06396758556366,53.24379205703735}}),mapFloor::triangle({{45.79947292804718,51.260411739349365}, {44.01206374168396,51.8357515335083}, {44.93342936038971,53.57964038848877}}),
+mapFloor::triangle({{47.162121534347534,46.98895812034607}, {47.90157377719879,48.25414419174194}, {45.80681324005127,50.14413595199585}}),mapFloor::triangle({{46.94136381149292,52.92918682098389}, {48.06930422782898,52.55924463272095}, {46.95880115032196,50.853925943374634}}),mapFloor::triangle({{48.06930422782898,52.55924463272095}, {49.1972416639328,52.18930244445801}, {48.11813235282898,50.4474401473999}}),
+mapFloor::triangle({{49.1972416639328,52.18930244445801}, {50.3251850605011,51.81936025619507}, {49.27746057510376,50.04095435142517}}),mapFloor::triangle({{50.3251850605011,51.81936025619507}, {52.57557034492493,51.08126401901245}, {51.59047245979309,49.22996759414673}}),mapFloor::triangle({{52.57557034492493,51.08126401901245}, {53.8967490196228,50.61107873916626}, {52.7554452419281,48.821502923965454}}),
+mapFloor::triangle({{46.95880115032196,50.853925943374634}, {47.90157377719879,48.25414419174194}, {45.80681324005127,50.14413595199585}}),mapFloor::triangle({{47.90157377719879,48.25414419174194}, {46.95880115032196,50.853925943374634}, {48.11813235282898,50.4474401473999}}),mapFloor::triangle({{49.41757321357727,47.47089147567749}, {48.11813235282898,50.4474401473999}, {49.27746057510376,50.04095435142517}}),
+mapFloor::triangle({{49.83961284160614,47.57797718048096}, {49.27746057510376,50.04095435142517}, {51.59047245979309,49.22996759414673}}),mapFloor::triangle({{51.19330286979675,47.28615880012512}, {51.59047245979309,49.22996759414673}, {52.7554452419281,48.821502923965454}}),mapFloor::triangle({{47.162121534347534,46.98895812034607}, {51.98596715927124,42.42135286331177}, {52.725422382354736,43.473583459854126}}),
+mapFloor::triangle({{46.94136381149292,52.92918682098389}, {44.93342936038971,53.57964038848877}, {45.05603313446045,53.894245624542236}}),}),true,{}),
+		mapFloor("WoodFloor", List<mapFloor::triangle>({mapFloor::triangle({{45.79947292804718,51.260411739349365}, {44.93342936038971,53.57964038848877}, {46.94136381149292,52.92918682098389}}),mapFloor::triangle({{47.162121534347534,46.98895812034607}, {45.80681324005127,50.14413595199585}, {44.362592697143555,47.89978265762329}}),mapFloor::triangle({{46.94136381149292,52.92918682098389}, {46.95880115032196,50.853925943374634}, {45.79947292804718,51.260411739349365}}),
+mapFloor::triangle({{48.06930422782898,52.55924463272095}, {48.11813235282898,50.4474401473999}, {46.95880115032196,50.853925943374634}}),mapFloor::triangle({{49.1972416639328,52.18930244445801}, {49.27746057510376,50.04095435142517}, {48.11813235282898,50.4474401473999}}),mapFloor::triangle({{50.3251850605011,51.81936025619507}, {51.59047245979309,49.22996759414673}, {49.27746057510376,50.04095435142517}}),
+mapFloor::triangle({{52.57557034492493,51.08126401901245}, {52.7554452419281,48.821502923965454}, {51.59047245979309,49.22996759414673}}),mapFloor::triangle({{46.95880115032196,50.853925943374634}, {45.80681324005127,50.14413595199585}, {45.79947292804718,51.260411739349365}}),mapFloor::triangle({{47.90157377719879,48.25414419174194}, {48.11813235282898,50.4474401473999}, {49.41757321357727,47.47089147567749}}),
+mapFloor::triangle({{49.41757321357727,47.47089147567749}, {49.27746057510376,50.04095435142517}, {49.83961284160614,47.57797718048096}}),mapFloor::triangle({{49.83961284160614,47.57797718048096}, {51.59047245979309,49.22996759414673}, {51.19330286979675,47.28615880012512}}),mapFloor::triangle({{51.19330286979675,47.28615880012512}, {52.7554452419281,48.821502923965454}, {52.187734842300415,47.12257981300354}}),
+mapFloor::triangle({{47.162121534347534,46.98895812034607}, {52.725422382354736,43.473583459854126}, {47.90157377719879,48.25414419174194}}),mapFloor::triangle({{46.94136381149292,52.92918682098389}, {45.05603313446045,53.894245624542236}, {47.06396758556366,53.24379205703735}}),mapFloor::triangle({{45.79947292804718,51.260411739349365}, {44.01206374168396,51.8357515335083}, {44.93342936038971,53.57964038848877}}),
+mapFloor::triangle({{47.162121534347534,46.98895812034607}, {47.90157377719879,48.25414419174194}, {45.80681324005127,50.14413595199585}}),mapFloor::triangle({{46.94136381149292,52.92918682098389}, {48.06930422782898,52.55924463272095}, {46.95880115032196,50.853925943374634}}),mapFloor::triangle({{48.06930422782898,52.55924463272095}, {49.1972416639328,52.18930244445801}, {48.11813235282898,50.4474401473999}}),
+mapFloor::triangle({{49.1972416639328,52.18930244445801}, {50.3251850605011,51.81936025619507}, {49.27746057510376,50.04095435142517}}),mapFloor::triangle({{50.3251850605011,51.81936025619507}, {52.57557034492493,51.08126401901245}, {51.59047245979309,49.22996759414673}}),mapFloor::triangle({{52.57557034492493,51.08126401901245}, {53.8967490196228,50.61107873916626}, {52.7554452419281,48.821502923965454}}),
+mapFloor::triangle({{46.95880115032196,50.853925943374634}, {47.90157377719879,48.25414419174194}, {45.80681324005127,50.14413595199585}}),mapFloor::triangle({{47.90157377719879,48.25414419174194}, {46.95880115032196,50.853925943374634}, {48.11813235282898,50.4474401473999}}),mapFloor::triangle({{49.41757321357727,47.47089147567749}, {48.11813235282898,50.4474401473999}, {49.27746057510376,50.04095435142517}}),
+mapFloor::triangle({{49.83961284160614,47.57797718048096}, {49.27746057510376,50.04095435142517}, {51.59047245979309,49.22996759414673}}),mapFloor::triangle({{51.19330286979675,47.28615880012512}, {51.59047245979309,49.22996759414673}, {52.7554452419281,48.821502923965454}}),mapFloor::triangle({{47.162121534347534,46.98895812034607}, {51.98596715927124,42.42135286331177}, {52.725422382354736,43.473583459854126}}),
+mapFloor::triangle({{46.94136381149292,52.92918682098389}, {44.93342936038971,53.57964038848877}, {45.05603313446045,53.894245624542236}}),}),false,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "FLOORBOARD"})})),
+					}), {}, { 5000,5000 }, { Map<string, string>({
+						pair<string,string>({"song1",to_string(FIREPLACE_WAV_1) + " " + "AmbienceVolume"}),
+						pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
+						}) });
+		maps["House1Inside2"] = mapInstance("House1Inside2", EMPTYMAP, { 49,46 }, List<mapObject>({
+		mapObject("FilmGrain1", false, true, true, imageLookup.getSequenceAsString("FilmGrain1","STAND_FRONT"),"1",1,imageLookup.layerDefaults["WEATHER"],"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+		mapObject("House1Inside2AsObject", false, true, false, imageLookup.getSequenceAsString("House1Inside2AsObject","STAND_FRONT"),"0",0,imageLookup.layerDefaults["Map"] + 1,"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+										mapObject::getTreasureChest("House1Inside2Chest1", {48,44},"NORMAL_FRONT","The Eyes of St Lucy"),
+										mapObject("AT_Door", true, false, false, "","0",0,0,"1","1.0","CENTRE",{52, 43}, false, List<mapFloor::triangle>({mapFloor::triangle({{52.46635675430298,44.129398465156555}, {51.47292613983154,44.85166668891907}, {52.68528461456299,44.555461406707764}}),mapFloor::triangle({{51.25399827957153,44.42560374736786}, {51.08272433280945,44.92737650871277}, {51.47292613983154,44.85166668891907}}),mapFloor::triangle({{51.25399827957153,44.42560374736786}, {51.75027251243591,42.783528566360474}, {50.81353783607483,43.60819458961487}}),
+							mapFloor::triangle({{52.46635675430298,44.129398465156555}, {51.25399827957153,44.42560374736786}, {51.47292613983154,44.85166668891907}}),mapFloor::triangle({{51.25399827957153,44.42560374736786}, {50.86379647254944,44.50131356716156}, {51.08272433280945,44.92737650871277}}),mapFloor::triangle({{51.25399827957153,44.42560374736786}, {52.46635675430298,44.129398465156555}, {51.75027251243591,42.783528566360474}}),}), Map<string, string>({
+																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Go Back Downstairs"}),
+																		pair<string, string>({"copy","AT_Door"}),
+																		pair<string, string>({"areaTransition","House1Inside1"}),
+																		pair<string, string>({"direction","STAND_LEFT"}),
+																		pair<string, string>({"playerPosX","47"}),
+																		pair<string, string>({"playerPosY","48"}),
+																		pair<string, string>({"audio","WOODENSTAIRS"}),
+																		pair<string, string>({"x","0"}),
+																		pair<string, string>({"y","0"}),
+																		pair<string, string>({"h","50"}),
+																		pair<string, string>({"w","50"}),
+																		pair<string, string>("colour", "WHITE"),
+																		pair<string, string>("uniqueID", mapPopupTextID),
+																		pair<string, string>("anchorStyle", "TOPLEFT"),
+																		pair<string, string>("shadowColour", "BLACK"),
+																		pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																		pair<string, string>({"format","LightText_20"}),
+											})),
+		}), List<mapFloor>({
+				mapFloor("Walkable", List<mapFloor::triangle>({mapFloor::triangle({{53.379178047180176,47.85220921039581}, {53.849244117736816,46.73902094364166}, {52.86875367164612,47.029563784599304}}),mapFloor::triangle({{50.04163384437561,44.72180902957916}, {47.95736372470856,48.5080748796463}, {51.88826322555542,47.320106625556946}}),mapFloor::triangle({{51.88826322555542,47.320106625556946}, {48.50795567035675,49.34563338756561}, {52.43885517120361,48.15766513347626}}),
+mapFloor::triangle({{45.90473473072052,45.17439305782318}, {42.659807205200195,47.07562029361725}, {46.3507205247879,45.898714661598206}}),mapFloor::triangle({{49.52903091907501,44.00055408477783}, {46.3507205247879,45.898714661598206}, {50.04163384437561,44.72180902957916}}),mapFloor::triangle({{52.86875367164612,47.029563784599304}, {52.46635675430298,44.129398465156555}, {51.25399827957153,44.42560374736786}}),
+mapFloor::triangle({{51.88826322555542,47.320106625556946}, {51.25399827957153,44.42560374736786}, {50.04163384437561,44.72180902957916}}),mapFloor::triangle({{52.43885517120361,48.15766513347626}, {52.86875367164612,47.029563784599304}, {51.88826322555542,47.320106625556946}}),mapFloor::triangle({{51.25399827957153,44.42560374736786}, {51.75027251243591,42.783528566360474}, {50.81353783607483,43.60819458961487}}),
+mapFloor::triangle({{44.996535778045654,46.330517530441284}, {43.67576241493225,49.023592472076416}, {46.12543284893036,48.27328622341156}}),mapFloor::triangle({{46.3507205247879,45.898714661598206}, {46.12543284893036,48.27328622341156}, {47.5450724363327,47.83846735954285}}),mapFloor::triangle({{48.04847836494446,47.506579756736755}, {47.494322061538696,48.897457122802734}, {48.91396164894104,48.46263527870178}}),
+mapFloor::triangle({{53.379178047180176,47.85220921039581}, {54.31949496269226,47.54675328731537}, {53.849244117736816,46.73902094364166}}),mapFloor::triangle({{50.04163384437561,44.72180902957916}, {46.3507205247879,45.898714661598206}, {47.95736372470856,48.5080748796463}}),mapFloor::triangle({{51.88826322555542,47.320106625556946}, {47.95736372470856,48.5080748796463}, {48.50795567035675,49.34563338756561}}),
+mapFloor::triangle({{45.90473473072052,45.17439305782318}, {42.28043854236603,46.34822905063629}, {42.659807205200195,47.07562029361725}}),mapFloor::triangle({{49.52903091907501,44.00055408477783}, {45.90473473072052,45.17439305782318}, {46.3507205247879,45.898714661598206}}),mapFloor::triangle({{52.86875367164612,47.029563784599304}, {53.849244117736816,46.73902094364166}, {52.46635675430298,44.129398465156555}}),
+mapFloor::triangle({{51.88826322555542,47.320106625556946}, {52.86875367164612,47.029563784599304}, {51.25399827957153,44.42560374736786}}),mapFloor::triangle({{52.43885517120361,48.15766513347626}, {53.379178047180176,47.85220921039581}, {52.86875367164612,47.029563784599304}}),mapFloor::triangle({{51.25399827957153,44.42560374736786}, {52.46635675430298,44.129398465156555}, {51.75027251243591,42.783528566360474}}),
+mapFloor::triangle({{44.996535778045654,46.330517530441284}, {42.659807205200195,47.07562029361725}, {43.67576241493225,49.023592472076416}}),mapFloor::triangle({{46.3507205247879,45.898714661598206}, {44.996535778045654,46.330517530441284}, {46.12543284893036,48.27328622341156}}),mapFloor::triangle({{48.04847836494446,47.506579756736755}, {46.628838777542114,47.94139862060547}, {47.494322061538696,48.897457122802734}}),}),true,{}),
+				mapFloor("WoodFloor", List<mapFloor::triangle>({mapFloor::triangle({{53.379178047180176,47.85220921039581}, {53.849244117736816,46.73902094364166}, {52.86875367164612,47.029563784599304}}),mapFloor::triangle({{50.04163384437561,44.72180902957916}, {47.95736372470856,48.5080748796463}, {51.88826322555542,47.320106625556946}}),mapFloor::triangle({{51.88826322555542,47.320106625556946}, {48.50795567035675,49.34563338756561}, {52.43885517120361,48.15766513347626}}),
+mapFloor::triangle({{45.90473473072052,45.17439305782318}, {42.659807205200195,47.07562029361725}, {46.3507205247879,45.898714661598206}}),mapFloor::triangle({{49.52903091907501,44.00055408477783}, {46.3507205247879,45.898714661598206}, {50.04163384437561,44.72180902957916}}),mapFloor::triangle({{52.86875367164612,47.029563784599304}, {52.46635675430298,44.129398465156555}, {51.25399827957153,44.42560374736786}}),
+mapFloor::triangle({{51.88826322555542,47.320106625556946}, {51.25399827957153,44.42560374736786}, {50.04163384437561,44.72180902957916}}),mapFloor::triangle({{52.43885517120361,48.15766513347626}, {52.86875367164612,47.029563784599304}, {51.88826322555542,47.320106625556946}}),mapFloor::triangle({{51.25399827957153,44.42560374736786}, {51.75027251243591,42.783528566360474}, {50.81353783607483,43.60819458961487}}),
+mapFloor::triangle({{44.996535778045654,46.330517530441284}, {43.67576241493225,49.023592472076416}, {46.12543284893036,48.27328622341156}}),mapFloor::triangle({{46.3507205247879,45.898714661598206}, {46.12543284893036,48.27328622341156}, {47.5450724363327,47.83846735954285}}),mapFloor::triangle({{47.5450724363327,47.83846735954285}, {46.86218500137329,48.74661564826965}, {48.062798380851746,48.64929914474487}}),
+mapFloor::triangle({{53.379178047180176,47.85220921039581}, {54.31949496269226,47.54675328731537}, {53.849244117736816,46.73902094364166}}),mapFloor::triangle({{50.04163384437561,44.72180902957916}, {46.3507205247879,45.898714661598206}, {47.95736372470856,48.5080748796463}}),mapFloor::triangle({{51.88826322555542,47.320106625556946}, {47.95736372470856,48.5080748796463}, {48.50795567035675,49.34563338756561}}),
+mapFloor::triangle({{45.90473473072052,45.17439305782318}, {42.28043854236603,46.34822905063629}, {42.659807205200195,47.07562029361725}}),mapFloor::triangle({{49.52903091907501,44.00055408477783}, {45.90473473072052,45.17439305782318}, {46.3507205247879,45.898714661598206}}),mapFloor::triangle({{52.86875367164612,47.029563784599304}, {53.849244117736816,46.73902094364166}, {52.46635675430298,44.129398465156555}}),
+mapFloor::triangle({{51.88826322555542,47.320106625556946}, {52.86875367164612,47.029563784599304}, {51.25399827957153,44.42560374736786}}),mapFloor::triangle({{52.43885517120361,48.15766513347626}, {53.379178047180176,47.85220921039581}, {52.86875367164612,47.029563784599304}}),mapFloor::triangle({{51.25399827957153,44.42560374736786}, {52.46635675430298,44.129398465156555}, {51.75027251243591,42.783528566360474}}),
+mapFloor::triangle({{44.996535778045654,46.330517530441284}, {42.659807205200195,47.07562029361725}, {43.67576241493225,49.023592472076416}}),mapFloor::triangle({{46.3507205247879,45.898714661598206}, {44.996535778045654,46.330517530441284}, {46.12543284893036,48.27328622341156}}),mapFloor::triangle({{47.5450724363327,47.83846735954285}, {46.12543284893036,48.27328622341156}, {46.86218500137329,48.74661564826965}}),}),false,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "FLOORBOARD"})})),
+			}), {}, { 5000,5000 }, { Map<string, string>({
+				pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
+				}) });
+		maps["BénouvilleTown1"] = mapInstance("BénouvilleTown1", MAP_TOWN1, { 50,50 }, List<mapObject>({
+					mapObject("AT_GoToEstate", true, false, false, "", "0", 0, 0, "1", "1.0", "CENTRE", { 24, 5 }, false, List<mapFloor::triangle>({mapFloor::triangle({{30.819743871688843,1.0285344906151295}, {18.956512212753296,6.336745619773865}, {18.956512212753296,1.0285339318215847}}),mapFloor::triangle({{30.819743871688843,1.0285344906151295}, {30.819743871688843,6.336746364831924}, {18.956512212753296,6.336745619773865}}),}), Map<string, string>({
+													pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Go to Estate"}),
+													pair<string, string>({"copy","AT_GoToEstate"}),
+													pair<string, string>({"areaTransition","EstateOutside1"}),
+													pair<string, string>({"direction","STAND_BACK"}),
+													pair<string, string>({"playerPosX","24"}),
+													pair<string, string>({"playerPosY","95"}),
+													pair<string, string>({"audio","STONESTEPS"}),
+													pair<string, string>({"x","0"}),
+													pair<string, string>({"y","0"}),
+													pair<string, string>({"h","50"}),
+													pair<string, string>({"w","50"}),
+													pair<string, string>("colour", "WHITE"),
+													pair<string, string>("uniqueID", mapPopupTextID),
+													pair<string, string>("anchorStyle", "TOPLEFT"),
+													pair<string, string>("shadowColour", "BLACK"),
+													pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+													pair<string, string>({"format","LightText_20"}),
+					})),
+					mapObject("AT_LeaveTown", true, false, false, "","0",0,0,"1","1.0","CENTRE",{64, 98}, false, List<mapFloor::triangle>({mapFloor::triangle({{65.90241193771362,98.22542667388916}, {58.13485383987427,100.4989743232727}, {66.02039933204651,100.25829076766968}}),mapFloor::triangle({{65.90241193771362,98.22542667388916}, {58.016860485076904,98.46611618995667}, {58.13485383987427,100.4989743232727}}),}), Map<string, string>({
+													pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Leave Bénouville"}),
+													pair<string, string>({"copy","AT_LeaveTown"}),
+													pair<string, string>({"areaTransition","RoadToBénouville"}),
+													pair<string, string>({"direction","STAND_FRONT"}),
+													pair<string, string>({"playerPosX","53"}),
+													pair<string, string>({"playerPosY","5"}),
+													pair<string, string>({"audio","STONESTEPS"}),
+													pair<string, string>({"x","0"}),
+													pair<string, string>({"y","0"}),
+													pair<string, string>({"h","50"}),
+													pair<string, string>({"w","50"}),
+													pair<string, string>("colour", "WHITE"),
+													pair<string, string>("uniqueID", mapPopupTextID),
+													pair<string, string>("anchorStyle", "TOPLEFT"),
+													pair<string, string>("shadowColour", "BLACK"),
+													pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+													pair<string, string>({"format","LightText_20"}),
+														})),
+					mapObject("AT_DoorToTavern", true, false, false, "","0",0,0,"1","1.0","CENTRE",{43, 58}, false, List<mapFloor::triangle>({mapFloor::triangle({{43.5824990272522,58.83595943450928}, {39.62002992630005,54.028284549713135}, {39.86047804355621,59.01541709899902}}),mapFloor::triangle({{43.5824990272522,58.83595943450928}, {43.34205090999603,53.84882688522339}, {39.62002992630005,54.028284549713135}}),}), Map<string, string>({
+													pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Enter Tavern"}),
+													pair<string, string>({"copy","AT_DoorToTavern"}),
+													pair<string, string>({"areaTransition","Tavern1"}),
+													pair<string, string>({"direction","STAND_BACK"}),
+													pair<string, string>({"playerPosX","50"}),
+													pair<string, string>({"playerPosY","56"}),
+													pair<string, string>({"audio","NICEDOOR1"}),
+													pair<string, string>({"x","0"}),
+													pair<string, string>({"y","-15"}),
+													pair<string, string>({"h","50"}),
+													pair<string, string>({"w","50"}),
+													pair<string, string>("colour", "WHITE"),
+													pair<string, string>("uniqueID", mapPopupTextID),
+													pair<string, string>("anchorStyle", "TOPLEFT"),
+													pair<string, string>("shadowColour", "BLACK"),
+													pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+													pair<string, string>({"format","LightText_20"}),
+														})),
+					mapObject("AT_DoorToIso", true, false, false, "","0",0,0,"1","1.0","CENTRE",{55, 51}, false, List<mapFloor::triangle>({mapFloor::triangle({{55.41817545890808,50.60643553733826}, {54.307717084884644,52.09433436393738}, {55.41817545890808,52.09433436393738}}),mapFloor::triangle({{55.41817545890808,50.60643553733826}, {54.307717084884644,50.60643553733826}, {54.307717084884644,52.09433436393738}}),}), Map<string, string>({
+													pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Enter Iso"}),
+													pair<string, string>({"copy","AT_DoorToIso"}),
+													pair<string, string>({"areaTransition","IsoHouse"}),
+													pair<string, string>({"direction","STAND_RIGHT"}),
+													pair<string, string>({"playerPosX","47"}),
+													pair<string, string>({"playerPosY","46"}),
+													pair<string, string>({"audio","NICEDOOR1"}),
+													pair<string, string>({"x","0"}),
+													pair<string, string>({"y","0"}),
+													pair<string, string>({"h","50"}),
+													pair<string, string>({"w","50"}),
+													pair<string, string>("colour", "WHITE"),
+													pair<string, string>("uniqueID", mapPopupTextID),
+													pair<string, string>("anchorStyle", "TOPLEFT"),
+													pair<string, string>("shadowColour", "BLACK"),
+													pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+													pair<string, string>({"format","LightText_20"}),
+														})),
+					mapObject("AT_DoorToSmithy", true, false, false, "","0",0,0,"1","1.0","CENTRE",{20, 60}, false, List<mapFloor::triangle>({mapFloor::triangle({{23.416775465011597,62.924033403396606}, {20.555029809474945,61.3682746887207}, {22.816142439842224,60.81589460372925}}),mapFloor::triangle({{23.416775465011597,62.924033403396606}, {20.662133395671844,63.6304497718811}, {20.555029809474945,61.3682746887207}}),}), Map<string, string>({
+													pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Enter Smithy"}),
+													pair<string, string>({"copy","AT_DoorToSmithy"}),
+													pair<string, string>({"areaTransition","SmithyInside"}),
+													pair<string, string>({"direction","STAND_BACK"}),
+													pair<string, string>({"playerPosX","49"}),
+													pair<string, string>({"playerPosY","59"}),
+													pair<string, string>({"audio","SHOPDOOR1"}),
+													pair<string, string>({"x","0"}),
+													pair<string, string>({"y","0"}),
+													pair<string, string>({"h","50"}),
+													pair<string, string>({"w","50"}),
+													pair<string, string>("colour", "WHITE"),
+													pair<string, string>("uniqueID", mapPopupTextID),
+													pair<string, string>("anchorStyle", "TOPLEFT"),
+													pair<string, string>("shadowColour", "BLACK"),
+													pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+													pair<string, string>({"format","LightText_20"}),
+														})),
+				mapObject("FilmGrain1", false, true, true, imageLookup.getSequenceAsString("FilmGrain1","STAND_FRONT"),"1",1,imageLookup.layerDefaults["WEATHER"],"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+				mapObject("PeasantF1", true, true, false, imageLookup.getSequenceAsString("PEASANTF1","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{42, 19}, false, List<mapFloor::triangle>({mapFloor::triangle({{43.42213273048401,17.592549324035645}, {40.98268151283264,21.704578399658203}, {44.179099798202515,21.084311604499817}}),mapFloor::triangle({{43.42213273048401,17.592549324035645}, {40.225714445114136,18.21281760931015}, {40.98268151283264,21.704578399658203}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Beggar"}),
+												pair<string, string>({"copy","PeasantF1"}),
+												pair<string, string>({"cutscene","BeggarF"}),
+												pair<string, string>({"x","5"}),
+												pair<string, string>({"y","-7"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"})})),
+					mapObject("ShadowPeasantF1", false, true, false, imageLookup.getSequenceAsString("Shadow PEASANTF1","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"0.5","1.0","CENTRE",{42, 19}, false, {}, {}),
+					mapObject("TownGuardF2", true, true, false, imageLookup.getSequenceAsString("GUARD1F","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{69, 99}, false, List<mapFloor::triangle>({}), Map<string, string>()),
+					mapObject("Shadow TownGuardF2", true, true, false, imageLookup.getSequenceAsString("Shadow GUARD1F","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"1.0","1.0","CENTRE",{69, 99}, false, List<mapFloor::triangle>({}), Map<string, string>()),
+					mapObject("TownGuardM2", true, true, false, imageLookup.getSequenceAsString("GUARD1M","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{72, 98}, false, List<mapFloor::triangle>({}), Map<string, string>()),
+					mapObject("Shadow TownGuardM2", true, true, false, imageLookup.getSequenceAsString("Shadow GUARD1M","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"1.0","1.0","CENTRE",{72, 98}, false, List<mapFloor::triangle>({}), Map<string, string>()),
+					mapObject("TownGuardF1", true, true, false, imageLookup.getSequenceAsString("GUARD1F","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{45, 25}, false, List<mapFloor::triangle>({}), Map<string, string>()),
+					mapObject("TownGuardF1Shadow", false, true, false, imageLookup.getSequenceAsString("Shadow GUARD1F","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"0.5","1.0","CENTRE",{45, 25}, false, {}, {}),
+					mapObject("TownGuardM1", true, true, false, imageLookup.getSequenceAsString("GUARD1M","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{39.5, 25.5}, false, List<mapFloor::triangle>({mapFloor::triangle({{41.35875403881073,24.685853719711304}, {39.43250775337219,28.882494568824768}, {42.34980344772339,28.518861532211304}}),mapFloor::triangle({{45.040708780288696,24.21427220106125}, {43.37426722049713,28.496503829956055}, {46.3937908411026,27.996671199798584}}),mapFloor::triangle({{41.35875403881073,24.685853719711304}, {38.425999879837036,25.01887083053589}, {39.43250775337219,28.882494568824768}}), mapFloor::triangle({{45.040708780288696,24.21427220106125}, {42.47890114784241,24.653708934783936}, {43.37426722049713,28.496503829956055}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to TownGuards1"}),
+												pair<string, string>({"copy","TownGuardM1"}),
+												pair<string, string>({"cutscene","TownGuards1"}),
+												pair<string, string>({"x","4"}),
+												pair<string, string>({"y","-7"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"})})),
+					mapObject("TownGuardM1Shadow", false, true, false, imageLookup.getSequenceAsString("Shadow GUARD1M","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"0.5","1.0","CENTRE",{39.5, 25.5}, false, {}, {}),
+					mapObject("MerchantNPC3", true, true, false, imageLookup.getSequenceAsString("ELDERLYF2", "STAND_FRONT"), "1", 500, imageLookup.layerDefaults["PLAYER"], "1.0", "1.0","CENTRE", { 36.8, 96.7 }, false, List<mapFloor::triangle>({mapFloor::triangle({{38.54956924915314,94.56130266189575}, {35.565540194511414,98.0098307132721}, {38.54956924915314,98.0098307132721}}),mapFloor::triangle({{38.54956924915314,94.56130266189575}, {35.565540194511414,94.56130266189575}, {35.565540194511414,98.0098307132721}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to MerchantNPC3"}),
+												pair<string, string>({"copy","MerchantNPC3"}),
+												pair<string, string>({"x","5"}),
+												pair<string, string>({"y","-5"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("Merchant", "1"),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"}) })),
+					mapObject("MerchantNPC3Shadow", false, true, false, imageLookup.getSequenceAsString("ELDERLYF2SHADOW","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"0.5","1.0","CENTRE",{36.8, 96.7}, false, {},{}),
+					mapObject("OldWoman1", true, true, false, imageLookup.getSequenceAsString("ELDERLYF1","STAND_FRONT"),"1",1000,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{27.7, 83.8}, false, List<mapFloor::triangle>({mapFloor::triangle({{29.181161522865295,82.40866661071777}, {25.04141330718994,86.26223802566528}, {29.181161522865295,86.26223802566528}}),mapFloor::triangle({{29.181161522865295,82.40866661071777}, {25.04141330718994,82.40866661071777}, {25.04141330718994,86.26223802566528}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to OldWoman1"}),
+												pair<string, string>({"copy","OldWoman1"}),
+												pair<string, string>({"cutscene","OldWoman1"}),
+												pair<string, string>({"x","2"}),
+												pair<string, string>({"y","-7"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"})})),
+					mapObject("OldWoman1Shadow", false, true, false, imageLookup.getSequenceAsString("ELDERLYF1SHADOW","STAND_FRONT"),"1",1000,imageLookup.layerDefaults["PLAYER"],"0.5","1.0","CENTRE",{27.7, 83.79}, false, {}, {}),
+					mapObject("Fog1", false, true, true, imageLookup.getSequenceAsString("CityFog1","STAND_FRONT"),"1",200,imageLookup.layerDefaults["ENVIRONMENT"] + 1,"0.5","1.0","CENTRE",{0, 0}, false, {}, {}),
+					mapObject("MerchantNPC2", true, true, false, imageLookup.getSequenceAsString("NPCMAN2", "STAND_FRONT"), "1", 500, imageLookup.layerDefaults["PLAYER"], "1.0", "1.0","CENTRE", { 41.5, 92 }, false, List<mapFloor::triangle>({mapFloor::triangle({{42.0989990234375,93.16661357879639}, {38.614171743392944,95.978844165802}, {42.0989990234375,96.03456854820251}}),mapFloor::triangle({{42.0989990234375,93.16661357879639}, {38.614171743392944,93.11088919639587}, {38.614171743392944,95.978844165802}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to MerchantNPC2"}),
+												pair<string, string>({"copy","MerchantNPC2"}),
+												pair<string, string>({"x","5"}),
+												pair<string, string>({"y","-5"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("Merchant", "1"),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"}) })),
+					mapObject("MerchantNPC2Shadow", false, true, false, imageLookup.getSequenceAsString("NPCMAN2SHADOW","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"0.5","1.0","CENTRE",{41.5, 92}, false, {},{}),
+					mapObject("MerchantNPC1", true, true, false, imageLookup.getSequenceAsString("NPCMAN1", "STAND_FRONT"), "1", 500, imageLookup.layerDefaults["PLAYER"], "1.0", "1.0","CENTRE", { 33, 93 }, false, List<mapFloor::triangle>({mapFloor::triangle({{35.52044630050659,93.16661357879639}, {32.0356160402298,95.978844165802}, {35.52044630050659,96.03456854820251}}),mapFloor::triangle({{35.52044630050659,93.16661357879639}, {32.0356160402298,93.11088919639587}, {32.0356160402298,95.978844165802}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to MerchantNPC1"}),
+												pair<string, string>({"copy","MerchantNPC1"}),
+												pair<string, string>({"x","-20"}),
+												pair<string, string>({"y","-5"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("Merchant", "1"),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"}) })),
+					mapObject("MerchantNPC1Shadow", false, true, false, imageLookup.getSequenceAsString("NPCMAN1SHADOW","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"0.5","1.0","CENTRE",{33, 93}, false, {},{}),
+					mapObject("GRAVEDIGGER1", true, true, false, imageLookup.getSequenceAsString("Gravedigger","STAND_FRONT"),"1",550,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{13, 73}, false, List<mapFloor::triangle>({mapFloor::triangle({{17.683838307857513,72.1723198890686}, {12.929876148700714,75.78386068344116}, {17.683838307857513,76.07642412185669}}),mapFloor::triangle({{17.683838307857513,72.1723198890686}, {12.929876148700714,72.1723198890686}, {12.929876148700714,75.78386068344116}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Gravedigger"}),
+												pair<string, string>({"copy","GRAVEDIGGER1"}),
+												pair<string, string>({"cutscene","GraveDigger"}),
+												pair<string, string>({"x","-5"}),
+												pair<string, string>({"y","-7"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"})})),
+					mapObject("GRAVEDIGGER1SHADOW", false, true, false, imageLookup.getSequenceAsString("Shadow Gravedigger","STAND_FRONT"),"1",550,imageLookup.layerDefaults["PLAYER"] - 1,"0.5","1.0","CENTRE",{13, 73}, false, {},{}),
+					mapObject("GRAVE5", true, false, false, "","0",0,0,"","","",{16, 76}, false, List<mapFloor::triangle>({mapFloor::triangle({{17.943866550922394,75.58833956718445}, {13.055244088172913,78.94938588142395}, {18.583104014396667,78.0000388622284}}),mapFloor::triangle({{17.943866550922394,75.58833956718445}, {12.664280831813812,76.53768062591553}, {13.055244088172913,78.94938588142395}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Pray at Grave"}),
+												pair<string, string>({"copy","GRAVE5"}),
+												pair<string, string>({"cutscene","Grave5"}),
+												pair<string, string>({"x","2"}),
+												pair<string, string>({"y","0"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"})})),
+					mapObject("GRAVE4", true, false, false, "","0",0,0,"","","",{8, 82}, false, List<mapFloor::triangle>({mapFloor::triangle({{11.5057572722435,81.94552659988403}, {7.157927751541138,83.7360680103302}, {11.5057572722435,83.7360680103302}}),mapFloor::triangle({{11.5057572722435,81.94552659988403}, {7.157927751541138,81.94552659988403}, {7.157927751541138,83.7360680103302}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Pray at Grave"}),
+												pair<string, string>({"copy","GRAVE4"}),
+												pair<string, string>({"cutscene","Grave4"}),
+												pair<string, string>({"x","-5"}),
+												pair<string, string>({"y","0"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"})})),
+					mapObject("GRAVE3", true, false, false, "","0",0,0,"","","",{8, 80}, false, List<mapFloor::triangle>({mapFloor::triangle({{11.5057572722435,79.9683690071106}, {7.157927751541138,81.75891041755676}, {11.5057572722435,81.75891041755676}}),mapFloor::triangle({{11.5057572722435,79.9683690071106}, {7.157927751541138,79.9683690071106}, {7.157927751541138,81.75891041755676}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Pray at Grave"}),
+												pair<string, string>({"copy","GRAVE3"}),
+												pair<string, string>({"cutscene","Grave3"}),
+												pair<string, string>({"x","-5"}),
+												pair<string, string>({"y","0"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"})})),
+					mapObject("GRAVE2", true, false, false, "","0",0,0,"","","",{8, 78}, false, List<mapFloor::triangle>({mapFloor::triangle({{12.003235518932343,77.97845602035522}, {7.655405253171921,79.76899743080139}, {12.003235518932343,79.76899743080139}}),mapFloor::triangle({{12.003235518932343,77.97845602035522}, {7.655405253171921,77.97845602035522}, {7.655405253171921,79.76899743080139}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Pray at Grave"}),
+												pair<string, string>({"copy","GRAVE2"}),
+												pair<string, string>({"cutscene","Grave2"}),
+												pair<string, string>({"x","-5"}),
+												pair<string, string>({"y","0"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"})})),
+					mapObject("GRAVE1", true, false, false, "","0",0,0,"","","",{7.7, 76.7}, false, List<mapFloor::triangle>({mapFloor::triangle({{12.003235518932343,75.9587824344635}, {7.655405253171921,77.96206474304199}, {12.003235518932343,77.96206474304199}}),mapFloor::triangle({{12.003235518932343,75.9587824344635}, {7.655405253171921,75.9587824344635}, {7.655405253171921,77.96206474304199}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Pray at Grave"}),
+												pair<string, string>({"copy","GRAVE1"}),
+												pair<string, string>({"cutscene","Grave1"}),
+												pair<string, string>({"x","-5"}),
+												pair<string, string>({"y","0"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"})})),
+					mapObject("Lamp1", false, true, false, imageLookup.getSequenceAsString("CITYLAMP","STAND_FRONT"),"1",19,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{46.5, 51.8}, false, {}, {}),
+					mapObject("Lamp2", false, true, false, imageLookup.getSequenceAsString("CITYLAMP2","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{45.1, 51.7}, false, {}, {}),
+					mapObject("Lamp3", false, true, false, imageLookup.getSequenceAsString("CITYLAMP3","STAND_FRONT"),"1",21,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{48.8, 51.9}, false, {}, {}),
+					mapObject("Lamp4", false, true, false, imageLookup.getSequenceAsString("CITYLAMP2","STAND_FRONT"),"1",22,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{50.9, 52}, false, {}, {}),
+					mapObject("Lamp5", false, true, false, imageLookup.getSequenceAsString("CITYLAMP3","STAND_FRONT"),"1",22,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{39.1, 56.1}, false, {}, {}),
+					mapObject("Lamp6", false, true, false, imageLookup.getSequenceAsString("CITYLAMP","STAND_FRONT"),"1",22,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{34.1, 56.0}, false, {}, {}),
+					mapObject("Lamp7", false, true, false, imageLookup.getSequenceAsString("CITYLAMP","STAND_FRONT"),"1",22,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{29.3, 56.5}, false, {}, {}),
+					mapObject("Lamp8", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{19.2,60.1}, false, {}, {}),
+					mapObject("Lamp9", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{7.1,69.1}, false, {}, {}),
+					mapObject("Lamp10", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{27.7,78.8}, false, {}, {}),
+					mapObject("Lamp11", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{68.4,94.6}, false, {}, {}),
+					mapObject("Lamp12", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{61.1,56.2}, false, {}, {}),
+					mapObject("Lamp12.5", false, true, false, imageLookup.getSequenceAsString("CITYLAMP2","STAND_FRONT"),"1",22,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{43.1, 39.9}, false, {}, {}),
+					mapObject("Lamp13", false, true, false, imageLookup.getSequenceAsString("CITYLAMP2","STAND_FRONT"),"1",22,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{46.1, 40}, false, {}, {}),
+					mapObject("Lamp14", false, true, false, imageLookup.getSequenceAsString("CITYLAMP","STAND_FRONT"),"1",22,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{45.6, 39.7}, false, {}, {}),
+					mapObject("Lamp15", false, true, false, imageLookup.getSequenceAsString("CITYLAMP3","STAND_FRONT"),"1",22,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{47.5, 39.3}, false, {}, {}),
+					mapObject("Lamp16", false, true, false, imageLookup.getSequenceAsString("CITYLAMP2","STAND_FRONT"),"1",22,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{49.8, 38.7}, false, {}, {}),
+					mapObject("Lamp17", false, true, false, imageLookup.getSequenceAsString("CITYLAMP","STAND_FRONT"),"1",22,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{49.8, 38.7}, false, {}, {}),
+					mapObject("Lamp18", false, true, false, imageLookup.getSequenceAsString("CITYLAMP3","STAND_FRONT"),"1",22,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{39, 18.3}, false, {}, {}),
+					mapObject("Lamp19", false, true, false, imageLookup.getSequenceAsString("CITYLAMP","STAND_FRONT"),"1",22,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{41.5, 18.1}, false, {}, {}),
+					mapObject("Lamp20", false, true, false, imageLookup.getSequenceAsString("CITYLAMP2","STAND_FRONT"),"1",22,imageLookup.layerDefaults["ENVIRONMENT"],"0.2","1.5","CENTRE",{43.3, 17.7}, false, {}, {}),
+					mapObject("Lamp21", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",50,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{17.5,2.5}, false, {}, {}),
+					mapObject("Flag1", false, true, false, imageLookup.getSequenceAsString("FLAG1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["PLAYER"] + 1,"1.0","2.0","CENTRE",{31.5,89.3}, false, {}, {}),
+					mapObject("Flag2", false, true, false, imageLookup.getSequenceAsString("FLAG2","STAND_FRONT"),"1",20,imageLookup.layerDefaults["PLAYER"] + 1,"1.0","2.0","CENTRE",{42.5,89.5}, false, {}, {}),
+					mapObject("CAT1", true, true, false, imageLookup.getSequenceAsString("CAT1","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"1.0","0.5","CENTRE",{52.75, 53.5}, false, List<mapFloor::triangle>({mapFloor::triangle({{54.775017499923706,52.226608991622925}, {52.116209268569946,55.789148807525635}, {54.775017499923706,55.789148807525635}}),mapFloor::triangle({{54.775017499923706,52.226608991622925}, {52.116209268569946,52.226608991622925}, {52.116209268569946,55.789148807525635}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to the Cat"}),
+												pair<string, string>({"copy","CAT1"}),
+												pair<string, string>({"cutscene","Cat"}),
+												pair<string, string>({"x","-5"}),
+												pair<string, string>({"y","-7"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"})})),
+					mapObject("CAT1SHADOW", false, true, false, imageLookup.getSequenceAsString("CAT1SHADOW1","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 2,"1.0","0.5","CENTRE",{52.75, 53.5}, false, {},{}),
+					mapObject("DOG1", true, true, false, imageLookup.getSequenceAsString("DOG1", "STAND_FRONT"), "1", 400, imageLookup.layerDefaults["PLAYER"] - 1, "1.0", "1", "CENTRE", { 11, 73.5 }, false, List<mapFloor::triangle>({ mapFloor::triangle({{12.794099748134613,72.1723198890686}, {10.228399932384491,75.74518918991089}, {12.794099748134613,75.74518918991089}}),mapFloor::triangle({{12.794099748134613,72.1723198890686}, {10.228399932384491,72.1723198890686}, {10.228399932384491,75.74518918991089}}), }), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to the Dog"}),
+												pair<string, string>({"copy","DOG1"}),
+												pair<string, string>({"cutscene","Dog"}),
+												pair<string, string>({"x","-5"}),
+												pair<string, string>({"y","-7"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"})})),
+					mapObject("DOG1SHADOW", false, true, false, imageLookup.getSequenceAsString("DOG1SHADOW","STAND_FRONT"),"1",400,imageLookup.layerDefaults["PLAYER"] - 2,"1.0","1","CENTRE",{11, 73.499}, false, {},{}),
+					mapObject("TownTop", false, true, false, imageLookup.getSequenceAsString("TownTop","STAND_FRONT"),"0",0,imageLookup.layerDefaults["ENVIRONMENT"] - 1,"1.0","2.0","CENTRE",{50, 50}, false, {}, {}),
+					mapObject("Town1Fence", false, true, false, imageLookup.getSequenceAsString("Town1Fence","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{11.4, 86.2}, false, {}, {}),
+					}), List<mapFloor>({
+						mapFloor("Trans", List<mapFloor::triangle>({mapFloor::triangle({{36.06741428375244,61.61784529685974}, {45.34463584423065,70.40689587593079}, {29.188668727874756,67.28110909461975}}),mapFloor::triangle({{23.434598743915558,63.77654671669006}, {29.32136058807373,66.01842045783997}, {15.57660847902298,67.97674298286438}}),mapFloor::triangle({{29.32136058807373,66.01842045783997}, {15.604294836521149,70.79758048057556}, {15.57660847902298,67.97674298286438}}),
+			mapFloor::triangle({{-0.16089975833892822,15.54003357887268}, {34.60811674594879,15.542873740196228}, {37.569910287857056,11.209874600172043}}),mapFloor::triangle({{38.46757113933563,20.722617208957672}, {34.60811674594879,15.542873740196228}, {35.50577759742737,25.055617094039917}}),mapFloor::triangle({{41.55943989753723,8.371678739786148}, {47.83017337322235,9.50634628534317}, {42.341578006744385,12.52337098121643}}),
+			mapFloor::triangle({{45.34463584423065,70.40689587593079}, {29.736092686653137,74.48803782463074}, {29.188668727874756,67.28110909461975}}),mapFloor::triangle({{56.818270683288574,63.53752017021179}, {66.09548926353455,72.32657074928284}, {50.21376013755798,67.82958507537842}}),mapFloor::triangle({{50.21376013755798,67.82958507537842}, {63.3530855178833,77.26289629936218}, {47.47135937213898,72.76591062545776}}),
+			mapFloor::triangle({{63.3530855178833,77.26289629936218}, {47.47135937213898,87.50168085098267}, {47.47135937213898,72.76591062545776}}),mapFloor::triangle({{29.32136058807373,66.01842045783997}, {30.352306365966797,68.6963140964508}, {15.604294836521149,70.79758048057556}}),mapFloor::triangle({{-0.16089975833892822,15.54003357887268}, {-3.122694045305252,19.873031973838806}, {34.60811674594879,15.542873740196228}}),
+			mapFloor::triangle({{38.46757113933563,20.722617208957672}, {37.569910287857056,11.209874600172043}, {34.60811674594879,15.542873740196228}}),mapFloor::triangle({{41.55943989753723,8.371678739786148}, {45.8541601896286,5.354653298854828}, {47.83017337322235,9.50634628534317}}),mapFloor::triangle({{45.34463584423065,70.40689587593079}, {42.07055866718292,87.00407147407532}, {29.736092686653137,74.48803782463074}}),
+			mapFloor::triangle({{50.21376013755798,67.82958507537842}, {66.09548926353455,72.32657074928284}, {63.3530855178833,77.26289629936218}}),mapFloor::triangle({{63.3530855178833,77.26289629936218}, {63.3530855178833,91.99866652488708}, {47.47135937213898,87.50168085098267}}),}), false, Map<string, string>({{"trans","1"}})),
+						mapFloor("Walkable", List<mapFloor::triangle>({mapFloor::triangle({{55.73093891143799,60.606199502944946}, {52.54521369934082,60.92062592506409}, {55.698639154434204,60.87729334831238}}),mapFloor::triangle({{55.73093891143799,60.606199502944946}, {52.307164669036865,54.441070556640625}, {52.470725774765015,60.76837778091431}}),mapFloor::triangle({{52.307164669036865,54.441070556640625}, {55.33130764961243,50.12750029563904}, {52.176278829574585,50.17045736312866}}),
+		mapFloor::triangle({{13.686150312423706,76.88034772872925}, {17.43103861808777,75.66371560096741}, {17.56890118122101,76.05867385864258}}),mapFloor::triangle({{9.941238909959793,78.42307090759277}, {13.686150312423706,76.88034772872925}, {14.22465443611145,78.42307686805725}}),mapFloor::triangle({{10.32191589474678,76.88034772872925}, {13.39118778705597,76.03532671928406}, {13.686150312423706,76.88034772872925}}),
+		mapFloor::triangle({{16.15099161863327,84.20861959457397}, {10.064070671796799,84.92844104766846}, {10.180553793907166,84.20861959457397}}),mapFloor::triangle({{20.893466472625732,84.20861959457397}, {28.136953711509705,83.36310982704163}, {28.338921070098877,84.2086136341095}}),mapFloor::triangle({{40.47485888004303,89.06092643737793}, {28.92724573612213,86.10114455223083}, {41.99438989162445,87.10901141166687}}),
+		mapFloor::triangle({{28.92724573612213,86.10114455223083}, {28.338921070098877,84.2086136341095}, {29.184192419052124,84.2086136341095}}),mapFloor::triangle({{41.99438989162445,87.10901141166687}, {45.81670165061951,90.5623197555542}, {40.43306112289429,88.83872032165527}}),mapFloor::triangle({{10.02856194972992,79.23346757888794}, {14.22465443611145,78.42307686805725}, {14.440201222896576,79.04058694839478}}),
+		mapFloor::triangle({{53.61122488975525,94.16074752807617}, {58.36923122406006,92.49657392501831}, {61.028093099594116,94.16074752807617}}),mapFloor::triangle({{15.949025750160217,83.3631157875061}, {10.180553793907166,84.20861959457397}, {9.978587925434113,83.3631157875061}}),mapFloor::triangle({{21.20542675256729,86.10115051269531}, {28.338921070098877,84.2086136341095}, {28.139975666999817,86.10114455223083}}),
+		mapFloor::triangle({{25.388413667678833,87.56998181343079}, {21.20542675256729,91.30561947822571}, {21.20542675256729,86.66783571243286}}),mapFloor::triangle({{51.74022316932678,92.94909238815308}, {47.37803041934967,88.8326108455658}, {54.53476905822754,90.83240032196045}}),mapFloor::triangle({{25.388413667678833,87.56998181343079}, {21.20542675256729,86.10115051269531}, {26.234343647956848,86.10115051269531}}),
+		mapFloor::triangle({{52.675724029541016,93.55491995811462}, {54.53476905822754,90.83240032196045}, {58.36923122406006,92.49657392501831}}),mapFloor::triangle({{57.62477517127991,96.7599093914032}, {61.028093099594116,94.16074752807617}, {64.7293746471405,96.7599093914032}}),mapFloor::triangle({{59.35288071632385,99.9901294708252}, {64.7293746471405,96.7599093914032}, {64.7293746471405,99.9901294708252}}),
+		mapFloor::triangle({{13.39118778705597,76.03532671928406}, {9.973200410604477,75.59431195259094}, {13.463491201400757,74.69298839569092}}),mapFloor::triangle({{17.43103861808777,75.66371560096741}, {13.463491201400757,74.69298839569092}, {16.953782737255096,73.79165887832642}}),mapFloor::triangle({{12.89408802986145,73.65986108779907}, {14.676167070865631,72.58003950119019}, {15.814974904060364,73.1858491897583}}),
+		mapFloor::triangle({{12.89408802986145,73.65986108779907}, {9.973200410604477,75.59431195259094}, {9.973200410604477,74.13387298583984}}),mapFloor::triangle({{12.324683368206024,72.6267397403717}, {9.973200410604477,74.13387298583984}, {9.973200410604477,72.67343997955322}}),mapFloor::triangle({{13.463491201400757,74.69298839569092}, {15.814974904060364,73.1858491897583}, {16.953782737255096,73.79165887832642}}),
+		mapFloor::triangle({{8.0686554312706,73.3474850654602}, {6.317555904388428,74.13387298583984}, {6.317555904388428,72.67343997955322}}),mapFloor::triangle({{9.973200410604477,74.13387298583984}, {9.28720310330391,73.3474850654602}, {9.973200410604477,72.67343997955322}}),mapFloor::triangle({{9.28720235824585,74.13387298583984}, {8.0686554312706,73.3474850654602}, {9.28720310330391,73.3474850654602}}),
+		mapFloor::triangle({{10.32191589474678,76.88034772872925}, {9.941238909959793,78.42307090759277}, {8.754055947065353,77.9451847076416}}),mapFloor::triangle({{15.517932176589966,82.12810754776001}, {10.088422894477844,81.11355304718018}, {15.086840093135834,80.89309930801392}}),mapFloor::triangle({{10.088422894477844,81.11355304718018}, {14.655748009681702,79.65809106826782}, {15.086840093135834,80.89309930801392}}),
+		mapFloor::triangle({{9.978587925434113,83.3631157875061}, {15.517932176589966,82.12810754776001}, {15.949025750160217,83.3631157875061}}),mapFloor::triangle({{14.655748009681702,79.65809106826782}, {10.02856194972992,79.23346757888794}, {14.440201222896576,79.04058694839478}}),mapFloor::triangle({{17.204593122005463,86.66783571243286}, {21.20542675256729,86.10115051269531}, {21.20542675256729,86.66783571243286}}),
+		mapFloor::triangle({{17.204593122005463,91.30561947822571}, {9.905359148979187,86.66783571243286}, {17.204593122005463,86.66783571243286}}),mapFloor::triangle({{27.62833833694458,88.05306553840637}, {26.234343647956848,86.10115051269531}, {28.92724573612213,86.10114455223083}}),mapFloor::triangle({{24.609489738941193,95.42139768600464}, {21.20542675256729,98.65127205848694}, {21.20542675256729,95.42139768600464}}),
+		mapFloor::triangle({{24.609489738941193,91.30561947822571}, {21.20542675256729,95.42139768600464}, {21.20542675256729,91.30561947822571}}),mapFloor::triangle({{24.609489738941193,95.42139768600464}, {31.748607754707336,97.42332100868225}, {24.609489738941193,98.65127205848694}}),mapFloor::triangle({{31.748607754707336,97.42332100868225}, {32.05464780330658,94.19344663619995}, {32.14395046234131,97.42332100868225}}),
+		mapFloor::triangle({{32.14395046234131,97.42332100868225}, {33.30938220024109,94.19344663619995}, {33.30938220024109,97.42332100868225}}),mapFloor::triangle({{32.05464780330658,94.19344663619995}, {33.30938220024109,93.16425919532776}, {33.30938220024109,94.19344663619995}}),mapFloor::triangle({{33.30938220024109,93.16425919532776}, {42.084380984306335,94.19344663619995}, {33.30938220024109,94.19344663619995}}),
+		mapFloor::triangle({{33.30938220024109,94.19344663619995}, {42.084380984306335,97.42332100868225}, {33.30938220024109,97.42332100868225}}),mapFloor::triangle({{41.99438989162445,87.10901141166687}, {50.72827339172363,72.13049530982971}, {47.37803041934967,88.8326108455658}}),mapFloor::triangle({{51.75238847732544,58.21966528892517}, {45.356035232543945,56.528520584106445}, {51.60804986953735,56.528520584106445}}),
+		mapFloor::triangle({{45.356035232543945,56.528520584106445}, {50.93286633491516,46.826037764549255}, {51.60804986953735,56.528520584106445}}),mapFloor::triangle({{48.96253943443298,38.96656632423401}, {41.62573218345642,36.34674251079559}, {48.30576181411743,36.34674251079559}}),mapFloor::triangle({{41.62573218345642,36.34674251079559}, {44.15292143821716,21.22199535369873}, {48.30576181411743,36.34674251079559}}),
+		mapFloor::triangle({{34.93525981903076,8.944147825241089}, {40.346384048461914,6.569939851760864}, {41.436946392059326,8.740557730197906}}),mapFloor::triangle({{34.45371687412262,7.009121775627136}, {37.78216540813446,5.662957951426506}, {38.22864294052124,6.951345503330231}}),mapFloor::triangle({{37.69223392009735,22.020843625068665}, {42.149168252944946,12.013623863458633}, {44.15292143821716,21.22199535369873}}),
+		mapFloor::triangle({{17.539416253566742,10.173983126878738}, {10.580939054489136,14.448870718479156}, {10.186772793531418,10.693792998790741}}),mapFloor::triangle({{17.226578295230865,7.878036797046661}, {10.186772793531418,10.693792998790741}, {9.94524136185646,8.392805606126785}}),mapFloor::triangle({{35.72110831737518,12.671534717082977}, {41.436946392059326,8.740557730197906}, {42.149168252944946,12.013623863458633}}),
+		mapFloor::triangle({{2.6035303249955177,15.305614471435547}, {-0.058932637330144644,11.836475133895874}, {2.5048965588212013,11.550536751747131}}),mapFloor::triangle({{9.181087464094162,14.599210023880005}, {5.063920095562935,11.265134066343307}, {8.838780224323273,10.84413155913353}}),mapFloor::triangle({{10.580939054489136,14.448870718479156}, {8.838780224323273,10.84413155913353}, {10.186772793531418,10.693792998790741}}),
+		mapFloor::triangle({{8.838780224323273,10.84413155913353}, {5.360473692417145,7.395584881305695}, {8.542226254940033,7.395584881305695}}),mapFloor::triangle({{5.261003226041794,15.020212531089783}, {2.5048965588212013,11.550536751747131}, {5.063920095562935,11.265134066343307}}),mapFloor::triangle({{2.5048965588212013,11.550536751747131}, {3.8800302892923355,7.334820926189423}, {5.063920095562935,11.265134066343307}}),
+		mapFloor::triangle({{17.983587086200714,7.824518531560898}, {17.539416253566742,10.173983126878738}, {17.226578295230865,7.878036797046661}}),mapFloor::triangle({{18.30383837223053,10.119940340518951}, {18.049949407577515,13.920833170413971}, {17.539416253566742,10.173983126878738}}),mapFloor::triangle({{9.94524136185646,8.392805606126785}, {17.024531960487366,7.054728269577026}, {17.226578295230865,7.878036797046661}}),
+		mapFloor::triangle({{19.813525676727295,10.013210028409958}, {18.826469779014587,13.865935802459717}, {18.30383837223053,10.119940340518951}}),mapFloor::triangle({{19.478632509708405,7.718823105096817}, {18.30383837223053,10.119940340518951}, {17.983587086200714,7.824518531560898}}),mapFloor::triangle({{25.400224328041077,9.61824655532837}, {23.916561901569366,7.4050746858119965}, {25.25157630443573,7.3106929659843445}}),
+		mapFloor::triangle({{25.400224328041077,9.61824655532837}, {24.62996244430542,13.455647230148315}, {24.016912281513214,9.716042876243591}}),mapFloor::triangle({{19.478632509708405,7.718823105096817}, {17.983587086200714,6.906026601791382}, {19.478632509708405,6.800331175327301}}),mapFloor::triangle({{19.478632509708405,7.718823105096817}, {23.641256988048553,6.506045907735825}, {23.916561901569366,7.4050746858119965}}),
+		mapFloor::triangle({{23.916561901569366,7.4050746858119965}, {19.813525676727295,10.013210028409958}, {19.478632509708405,7.718823105096817}}),mapFloor::triangle({{24.016912281513214,9.716042876243591}, {20.360049605369568,13.7575164437294}, {19.813525676727295,10.013210028409958}}),mapFloor::triangle({{23.641256988048553,6.506045907735825}, {19.478632509708405,2.204103022813797}, {23.641256988048553,1.9098177552223206}}),
+		mapFloor::triangle({{34.93525981903076,8.944147825241089}, {31.293559074401855,12.98454999923706}, {30.576688051223755,9.252285957336426}}),mapFloor::triangle({{34.45371687412262,6.660129129886627}, {30.576688051223755,9.252285957336426}, {30.247318744659424,6.957508623600006}}),mapFloor::triangle({{30.576688051223755,9.252285957336426}, {26.035165786743164,13.356302678585052}, {25.400224328041077,9.61824655532837}}),
+		mapFloor::triangle({{30.247318744659424,6.957508623600006}, {25.400224328041077,9.61824655532837}, {25.25157630443573,7.3106929659843445}}),mapFloor::triangle({{30.129551887512207,5.877119302749634}, {25.383812189102173,1.6636453568935394}, {29.63748276233673,1.3629233464598656}}),mapFloor::triangle({{30.247318744659424,6.957508623600006}, {25.277110934257507,6.220173090696335}, {30.129551887512207,5.877119302749634}}),
+		mapFloor::triangle({{34.00723934173584,5.720734223723412}, {29.75088655948639,7.119341939687729}, {29.30440902709961,5.830954387784004}}),mapFloor::triangle({{42.48851537704468,8.46017301082611}, {43.88707876205444,5.625864863395691}, {45.2946662902832,7.711953669786453}}),mapFloor::triangle({{41.436946392059326,8.740557730197906}, {41.397953033447266,6.289554387331009}, {42.48851537704468,8.46017301082611}}),
+		mapFloor::triangle({{41.397953033447266,6.289554387331009}, {43.4712290763855,4.633805900812149}, {43.88707876205444,5.625864863395691}}),mapFloor::triangle({{45.34463584423065,70.40689587593079}, {51.958876848220825,60.639023780822754}, {50.72827339172363,72.13049530982971}}),mapFloor::triangle({{45.53675353527069,60.98302602767944}, {51.75238847732544,58.21966528892517}, {51.958876848220825,60.639023780822754}}),
+		mapFloor::triangle({{41.767215728759766,61.17992401123047}, {39.820969104766846,58.655405044555664}, {41.59303903579712,58.55809450149536}}),mapFloor::triangle({{41.59303903579712,58.55809450149536}, {39.820969104766846,58.016884326934814}, {41.623473167419434,57.53249526023865}}),mapFloor::triangle({{45.17846703529358,58.36119055747986}, {43.199437856674194,56.56546354293823}, {45.356035232543945,56.528520584106445}}),
+		mapFloor::triangle({{45.17846703529358,58.36119055747986}, {43.63028407096863,61.08260750770569}, {43.36511194705963,58.46077799797058}}),mapFloor::triangle({{43.36511194705963,58.46077799797058}, {41.623473167419434,57.53249526023865}, {43.199437856674194,56.56546354293823}}),mapFloor::triangle({{43.36511194705963,58.46077799797058}, {41.767215728759766,61.17992401123047}, {41.59303903579712,58.55809450149536}}),
+		mapFloor::triangle({{41.623473167419434,57.53249526023865}, {41.67589247226715,55.451756715774536}, {43.199437856674194,56.56546354293823}}),mapFloor::triangle({{45.34463584423065,70.40689587593079}, {43.63028407096863,61.08260750770569}, {45.53675353527069,60.98302602767944}}),mapFloor::triangle({{41.767215728759766,61.17992401123047}, {40.02484083175659,69.40388083457947}, {34.70504581928253,68.40086579322815}}),
+		mapFloor::triangle({{39.90415036678314,61.27724051475525}, {34.70504581928253,68.40086579322815}, {29.38525080680847,67.39785075187683}}),mapFloor::triangle({{29.38525080680847,67.39785075187683}, {28.205865621566772,61.695897579193115}, {39.90415036678314,61.27724051475525}}),mapFloor::triangle({{20.650091767311096,69.33240294456482}, {17.685143649578094,64.39388394355774}, {20.662133395671844,63.6304497718811}}),
+		mapFloor::triangle({{23.242035508155823,68.62598657608032}, {20.662133395671844,63.6304497718811}, {23.416775465011597,62.924033403396606}}),mapFloor::triangle({{27.748265862464905,67.39785075187683}, {23.416775465011597,62.924033403396606}, {28.205865621566772,61.695897579193115}}),mapFloor::triangle({{23.143833875656128,61.77178621292114}, {20.527951419353485,61.07513904571533}, {22.772544622421265,60.49951910972595}}),
+		mapFloor::triangle({{23.416775465011597,62.924033403396606}, {20.585645735263824,62.40820288658142}, {23.143833875656128,61.77178621292114}}),mapFloor::triangle({{51.958876848220825,60.639023780822754}, {57.256513833999634,71.34671211242676}, {50.72827339172363,72.13049530982971}}),mapFloor::triangle({{56.5263569355011,61.679607629776}, {56.64258599281311,60.85101366043091}, {56.4550518989563,60.7355535030365}}),
+		mapFloor::triangle({{57.37825632095337,67.95763969421387}, {58.750998973846436,70.36827802658081}, {58.1642746925354,67.64544248580933}}),mapFloor::triangle({{58.1642746925354,67.64544248580933}, {59.65898036956787,69.77382302284241}, {59.01072025299072,67.23819971084595}}),mapFloor::triangle({{59.01072025299072,67.23819971084595}, {60.56696176528931,69.179368019104}, {59.75006818771362,66.61676168441772}}),
+		mapFloor::triangle({{59.75006818771362,66.61676168441772}, {61.47494316101074,68.5849130153656}, {60.76385974884033,66.20283126831055}}),mapFloor::triangle({{60.76385974884033,66.20283126831055}, {62.38292455673218,67.9904580116272}, {61.504554748535156,65.94322919845581}}),mapFloor::triangle({{61.504554748535156,65.94322919845581}, {63.29090595245361,67.39600896835327}, {62.26264238357544,65.54231643676758}}),
+		mapFloor::triangle({{62.26264238357544,65.54231643676758}, {64.19888734817505,66.80155992507935}, {62.995290756225586,65.08822441101074}}),mapFloor::triangle({{60.90986728668213,61.08654737472534}, {60.23549437522888,61.15959882736206}, {60.588109493255615,61.661553382873535}}),mapFloor::triangle({{62.308865785598755,62.79339790344238}, {60.588109493255615,61.661553382873535}, {61.7917001247406,63.37488889694214}}),
+		mapFloor::triangle({{60.23549437522888,61.15959882736206}, {60.206109285354614,61.83493137359619}, {60.588109493255615,61.661553382873535}}),mapFloor::triangle({{59.90486145019531,61.291855573654175}, {59.74782109260559,61.84876561164856}, {60.206109285354614,61.83493137359619}}),mapFloor::triangle({{59.4904899597168,61.24899387359619}, {59.34169888496399,61.43867373466492}, {59.74782109260559,61.84876561164856}}),
+		mapFloor::triangle({{59.13337469100952,60.74079871177673}, {58.11628699302673,61.49156093597412}, {59.34169888496399,61.43867373466492}}),mapFloor::triangle({{57.5242817401886,61.42411231994629}, {58.11628699302673,61.49156093597412}, {57.876962423324585,60.74079871177673}}),mapFloor::triangle({{57.5242817401886,61.42411231994629}, {56.99082016944885,62.199777364730835}, {57.714200019836426,62.16696500778198}}),
+		mapFloor::triangle({{56.8189263343811,61.40207052230835}, {56.7365825176239,61.759012937545776}, {56.99082016944885,62.199777364730835}}),mapFloor::triangle({{56.76974058151245,64.90197777748108}, {56.7365825176239,61.759012937545776}, {56.5263569355011,61.679607629776}}),mapFloor::triangle({{61.09514832496643,60.5864942073822}, {60.90986728668213,61.08654737472534}, {61.11719012260437,60.87304353713989}}),
+		mapFloor::triangle({{62.91089653968811,61.24071478843689}, {61.778461933135986,61.2257182598114}, {63.200199604034424,62.30537295341492}}),mapFloor::triangle({{57.69909620285034,71.05695605278015}, {57.01313018798828,68.12434196472168}, {57.256513833999634,71.34671211242676}}),mapFloor::triangle({{57.21783638000488,66.40798449516296}, {56.76974058151245,64.90197777748108}, {56.891435384750366,66.51315689086914}}),
+		mapFloor::triangle({{64.19888734817505,66.80155992507935}, {63.70786428451538,64.5002543926239}, {62.995290756225586,65.08822441101074}}),mapFloor::triangle({{63.00836801528931,63.64682912826538}, {61.7917001247406,63.37488889694214}, {62.39349842071533,64.23155665397644}}),mapFloor::triangle({{60.588109493255615,61.661553382873535}, {61.23437285423279,63.688623905181885}, {61.7917001247406,63.37488889694214}}),
+		mapFloor::triangle({{62.39349842071533,64.23155665397644}, {62.26264238357544,65.54231643676758}, {62.995290756225586,65.08822441101074}}),mapFloor::triangle({{60.206109285354614,61.83493137359619}, {60.62619090080261,63.895994424819946}, {61.23437285423279,63.688623905181885}}),mapFloor::triangle({{61.06537580490112,64.91961479187012}, {62.26264238357544,65.54231643676758}, {61.748504638671875,64.61547017097473}}),
+		mapFloor::triangle({{59.74782109260559,61.84876561164856}, {60.0527822971344,63.82075548171997}, {60.62619090080261,63.895994424819946}}),mapFloor::triangle({{61.06537580490112,64.91961479187012}, {60.76385974884033,66.20283126831055}, {61.504554748535156,65.94322919845581}}),mapFloor::triangle({{59.34169888496399,61.43867373466492}, {58.93318057060242,64.05416131019592}, {60.0527822971344,63.82075548171997}}),
+		mapFloor::triangle({{59.34162139892578,65.33546447753906}, {60.76385974884033,66.20283126831055}, {60.40831804275513,65.01179337501526}}),mapFloor::triangle({{57.714200019836426,62.16696500778198}, {58.93318057060242,64.05416131019592}, {58.11628699302673,61.49156093597412}}),mapFloor::triangle({{58.68659019470215,65.97039103507996}, {59.75006818771362,66.61676168441772}, {59.34162139892578,65.33546447753906}}),
+		mapFloor::triangle({{57.714200019836426,62.16696500778198}, {57.57754445075989,64.92261290550232}, {58.362460136413574,64.70258235931396}}),mapFloor::triangle({{57.87091255187988,66.28402471542358}, {59.01072025299072,67.23819971084595}, {58.68659019470215,65.97039103507996}}),mapFloor::triangle({{56.99082016944885,62.199777364730835}, {57.057422399520874,64.85832929611206}, {57.57754445075989,64.92261290550232}}),
+		mapFloor::triangle({{57.21783638000488,66.40798449516296}, {58.1642746925354,67.64544248580933}, {57.87091255187988,66.28402471542358}}),mapFloor::triangle({{60.90986728668213,61.08654737472534}, {61.778461933135986,61.2257182598114}, {61.11719012260437,60.87304353713989}}),mapFloor::triangle({{63.00836801528931,63.64682912826538}, {64.62193131446838,63.38502764701843}, {63.200199604034424,62.30537295341492}}),
+		mapFloor::triangle({{65.106862783432,63.38502764701843}, {63.70786428451538,64.5002543926239}, {65.106862783432,66.20710492134094}}),mapFloor::triangle({{62.308865785598755,62.79339790344238}, {63.200199604034424,62.30537295341492}, {61.778461933135986,61.2257182598114}}),mapFloor::triangle({{57.57754445075989,64.92261290550232}, {57.21783638000488,66.40798449516296}, {57.87091255187988,66.28402471542358}}),
+		mapFloor::triangle({{57.57754445075989,64.92261290550232}, {58.68659019470215,65.97039103507996}, {58.362460136413574,64.70258235931396}}),mapFloor::triangle({{58.362460136413574,64.70258235931396}, {59.34162139892578,65.33546447753906}, {58.93318057060242,64.05416131019592}}),mapFloor::triangle({{60.0527822971344,63.82075548171997}, {59.34162139892578,65.33546447753906}, {60.40831804275513,65.01179337501526}}),
+		mapFloor::triangle({{60.62619090080261,63.895994424819946}, {60.40831804275513,65.01179337501526}, {61.06537580490112,64.91961479187012}}),mapFloor::triangle({{61.23437285423279,63.688623905181885}, {61.06537580490112,64.91961479187012}, {61.748504638671875,64.61547017097473}}),mapFloor::triangle({{61.7917001247406,63.37488889694214}, {61.748504638671875,64.61547017097473}, {62.39349842071533,64.23155665397644}}),
+		mapFloor::triangle({{63.70786428451538,64.5002543926239}, {62.39349842071533,64.23155665397644}, {62.995290756225586,65.08822441101074}}),mapFloor::triangle({{57.37825632095337,67.95763969421387}, {56.891435384750366,66.51315689086914}, {57.01313018798828,68.12434196472168}}),mapFloor::triangle({{64.62193131446838,62.04128861427307}, {63.200199604034424,62.30537295341492}, {64.62193131446838,63.38502764701843}}),
+		mapFloor::triangle({{62.91089653968811,61.24071478843689}, {64.62808847427368,61.03021502494812}, {63.03298473358154,60.283881425857544}}),mapFloor::triangle({{45.00240981578827,46.826037764549255}, {49.619314074516296,41.586390137672424}, {50.93286633491516,46.826037764549255}}),mapFloor::triangle({{44.412678480148315,42.49590039253235}, {48.96253943443298,38.96656632423401}, {49.619314074516296,41.586390137672424}}),
+		mapFloor::triangle({{42.149168252944946,12.013623863458633}, {42.48851537704468,8.46017301082611}, {44.150835275650024,11.273302137851715}}),mapFloor::triangle({{44.150835275650024,11.273302137851715}, {45.2946662902832,7.711953669786453}, {46.090564131736755,10.248332470655441}}),mapFloor::triangle({{14.655748009681702,79.65809106826782}, {18.17968785762787,78.09324860572815}, {18.538518249988556,78.84608507156372}}),
+		mapFloor::triangle({{15.949025750160217,83.3631157875061}, {19.973839819431305,81.85744285583496}, {20.69150060415268,83.3631157875061}}),mapFloor::triangle({{15.086840093135834,80.89309930801392}, {18.538518249988556,78.84608507156372}, {19.25617903470993,80.35176396369934}}),mapFloor::triangle({{15.517932176589966,82.12810754776001}, {19.25617903470993,80.35176396369934}, {19.973839819431305,81.85744285583496}}),
+		mapFloor::triangle({{20.69150060415268,83.3631157875061}, {16.15099161863327,84.20861959457397}, {15.949025750160217,83.3631157875061}}),mapFloor::triangle({{14.440201222896576,79.04058694839478}, {17.82085746526718,77.34041213989258}, {18.17968785762787,78.09324860572815}}),mapFloor::triangle({{20.893466472625732,84.20861959457397}, {16.46295189857483,84.92844104766846}, {16.15099161863327,84.20861959457397}}),
+		mapFloor::triangle({{21.20542675256729,91.30561947822571}, {17.204593122005463,86.66783571243286}, {21.20542675256729,86.66783571243286}}),mapFloor::triangle({{43.31970810890198,91.10780358314514}, {43.396878242492676,89.28470611572266}, {46.31889760494232,90.03100395202637}}),mapFloor::triangle({{27.62833833694458,87.53054738044739}, {24.609489738941193,90.78310132026672}, {25.388413667678833,87.0474636554718}}),
+		mapFloor::triangle({{30.673453211784363,87.76944875717163}, {28.789418935775757,90.86838364601135}, {27.62833833694458,87.53054738044739}}),mapFloor::triangle({{42.08822846412659,91.76114797592163}, {40.47485888004303,88.53840827941895}, {43.396878242492676,89.28470611572266}}),mapFloor::triangle({{39.47590887546539,91.0868763923645}, {31.772249937057495,87.6875102519989}, {40.47485888004303,88.37026357650757}}),
+		mapFloor::triangle({{46.55798375606537,90.55352210998535}, {43.23611855506897,92.87440180778503}, {43.360134959220886,89.93344306945801}}),mapFloor::triangle({{31.772249937057495,87.6875102519989}, {31.322526931762695,90.79188704490662}, {30.673453211784363,87.60130405426025}}),mapFloor::triangle({{39.47590887546539,91.0868763923645}, {32.28745460510254,91.10910892486572}, {32.23657011985779,90.824955701828}}),
+		mapFloor::triangle({{55.73093891143799,60.606199502944946}, {52.470725774765015,60.76837778091431}, {52.54521369934082,60.92062592506409}}),mapFloor::triangle({{55.73093891143799,60.606199502944946}, {55.56737780570984,54.31789755821228}, {52.307164669036865,54.441070556640625}}),mapFloor::triangle({{52.307164669036865,54.441070556640625}, {55.56737780570984,54.31789755821228}, {55.33130764961243,50.12750029563904}}),
+		mapFloor::triangle({{13.686150312423706,76.88034772872925}, {13.39118778705597,76.03532671928406}, {17.43103861808777,75.66371560096741}}),mapFloor::triangle({{9.941238909959793,78.42307090759277}, {10.32191589474678,76.88034772872925}, {13.686150312423706,76.88034772872925}}),mapFloor::triangle({{10.32191589474678,76.88034772872925}, {8.154606074094772,76.03532671928406}, {13.39118778705597,76.03532671928406}}),
+		mapFloor::triangle({{16.15099161863327,84.20861959457397}, {16.46295189857483,84.92844104766846}, {10.064070671796799,84.92844104766846}}),mapFloor::triangle({{20.893466472625732,84.20861959457397}, {20.69150060415268,83.3631157875061}, {28.136953711509705,83.36310982704163}}),mapFloor::triangle({{40.47485888004303,89.06092643737793}, {27.62833833694458,88.05306553840637}, {28.92724573612213,86.10114455223083}}),
+		mapFloor::triangle({{28.92724573612213,86.10114455223083}, {28.139975666999817,86.10114455223083}, {28.338921070098877,84.2086136341095}}),mapFloor::triangle({{41.99438989162445,87.10901141166687}, {47.37803041934967,88.8326108455658}, {45.81670165061951,90.5623197555542}}),mapFloor::triangle({{10.02856194972992,79.23346757888794}, {9.941238909959793,78.42307090759277}, {14.22465443611145,78.42307686805725}}),
+		mapFloor::triangle({{53.61122488975525,94.16074752807617}, {52.675724029541016,93.55491995811462}, {58.36923122406006,92.49657392501831}}),mapFloor::triangle({{15.949025750160217,83.3631157875061}, {16.15099161863327,84.20861959457397}, {10.180553793907166,84.20861959457397}}),mapFloor::triangle({{21.20542675256729,86.10115051269531}, {20.893466472625732,84.20861959457397}, {28.338921070098877,84.2086136341095}}),
+		mapFloor::triangle({{25.388413667678833,87.56998181343079}, {24.609489738941193,91.30561947822571}, {21.20542675256729,91.30561947822571}}),mapFloor::triangle({{51.74022316932678,92.94909238815308}, {43.25721859931946,92.51015782356262}, {47.37803041934967,88.8326108455658}}),mapFloor::triangle({{25.388413667678833,87.56998181343079}, {21.20542675256729,86.66783571243286}, {21.20542675256729,86.10115051269531}}),
+		mapFloor::triangle({{52.675724029541016,93.55491995811462}, {51.74022316932678,92.94909238815308}, {54.53476905822754,90.83240032196045}}),mapFloor::triangle({{57.62477517127991,96.7599093914032}, {53.61122488975525,94.16074752807617}, {61.028093099594116,94.16074752807617}}),mapFloor::triangle({{59.35288071632385,99.9901294708252}, {57.62477517127991,96.7599093914032}, {64.7293746471405,96.7599093914032}}),
+		mapFloor::triangle({{13.39118778705597,76.03532671928406}, {8.154606074094772,76.03532671928406}, {9.973200410604477,75.59431195259094}}),mapFloor::triangle({{17.43103861808777,75.66371560096741}, {13.39118778705597,76.03532671928406}, {13.463491201400757,74.69298839569092}}),mapFloor::triangle({{12.89408802986145,73.65986108779907}, {12.324683368206024,72.6267397403717}, {14.676167070865631,72.58003950119019}}),
+		mapFloor::triangle({{12.89408802986145,73.65986108779907}, {13.463491201400757,74.69298839569092}, {9.973200410604477,75.59431195259094}}),mapFloor::triangle({{12.324683368206024,72.6267397403717}, {12.89408802986145,73.65986108779907}, {9.973200410604477,74.13387298583984}}),mapFloor::triangle({{13.463491201400757,74.69298839569092}, {12.89408802986145,73.65986108779907}, {15.814974904060364,73.1858491897583}}),
+		mapFloor::triangle({{8.0686554312706,73.3474850654602}, {8.0686554312706,74.13387298583984}, {6.317555904388428,74.13387298583984}}),mapFloor::triangle({{9.973200410604477,74.13387298583984}, {9.28720235824585,74.13387298583984}, {9.28720310330391,73.3474850654602}}),mapFloor::triangle({{9.28720235824585,74.13387298583984}, {8.0686554312706,74.13387298583984}, {8.0686554312706,73.3474850654602}}),
+		mapFloor::triangle({{15.517932176589966,82.12810754776001}, {9.216467291116714,82.12810754776001}, {10.088422894477844,81.11355304718018}}),mapFloor::triangle({{10.088422894477844,81.11355304718018}, {9.491559863090515,80.04385828971863}, {14.655748009681702,79.65809106826782}}),mapFloor::triangle({{9.978587925434113,83.3631157875061}, {9.216467291116714,82.12810754776001}, {15.517932176589966,82.12810754776001}}),
+		mapFloor::triangle({{14.655748009681702,79.65809106826782}, {9.491559863090515,80.04385828971863}, {10.02856194972992,79.23346757888794}}),mapFloor::triangle({{17.204593122005463,86.66783571243286}, {17.120999097824097,84.92844104766846}, {21.20542675256729,86.10115051269531}}),mapFloor::triangle({{17.204593122005463,91.30561947822571}, {9.905359148979187,91.30561947822571}, {9.905359148979187,86.66783571243286}}),
+		mapFloor::triangle({{27.62833833694458,88.05306553840637}, {25.388413667678833,87.56998181343079}, {26.234343647956848,86.10115051269531}}),mapFloor::triangle({{24.609489738941193,95.42139768600464}, {24.609489738941193,98.65127205848694}, {21.20542675256729,98.65127205848694}}),mapFloor::triangle({{24.609489738941193,91.30561947822571}, {24.609489738941193,95.42139768600464}, {21.20542675256729,95.42139768600464}}),
+		mapFloor::triangle({{24.609489738941193,95.42139768600464}, {31.748607754707336,94.19344663619995}, {31.748607754707336,97.42332100868225}}),mapFloor::triangle({{31.748607754707336,97.42332100868225}, {31.748607754707336,94.19344663619995}, {32.05464780330658,94.19344663619995}}),mapFloor::triangle({{32.14395046234131,97.42332100868225}, {32.05464780330658,94.19344663619995}, {33.30938220024109,94.19344663619995}}),
+		mapFloor::triangle({{32.05464780330658,94.19344663619995}, {32.05464780330658,93.16425919532776}, {33.30938220024109,93.16425919532776}}),mapFloor::triangle({{33.30938220024109,93.16425919532776}, {42.084380984306335,93.16425919532776}, {42.084380984306335,94.19344663619995}}),mapFloor::triangle({{33.30938220024109,94.19344663619995}, {42.084380984306335,94.19344663619995}, {42.084380984306335,97.42332100868225}}),
+		mapFloor::triangle({{41.99438989162445,87.10901141166687}, {45.34463584423065,70.40689587593079}, {50.72827339172363,72.13049530982971}}),mapFloor::triangle({{51.75238847732544,58.21966528892517}, {45.17846703529358,58.36119055747986}, {45.356035232543945,56.528520584106445}}),mapFloor::triangle({{45.356035232543945,56.528520584106445}, {45.00240981578827,46.826037764549255}, {50.93286633491516,46.826037764549255}}),
+		mapFloor::triangle({{48.96253943443298,38.96656632423401}, {42.99716353416443,42.59541928768158}, {41.62573218345642,36.34674251079559}}),mapFloor::triangle({{41.62573218345642,36.34674251079559}, {37.69223392009735,22.020843625068665}, {44.15292143821716,21.22199535369873}}),mapFloor::triangle({{34.93525981903076,8.944147825241089}, {34.45371687412262,6.660129129886627}, {40.346384048461914,6.569939851760864}}),
+		mapFloor::triangle({{34.45371687412262,7.009121775627136}, {34.00723934173584,5.720734223723412}, {37.78216540813446,5.662957951426506}}),mapFloor::triangle({{37.69223392009735,22.020843625068665}, {35.72110831737518,12.671534717082977}, {42.149168252944946,12.013623863458633}}),mapFloor::triangle({{17.539416253566742,10.173983126878738}, {18.049949407577515,13.920833170413971}, {10.580939054489136,14.448870718479156}}),
+		mapFloor::triangle({{17.226578295230865,7.878036797046661}, {17.539416253566742,10.173983126878738}, {10.186772793531418,10.693792998790741}}),mapFloor::triangle({{35.72110831737518,12.671534717082977}, {34.93525981903076,8.944147825241089}, {41.436946392059326,8.740557730197906}}),mapFloor::triangle({{2.6035303249955177,15.305614471435547}, {-0.05893282359465957,15.59155285358429}, {-0.058932637330144644,11.836475133895874}}),
+		mapFloor::triangle({{9.181087464094162,14.599210023880005}, {5.261003226041794,15.020212531089783}, {5.063920095562935,11.265134066343307}}),mapFloor::triangle({{10.580939054489136,14.448870718479156}, {9.181087464094162,14.599210023880005}, {8.838780224323273,10.84413155913353}}),mapFloor::triangle({{8.838780224323273,10.84413155913353}, {5.063920095562935,11.265134066343307}, {5.360473692417145,7.395584881305695}}),
+		mapFloor::triangle({{5.261003226041794,15.020212531089783}, {2.6035303249955177,15.305614471435547}, {2.5048965588212013,11.550536751747131}}),mapFloor::triangle({{2.5048965588212013,11.550536751747131}, {2.3879943415522575,7.385682314634323}, {3.8800302892923355,7.334820926189423}}),mapFloor::triangle({{17.983587086200714,7.824518531560898}, {18.30383837223053,10.119940340518951}, {17.539416253566742,10.173983126878738}}),
+		mapFloor::triangle({{18.30383837223053,10.119940340518951}, {18.826469779014587,13.865935802459717}, {18.049949407577515,13.920833170413971}}),mapFloor::triangle({{9.94524136185646,8.392805606126785}, {9.743194282054901,7.305775582790375}, {17.024531960487366,7.054728269577026}}),mapFloor::triangle({{19.813525676727295,10.013210028409958}, {20.360049605369568,13.7575164437294}, {18.826469779014587,13.865935802459717}}),
+		mapFloor::triangle({{19.478632509708405,7.718823105096817}, {19.813525676727295,10.013210028409958}, {18.30383837223053,10.119940340518951}}),mapFloor::triangle({{25.400224328041077,9.61824655532837}, {24.016912281513214,9.716042876243591}, {23.916561901569366,7.4050746858119965}}),mapFloor::triangle({{25.400224328041077,9.61824655532837}, {26.035165786743164,13.356302678585052}, {24.62996244430542,13.455647230148315}}),
+		mapFloor::triangle({{19.478632509708405,7.718823105096817}, {17.983587086200714,7.824518531560898}, {17.983587086200714,6.906026601791382}}),mapFloor::triangle({{19.478632509708405,7.718823105096817}, {19.478632509708405,6.800331175327301}, {23.641256988048553,6.506045907735825}}),mapFloor::triangle({{23.916561901569366,7.4050746858119965}, {24.016912281513214,9.716042876243591}, {19.813525676727295,10.013210028409958}}),
+		mapFloor::triangle({{24.016912281513214,9.716042876243591}, {24.62996244430542,13.455647230148315}, {20.360049605369568,13.7575164437294}}),mapFloor::triangle({{23.641256988048553,6.506045907735825}, {19.478632509708405,6.800331175327301}, {19.478632509708405,2.204103022813797}}),mapFloor::triangle({{34.93525981903076,8.944147825241089}, {35.72110831737518,12.671534717082977}, {31.293559074401855,12.98454999923706}}),
+		mapFloor::triangle({{34.45371687412262,6.660129129886627}, {34.93525981903076,8.944147825241089}, {30.576688051223755,9.252285957336426}}),mapFloor::triangle({{30.576688051223755,9.252285957336426}, {31.293559074401855,12.98454999923706}, {26.035165786743164,13.356302678585052}}),mapFloor::triangle({{30.247318744659424,6.957508623600006}, {30.576688051223755,9.252285957336426}, {25.400224328041077,9.61824655532837}}),
+		mapFloor::triangle({{30.129551887512207,5.877119302749634}, {25.277110934257507,6.220173090696335}, {25.383812189102173,1.6636453568935394}}),mapFloor::triangle({{30.247318744659424,6.957508623600006}, {25.25157630443573,7.3106929659843445}, {25.277110934257507,6.220173090696335}}),mapFloor::triangle({{34.00723934173584,5.720734223723412}, {34.45371687412262,7.009121775627136}, {29.75088655948639,7.119341939687729}}),
+		mapFloor::triangle({{42.48851537704468,8.46017301082611}, {41.397953033447266,6.289554387331009}, {43.88707876205444,5.625864863395691}}),mapFloor::triangle({{41.436946392059326,8.740557730197906}, {40.346384048461914,6.569939851760864}, {41.397953033447266,6.289554387331009}}),mapFloor::triangle({{41.397953033447266,6.289554387331009}, {41.23776853084564,5.181708186864853}, {43.4712290763855,4.633805900812149}}),
+		mapFloor::triangle({{45.34463584423065,70.40689587593079}, {45.53675353527069,60.98302602767944}, {51.958876848220825,60.639023780822754}}),mapFloor::triangle({{45.53675353527069,60.98302602767944}, {45.17846703529358,58.36119055747986}, {51.75238847732544,58.21966528892517}}),mapFloor::triangle({{41.767215728759766,61.17992401123047}, {39.90415036678314,61.27724051475525}, {39.820969104766846,58.655405044555664}}),
+		mapFloor::triangle({{41.59303903579712,58.55809450149536}, {39.820969104766846,58.655405044555664}, {39.820969104766846,58.016884326934814}}),mapFloor::triangle({{45.17846703529358,58.36119055747986}, {43.36511194705963,58.46077799797058}, {43.199437856674194,56.56546354293823}}),mapFloor::triangle({{45.17846703529358,58.36119055747986}, {45.53675353527069,60.98302602767944}, {43.63028407096863,61.08260750770569}}),
+		mapFloor::triangle({{43.36511194705963,58.46077799797058}, {41.59303903579712,58.55809450149536}, {41.623473167419434,57.53249526023865}}),mapFloor::triangle({{43.36511194705963,58.46077799797058}, {43.63028407096863,61.08260750770569}, {41.767215728759766,61.17992401123047}}),mapFloor::triangle({{45.34463584423065,70.40689587593079}, {40.02484083175659,69.40388083457947}, {43.63028407096863,61.08260750770569}}),
+		mapFloor::triangle({{41.767215728759766,61.17992401123047}, {43.63028407096863,61.08260750770569}, {40.02484083175659,69.40388083457947}}),mapFloor::triangle({{39.90415036678314,61.27724051475525}, {41.767215728759766,61.17992401123047}, {34.70504581928253,68.40086579322815}}),mapFloor::triangle({{29.38525080680847,67.39785075187683}, {27.748265862464905,67.39785075187683}, {28.205865621566772,61.695897579193115}}),
+		mapFloor::triangle({{20.650091767311096,69.33240294456482}, {17.84893423318863,70.09583711624146}, {17.685143649578094,64.39388394355774}}),mapFloor::triangle({{23.242035508155823,68.62598657608032}, {20.650091767311096,69.33240294456482}, {20.662133395671844,63.6304497718811}}),mapFloor::triangle({{27.748265862464905,67.39785075187683}, {23.242035508155823,68.62598657608032}, {23.416775465011597,62.924033403396606}}),
+		mapFloor::triangle({{23.143833875656128,61.77178621292114}, {20.585645735263824,62.40820288658142}, {20.527951419353485,61.07513904571533}}),mapFloor::triangle({{23.416775465011597,62.924033403396606}, {20.662133395671844,63.6304497718811}, {20.585645735263824,62.40820288658142}}),mapFloor::triangle({{51.958876848220825,60.639023780822754}, {56.4550518989563,60.7355535030365}, {57.256513833999634,71.34671211242676}}),
+		mapFloor::triangle({{56.5263569355011,61.679607629776}, {56.7365825176239,61.759012937545776}, {56.64258599281311,60.85101366043091}}),mapFloor::triangle({{57.37825632095337,67.95763969421387}, {57.69909620285034,71.05695605278015}, {58.750998973846436,70.36827802658081}}),mapFloor::triangle({{58.1642746925354,67.64544248580933}, {58.750998973846436,70.36827802658081}, {59.65898036956787,69.77382302284241}}),
+		mapFloor::triangle({{59.01072025299072,67.23819971084595}, {59.65898036956787,69.77382302284241}, {60.56696176528931,69.179368019104}}),mapFloor::triangle({{59.75006818771362,66.61676168441772}, {60.56696176528931,69.179368019104}, {61.47494316101074,68.5849130153656}}),mapFloor::triangle({{60.76385974884033,66.20283126831055}, {61.47494316101074,68.5849130153656}, {62.38292455673218,67.9904580116272}}),
+		mapFloor::triangle({{61.504554748535156,65.94322919845581}, {62.38292455673218,67.9904580116272}, {63.29090595245361,67.39600896835327}}),mapFloor::triangle({{62.26264238357544,65.54231643676758}, {63.29090595245361,67.39600896835327}, {64.19888734817505,66.80155992507935}}),mapFloor::triangle({{60.90986728668213,61.08654737472534}, {60.50000190734863,60.5864942073822}, {60.23549437522888,61.15959882736206}}),
+		mapFloor::triangle({{62.308865785598755,62.79339790344238}, {60.90986728668213,61.08654737472534}, {60.588109493255615,61.661553382873535}}),mapFloor::triangle({{60.23549437522888,61.15959882736206}, {59.90486145019531,61.291855573654175}, {60.206109285354614,61.83493137359619}}),mapFloor::triangle({{59.90486145019531,61.291855573654175}, {59.4904899597168,61.24899387359619}, {59.74782109260559,61.84876561164856}}),
+		mapFloor::triangle({{59.4904899597168,61.24899387359619}, {59.13337469100952,60.74079871177673}, {59.34169888496399,61.43867373466492}}),mapFloor::triangle({{59.13337469100952,60.74079871177673}, {57.876962423324585,60.74079871177673}, {58.11628699302673,61.49156093597412}}),mapFloor::triangle({{57.5242817401886,61.42411231994629}, {57.714200019836426,62.16696500778198}, {58.11628699302673,61.49156093597412}}),
+		mapFloor::triangle({{57.5242817401886,61.42411231994629}, {56.8189263343811,61.40207052230835}, {56.99082016944885,62.199777364730835}}),mapFloor::triangle({{56.8189263343811,61.40207052230835}, {56.64258599281311,60.85101366043091}, {56.7365825176239,61.759012937545776}}),mapFloor::triangle({{56.76974058151245,64.90197777748108}, {57.057422399520874,64.85832929611206}, {56.7365825176239,61.759012937545776}}),
+		mapFloor::triangle({{61.09514832496643,60.5864942073822}, {60.50000190734863,60.5864942073822}, {60.90986728668213,61.08654737472534}}),mapFloor::triangle({{62.91089653968811,61.24071478843689}, {62.21930980682373,60.91712713241577}, {61.778461933135986,61.2257182598114}}),mapFloor::triangle({{57.69909620285034,71.05695605278015}, {57.37825632095337,67.95763969421387}, {57.01313018798828,68.12434196472168}}),
+		mapFloor::triangle({{57.21783638000488,66.40798449516296}, {57.057422399520874,64.85832929611206}, {56.76974058151245,64.90197777748108}}),mapFloor::triangle({{64.19888734817505,66.80155992507935}, {65.106862783432,66.20710492134094}, {63.70786428451538,64.5002543926239}}),mapFloor::triangle({{63.00836801528931,63.64682912826538}, {62.308865785598755,62.79339790344238}, {61.7917001247406,63.37488889694214}}),
+		mapFloor::triangle({{60.588109493255615,61.661553382873535}, {60.206109285354614,61.83493137359619}, {61.23437285423279,63.688623905181885}}),mapFloor::triangle({{62.39349842071533,64.23155665397644}, {61.748504638671875,64.61547017097473}, {62.26264238357544,65.54231643676758}}),mapFloor::triangle({{60.206109285354614,61.83493137359619}, {59.74782109260559,61.84876561164856}, {60.62619090080261,63.895994424819946}}),
+		mapFloor::triangle({{61.06537580490112,64.91961479187012}, {61.504554748535156,65.94322919845581}, {62.26264238357544,65.54231643676758}}),mapFloor::triangle({{59.74782109260559,61.84876561164856}, {59.34169888496399,61.43867373466492}, {60.0527822971344,63.82075548171997}}),mapFloor::triangle({{61.06537580490112,64.91961479187012}, {60.40831804275513,65.01179337501526}, {60.76385974884033,66.20283126831055}}),
+		mapFloor::triangle({{59.34169888496399,61.43867373466492}, {58.11628699302673,61.49156093597412}, {58.93318057060242,64.05416131019592}}),mapFloor::triangle({{59.34162139892578,65.33546447753906}, {59.75006818771362,66.61676168441772}, {60.76385974884033,66.20283126831055}}),mapFloor::triangle({{57.714200019836426,62.16696500778198}, {58.362460136413574,64.70258235931396}, {58.93318057060242,64.05416131019592}}),
+		mapFloor::triangle({{58.68659019470215,65.97039103507996}, {59.01072025299072,67.23819971084595}, {59.75006818771362,66.61676168441772}}),mapFloor::triangle({{57.714200019836426,62.16696500778198}, {56.99082016944885,62.199777364730835}, {57.57754445075989,64.92261290550232}}),mapFloor::triangle({{57.87091255187988,66.28402471542358}, {58.1642746925354,67.64544248580933}, {59.01072025299072,67.23819971084595}}),
+		mapFloor::triangle({{56.99082016944885,62.199777364730835}, {56.7365825176239,61.759012937545776}, {57.057422399520874,64.85832929611206}}),mapFloor::triangle({{57.21783638000488,66.40798449516296}, {57.37825632095337,67.95763969421387}, {58.1642746925354,67.64544248580933}}),mapFloor::triangle({{60.90986728668213,61.08654737472534}, {62.308865785598755,62.79339790344238}, {61.778461933135986,61.2257182598114}}),
+		mapFloor::triangle({{63.00836801528931,63.64682912826538}, {63.70786428451538,64.5002543926239}, {64.62193131446838,63.38502764701843}}),mapFloor::triangle({{65.106862783432,63.38502764701843}, {64.62193131446838,63.38502764701843}, {63.70786428451538,64.5002543926239}}),mapFloor::triangle({{62.308865785598755,62.79339790344238}, {63.00836801528931,63.64682912826538}, {63.200199604034424,62.30537295341492}}),
+		mapFloor::triangle({{57.57754445075989,64.92261290550232}, {57.057422399520874,64.85832929611206}, {57.21783638000488,66.40798449516296}}),mapFloor::triangle({{57.57754445075989,64.92261290550232}, {57.87091255187988,66.28402471542358}, {58.68659019470215,65.97039103507996}}),mapFloor::triangle({{58.362460136413574,64.70258235931396}, {58.68659019470215,65.97039103507996}, {59.34162139892578,65.33546447753906}}),
+		mapFloor::triangle({{60.0527822971344,63.82075548171997}, {58.93318057060242,64.05416131019592}, {59.34162139892578,65.33546447753906}}),mapFloor::triangle({{60.62619090080261,63.895994424819946}, {60.0527822971344,63.82075548171997}, {60.40831804275513,65.01179337501526}}),mapFloor::triangle({{61.23437285423279,63.688623905181885}, {60.62619090080261,63.895994424819946}, {61.06537580490112,64.91961479187012}}),
+		mapFloor::triangle({{61.7917001247406,63.37488889694214}, {61.23437285423279,63.688623905181885}, {61.748504638671875,64.61547017097473}}),mapFloor::triangle({{63.70786428451538,64.5002543926239}, {63.00836801528931,63.64682912826538}, {62.39349842071533,64.23155665397644}}),mapFloor::triangle({{57.37825632095337,67.95763969421387}, {57.21783638000488,66.40798449516296}, {56.891435384750366,66.51315689086914}}),
+		mapFloor::triangle({{64.62193131446838,62.04128861427307}, {62.91089653968811,61.24071478843689}, {63.200199604034424,62.30537295341492}}),mapFloor::triangle({{62.91089653968811,61.24071478843689}, {64.62193131446838,62.04128861427307}, {64.62808847427368,61.03021502494812}}),mapFloor::triangle({{45.00240981578827,46.826037764549255}, {44.412678480148315,42.49590039253235}, {49.619314074516296,41.586390137672424}}),
+		mapFloor::triangle({{44.412678480148315,42.49590039253235}, {42.99716353416443,42.59541928768158}, {48.96253943443298,38.96656632423401}}),mapFloor::triangle({{42.149168252944946,12.013623863458633}, {41.436946392059326,8.740557730197906}, {42.48851537704468,8.46017301082611}}),mapFloor::triangle({{44.150835275650024,11.273302137851715}, {42.48851537704468,8.46017301082611}, {45.2946662902832,7.711953669786453}}),
+		mapFloor::triangle({{14.655748009681702,79.65809106826782}, {14.440201222896576,79.04058694839478}, {18.17968785762787,78.09324860572815}}),mapFloor::triangle({{15.949025750160217,83.3631157875061}, {15.517932176589966,82.12810754776001}, {19.973839819431305,81.85744285583496}}),mapFloor::triangle({{15.086840093135834,80.89309930801392}, {14.655748009681702,79.65809106826782}, {18.538518249988556,78.84608507156372}}),
+		mapFloor::triangle({{15.517932176589966,82.12810754776001}, {15.086840093135834,80.89309930801392}, {19.25617903470993,80.35176396369934}}),mapFloor::triangle({{20.69150060415268,83.3631157875061}, {20.893466472625732,84.20861959457397}, {16.15099161863327,84.20861959457397}}),mapFloor::triangle({{14.440201222896576,79.04058694839478}, {14.22465443611145,78.42307686805725}, {17.82085746526718,77.34041213989258}}),
+		mapFloor::triangle({{20.893466472625732,84.20861959457397}, {21.20542675256729,86.10115051269531}, {16.46295189857483,84.92844104766846}}),mapFloor::triangle({{21.20542675256729,91.30561947822571}, {17.204593122005463,91.30561947822571}, {17.204593122005463,86.66783571243286}}),mapFloor::triangle({{43.31970810890198,91.10780358314514}, {42.573365569114685,90.84309339523315}, {43.396878242492676,89.28470611572266}}),
+		mapFloor::triangle({{27.62833833694458,87.53054738044739}, {28.789418935775757,90.86838364601135}, {24.609489738941193,90.78310132026672}}),mapFloor::triangle({{30.673453211784363,87.76944875717163}, {31.322526931762695,90.960031747818}, {28.789418935775757,90.86838364601135}}),mapFloor::triangle({{42.08822846412659,91.76114797592163}, {39.47590887546539,91.25502109527588}, {40.47485888004303,88.53840827941895}}),
+		mapFloor::triangle({{39.47590887546539,91.0868763923645}, {32.23657011985779,90.824955701828}, {31.772249937057495,87.6875102519989}}),mapFloor::triangle({{46.55798375606537,90.55352210998535}, {47.16920554637909,92.1568751335144}, {43.23611855506897,92.87440180778503}}),mapFloor::triangle({{31.772249937057495,87.6875102519989}, {32.23657011985779,90.824955701828}, {31.322526931762695,90.79188704490662}}),
+		mapFloor::triangle({{39.47590887546539,91.0868763923645}, {39.526793360710144,91.37102961540222}, {32.28745460510254,91.10910892486572}}),}), true, {}),
+						mapFloor("Stone", List<mapFloor::triangle>({ mapFloor::triangle({{55.73093891143799,60.606199502944946}, {52.54521369934082,60.92062592506409}, {55.698639154434204,60.87729334831238}}),mapFloor::triangle({{55.73093891143799,60.606199502944946}, {52.307164669036865,54.441070556640625}, {52.470725774765015,60.76837778091431}}),mapFloor::triangle({{52.307164669036865,54.441070556640625}, {55.33130764961243,50.12750029563904}, {52.176278829574585,50.17045736312866}}),
+			mapFloor::triangle({{20.893466472625732,84.20861959457397}, {28.136953711509705,83.36310982704163}, {28.338921070098877,84.2086136341095}}),mapFloor::triangle({{40.47485888004303,89.06092643737793}, {28.92724573612213,86.10114455223083}, {41.99438989162445,87.10901141166687}}),mapFloor::triangle({{28.92724573612213,86.10114455223083}, {28.338921070098877,84.2086136341095}, {29.184192419052124,84.2086136341095}}),
+			mapFloor::triangle({{41.99438989162445,87.10901141166687}, {45.81670165061951,90.5623197555542}, {40.43306112289429,88.83872032165527}}),mapFloor::triangle({{53.61122488975525,94.16074752807617}, {58.36923122406006,92.49657392501831}, {61.028093099594116,94.16074752807617}}),mapFloor::triangle({{21.20542675256729,86.10115051269531}, {28.338921070098877,84.2086136341095}, {28.139975666999817,86.10114455223083}}),
+			mapFloor::triangle({{25.388413667678833,87.56998181343079}, {21.20542675256729,91.30561947822571}, {21.20542675256729,86.66783571243286}}),mapFloor::triangle({{51.74022316932678,92.94909238815308}, {47.37803041934967,88.8326108455658}, {54.53476905822754,90.83240032196045}}),mapFloor::triangle({{25.388413667678833,87.56998181343079}, {21.20542675256729,86.10115051269531}, {26.234343647956848,86.10115051269531}}),
+			mapFloor::triangle({{39.47590887546539,91.25502109527588}, {31.322526931762695,91.07525944709778}, {31.322526931762695,90.960031747818}}),mapFloor::triangle({{52.675724029541016,93.55491995811462}, {54.53476905822754,90.83240032196045}, {58.36923122406006,92.49657392501831}}),mapFloor::triangle({{57.62477517127991,96.7599093914032}, {61.028093099594116,94.16074752807617}, {64.7293746471405,96.7599093914032}}),
+			mapFloor::triangle({{59.35288071632385,99.9901294708252}, {64.7293746471405,96.7599093914032}, {65.64862132072449,99.9901294708252}}),mapFloor::triangle({{11.588496714830399,73.87173771858215}, {14.676167070865631,72.58003950119019}, {15.814974904060364,73.1858491897583}}),mapFloor::triangle({{12.05345094203949,75.05711317062378}, {15.814974904060364,73.1858491897583}, {17.30959415435791,75.18734335899353}}),
+			mapFloor::triangle({{17.204593122005463,91.30561947822571}, {9.905359148979187,86.66783571243286}, {17.204593122005463,86.66783571243286}}),mapFloor::triangle({{27.62833833694458,88.05306553840637}, {26.234343647956848,86.10115051269531}, {28.92724573612213,86.10114455223083}}),mapFloor::triangle({{24.609489738941193,95.42139768600464}, {21.20542675256729,98.65127205848694}, {21.20542675256729,95.42139768600464}}),
+			mapFloor::triangle({{24.609489738941193,91.30561947822571}, {21.20542675256729,95.42139768600464}, {21.20542675256729,91.30561947822571}}),mapFloor::triangle({{24.609489738941193,95.42139768600464}, {31.748607754707336,97.42332100868225}, {24.609489738941193,98.65127205848694}}),mapFloor::triangle({{31.748607754707336,97.42332100868225}, {32.05464780330658,94.19344663619995}, {32.14395046234131,97.42332100868225}}),
+			mapFloor::triangle({{41.99438989162445,87.10901141166687}, {50.72827339172363,72.13049530982971}, {47.37803041934967,88.8326108455658}}),mapFloor::triangle({{45.17846703529358,58.36119055747986}, {51.60804986953735,56.528520584106445}, {51.75238847732544,58.21966528892517}}),mapFloor::triangle({{44.92802321910858,56.528520584106445}, {50.93286633491516,46.826037764549255}, {51.60804986953735,56.528520584106445}}),
+			mapFloor::triangle({{48.96253943443298,38.96656632423401}, {41.62573218345642,36.34674251079559}, {48.30576181411743,36.34674251079559}}),mapFloor::triangle({{41.62573218345642,36.34674251079559}, {44.15292143821716,21.22199535369873}, {48.30576181411743,36.34674251079559}}),mapFloor::triangle({{34.93525981903076,8.944147825241089}, {40.346384048461914,6.569939851760864}, {41.436946392059326,8.740557730197906}}),
+			mapFloor::triangle({{34.45371687412262,7.009121775627136}, {37.78216540813446,5.662957951426506}, {38.22864294052124,6.951345503330231}}),mapFloor::triangle({{37.69223392009735,22.020843625068665}, {42.149168252944946,12.013623863458633}, {44.15292143821716,21.22199535369873}}),mapFloor::triangle({{17.539416253566742,10.173983126878738}, {10.580939054489136,14.448870718479156}, {10.186772793531418,10.693792998790741}}),
+			mapFloor::triangle({{17.226578295230865,7.878036797046661}, {10.186772793531418,10.693792998790741}, {9.94524136185646,8.392805606126785}}),mapFloor::triangle({{35.72110831737518,12.671534717082977}, {41.436946392059326,8.740557730197906}, {42.149168252944946,12.013623863458633}}),mapFloor::triangle({{2.6035303249955177,15.305614471435547}, {-0.058932637330144644,11.836475133895874}, {2.5048965588212013,11.550536751747131}}),
+			mapFloor::triangle({{9.181087464094162,14.599210023880005}, {5.063920095562935,11.265134066343307}, {8.838780224323273,10.84413155913353}}),mapFloor::triangle({{10.580939054489136,14.448870718479156}, {8.838780224323273,10.84413155913353}, {10.186772793531418,10.693792998790741}}),mapFloor::triangle({{8.838780224323273,10.84413155913353}, {5.360473692417145,7.395584881305695}, {8.542226254940033,7.395584881305695}}),
+			mapFloor::triangle({{5.261003226041794,15.020212531089783}, {2.5048965588212013,11.550536751747131}, {5.063920095562935,11.265134066343307}}),mapFloor::triangle({{2.5048965588212013,11.550536751747131}, {3.8800302892923355,7.334820926189423}, {5.063920095562935,11.265134066343307}}),mapFloor::triangle({{17.983587086200714,7.824518531560898}, {17.539416253566742,10.173983126878738}, {17.226578295230865,7.878036797046661}}),
+			mapFloor::triangle({{18.30383837223053,10.119940340518951}, {18.049949407577515,13.920833170413971}, {17.539416253566742,10.173983126878738}}),mapFloor::triangle({{9.94524136185646,8.392805606126785}, {17.024531960487366,7.054728269577026}, {17.226578295230865,7.878036797046661}}),mapFloor::triangle({{19.813525676727295,10.013210028409958}, {18.826469779014587,13.865935802459717}, {18.30383837223053,10.119940340518951}}),
+			mapFloor::triangle({{19.478632509708405,7.718823105096817}, {18.30383837223053,10.119940340518951}, {17.983587086200714,7.824518531560898}}),mapFloor::triangle({{25.400224328041077,9.61824655532837}, {23.916561901569366,7.4050746858119965}, {25.25157630443573,7.3106929659843445}}),mapFloor::triangle({{25.400224328041077,9.61824655532837}, {24.62996244430542,13.455647230148315}, {24.016912281513214,9.716042876243591}}),
+			mapFloor::triangle({{19.478632509708405,7.718823105096817}, {17.983587086200714,6.906026601791382}, {19.478632509708405,6.800331175327301}}),mapFloor::triangle({{19.478632509708405,7.718823105096817}, {23.641256988048553,6.506045907735825}, {23.916561901569366,7.4050746858119965}}),mapFloor::triangle({{23.916561901569366,7.4050746858119965}, {19.813525676727295,10.013210028409958}, {19.478632509708405,7.718823105096817}}),
+			mapFloor::triangle({{24.016912281513214,9.716042876243591}, {20.360049605369568,13.7575164437294}, {19.813525676727295,10.013210028409958}}),mapFloor::triangle({{23.641256988048553,6.506045907735825}, {19.478632509708405,2.204103022813797}, {23.641256988048553,1.9098177552223206}}),mapFloor::triangle({{34.93525981903076,8.944147825241089}, {31.293559074401855,12.98454999923706}, {30.576688051223755,9.252285957336426}}),
+			mapFloor::triangle({{34.45371687412262,6.660129129886627}, {30.576688051223755,9.252285957336426}, {30.247318744659424,6.957508623600006}}),mapFloor::triangle({{30.576688051223755,9.252285957336426}, {26.035165786743164,13.356302678585052}, {25.400224328041077,9.61824655532837}}),mapFloor::triangle({{30.247318744659424,6.957508623600006}, {25.400224328041077,9.61824655532837}, {25.25157630443573,7.3106929659843445}}),
+			mapFloor::triangle({{30.129551887512207,5.877119302749634}, {25.383812189102173,1.6636453568935394}, {29.63748276233673,1.3629233464598656}}),mapFloor::triangle({{30.247318744659424,6.957508623600006}, {25.277110934257507,6.220173090696335}, {30.129551887512207,5.877119302749634}}),mapFloor::triangle({{34.00723934173584,5.720734223723412}, {29.75088655948639,7.119341939687729}, {29.30440902709961,5.830954387784004}}),
+			mapFloor::triangle({{42.48851537704468,8.46017301082611}, {43.88707876205444,5.625864863395691}, {45.2946662902832,7.711953669786453}}),mapFloor::triangle({{41.436946392059326,8.740557730197906}, {41.397953033447266,6.289554387331009}, {42.48851537704468,8.46017301082611}}),mapFloor::triangle({{41.397953033447266,6.289554387331009}, {43.4712290763855,4.633805900812149}, {43.88707876205444,5.625864863395691}}),
+			mapFloor::triangle({{45.34463584423065,70.40689587593079}, {51.958876848220825,60.639023780822754}, {50.72827339172363,72.13049530982971}}),mapFloor::triangle({{45.53675353527069,60.98302602767944}, {51.75238847732544,58.21966528892517}, {51.958876848220825,60.639023780822754}}),mapFloor::triangle({{41.767215728759766,61.17992401123047}, {39.820969104766846,58.655405044555664}, {41.59303903579712,58.55809450149536}}),
+			mapFloor::triangle({{41.59303903579712,58.55809450149536}, {39.820969104766846,58.016884326934814}, {41.623473167419434,57.53249526023865}}),mapFloor::triangle({{44.92802321910858,56.528520584106445}, {43.36511194705963,58.46077799797058}, {43.199437856674194,56.56546354293823}}),mapFloor::triangle({{45.17846703529358,58.36119055747986}, {43.63028407096863,61.08260750770569}, {43.36511194705963,58.46077799797058}}),
+			mapFloor::triangle({{43.36511194705963,58.46077799797058}, {41.623473167419434,57.53249526023865}, {43.199437856674194,56.56546354293823}}),mapFloor::triangle({{43.36511194705963,58.46077799797058}, {41.767215728759766,61.17992401123047}, {41.59303903579712,58.55809450149536}}),mapFloor::triangle({{41.623473167419434,57.53249526023865}, {41.67589247226715,55.451756715774536}, {43.199437856674194,56.56546354293823}}),
+			mapFloor::triangle({{45.34463584423065,70.40689587593079}, {43.63028407096863,61.08260750770569}, {45.53675353527069,60.98302602767944}}),mapFloor::triangle({{41.767215728759766,61.17992401123047}, {40.02484083175659,69.40388083457947}, {34.70504581928253,68.40086579322815}}),mapFloor::triangle({{39.90415036678314,61.27724051475525}, {34.70504581928253,68.40086579322815}, {29.38525080680847,67.39785075187683}}),
+			mapFloor::triangle({{29.38525080680847,67.39785075187683}, {28.205865621566772,61.695897579193115}, {39.90415036678314,61.27724051475525}}),mapFloor::triangle({{20.650091767311096,69.33240294456482}, {17.685143649578094,64.39388394355774}, {20.662133395671844,63.6304497718811}}),mapFloor::triangle({{23.242035508155823,68.62598657608032}, {20.662133395671844,63.6304497718811}, {23.416775465011597,62.924033403396606}}),
+			mapFloor::triangle({{27.748265862464905,67.39785075187683}, {23.416775465011597,62.924033403396606}, {28.205865621566772,61.695897579193115}}),mapFloor::triangle({{23.416775465011597,61.7017924785614}, {20.662133395671844,59.18592810630798}, {23.416775465011597,58.479511737823486}}),mapFloor::triangle({{23.416775465011597,62.924033403396606}, {20.662133395671844,62.40820288658142}, {23.416775465011597,61.7017924785614}}),
+			mapFloor::triangle({{23.416775465011597,58.479511737823486}, {27.07330882549286,60.94868183135986}, {23.416775465011597,61.7017924785614}}),mapFloor::triangle({{51.958876848220825,60.639023780822754}, {57.256513833999634,71.34671211242676}, {50.72827339172363,72.13049530982971}}),mapFloor::triangle({{56.5263569355011,61.679607629776}, {56.64258599281311,60.85101366043091}, {56.4550518989563,60.7355535030365}}),
+			mapFloor::triangle({{57.37825632095337,67.95763969421387}, {58.750998973846436,70.36827802658081}, {58.1642746925354,67.64544248580933}}),mapFloor::triangle({{58.1642746925354,67.64544248580933}, {59.65898036956787,69.77382302284241}, {59.01072025299072,67.23819971084595}}),mapFloor::triangle({{59.01072025299072,67.23819971084595}, {60.56696176528931,69.179368019104}, {59.75006818771362,66.61676168441772}}),
+			mapFloor::triangle({{59.75006818771362,66.61676168441772}, {61.47494316101074,68.5849130153656}, {60.76385974884033,66.20283126831055}}),mapFloor::triangle({{60.76385974884033,66.20283126831055}, {62.38292455673218,67.9904580116272}, {61.504554748535156,65.94322919845581}}),mapFloor::triangle({{61.504554748535156,65.94322919845581}, {63.29090595245361,67.39600896835327}, {62.26264238357544,65.54231643676758}}),
+			mapFloor::triangle({{62.26264238357544,65.54231643676758}, {64.19888734817505,66.80155992507935}, {62.995290756225586,65.08822441101074}}),mapFloor::triangle({{60.90986728668213,61.08654737472534}, {60.23549437522888,61.15959882736206}, {60.588109493255615,61.661553382873535}}),mapFloor::triangle({{62.308865785598755,62.79339790344238}, {60.588109493255615,61.661553382873535}, {61.7917001247406,63.37488889694214}}),
+			mapFloor::triangle({{60.23549437522888,61.15959882736206}, {60.206109285354614,61.83493137359619}, {60.588109493255615,61.661553382873535}}),mapFloor::triangle({{59.90486145019531,61.291855573654175}, {59.74782109260559,61.84876561164856}, {60.206109285354614,61.83493137359619}}),mapFloor::triangle({{59.4904899597168,61.24899387359619}, {59.34169888496399,61.43867373466492}, {59.74782109260559,61.84876561164856}}),
+			mapFloor::triangle({{59.13337469100952,60.74079871177673}, {58.11628699302673,61.49156093597412}, {59.34169888496399,61.43867373466492}}),mapFloor::triangle({{57.5242817401886,61.42411231994629}, {58.11628699302673,61.49156093597412}, {57.876962423324585,60.74079871177673}}),mapFloor::triangle({{57.5242817401886,61.42411231994629}, {56.99082016944885,62.199777364730835}, {57.714200019836426,62.16696500778198}}),
+			mapFloor::triangle({{56.8189263343811,61.40207052230835}, {56.7365825176239,61.759012937545776}, {56.99082016944885,62.199777364730835}}),mapFloor::triangle({{56.76974058151245,64.90197777748108}, {56.7365825176239,61.759012937545776}, {56.5263569355011,61.679607629776}}),mapFloor::triangle({{61.09514832496643,60.5864942073822}, {60.90986728668213,61.08654737472534}, {61.11719012260437,60.87304353713989}}),
+			mapFloor::triangle({{62.91089653968811,61.24071478843689}, {61.778461933135986,61.2257182598114}, {63.200199604034424,62.30537295341492}}),mapFloor::triangle({{57.69909620285034,71.05695605278015}, {57.01313018798828,68.12434196472168}, {57.256513833999634,71.34671211242676}}),mapFloor::triangle({{57.21783638000488,66.40798449516296}, {56.76974058151245,64.90197777748108}, {56.891435384750366,66.51315689086914}}),
+			mapFloor::triangle({{64.19888734817505,66.80155992507935}, {63.70786428451538,64.5002543926239}, {62.995290756225586,65.08822441101074}}),mapFloor::triangle({{63.00836801528931,63.64682912826538}, {61.7917001247406,63.37488889694214}, {62.39349842071533,64.23155665397644}}),mapFloor::triangle({{60.588109493255615,61.661553382873535}, {61.23437285423279,63.688623905181885}, {61.7917001247406,63.37488889694214}}),
+			mapFloor::triangle({{62.39349842071533,64.23155665397644}, {62.26264238357544,65.54231643676758}, {62.995290756225586,65.08822441101074}}),mapFloor::triangle({{60.206109285354614,61.83493137359619}, {60.62619090080261,63.895994424819946}, {61.23437285423279,63.688623905181885}}),mapFloor::triangle({{61.06537580490112,64.91961479187012}, {62.26264238357544,65.54231643676758}, {61.748504638671875,64.61547017097473}}),
+			mapFloor::triangle({{59.74782109260559,61.84876561164856}, {60.0527822971344,63.82075548171997}, {60.62619090080261,63.895994424819946}}),mapFloor::triangle({{61.06537580490112,64.91961479187012}, {60.76385974884033,66.20283126831055}, {61.504554748535156,65.94322919845581}}),mapFloor::triangle({{59.34169888496399,61.43867373466492}, {58.93318057060242,64.05416131019592}, {60.0527822971344,63.82075548171997}}),
+			mapFloor::triangle({{59.34162139892578,65.33546447753906}, {60.76385974884033,66.20283126831055}, {60.40831804275513,65.01179337501526}}),mapFloor::triangle({{57.714200019836426,62.16696500778198}, {58.93318057060242,64.05416131019592}, {58.11628699302673,61.49156093597412}}),mapFloor::triangle({{58.68659019470215,65.97039103507996}, {59.75006818771362,66.61676168441772}, {59.34162139892578,65.33546447753906}}),
+			mapFloor::triangle({{57.714200019836426,62.16696500778198}, {57.57754445075989,64.92261290550232}, {58.362460136413574,64.70258235931396}}),mapFloor::triangle({{57.87091255187988,66.28402471542358}, {59.01072025299072,67.23819971084595}, {58.68659019470215,65.97039103507996}}),mapFloor::triangle({{56.99082016944885,62.199777364730835}, {57.057422399520874,64.85832929611206}, {57.57754445075989,64.92261290550232}}),
+			mapFloor::triangle({{57.21783638000488,66.40798449516296}, {58.1642746925354,67.64544248580933}, {57.87091255187988,66.28402471542358}}),mapFloor::triangle({{60.90986728668213,61.08654737472534}, {61.778461933135986,61.2257182598114}, {61.11719012260437,60.87304353713989}}),mapFloor::triangle({{63.00836801528931,63.64682912826538}, {64.62193131446838,63.38502764701843}, {63.200199604034424,62.30537295341492}}),
+			mapFloor::triangle({{65.106862783432,63.38502764701843}, {63.70786428451538,64.5002543926239}, {65.106862783432,66.20710492134094}}),mapFloor::triangle({{62.308865785598755,62.79339790344238}, {63.200199604034424,62.30537295341492}, {61.778461933135986,61.2257182598114}}),mapFloor::triangle({{57.57754445075989,64.92261290550232}, {57.21783638000488,66.40798449516296}, {57.87091255187988,66.28402471542358}}),
+			mapFloor::triangle({{57.57754445075989,64.92261290550232}, {58.68659019470215,65.97039103507996}, {58.362460136413574,64.70258235931396}}),mapFloor::triangle({{58.362460136413574,64.70258235931396}, {59.34162139892578,65.33546447753906}, {58.93318057060242,64.05416131019592}}),mapFloor::triangle({{60.0527822971344,63.82075548171997}, {59.34162139892578,65.33546447753906}, {60.40831804275513,65.01179337501526}}),
+			mapFloor::triangle({{60.62619090080261,63.895994424819946}, {60.40831804275513,65.01179337501526}, {61.06537580490112,64.91961479187012}}),mapFloor::triangle({{61.23437285423279,63.688623905181885}, {61.06537580490112,64.91961479187012}, {61.748504638671875,64.61547017097473}}),mapFloor::triangle({{61.7917001247406,63.37488889694214}, {61.748504638671875,64.61547017097473}, {62.39349842071533,64.23155665397644}}),
+			mapFloor::triangle({{63.70786428451538,64.5002543926239}, {62.39349842071533,64.23155665397644}, {62.995290756225586,65.08822441101074}}),mapFloor::triangle({{57.37825632095337,67.95763969421387}, {56.891435384750366,66.51315689086914}, {57.01313018798828,68.12434196472168}}),mapFloor::triangle({{64.62193131446838,62.04128861427307}, {63.200199604034424,62.30537295341492}, {64.62193131446838,63.38502764701843}}),
+			mapFloor::triangle({{45.00240981578827,46.826037764549255}, {49.619314074516296,41.586390137672424}, {50.93286633491516,46.826037764549255}}),mapFloor::triangle({{44.412678480148315,42.49590039253235}, {48.96253943443298,38.96656632423401}, {49.619314074516296,41.586390137672424}}),mapFloor::triangle({{42.149168252944946,12.013623863458633}, {42.48851537704468,8.46017301082611}, {44.150835275650024,11.273302137851715}}),
+			mapFloor::triangle({{44.150835275650024,11.273302137851715}, {45.2946662902832,7.711953669786453}, {46.090564131736755,10.248332470655441}}),mapFloor::triangle({{21.20542675256729,91.30561947822571}, {17.204593122005463,86.66783571243286}, {21.20542675256729,86.66783571243286}}),mapFloor::triangle({{43.31970810890198,91.10780358314514}, {43.396878242492676,89.28470611572266}, {46.31889760494232,90.03100395202637}}),
+			mapFloor::triangle({{27.62833833694458,87.53054738044739}, {24.609489738941193,90.78310132026672}, {25.388413667678833,87.0474636554718}}),mapFloor::triangle({{30.673453211784363,87.76944875717163}, {28.789418935775757,90.86838364601135}, {27.62833833694458,87.53054738044739}}),mapFloor::triangle({{42.08822846412659,91.76114797592163}, {40.47485888004303,88.53840827941895}, {43.396878242492676,89.28470611572266}}),
+			mapFloor::triangle({{40.47485888004303,88.53840827941895}, {31.322526931762695,90.960031747818}, {30.673453211784363,87.76944875717163}}),mapFloor::triangle({{46.55798375606537,90.55352210998535}, {43.23611855506897,92.87440180778503}, {43.360134959220886,89.93344306945801}}),mapFloor::triangle({{17.30959415435791,75.18734335899353}, {17.136812210083008,73.74606132507324}, {17.79475510120392,74.62713122367859}}),
+			mapFloor::triangle({{55.73093891143799,60.606199502944946}, {52.470725774765015,60.76837778091431}, {52.54521369934082,60.92062592506409}}),mapFloor::triangle({{55.73093891143799,60.606199502944946}, {55.56737780570984,54.31789755821228}, {52.307164669036865,54.441070556640625}}),mapFloor::triangle({{52.307164669036865,54.441070556640625}, {55.56737780570984,54.31789755821228}, {55.33130764961243,50.12750029563904}}),
+			mapFloor::triangle({{20.893466472625732,84.20861959457397}, {20.69150060415268,83.3631157875061}, {28.136953711509705,83.36310982704163}}),mapFloor::triangle({{40.47485888004303,89.06092643737793}, {27.62833833694458,88.05306553840637}, {28.92724573612213,86.10114455223083}}),mapFloor::triangle({{28.92724573612213,86.10114455223083}, {28.139975666999817,86.10114455223083}, {28.338921070098877,84.2086136341095}}),
+			mapFloor::triangle({{41.99438989162445,87.10901141166687}, {47.37803041934967,88.8326108455658}, {45.81670165061951,90.5623197555542}}),mapFloor::triangle({{53.61122488975525,94.16074752807617}, {52.675724029541016,93.55491995811462}, {58.36923122406006,92.49657392501831}}),mapFloor::triangle({{21.20542675256729,86.10115051269531}, {20.893466472625732,84.20861959457397}, {28.338921070098877,84.2086136341095}}),
+			mapFloor::triangle({{25.388413667678833,87.56998181343079}, {24.609489738941193,91.30561947822571}, {21.20542675256729,91.30561947822571}}),mapFloor::triangle({{51.74022316932678,92.94909238815308}, {43.25721859931946,92.51015782356262}, {47.37803041934967,88.8326108455658}}),mapFloor::triangle({{25.388413667678833,87.56998181343079}, {21.20542675256729,86.66783571243286}, {21.20542675256729,86.10115051269531}}),
+			mapFloor::triangle({{39.47590887546539,91.25502109527588}, {39.47590887546539,91.37024879455566}, {31.322526931762695,91.07525944709778}}),mapFloor::triangle({{52.675724029541016,93.55491995811462}, {51.74022316932678,92.94909238815308}, {54.53476905822754,90.83240032196045}}),mapFloor::triangle({{57.62477517127991,96.7599093914032}, {53.61122488975525,94.16074752807617}, {61.028093099594116,94.16074752807617}}),
+			mapFloor::triangle({{59.35288071632385,99.9901294708252}, {57.62477517127991,96.7599093914032}, {64.7293746471405,96.7599093914032}}),mapFloor::triangle({{11.588496714830399,73.87173771858215}, {11.37804388999939,72.64554500579834}, {14.676167070865631,72.58003950119019}}),mapFloor::triangle({{12.05345094203949,75.05711317062378}, {11.588496714830399,73.87173771858215}, {15.814974904060364,73.1858491897583}}),
+			mapFloor::triangle({{17.204593122005463,91.30561947822571}, {9.905359148979187,91.30561947822571}, {9.905359148979187,86.66783571243286}}),mapFloor::triangle({{27.62833833694458,88.05306553840637}, {25.388413667678833,87.56998181343079}, {26.234343647956848,86.10115051269531}}),mapFloor::triangle({{24.609489738941193,95.42139768600464}, {24.609489738941193,98.65127205848694}, {21.20542675256729,98.65127205848694}}),
+			mapFloor::triangle({{24.609489738941193,91.30561947822571}, {24.609489738941193,95.42139768600464}, {21.20542675256729,95.42139768600464}}),mapFloor::triangle({{24.609489738941193,95.42139768600464}, {31.748607754707336,94.19344663619995}, {31.748607754707336,97.42332100868225}}),mapFloor::triangle({{31.748607754707336,97.42332100868225}, {31.748607754707336,94.19344663619995}, {32.05464780330658,94.19344663619995}}),
+			mapFloor::triangle({{41.99438989162445,87.10901141166687}, {45.34463584423065,70.40689587593079}, {50.72827339172363,72.13049530982971}}),mapFloor::triangle({{45.17846703529358,58.36119055747986}, {44.92802321910858,56.528520584106445}, {51.60804986953735,56.528520584106445}}),mapFloor::triangle({{44.92802321910858,56.528520584106445}, {45.00240981578827,46.826037764549255}, {50.93286633491516,46.826037764549255}}),
+			mapFloor::triangle({{48.96253943443298,38.96656632423401}, {42.99716353416443,42.59541928768158}, {41.62573218345642,36.34674251079559}}),mapFloor::triangle({{41.62573218345642,36.34674251079559}, {37.69223392009735,22.020843625068665}, {44.15292143821716,21.22199535369873}}),mapFloor::triangle({{34.93525981903076,8.944147825241089}, {34.45371687412262,6.660129129886627}, {40.346384048461914,6.569939851760864}}),
+			mapFloor::triangle({{34.45371687412262,7.009121775627136}, {34.00723934173584,5.720734223723412}, {37.78216540813446,5.662957951426506}}),mapFloor::triangle({{37.69223392009735,22.020843625068665}, {35.72110831737518,12.671534717082977}, {42.149168252944946,12.013623863458633}}),mapFloor::triangle({{17.539416253566742,10.173983126878738}, {18.049949407577515,13.920833170413971}, {10.580939054489136,14.448870718479156}}),
+			mapFloor::triangle({{17.226578295230865,7.878036797046661}, {17.539416253566742,10.173983126878738}, {10.186772793531418,10.693792998790741}}),mapFloor::triangle({{35.72110831737518,12.671534717082977}, {34.93525981903076,8.944147825241089}, {41.436946392059326,8.740557730197906}}),mapFloor::triangle({{2.6035303249955177,15.305614471435547}, {-0.05893282359465957,15.59155285358429}, {-0.058932637330144644,11.836475133895874}}),
+			mapFloor::triangle({{9.181087464094162,14.599210023880005}, {5.261003226041794,15.020212531089783}, {5.063920095562935,11.265134066343307}}),mapFloor::triangle({{10.580939054489136,14.448870718479156}, {9.181087464094162,14.599210023880005}, {8.838780224323273,10.84413155913353}}),mapFloor::triangle({{8.838780224323273,10.84413155913353}, {5.063920095562935,11.265134066343307}, {5.360473692417145,7.395584881305695}}),
+			mapFloor::triangle({{5.261003226041794,15.020212531089783}, {2.6035303249955177,15.305614471435547}, {2.5048965588212013,11.550536751747131}}),mapFloor::triangle({{2.5048965588212013,11.550536751747131}, {2.3879943415522575,7.385682314634323}, {3.8800302892923355,7.334820926189423}}),mapFloor::triangle({{17.983587086200714,7.824518531560898}, {18.30383837223053,10.119940340518951}, {17.539416253566742,10.173983126878738}}),
+			mapFloor::triangle({{18.30383837223053,10.119940340518951}, {18.826469779014587,13.865935802459717}, {18.049949407577515,13.920833170413971}}),mapFloor::triangle({{9.94524136185646,8.392805606126785}, {9.743194282054901,7.305775582790375}, {17.024531960487366,7.054728269577026}}),mapFloor::triangle({{19.813525676727295,10.013210028409958}, {20.360049605369568,13.7575164437294}, {18.826469779014587,13.865935802459717}}),
+			mapFloor::triangle({{19.478632509708405,7.718823105096817}, {19.813525676727295,10.013210028409958}, {18.30383837223053,10.119940340518951}}),mapFloor::triangle({{25.400224328041077,9.61824655532837}, {24.016912281513214,9.716042876243591}, {23.916561901569366,7.4050746858119965}}),mapFloor::triangle({{25.400224328041077,9.61824655532837}, {26.035165786743164,13.356302678585052}, {24.62996244430542,13.455647230148315}}),
+			mapFloor::triangle({{19.478632509708405,7.718823105096817}, {17.983587086200714,7.824518531560898}, {17.983587086200714,6.906026601791382}}),mapFloor::triangle({{19.478632509708405,7.718823105096817}, {19.478632509708405,6.800331175327301}, {23.641256988048553,6.506045907735825}}),mapFloor::triangle({{23.916561901569366,7.4050746858119965}, {24.016912281513214,9.716042876243591}, {19.813525676727295,10.013210028409958}}),
+			mapFloor::triangle({{24.016912281513214,9.716042876243591}, {24.62996244430542,13.455647230148315}, {20.360049605369568,13.7575164437294}}),mapFloor::triangle({{23.641256988048553,6.506045907735825}, {19.478632509708405,6.800331175327301}, {19.478632509708405,2.204103022813797}}),mapFloor::triangle({{34.93525981903076,8.944147825241089}, {35.72110831737518,12.671534717082977}, {31.293559074401855,12.98454999923706}}),
+			mapFloor::triangle({{34.45371687412262,6.660129129886627}, {34.93525981903076,8.944147825241089}, {30.576688051223755,9.252285957336426}}),mapFloor::triangle({{30.576688051223755,9.252285957336426}, {31.293559074401855,12.98454999923706}, {26.035165786743164,13.356302678585052}}),mapFloor::triangle({{30.247318744659424,6.957508623600006}, {30.576688051223755,9.252285957336426}, {25.400224328041077,9.61824655532837}}),
+			mapFloor::triangle({{30.129551887512207,5.877119302749634}, {25.277110934257507,6.220173090696335}, {25.383812189102173,1.6636453568935394}}),mapFloor::triangle({{30.247318744659424,6.957508623600006}, {25.25157630443573,7.3106929659843445}, {25.277110934257507,6.220173090696335}}),mapFloor::triangle({{34.00723934173584,5.720734223723412}, {34.45371687412262,7.009121775627136}, {29.75088655948639,7.119341939687729}}),
+			mapFloor::triangle({{42.48851537704468,8.46017301082611}, {41.397953033447266,6.289554387331009}, {43.88707876205444,5.625864863395691}}),mapFloor::triangle({{41.436946392059326,8.740557730197906}, {40.346384048461914,6.569939851760864}, {41.397953033447266,6.289554387331009}}),mapFloor::triangle({{41.397953033447266,6.289554387331009}, {41.23776853084564,5.181708186864853}, {43.4712290763855,4.633805900812149}}),
+			mapFloor::triangle({{45.34463584423065,70.40689587593079}, {45.53675353527069,60.98302602767944}, {51.958876848220825,60.639023780822754}}),mapFloor::triangle({{45.53675353527069,60.98302602767944}, {45.17846703529358,58.36119055747986}, {51.75238847732544,58.21966528892517}}),mapFloor::triangle({{41.767215728759766,61.17992401123047}, {39.90415036678314,61.27724051475525}, {39.820969104766846,58.655405044555664}}),
+			mapFloor::triangle({{41.59303903579712,58.55809450149536}, {39.820969104766846,58.655405044555664}, {39.820969104766846,58.016884326934814}}),mapFloor::triangle({{44.92802321910858,56.528520584106445}, {45.17846703529358,58.36119055747986}, {43.36511194705963,58.46077799797058}}),mapFloor::triangle({{45.17846703529358,58.36119055747986}, {45.53675353527069,60.98302602767944}, {43.63028407096863,61.08260750770569}}),
+			mapFloor::triangle({{43.36511194705963,58.46077799797058}, {41.59303903579712,58.55809450149536}, {41.623473167419434,57.53249526023865}}),mapFloor::triangle({{43.36511194705963,58.46077799797058}, {43.63028407096863,61.08260750770569}, {41.767215728759766,61.17992401123047}}),mapFloor::triangle({{45.34463584423065,70.40689587593079}, {40.02484083175659,69.40388083457947}, {43.63028407096863,61.08260750770569}}),
+			mapFloor::triangle({{41.767215728759766,61.17992401123047}, {43.63028407096863,61.08260750770569}, {40.02484083175659,69.40388083457947}}),mapFloor::triangle({{39.90415036678314,61.27724051475525}, {41.767215728759766,61.17992401123047}, {34.70504581928253,68.40086579322815}}),mapFloor::triangle({{29.38525080680847,67.39785075187683}, {27.748265862464905,67.39785075187683}, {28.205865621566772,61.695897579193115}}),
+			mapFloor::triangle({{20.650091767311096,69.33240294456482}, {17.84893423318863,70.09583711624146}, {17.685143649578094,64.39388394355774}}),mapFloor::triangle({{23.242035508155823,68.62598657608032}, {20.650091767311096,69.33240294456482}, {20.662133395671844,63.6304497718811}}),mapFloor::triangle({{27.748265862464905,67.39785075187683}, {23.242035508155823,68.62598657608032}, {23.416775465011597,62.924033403396606}}),
+			mapFloor::triangle({{23.416775465011597,61.7017924785614}, {20.662133395671844,62.40820288658142}, {20.662133395671844,59.18592810630798}}),mapFloor::triangle({{23.416775465011597,62.924033403396606}, {20.662133395671844,63.6304497718811}, {20.662133395671844,62.40820288658142}}),mapFloor::triangle({{23.416775465011597,58.479511737823486}, {25.787505507469177,57.928454875946045}, {27.07330882549286,60.94868183135986}}),
+			mapFloor::triangle({{51.958876848220825,60.639023780822754}, {56.4550518989563,60.7355535030365}, {57.256513833999634,71.34671211242676}}),mapFloor::triangle({{56.5263569355011,61.679607629776}, {56.7365825176239,61.759012937545776}, {56.64258599281311,60.85101366043091}}),mapFloor::triangle({{57.37825632095337,67.95763969421387}, {57.69909620285034,71.05695605278015}, {58.750998973846436,70.36827802658081}}),
+			mapFloor::triangle({{58.1642746925354,67.64544248580933}, {58.750998973846436,70.36827802658081}, {59.65898036956787,69.77382302284241}}),mapFloor::triangle({{59.01072025299072,67.23819971084595}, {59.65898036956787,69.77382302284241}, {60.56696176528931,69.179368019104}}),mapFloor::triangle({{59.75006818771362,66.61676168441772}, {60.56696176528931,69.179368019104}, {61.47494316101074,68.5849130153656}}),
+			mapFloor::triangle({{60.76385974884033,66.20283126831055}, {61.47494316101074,68.5849130153656}, {62.38292455673218,67.9904580116272}}),mapFloor::triangle({{61.504554748535156,65.94322919845581}, {62.38292455673218,67.9904580116272}, {63.29090595245361,67.39600896835327}}),mapFloor::triangle({{62.26264238357544,65.54231643676758}, {63.29090595245361,67.39600896835327}, {64.19888734817505,66.80155992507935}}),
+			mapFloor::triangle({{60.90986728668213,61.08654737472534}, {60.50000190734863,60.5864942073822}, {60.23549437522888,61.15959882736206}}),mapFloor::triangle({{62.308865785598755,62.79339790344238}, {60.90986728668213,61.08654737472534}, {60.588109493255615,61.661553382873535}}),mapFloor::triangle({{60.23549437522888,61.15959882736206}, {59.90486145019531,61.291855573654175}, {60.206109285354614,61.83493137359619}}),
+			mapFloor::triangle({{59.90486145019531,61.291855573654175}, {59.4904899597168,61.24899387359619}, {59.74782109260559,61.84876561164856}}),mapFloor::triangle({{59.4904899597168,61.24899387359619}, {59.13337469100952,60.74079871177673}, {59.34169888496399,61.43867373466492}}),mapFloor::triangle({{59.13337469100952,60.74079871177673}, {57.876962423324585,60.74079871177673}, {58.11628699302673,61.49156093597412}}),
+			mapFloor::triangle({{57.5242817401886,61.42411231994629}, {57.714200019836426,62.16696500778198}, {58.11628699302673,61.49156093597412}}),mapFloor::triangle({{57.5242817401886,61.42411231994629}, {56.8189263343811,61.40207052230835}, {56.99082016944885,62.199777364730835}}),mapFloor::triangle({{56.8189263343811,61.40207052230835}, {56.64258599281311,60.85101366043091}, {56.7365825176239,61.759012937545776}}),
+			mapFloor::triangle({{56.76974058151245,64.90197777748108}, {57.057422399520874,64.85832929611206}, {56.7365825176239,61.759012937545776}}),mapFloor::triangle({{61.09514832496643,60.5864942073822}, {60.50000190734863,60.5864942073822}, {60.90986728668213,61.08654737472534}}),mapFloor::triangle({{62.91089653968811,61.24071478843689}, {62.21930980682373,60.91712713241577}, {61.778461933135986,61.2257182598114}}),
+			mapFloor::triangle({{57.69909620285034,71.05695605278015}, {57.37825632095337,67.95763969421387}, {57.01313018798828,68.12434196472168}}),mapFloor::triangle({{57.21783638000488,66.40798449516296}, {57.057422399520874,64.85832929611206}, {56.76974058151245,64.90197777748108}}),mapFloor::triangle({{64.19888734817505,66.80155992507935}, {65.106862783432,66.20710492134094}, {63.70786428451538,64.5002543926239}}),
+			mapFloor::triangle({{63.00836801528931,63.64682912826538}, {62.308865785598755,62.79339790344238}, {61.7917001247406,63.37488889694214}}),mapFloor::triangle({{60.588109493255615,61.661553382873535}, {60.206109285354614,61.83493137359619}, {61.23437285423279,63.688623905181885}}),mapFloor::triangle({{62.39349842071533,64.23155665397644}, {61.748504638671875,64.61547017097473}, {62.26264238357544,65.54231643676758}}),
+			mapFloor::triangle({{60.206109285354614,61.83493137359619}, {59.74782109260559,61.84876561164856}, {60.62619090080261,63.895994424819946}}),mapFloor::triangle({{61.06537580490112,64.91961479187012}, {61.504554748535156,65.94322919845581}, {62.26264238357544,65.54231643676758}}),mapFloor::triangle({{59.74782109260559,61.84876561164856}, {59.34169888496399,61.43867373466492}, {60.0527822971344,63.82075548171997}}),
+			mapFloor::triangle({{61.06537580490112,64.91961479187012}, {60.40831804275513,65.01179337501526}, {60.76385974884033,66.20283126831055}}),mapFloor::triangle({{59.34169888496399,61.43867373466492}, {58.11628699302673,61.49156093597412}, {58.93318057060242,64.05416131019592}}),mapFloor::triangle({{59.34162139892578,65.33546447753906}, {59.75006818771362,66.61676168441772}, {60.76385974884033,66.20283126831055}}),
+			mapFloor::triangle({{57.714200019836426,62.16696500778198}, {58.362460136413574,64.70258235931396}, {58.93318057060242,64.05416131019592}}),mapFloor::triangle({{58.68659019470215,65.97039103507996}, {59.01072025299072,67.23819971084595}, {59.75006818771362,66.61676168441772}}),mapFloor::triangle({{57.714200019836426,62.16696500778198}, {56.99082016944885,62.199777364730835}, {57.57754445075989,64.92261290550232}}),
+			mapFloor::triangle({{57.87091255187988,66.28402471542358}, {58.1642746925354,67.64544248580933}, {59.01072025299072,67.23819971084595}}),mapFloor::triangle({{56.99082016944885,62.199777364730835}, {56.7365825176239,61.759012937545776}, {57.057422399520874,64.85832929611206}}),mapFloor::triangle({{57.21783638000488,66.40798449516296}, {57.37825632095337,67.95763969421387}, {58.1642746925354,67.64544248580933}}),
+			mapFloor::triangle({{60.90986728668213,61.08654737472534}, {62.308865785598755,62.79339790344238}, {61.778461933135986,61.2257182598114}}),mapFloor::triangle({{63.00836801528931,63.64682912826538}, {63.70786428451538,64.5002543926239}, {64.62193131446838,63.38502764701843}}),mapFloor::triangle({{65.106862783432,63.38502764701843}, {64.62193131446838,63.38502764701843}, {63.70786428451538,64.5002543926239}}),
+			mapFloor::triangle({{62.308865785598755,62.79339790344238}, {63.00836801528931,63.64682912826538}, {63.200199604034424,62.30537295341492}}),mapFloor::triangle({{57.57754445075989,64.92261290550232}, {57.057422399520874,64.85832929611206}, {57.21783638000488,66.40798449516296}}),mapFloor::triangle({{57.57754445075989,64.92261290550232}, {57.87091255187988,66.28402471542358}, {58.68659019470215,65.97039103507996}}),
+			mapFloor::triangle({{58.362460136413574,64.70258235931396}, {58.68659019470215,65.97039103507996}, {59.34162139892578,65.33546447753906}}),mapFloor::triangle({{60.0527822971344,63.82075548171997}, {58.93318057060242,64.05416131019592}, {59.34162139892578,65.33546447753906}}),mapFloor::triangle({{60.62619090080261,63.895994424819946}, {60.0527822971344,63.82075548171997}, {60.40831804275513,65.01179337501526}}),
+			mapFloor::triangle({{61.23437285423279,63.688623905181885}, {60.62619090080261,63.895994424819946}, {61.06537580490112,64.91961479187012}}),mapFloor::triangle({{61.7917001247406,63.37488889694214}, {61.23437285423279,63.688623905181885}, {61.748504638671875,64.61547017097473}}),mapFloor::triangle({{63.70786428451538,64.5002543926239}, {63.00836801528931,63.64682912826538}, {62.39349842071533,64.23155665397644}}),
+			mapFloor::triangle({{57.37825632095337,67.95763969421387}, {57.21783638000488,66.40798449516296}, {56.891435384750366,66.51315689086914}}),mapFloor::triangle({{64.62193131446838,62.04128861427307}, {62.91089653968811,61.24071478843689}, {63.200199604034424,62.30537295341492}}),mapFloor::triangle({{45.00240981578827,46.826037764549255}, {44.412678480148315,42.49590039253235}, {49.619314074516296,41.586390137672424}}),
+			mapFloor::triangle({{44.412678480148315,42.49590039253235}, {42.99716353416443,42.59541928768158}, {48.96253943443298,38.96656632423401}}),mapFloor::triangle({{42.149168252944946,12.013623863458633}, {41.436946392059326,8.740557730197906}, {42.48851537704468,8.46017301082611}}),mapFloor::triangle({{44.150835275650024,11.273302137851715}, {42.48851537704468,8.46017301082611}, {45.2946662902832,7.711953669786453}}),
+			mapFloor::triangle({{21.20542675256729,91.30561947822571}, {17.204593122005463,91.30561947822571}, {17.204593122005463,86.66783571243286}}),mapFloor::triangle({{43.31970810890198,91.10780358314514}, {42.573365569114685,90.84309339523315}, {43.396878242492676,89.28470611572266}}),mapFloor::triangle({{27.62833833694458,87.53054738044739}, {28.789418935775757,90.86838364601135}, {24.609489738941193,90.78310132026672}}),
+			mapFloor::triangle({{30.673453211784363,87.76944875717163}, {31.322526931762695,90.960031747818}, {28.789418935775757,90.86838364601135}}),mapFloor::triangle({{42.08822846412659,91.76114797592163}, {39.47590887546539,91.25502109527588}, {40.47485888004303,88.53840827941895}}),mapFloor::triangle({{40.47485888004303,88.53840827941895}, {39.47590887546539,91.25502109527588}, {31.322526931762695,90.960031747818}}),
+			mapFloor::triangle({{46.55798375606537,90.55352210998535}, {47.16920554637909,92.1568751335144}, {43.23611855506897,92.87440180778503}}),mapFloor::triangle({{17.30959415435791,75.18734335899353}, {15.814974904060364,73.1858491897583}, {17.136812210083008,73.74606132507324}}), }), false, Map<string, string>({ pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "STONE"}) })),
+						mapFloor("Grass", List<mapFloor::triangle>({ mapFloor::triangle({{13.686150312423706,76.88034772872925}, {17.43103861808777,75.66371560096741}, {17.56890118122101,76.05867385864258}}),mapFloor::triangle({{9.941238909959793,78.42307090759277}, {13.686150312423706,76.88034772872925}, {14.22465443611145,78.42307686805725}}),mapFloor::triangle({{10.32191589474678,76.88034772872925}, {13.39118778705597,76.03532671928406}, {13.686150312423706,76.88034772872925}}),
+			mapFloor::triangle({{16.15099161863327,84.20861959457397}, {10.064070671796799,84.92844104766846}, {10.180553793907166,84.20861959457397}}),mapFloor::triangle({{10.02856194972992,79.23346757888794}, {14.22465443611145,78.42307686805725}, {14.440201222896576,79.04058694839478}}),mapFloor::triangle({{15.949025750160217,83.3631157875061}, {10.180553793907166,84.20861959457397}, {9.978587925434113,83.3631157875061}}),
+			mapFloor::triangle({{13.39118778705597,76.03532671928406}, {9.973200410604477,75.59431195259094}, {12.05345094203949,75.05711317062378}}),mapFloor::triangle({{13.39118778705597,76.03532671928406}, {17.30959415435791,75.18734335899353}, {17.43103861808777,75.66371560096741}}),mapFloor::triangle({{9.973200410604477,74.13387298583984}, {12.05345094203949,75.05711317062378}, {9.973200410604477,75.59431195259094}}),
+			mapFloor::triangle({{9.973200410604477,72.67343997955322}, {11.588496714830399,73.87173771858215}, {9.973200410604477,74.13387298583984}}),mapFloor::triangle({{8.0686554312706,73.3474850654602}, {6.317555904388428,74.13387298583984}, {6.317555904388428,72.67343997955322}}),mapFloor::triangle({{9.973200410604477,74.13387298583984}, {9.28720310330391,73.3474850654602}, {9.973200410604477,72.67343997955322}}),
+			mapFloor::triangle({{9.28720235824585,74.13387298583984}, {8.0686554312706,73.3474850654602}, {9.28720310330391,73.3474850654602}}),mapFloor::triangle({{10.32191589474678,76.88034772872925}, {9.941238909959793,78.42307090759277}, {8.754055947065353,77.9451847076416}}),mapFloor::triangle({{15.517932176589966,82.12810754776001}, {10.088422894477844,81.11355304718018}, {15.086840093135834,80.89309930801392}}),
+			mapFloor::triangle({{10.088422894477844,81.11355304718018}, {14.655748009681702,79.65809106826782}, {15.086840093135834,80.89309930801392}}),mapFloor::triangle({{9.978587925434113,83.3631157875061}, {15.517932176589966,82.12810754776001}, {15.949025750160217,83.3631157875061}}),mapFloor::triangle({{14.655748009681702,79.65809106826782}, {10.02856194972992,79.23346757888794}, {14.440201222896576,79.04058694839478}}),
+			mapFloor::triangle({{17.204593122005463,86.66783571243286}, {21.20542675256729,86.10115051269531}, {21.20542675256729,86.66783571243286}}),mapFloor::triangle({{14.655748009681702,79.65809106826782}, {18.17968785762787,78.09324860572815}, {18.538518249988556,78.84608507156372}}),mapFloor::triangle({{15.949025750160217,83.3631157875061}, {19.973839819431305,81.85744285583496}, {20.69150060415268,83.3631157875061}}),
+			mapFloor::triangle({{15.086840093135834,80.89309930801392}, {18.538518249988556,78.84608507156372}, {19.25617903470993,80.35176396369934}}),mapFloor::triangle({{15.517932176589966,82.12810754776001}, {19.25617903470993,80.35176396369934}, {19.973839819431305,81.85744285583496}}),mapFloor::triangle({{20.69150060415268,83.3631157875061}, {16.15099161863327,84.20861959457397}, {15.949025750160217,83.3631157875061}}),
+			mapFloor::triangle({{14.440201222896576,79.04058694839478}, {17.82085746526718,77.34041213989258}, {18.17968785762787,78.09324860572815}}),mapFloor::triangle({{20.893466472625732,84.20861959457397}, {16.46295189857483,84.92844104766846}, {16.15099161863327,84.20861959457397}}),mapFloor::triangle({{13.686150312423706,76.88034772872925}, {13.39118778705597,76.03532671928406}, {17.43103861808777,75.66371560096741}}),
+			mapFloor::triangle({{9.941238909959793,78.42307090759277}, {10.32191589474678,76.88034772872925}, {13.686150312423706,76.88034772872925}}),mapFloor::triangle({{10.32191589474678,76.88034772872925}, {8.154606074094772,76.03532671928406}, {13.39118778705597,76.03532671928406}}),mapFloor::triangle({{16.15099161863327,84.20861959457397}, {16.46295189857483,84.92844104766846}, {10.064070671796799,84.92844104766846}}),
+			mapFloor::triangle({{10.02856194972992,79.23346757888794}, {9.941238909959793,78.42307090759277}, {14.22465443611145,78.42307686805725}}),mapFloor::triangle({{15.949025750160217,83.3631157875061}, {16.15099161863327,84.20861959457397}, {10.180553793907166,84.20861959457397}}),mapFloor::triangle({{13.39118778705597,76.03532671928406}, {8.154606074094772,76.03532671928406}, {9.973200410604477,75.59431195259094}}),
+			mapFloor::triangle({{13.39118778705597,76.03532671928406}, {12.05345094203949,75.05711317062378}, {17.30959415435791,75.18734335899353}}),mapFloor::triangle({{9.973200410604477,74.13387298583984}, {11.588496714830399,73.87173771858215}, {12.05345094203949,75.05711317062378}}),mapFloor::triangle({{9.973200410604477,72.67343997955322}, {11.37804388999939,72.64554500579834}, {11.588496714830399,73.87173771858215}}),
+			mapFloor::triangle({{8.0686554312706,73.3474850654602}, {8.0686554312706,74.13387298583984}, {6.317555904388428,74.13387298583984}}),mapFloor::triangle({{9.973200410604477,74.13387298583984}, {9.28720235824585,74.13387298583984}, {9.28720310330391,73.3474850654602}}),mapFloor::triangle({{9.28720235824585,74.13387298583984}, {8.0686554312706,74.13387298583984}, {8.0686554312706,73.3474850654602}}),
+			mapFloor::triangle({{15.517932176589966,82.12810754776001}, {9.216467291116714,82.12810754776001}, {10.088422894477844,81.11355304718018}}),mapFloor::triangle({{10.088422894477844,81.11355304718018}, {9.491559863090515,80.04385828971863}, {14.655748009681702,79.65809106826782}}),mapFloor::triangle({{9.978587925434113,83.3631157875061}, {9.216467291116714,82.12810754776001}, {15.517932176589966,82.12810754776001}}),
+			mapFloor::triangle({{14.655748009681702,79.65809106826782}, {9.491559863090515,80.04385828971863}, {10.02856194972992,79.23346757888794}}),mapFloor::triangle({{17.204593122005463,86.66783571243286}, {17.120999097824097,84.92844104766846}, {21.20542675256729,86.10115051269531}}),mapFloor::triangle({{14.655748009681702,79.65809106826782}, {14.440201222896576,79.04058694839478}, {18.17968785762787,78.09324860572815}}),
+			mapFloor::triangle({{15.949025750160217,83.3631157875061}, {15.517932176589966,82.12810754776001}, {19.973839819431305,81.85744285583496}}),mapFloor::triangle({{15.086840093135834,80.89309930801392}, {14.655748009681702,79.65809106826782}, {18.538518249988556,78.84608507156372}}),mapFloor::triangle({{15.517932176589966,82.12810754776001}, {15.086840093135834,80.89309930801392}, {19.25617903470993,80.35176396369934}}),
+			mapFloor::triangle({{20.69150060415268,83.3631157875061}, {20.893466472625732,84.20861959457397}, {16.15099161863327,84.20861959457397}}),mapFloor::triangle({{14.440201222896576,79.04058694839478}, {14.22465443611145,78.42307686805725}, {17.82085746526718,77.34041213989258}}),mapFloor::triangle({{20.893466472625732,84.20861959457397}, {21.20542675256729,86.10115051269531}, {16.46295189857483,84.92844104766846}}), }), false, Map<string, string>({ pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "GRASS"}) })),
+						mapFloor("Wood", List<mapFloor::triangle>({ mapFloor::triangle({{32.14395046234131,97.42332100868225}, {42.084380984306335,93.16425919532776}, {42.084380984306335,97.42332100868225}}),mapFloor::triangle({{62.91089653968811,61.24071478843689}, {64.63928818702698,59.19190049171448}, {63.254958391189575,58.54418873786926}}),mapFloor::triangle({{32.14395046234131,97.42332100868225}, {32.05464780330658,93.16425919532776}, {42.084380984306335,93.16425919532776}}),
+						mapFloor::triangle({{62.91089653968811,61.24071478843689}, {64.62193131446838,62.04128861427307}, {64.63928818702698,59.19190049171448}}), }), false, Map<string, string>({ pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "WOOD"}) })),
+						}), {}, { 5000, 5000 }, { Map<string, string>({
+							pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
+					}) });
+		maps["Tavern1"] = mapInstance("Tavern1", EMPTYMAP, { 50,50 }, List<mapObject>({
+							mapObject("FilmGrain1", false, true, true, imageLookup.getSequenceAsString("FilmGrain1","STAND_FRONT"),"1",1,imageLookup.layerDefaults["WEATHER"],"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+							mapObject("Hernando Pizarro", true, true, false, imageLookup.getSequenceAsString("Hernando Pizarro","TAVERN_WAIT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{56, 48.5}, false, List<mapFloor::triangle>({mapFloor::triangle({{54.85587120056152,49.13839101791382}, {55.50876259803772,51.55308246612549}, {56.750309467315674,49.848872423172}}),mapFloor::triangle({{54.85587120056152,49.13839101791382}, {53.76160144805908,50.5159854888916}, {55.50876259803772,51.55308246612549}}),}), Map<string, string>({
+														pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Hernando Pizarro"}),
+														pair<string, string>({"copy","Hernando Pizarro"}),
+														pair<string, string>({"cutscene","TavernHernando1"}),
+														pair<string, string>({"x","4"}),
+														pair<string, string>({"y","-5"}),
+														pair<string, string>({"h","50"}),
+														pair<string, string>({"w","50"}),
+														pair<string, string>("colour", "WHITE"),
+														pair<string, string>("uniqueID", mapPopupTextID),
+														pair<string, string>("don'tLoadIfPlayer", "Hernando Pizarro"),
+														pair<string, string>("anchorStyle", "TOPLEFT"),
+														pair<string, string>("shadowColour", "BLACK"),
+														pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+														pair<string, string>({"format","LightText_20"})})),
+								mapObject("Gihat al-Din Jaqmaq", true, true, false, imageLookup.getSequenceAsString("Gihat al-Din Jaqmaq","TAVERN_WAIT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{54.5, 51}, false, List<mapFloor::triangle>({mapFloor::triangle({{53.69369983673096,50.6539523601532}, {54.89156246185303,53.317856788635254}, {55.93475103378296,51.88592076301575}}),mapFloor::triangle({{53.69369983673096,50.6539523601532}, {52.196645736694336,52.538615465164185}, {54.89156246185303,53.317856788635254}}),}), Map<string, string>({
+														pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Gihat al-Din Jaqmaq"}),
+														pair<string, string>({"copy","Gihat al-Din Jaqmaq"}),
+														pair<string, string>({"cutscene","TavernGihat1"}),
+														pair<string, string>({"x","4"}),
+														pair<string, string>({"y","-5"}),
+														pair<string, string>({"h","50"}),
+														pair<string, string>({"w","50"}),
+														pair<string, string>("colour", "WHITE"),
+														pair<string, string>("uniqueID", mapPopupTextID),
+														pair<string, string>("anchorStyle", "TOPLEFT"),
+														pair<string, string>("shadowColour", "BLACK"),
+														pair<string, string>("don'tLoadIfPlayer", "Gihat al-Din Jaqmaq"),
+														pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+														pair<string, string>({"format","LightText_20"})})),
+								mapObject("Olyver Sumner", true, true, false, imageLookup.getSequenceAsString("Olyver Sumner","TAVERN_WAIT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{50, 48.8}, false, List<mapFloor::triangle>({mapFloor::triangle({{49.690064787864685,49.232131242752075}, {50.1770555973053,51.677531003952026}, {51.40126347541809,49.997130036354065}}),mapFloor::triangle({{49.690064787864685,49.232131242752075}, {48.65306317806244,50.53762197494507}, {50.1770555973053,51.677531003952026}}),}), Map<string, string>({
+														pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Olyver Sumner"}),
+														pair<string, string>({"copy","Olyver Sumner"}),
+														pair<string, string>({"cutscene","TavernOlyver1"}),
+														pair<string, string>({"x","-17"}),
+														pair<string, string>({"y","-5"}),
+														pair<string, string>({"h","50"}),
+														pair<string, string>({"w","50"}),
+														pair<string, string>("colour", "WHITE"),
+														pair<string, string>("uniqueID", mapPopupTextID),
+														pair<string, string>("anchorStyle", "TOPLEFT"),
+														pair<string, string>("shadowColour", "BLACK"),
+														pair<string, string>("don'tLoadIfPlayer", "Olyver Sumner"),
+														pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+														pair<string, string>({"format","LightText_20"})})),
+								mapObject("Tianshun Song", true, true, false, imageLookup.getSequenceAsString("Tianshun Song","TAVERN_WAIT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{53.4, 46.7}, false, List<mapFloor::triangle>({mapFloor::triangle({{53.75606417655945,47.804465889930725}, {51.4295756816864,50.14353394508362}, {53.19821238517761,50.67419409751892}}),mapFloor::triangle({{53.75606417655945,47.804465889930725}, {51.983314752578735,46.987324953079224}, {51.4295756816864,50.14353394508362}}),}), Map<string, string>({
+														pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Tianshun Song"}),
+														pair<string, string>({"copy","Tianshun Song"}),
+														pair<string, string>({"cutscene","TavernTianshun1"}),
+														pair<string, string>({"x","-17"}),
+														pair<string, string>({"y","-5"}),
+														pair<string, string>({"h","50"}),
+														pair<string, string>({"w","50"}),
+														pair<string, string>("colour", "WHITE"),
+														pair<string, string>("uniqueID", mapPopupTextID),
+														pair<string, string>("anchorStyle", "TOPLEFT"),
+														pair<string, string>("shadowColour", "BLACK"),
+														pair<string, string>("don'tLoadIfPlayer", "Tianshun Song"),
+														pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+														pair<string, string>({"format","LightText_20"})})),
+								mapObject("Angela Fleuret", true, true, false, imageLookup.getSequenceAsString("Angela Fleuret","TAVERN_WAIT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{48, 51}, false, List<mapFloor::triangle>({mapFloor::triangle({{47.35563099384308,52.509766817092896}, {48.2275515794754,54.15087938308716}, {48.571962118148804,51.74139738082886}}),mapFloor::triangle({{48.2275515794754,54.15087938308716}, {49.37558174133301,51.93273425102234}, {48.571962118148804,51.74139738082886}}),mapFloor::triangle({{47.35563099384308,52.509766817092896}, {47.02636897563934,53.65135669708252}, {48.2275515794754,54.15087938308716}}),
+				mapFloor::triangle({{48.2275515794754,54.15087938308716}, {49.03117120265961,54.34221625328064}, {49.37558174133301,51.93273425102234}}),}), Map<string, string>({
+														pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Angela Fleuret"}),
+														pair<string, string>({"copy","Angela Fleuret"}),
+														pair<string, string>({"cutscene","TavernAngela1"}),
+														pair<string, string>({"x","-17"}),
+														pair<string, string>({"y","-5"}),
+														pair<string, string>({"h","50"}),
+														pair<string, string>({"w","50"}),
+														pair<string, string>("colour", "WHITE"),
+														pair<string, string>("uniqueID", mapPopupTextID),
+														pair<string, string>("anchorStyle", "TOPLEFT"),
+														pair<string, string>("shadowColour", "BLACK"),
+														pair<string, string>("don'tLoadIfPlayer", "Angela Fleuret"),
+														pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+														pair<string, string>({"format","LightText_20"})})),
+								mapObject("Father Michelet Cutscene", true, false, false, "","0",0,0,"0","0","",{50, 53}, false, List<mapFloor::triangle>({mapFloor::triangle({{51.54890418052673,58.0529510974884}, {50.794535875320435,55.240654945373535}, {49.33348894119263,57.070523500442505}}),mapFloor::triangle({{51.43198370933533,56.87977075576782}, {50.575172901153564,53.68557572364807}, {48.915717005729675,55.76393008232117}}),mapFloor::triangle({{51.54890418052673,58.0529510974884}, {53.00514101982117,56.22187852859497}, {50.794535875320435,55.240654945373535}}),
+				mapFloor::triangle({{51.43198370933533,56.87977075576782}, {53.085970878601074,54.80004549026489}, {50.575172901153564,53.68557572364807}}),}), Map<string, string>({
+														pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Father Michelet"}),
+														pair<string, string>({"copy","Father Michelet Cutscene"}),
+														pair<string, string>({"cutscene","TavernMichelet1"}),
+														pair<string, string>({"x","-10"}),
+														pair<string, string>({"y","-7"}),
+														pair<string, string>({"h","50"}),
+														pair<string, string>({"w","50"}),
+														pair<string, string>("colour", "WHITE"),
+														pair<string, string>("uniqueID", mapPopupTextID),
+														pair<string, string>("anchorStyle", "TOPLEFT"),
+														pair<string, string>("shadowColour", "BLACK"),
+														pair<string, string>("don'tLoadIf", "IntroFinished"),
+														pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+														pair<string, string>({"format","LightText_20"})})),
+								mapObject("Father Michelet", true, true, false, imageLookup.getSequenceAsString("Father Michelet","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","0.9","CENTRE",{45.5, 52}, false, List<mapFloor::triangle>({mapFloor::triangle({{46.30991220474243,52.92676091194153}, {44.418954849243164,54.49073314666748}, {46.23188078403473,54.792553186416626}}),mapFloor::triangle({{46.30991220474243,52.92676091194153}, {45.14247477054596,52.35322117805481}, {44.418954849243164,54.49073314666748}}),}), Map<string, string>({
+														pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Father Michelet"}),
+														pair<string, string>({"copy","Father Michelet"}),
+														pair<string, string>({"cutscene","TavernMichelet1"}),
+														pair<string, string>({"x","-20"}),
+														pair<string, string>({"y","-7"}),
+														pair<string, string>({"h","50"}),
+														pair<string, string>({"w","50"}),
+														pair<string, string>("colour", "WHITE"),
+														pair<string, string>("uniqueID", mapPopupTextID),
+														pair<string, string>("anchorStyle", "TOPLEFT"),
+														pair<string, string>("shadowColour", "BLACK"),
+														pair<string, string>("don'tLoadIfNot", "FoundFatherMichelet"),
+														pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+														pair<string, string>({"format","LightText_20"})})),
+								mapObject("Shadow Father Michelet", false, true, false, imageLookup.getSequenceAsString("Shadow Father Michelet","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"0.5","0.9","CENTRE",{45.5, 52}, false, {},Map<string, string>({
+									pair<string, string>("don'tLoadIfNot", "FoundFatherMichelet")
+								})),
+									mapObject("Fireplace", false, true, false, imageLookup.getSequenceAsString("Fireplace2","STAND_FRONT"),"1",20,imageLookup.layerDefaults["MAP"] + 2,"1.0","1.0","CENTRE",{55.7, 48.5}, false, {}, {}),
+									mapObject("Tavern1AsObject1", false, true, false, imageLookup.getSequenceAsString("TAVERN1_1","STAND_FRONT"),"0",0,imageLookup.layerDefaults["MAP"] + 1,"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+									mapObject("Table", false, true, false, imageLookup.getSequenceAsString("TAVERN1_4","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"],"1","1.0","CENTRE",{53.7, 48.9}, false, {}, {}),
+									mapObject("Tavern1AsObject2", false, true, false, imageLookup.getSequenceAsString("TAVERN1_2","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"] + 1,"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+									mapObject("Tavern1AsObject3", false, true, false, imageLookup.getSequenceAsString("TAVERN1_3","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"] + 2,"0.2","1.0","CENTRE",{50, 50}, false, {}, {}),
+									mapObject("AT_Door", true, false, false, "","0",0,0,"1","1.0","CENTRE",{52, 56}, false, List<mapFloor::triangle>({mapFloor::triangle({{51.54890418052673,58.0529510974884}, {50.794535875320435,55.240654945373535}, {49.33348894119263,57.070523500442505}}),mapFloor::triangle({{51.54890418052673,58.0529510974884}, {53.00514101982117,56.22187852859497}, {50.794535875320435,55.240654945373535}}),}), Map<string, string>({
+																	pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Leave Tavern"}),
+																	pair<string, string>({"copy","AT_Door"}),
+																	pair<string, string>({"areaTransition","BénouvilleTown1"}),
+																	pair<string, string>({"direction","STAND_FRONT"}),
+																	pair<string, string>({"playerPosX","43"}),
+																	pair<string, string>({"playerPosY","58"}),
+																	pair<string, string>({"audio","NICEDOOR1"}),
+																	pair<string, string>({"x","0"}),
+																	pair<string, string>({"y","0"}),
+																	pair<string, string>({"h","50"}),
+																	pair<string, string>({"w","50"}),
+																	pair<string, string>("colour", "WHITE"),
+																	pair<string, string>("uniqueID", mapPopupTextID),
+																	pair<string, string>("anchorStyle", "TOPLEFT"),
+																	pair<string, string>("shadowColour", "BLACK"),
+																	pair<string, string>("don'tLoadIfNot", "IntroFinished"),
+																	pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																	pair<string, string>({"format","LightText_20"}),
+																		})),
+							}), List<mapFloor>({
+					mapFloor("Walkable", List<mapFloor::triangle>({mapFloor::triangle({{45.80773115158081,55.23442625999451}, {43.52834224700928,52.217042446136475}, {42.25945472717285,53.74298095703125}}),mapFloor::triangle({{51.78239941596985,57.75935649871826}, {51.420509815216064,55.51648139953613}, {50.175940990448,57.07051157951355}}),mapFloor::triangle({{50.175940990448,57.07051157951355}, {47.05921411514282,53.70413064956665}, {45.80773115158081,55.23442625999451}}),
+			mapFloor::triangle({{51.420509815216064,55.51648139953613}, {50.562429428100586,49.26672577857971}, {47.05921411514282,53.70413064956665}}),mapFloor::triangle({{54.80759143829346,51.210397481918335}, {55.250173807144165,48.847419023513794}, {53.683775663375854,50.73707699775696}}),mapFloor::triangle({{52.27267146110535,50.05027651786804}, {50.97469687461853,47.59702384471893}, {50.365859270095825,49.536800384521484}}),
+			mapFloor::triangle({{50.97469687461853,47.59702384471893}, {50.05497336387634,46.827346086502075}, {49.763306975364685,47.14358448982239}}),mapFloor::triangle({{44.866180419921875,51.85549855232239}, {43.43647360801697,52.36383080482483}, {43.921685218811035,51.41664147377014}}),mapFloor::triangle({{52.332907915115356,56.570613384246826}, {52.022868394851685,53.92199754714966}, {50.277793407440186,55.861955881118774}}),
+			mapFloor::triangle({{45.80773115158081,55.23442625999451}, {47.05921411514282,53.70413064956665}, {43.52834224700928,52.217042446136475}}),mapFloor::triangle({{51.78239941596985,57.75935649871826}, {52.54425406455994,56.81350231170654}, {51.420509815216064,55.51648139953613}}),mapFloor::triangle({{50.175940990448,57.07051157951355}, {51.420509815216064,55.51648139953613}, {47.05921411514282,53.70413064956665}}),
+			mapFloor::triangle({{51.420509815216064,55.51648139953613}, {54.9092173576355,51.097458600997925}, {50.562429428100586,49.26672577857971}}),mapFloor::triangle({{54.80759143829346,51.210397481918335}, {56.59042000770569,49.41188991069794}, {55.250173807144165,48.847419023513794}}),mapFloor::triangle({{52.27267146110535,50.05027651786804}, {52.75932550430298,47.75756299495697}, {50.97469687461853,47.59702384471893}}),
+			mapFloor::triangle({{50.97469687461853,47.59702384471893}, {52.75932550430298,47.75756299495697}, {50.05497336387634,46.827346086502075}}),mapFloor::triangle({{44.866180419921875,51.85549855232239}, {44.82801854610443,53.02895903587341}, {43.43647360801697,52.36383080482483}}),}),true,{}),
+					mapFloor("WoodFloor", List<mapFloor::triangle>({mapFloor::triangle({{45.80773115158081,55.23442625999451}, {43.52834224700928,52.217042446136475}, {42.25945472717285,53.74298095703125}}),mapFloor::triangle({{51.78239941596985,57.75935649871826}, {51.420509815216064,55.51648139953613}, {50.175940990448,57.07051157951355}}),mapFloor::triangle({{50.175940990448,57.07051157951355}, {47.05921411514282,53.70413064956665}, {45.80773115158081,55.23442625999451}}),
+			mapFloor::triangle({{51.420509815216064,55.51648139953613}, {50.562429428100586,49.26672577857971}, {47.05921411514282,53.70413064956665}}),mapFloor::triangle({{54.80759143829346,51.210397481918335}, {55.250173807144165,48.847419023513794}, {53.683775663375854,50.73707699775696}}),mapFloor::triangle({{52.27267146110535,50.05027651786804}, {50.97469687461853,47.59702384471893}, {50.365859270095825,49.536800384521484}}),
+			mapFloor::triangle({{50.97469687461853,47.59702384471893}, {50.05497336387634,46.827346086502075}, {49.763306975364685,47.14358448982239}}),mapFloor::triangle({{44.866180419921875,51.85549855232239}, {43.43647360801697,52.36383080482483}, {43.921685218811035,51.41664147377014}}),mapFloor::triangle({{52.660661935806274,56.37573003768921}, {52.3506224155426,53.72711420059204}, {50.6055474281311,55.66707253456116}}),
+			mapFloor::triangle({{45.80773115158081,55.23442625999451}, {47.05921411514282,53.70413064956665}, {43.52834224700928,52.217042446136475}}),mapFloor::triangle({{51.78239941596985,57.75935649871826}, {53.00514101982117,56.22187852859497}, {51.420509815216064,55.51648139953613}}),mapFloor::triangle({{50.175940990448,57.07051157951355}, {51.420509815216064,55.51648139953613}, {47.05921411514282,53.70413064956665}}),
+			mapFloor::triangle({{51.420509815216064,55.51648139953613}, {54.9092173576355,51.097458600997925}, {50.562429428100586,49.26672577857971}}),mapFloor::triangle({{54.80759143829346,51.210397481918335}, {56.59042000770569,49.41188991069794}, {55.250173807144165,48.847419023513794}}),mapFloor::triangle({{52.27267146110535,50.05027651786804}, {52.75932550430298,47.75756299495697}, {50.97469687461853,47.59702384471893}}),
+			mapFloor::triangle({{50.97469687461853,47.59702384471893}, {52.75932550430298,47.75756299495697}, {50.05497336387634,46.827346086502075}}),mapFloor::triangle({{44.866180419921875,51.85549855232239}, {44.82801854610443,53.02895903587341}, {43.43647360801697,52.36383080482483}}),}),false,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "FLOORBOARD"})})),
+								}), {}, { 5000,5000 }, { Map<string, string>({
+								pair<string,string>({"song1",to_string(FIREPLACE_WAV_1) + " " + "AmbienceVolume"}),
+								pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
+								}) });
+		maps["IsoHouse"] = mapInstance("IsoHouse", EMPTYMAP, { 48,50 }, List<mapObject>({
+						mapObject("FilmGrain1", false, true, true, imageLookup.getSequenceAsString("FilmGrain1","STAND_FRONT"),"1",1,imageLookup.layerDefaults["WEATHER"],"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+						mapObject("AT_Door", true, false, false, "","0",0,0,"1","1.0","CENTRE",{46, 46}, false, List<mapFloor::triangle>({mapFloor::triangle({{46.41692042350769,45.48998177051544}, {48.017191886901855,47.58803844451904}, {46.41692042350769,47.58803844451904}}),mapFloor::triangle({{46.41692042350769,45.48998177051544}, {48.017191886901855,45.48998177051544}, {48.017191886901855,47.58803844451904}}),}), Map<string, string>({
+														pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Leave House"}),
+														pair<string, string>({"copy","AT_Door"}),
+														pair<string, string>({"areaTransition","BénouvilleTown1"}),
+														pair<string, string>({"direction","STAND_LEFT"}),
+														pair<string, string>({"playerPosX","55"}),
+														pair<string, string>({"playerPosY","51"}),
+														pair<string, string>({"audio","NICEDOOR1"}),
+														pair<string, string>({"x","0"}),
+														pair<string, string>({"y","0"}),
+														pair<string, string>({"h","50"}),
+														pair<string, string>({"w","50"}),
+														pair<string, string>("colour", "WHITE"),
+														pair<string, string>("uniqueID", mapPopupTextID),
+														pair<string, string>("anchorStyle", "TOPLEFT"),
+														pair<string, string>("shadowColour", "BLACK"),
+														pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+														pair<string, string>({"format","LightText_20"}),
+															})),
+						mapObject("IsoHouseAsObject", false, true, false, imageLookup.getSequenceAsString("ISOHOUSE1","STAND_FRONT"),"0",0,imageLookup.layerDefaults["MAP"] + 1,"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+						mapObject("IsoHouseAsObject2", false, true, false, imageLookup.getSequenceAsString("ISOHOUSE2","STAND_FRONT"),"0",0,imageLookup.layerDefaults["ENVIRONMENT"] + 2,"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+						mapObject("IsobellaMerchant", true, true, false, imageLookup.getSequenceAsString("EMPTYOBJECT","STAND_FRONT"), "0", 0, 0, "0", "0","", {47, 55}, false, List<mapFloor::triangle>({mapFloor::triangle({{47.89861440658569,54.704225063323975}, {49.07795190811157,56.25041127204895}, {47.89861440658569,56.25041127204895}}),mapFloor::triangle({{47.89861440658569,54.704225063323975}, {49.07795190811157,54.704225063323975}, {49.07795190811157,56.25041127204895}}),}), Map<string, string>({
+													pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_View Isobella"}),
+													pair<string, string>({"copy","IsobellaMerchant"}),
+													pair<string, string>({"x","-15"}),
+													pair<string, string>({"y","0"}),
+													pair<string, string>({"h","50"}),
+													pair<string, string>({"w","50"}),
+													pair<string, string>("Merchant", "1"),
+													pair<string, string>("colour", "WHITE"),
+													pair<string, string>("uniqueID", mapPopupTextID),
+													pair<string, string>("anchorStyle", "TOPLEFT"),
+													pair<string, string>("shadowColour", "BLACK"),
+													pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+													pair<string, string>({"format","LightText_20"}) })),
+						mapObject("Isobella", true, true, false, imageLookup.getSequenceAsString("Isobella de Vaines","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","0.9","CENTRE",{49.8, 53}, false, List<mapFloor::triangle>({mapFloor::triangle({{49.09331798553467,54.02823090553284}, {50.56154727935791,56.25041127204895}, {49.09331798553467,56.25041127204895}}),mapFloor::triangle({{49.09331798553467,54.02823090553284}, {50.56154727935791,54.02823090553284}, {50.56154727935791,56.25041127204895}}),}), Map<string, string>({
+													pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Isobella"}),
+													pair<string, string>({"copy","Isobella"}),
+													pair<string, string>({"cutscene","Isobella1"}),
+													pair<string, string>({"x","2"}),
+													pair<string, string>({"y","-7"}),
+													pair<string, string>({"h","50"}),
+													pair<string, string>({"w","50"}),
+													pair<string, string>("colour", "WHITE"),
+													pair<string, string>("uniqueID", mapPopupTextID),
+													pair<string, string>("anchorStyle", "TOPLEFT"),
+													pair<string, string>("shadowColour", "BLACK"),
+													pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+													pair<string, string>({"format","LightText_20"})})),
+						mapObject("ShadowIsobella", false, true, false, imageLookup.getSequenceAsString("Shadow Isobella de Vaines","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"0.5","0.9","CENTRE",{49.8, 53}, false, {},{}),
+						}), List<mapFloor>({
+								mapFloor("Walkable", List<mapFloor::triangle>({mapFloor::triangle({{51.14791393280029,45.70656716823578}, {46.577221155166626,47.115594148635864}, {51.14791393280029,47.115594148635864}}),mapFloor::triangle({{52.39313840866089,45.70656716823578}, {51.14791393280029,47.115594148635864}, {52.39313840866089,47.115594148635864}}),mapFloor::triangle({{51.14791393280029,47.115594148635864}, {52.39313840866089,56.25041127204895}, {52.39313840866089,47.115594148635864}}),
+			mapFloor::triangle({{49.801453948020935,56.25041127204895}, {51.81728005409241,55.49086332321167}, {51.81728005409241,56.25041127204895}}),mapFloor::triangle({{49.801453948020935,55.49086332321167}, {48.009854555130005,55.658286809921265}, {48.009854555130005,54.9493670463562}}),mapFloor::triangle({{48.009854555130005,54.9493670463562}, {49.801453948020935,53.939396142959595}, {49.801453948020935,55.49086332321167}}),
+			mapFloor::triangle({{49.801453948020935,53.939396142959595}, {50.302654504776,55.49086332321167}, {49.801453948020935,55.49086332321167}}),mapFloor::triangle({{49.73040521144867,51.68055295944214}, {47.50184714794159,53.10479998588562}, {49.71359670162201,54.99657392501831}}),mapFloor::triangle({{48.8520622253418,50.02935528755188}, {47.50184714794159,51.68055295944214}, {49.73040521144867,51.68055295944214}}),
+			mapFloor::triangle({{49.73040521144867,51.68055295944214}, {49.86833930015564,50.02935528755188}, {48.8520622253418,50.02935528755188}}),mapFloor::triangle({{49.86833930015564,50.02935528755188}, {48.8520622253418,49.64827597141266}, {48.8520622253418,50.02935528755188}}),mapFloor::triangle({{51.14791393280029,45.70656716823578}, {46.577221155166626,45.70656716823578}, {46.577221155166626,47.115594148635864}}),
+			mapFloor::triangle({{52.39313840866089,45.70656716823578}, {51.14791393280029,45.70656716823578}, {51.14791393280029,47.115594148635864}}),mapFloor::triangle({{51.14791393280029,47.115594148635864}, {51.14791393280029,56.25041127204895}, {52.39313840866089,56.25041127204895}}),mapFloor::triangle({{49.801453948020935,56.25041127204895}, {49.801453948020935,55.49086332321167}, {51.81728005409241,55.49086332321167}}),
+			mapFloor::triangle({{49.801453948020935,55.49086332321167}, {49.801453948020935,56.25041127204895}, {48.009854555130005,55.658286809921265}}),mapFloor::triangle({{48.009854555130005,54.9493670463562}, {48.009854555130005,53.40504050254822}, {49.801453948020935,53.939396142959595}}),mapFloor::triangle({{49.801453948020935,53.939396142959595}, {50.302654504776,53.939396142959595}, {50.302654504776,55.49086332321167}}),
+			mapFloor::triangle({{49.73040521144867,51.68055295944214}, {47.50184714794159,51.68055295944214}, {47.50184714794159,53.10479998588562}}),mapFloor::triangle({{48.8520622253418,50.02935528755188}, {47.50184714794159,50.02935528755188}, {47.50184714794159,51.68055295944214}}),mapFloor::triangle({{49.73040521144867,51.68055295944214}, {49.86833930015564,51.68055295944214}, {49.86833930015564,50.02935528755188}}),
+			mapFloor::triangle({{49.86833930015564,50.02935528755188}, {49.86833930015564,49.64827597141266}, {48.8520622253418,49.64827597141266}}),}),true,{}),
+								mapFloor("WoodFloor", List<mapFloor::triangle>({mapFloor::triangle({{51.14791393280029,45.70656716823578}, {46.577221155166626,47.115594148635864}, {51.14791393280029,47.115594148635864}}),mapFloor::triangle({{52.39313840866089,45.70656716823578}, {51.14791393280029,47.115594148635864}, {52.39313840866089,47.115594148635864}}),mapFloor::triangle({{51.14791393280029,47.115594148635864}, {52.39313840866089,56.25041127204895}, {52.39313840866089,47.115594148635864}}),
+			mapFloor::triangle({{49.801453948020935,56.25041127204895}, {51.81728005409241,55.49086332321167}, {51.81728005409241,56.25041127204895}}),mapFloor::triangle({{49.801453948020935,55.49086332321167}, {48.009854555130005,55.658286809921265}, {48.009854555130005,54.9493670463562}}),mapFloor::triangle({{48.009854555130005,54.9493670463562}, {49.801453948020935,53.939396142959595}, {49.801453948020935,55.49086332321167}}),
+			mapFloor::triangle({{49.801453948020935,53.939396142959595}, {50.302654504776,55.49086332321167}, {49.801453948020935,55.49086332321167}}),mapFloor::triangle({{49.73040521144867,51.68055295944214}, {47.50184714794159,53.10479998588562}, {49.71359670162201,54.99657392501831}}),mapFloor::triangle({{48.8520622253418,50.02935528755188}, {47.50184714794159,51.68055295944214}, {49.73040521144867,51.68055295944214}}),
+			mapFloor::triangle({{49.73040521144867,51.68055295944214}, {49.86833930015564,50.02935528755188}, {48.8520622253418,50.02935528755188}}),mapFloor::triangle({{49.86833930015564,50.02935528755188}, {48.8520622253418,49.64827597141266}, {48.8520622253418,50.02935528755188}}),mapFloor::triangle({{51.14791393280029,45.70656716823578}, {46.577221155166626,45.70656716823578}, {46.577221155166626,47.115594148635864}}),
+			mapFloor::triangle({{52.39313840866089,45.70656716823578}, {51.14791393280029,45.70656716823578}, {51.14791393280029,47.115594148635864}}),mapFloor::triangle({{51.14791393280029,47.115594148635864}, {51.14791393280029,56.25041127204895}, {52.39313840866089,56.25041127204895}}),mapFloor::triangle({{49.801453948020935,56.25041127204895}, {49.801453948020935,55.49086332321167}, {51.81728005409241,55.49086332321167}}),
+			mapFloor::triangle({{49.801453948020935,55.49086332321167}, {49.801453948020935,56.25041127204895}, {48.009854555130005,55.658286809921265}}),mapFloor::triangle({{48.009854555130005,54.9493670463562}, {48.009854555130005,53.40504050254822}, {49.801453948020935,53.939396142959595}}),mapFloor::triangle({{49.801453948020935,53.939396142959595}, {50.302654504776,53.939396142959595}, {50.302654504776,55.49086332321167}}),
+			mapFloor::triangle({{49.73040521144867,51.68055295944214}, {47.50184714794159,51.68055295944214}, {47.50184714794159,53.10479998588562}}),mapFloor::triangle({{48.8520622253418,50.02935528755188}, {47.50184714794159,50.02935528755188}, {47.50184714794159,51.68055295944214}}),mapFloor::triangle({{49.73040521144867,51.68055295944214}, {49.86833930015564,51.68055295944214}, {49.86833930015564,50.02935528755188}}),
+			mapFloor::triangle({{49.86833930015564,50.02935528755188}, {49.86833930015564,49.64827597141266}, {48.8520622253418,49.64827597141266}}),}),false,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "FLOORBOARD"})})),
+							}), {}, { 5000,5000 }, { Map<string, string>({
+								pair<string,string>({"song1",to_string(FIREPLACE_WAV_1) + " " + "AmbienceVolume"}),
+								pair<string,string>({"song2",to_string(CLOCK1_WAV) + " " + "AmbienceVolume"}),
+								pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
+								}) });
+		maps["SmithyInside"] = mapInstance("SmithyInside", EMPTYMAP, { 50,50 }, List<mapObject>({
+									mapObject("FilmGrain1", false, true, true, imageLookup.getSequenceAsString("FilmGrain1","STAND_FRONT"),"1",1,imageLookup.layerDefaults["WEATHER"],"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+									mapObject("BSMITHM", true, true, false, imageLookup.getSequenceAsString("BSMITHM", "STAND_FRONT"), "1", 500, imageLookup.layerDefaults["PLAYER"], "1.0", "1.0","CENTRE", { 44, 47 }, false, List<mapFloor::triangle>({mapFloor::triangle({{42.71445572376251,49.696892499923706}, {45.711466670036316,47.12308645248413}, {46.2537944316864,49.27886724472046}}),mapFloor::triangle({{42.71445572376251,49.696892499923706}, {42.17788875102997,47.616103291511536}, {45.711466670036316,47.12308645248413}}),}), Map<string, string>({
+																pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Blacksmith"}),
+																pair<string, string>({"copy","BSMITHM"}),
+																pair<string, string>({"x","5"}),
+																pair<string, string>({"y","-5"}),
+																pair<string, string>({"h","50"}),
+																pair<string, string>({"w","50"}),
+																pair<string, string>("Merchant", "1"),
+																pair<string, string>("colour", "WHITE"),
+																pair<string, string>("uniqueID", mapPopupTextID),
+																pair<string, string>("anchorStyle", "TOPLEFT"),
+																pair<string, string>("shadowColour", "BLACK"),
+																pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																pair<string, string>({"format","LightText_20"}) })),
+									mapObject("Shadow BSMITHM", false, true, false, imageLookup.getSequenceAsString("Shadow BSMITHM","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"0.5","1.0","CENTRE",{44, 47}, false, {},{}),
+									mapObject("BSMITHF", true, true, false, imageLookup.getSequenceAsString("BSMITHF", "STAND_FRONT"), "1", 500, imageLookup.layerDefaults["PLAYER"], "1.0", "1.0","CENTRE", { 50, 42 }, false, List<mapFloor::triangle>({mapFloor::triangle({{48.24576377868652,44.805559515953064}, {51.242780685424805,42.23175346851349}, {51.78510546684265,44.38753426074982}}),mapFloor::triangle({{48.24576377868652,44.805559515953064}, {47.70919680595398,42.724770307540894}, {51.242780685424805,42.23175346851349}}),}), Map<string, string>({
+																pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to Blacksmith"}),
+																pair<string, string>({"copy","BSMITHF"}),
+																pair<string, string>({"x","5"}),
+																pair<string, string>({"y","-5"}),
+																pair<string, string>({"h","50"}),
+																pair<string, string>({"w","50"}),
+																pair<string, string>("Merchant", "1"),
+																pair<string, string>("colour", "WHITE"),
+																pair<string, string>("uniqueID", mapPopupTextID),
+																pair<string, string>("anchorStyle", "TOPLEFT"),
+																pair<string, string>("shadowColour", "BLACK"),
+																pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																pair<string, string>({"format","LightText_20"}) })),
+									mapObject("Shadow BSMITHF", false, true, false, imageLookup.getSequenceAsString("Shadow BSMITHF","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"0.5","1.0","CENTRE",{50, 42}, false, {},{}),
+									mapObject("SmithyInsideAsObject", false, true, false, imageLookup.getSequenceAsString("SMITHYINSIDE","STAND_FRONT"),"0",0,imageLookup.layerDefaults["Map"] + 1,"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+									mapObject("AT_Door", true, false, false, "","0",0,0,"1","1.0","CENTRE",{50, 60}, false, List<mapFloor::triangle>({mapFloor::triangle({{48.45373034477234,60.88482737541199}, {51.3355553150177,58.81905555725098}, {51.9015371799469,60.41581630706787}}),mapFloor::triangle({{48.45373034477234,60.88482737541199}, {47.8946179151535,59.36296582221985}, {51.3355553150177,58.81905555725098}}),}), Map<string, string>({
+																	pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Leave Smithy"}),
+																	pair<string, string>({"copy","AT_Door"}),
+																	pair<string, string>({"areaTransition","BénouvilleTown1"}),
+																	pair<string, string>({"direction","STAND_FRONT"}),
+																	pair<string, string>({"playerPosX","22"}),
+																	pair<string, string>({"playerPosY","63"}),
+																	pair<string, string>({"audio","SHOPDOOR2"}),
+																	pair<string, string>({"x","0"}),
+																	pair<string, string>({"y","0"}),
+																	pair<string, string>({"h","50"}),
+																	pair<string, string>({"w","50"}),
+																	pair<string, string>("colour", "WHITE"),
+																	pair<string, string>("uniqueID", mapPopupTextID),
+																	pair<string, string>("anchorStyle", "TOPLEFT"),
+																	pair<string, string>("shadowColour", "BLACK"),
+																	pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																	pair<string, string>({"format","LightText_20"}),
+																		})),
+									}), List<mapFloor>({
+									mapFloor("Walkable", List<mapFloor::triangle>({mapFloor::triangle({{44.26324963569641,61.39955520629883}, {46.67193591594696,57.91361927986145}, {47.514209151268005,60.93399524688721}}),mapFloor::triangle({{47.514209151268005,60.93399524688721}, {55.145782232284546,56.70009255409241}, {55.98805546760559,59.720468521118164}}),mapFloor::triangle({{55.145782232284546,56.70009255409241}, {47.12591469287872,57.16918706893921}, {55.145782232284546,56.020671129226685}}),
+				mapFloor::triangle({{55.145782232284546,56.020671129226685}, {47.69083857536316,56.497544050216675}, {55.01830577850342,55.44818639755249}}),mapFloor::triangle({{55.145782232284546,56.020671129226685}, {55.57105541229248,55.36314845085144}, {55.69853186607361,55.935633182525635}}),mapFloor::triangle({{55.01830577850342,55.44818639755249}, {55.22027015686035,53.5888671875}, {55.57105541229248,55.36314845085144}}),
+				mapFloor::triangle({{47.69083857536316,56.497544050216675}, {54.462140798568726,53.70331406593323}, {55.01830577850342,55.44818639755249}}),mapFloor::triangle({{46.454012393951416,45.06559669971466}, {51.37625336647034,42.13124215602875}, {51.948899030685425,44.27867531776428}}),mapFloor::triangle({{47.40384221076965,52.7351975440979}, {52.41432785987854,46.02402448654175}, {54.01214361190796,52.01582908630371}}),
+				mapFloor::triangle({{46.7032790184021,46.841901540756226}, {44.278424978256226,52.997398376464844}, {42.04740822315216,47.53071665763855}}),mapFloor::triangle({{47.60114252567291,54.39493656158447}, {54.01214361190796,52.01582908630371}, {54.462140798568726,53.70331406593323}}),mapFloor::triangle({{41.90409481525421,53.16284894943237}, {42.273736000061035,50.68162679672241}, {42.7021324634552,53.11139225959778}}),
+				mapFloor::triangle({{42.7021324634552,53.11139225959778}, {44.46992874145508,50.567638874053955}, {44.46992874145508,52.997398376464844}}),mapFloor::triangle({{43.448323011398315,49.14799928665161}, {42.273736000061035,50.68162679672241}, {42.02996790409088,49.14799928665161}}),mapFloor::triangle({{46.7032790184021,46.841901540756226}, {51.948899030685425,44.27867531776428}, {52.41432785987854,46.02402448654175}}),
+				mapFloor::triangle({{47.40384221076965,52.7351975440979}, {44.756484031677246,54.16879057884216}, {44.278424978256226,52.997398376464844}}),mapFloor::triangle({{47.70389795303345,40.665894746780396}, {49.43193793296814,38.7274295091629}, {49.83611702919006,40.28853476047516}}),mapFloor::triangle({{47.8838324546814,40.665894746780396}, {46.0231751203537,43.46131682395935}, {45.449092984199524,41.04325473308563}}),
+				mapFloor::triangle({{45.449092984199524,41.04325473308563}, {47.42230772972107,39.10478949546814}, {47.8838324546814,40.665894746780396}}),mapFloor::triangle({{43.050575256347656,43.28620433807373}, {39.78189826011658,45.269814133644104}, {39.42515254020691,43.867915868759155}}),mapFloor::triangle({{39.42515254020691,43.867915868759155}, {42.474937438964844,41.44938588142395}, {43.050575256347656,43.28620433807373}}),
+				mapFloor::triangle({{43.050575256347656,43.28620433807373}, {43.41710805892944,41.32582247257233}, {43.992745876312256,43.16264092922211}}),mapFloor::triangle({{43.992745876312256,43.16264092922211}, {43.34287345409393,44.67802047729492}, {43.050575256347656,43.28620433807373}}),mapFloor::triangle({{38.897791504859924,42.0167475938797}, {42.083701491355896,40.268293023109436}, {42.474937438964844,41.44938588142395}}),
+				mapFloor::triangle({{46.14731967449188,42.88007318973541}, {44.255539774894714,44.5544570684433}, {43.992745876312256,43.16264092922211}}),mapFloor::triangle({{43.992745876312256,43.16264092922211}, {45.57168185710907,41.04325473308563}, {46.14731967449188,42.88007318973541}}),mapFloor::triangle({{43.41710805892944,41.32582247257233}, {45.167502760887146,39.48214948177338}, {45.57168185710907,41.04325473308563}}),
+				mapFloor::triangle({{44.26324963569641,61.39955520629883}, {43.420976400375366,58.37917923927307}, {46.67193591594696,57.91361927986145}}),mapFloor::triangle({{47.514209151268005,60.93399524688721}, {46.67193591594696,57.91361927986145}, {55.145782232284546,56.70009255409241}}),mapFloor::triangle({{55.145782232284546,56.70009255409241}, {46.67193591594696,57.91361927986145}, {47.12591469287872,57.16918706893921}}),
+				mapFloor::triangle({{55.145782232284546,56.020671129226685}, {47.12591469287872,57.16918706893921}, {47.69083857536316,56.497544050216675}}),mapFloor::triangle({{55.145782232284546,56.020671129226685}, {55.01830577850342,55.44818639755249}, {55.57105541229248,55.36314845085144}}),mapFloor::triangle({{55.01830577850342,55.44818639755249}, {54.462140798568726,53.70331406593323}, {55.22027015686035,53.5888671875}}),
+				mapFloor::triangle({{47.69083857536316,56.497544050216675}, {47.60114252567291,54.39493656158447}, {54.462140798568726,53.70331406593323}}),mapFloor::triangle({{46.454012393951416,45.06559669971466}, {46.14731967449188,42.88007318973541}, {51.37625336647034,42.13124215602875}}),mapFloor::triangle({{47.40384221076965,52.7351975440979}, {46.7032790184021,46.841901540756226}, {52.41432785987854,46.02402448654175}}),
+				mapFloor::triangle({{46.7032790184021,46.841901540756226}, {47.40384221076965,52.7351975440979}, {44.278424978256226,52.997398376464844}}),mapFloor::triangle({{47.60114252567291,54.39493656158447}, {47.40384221076965,52.7351975440979}, {54.01214361190796,52.01582908630371}}),mapFloor::triangle({{41.90409481525421,53.16284894943237}, {41.28230810165405,50.733089447021484}, {42.273736000061035,50.68162679672241}}),
+				mapFloor::triangle({{42.7021324634552,53.11139225959778}, {42.273736000061035,50.68162679672241}, {44.46992874145508,50.567638874053955}}),mapFloor::triangle({{43.448323011398315,49.14799928665161}, {44.46992874145508,50.567638874053955}, {42.273736000061035,50.68162679672241}}),mapFloor::triangle({{46.7032790184021,46.841901540756226}, {46.454012393951416,45.06559669971466}, {51.948899030685425,44.27867531776428}}),
+				mapFloor::triangle({{47.40384221076965,52.7351975440979}, {47.545406222343445,53.92605662345886}, {44.756484031677246,54.16879057884216}}),mapFloor::triangle({{47.70389795303345,40.665894746780396}, {47.29971885681152,39.10478949546814}, {49.43193793296814,38.7274295091629}}),mapFloor::triangle({{47.8838324546814,40.665894746780396}, {48.79792928695679,43.03125739097595}, {46.0231751203537,43.46131682395935}}),
+				mapFloor::triangle({{45.449092984199524,41.04325473308563}, {44.9875682592392,39.48214948177338}, {47.42230772972107,39.10478949546814}}),mapFloor::triangle({{43.050575256347656,43.28620433807373}, {43.34287345409393,44.67802047729492}, {39.78189826011658,45.269814133644104}}),mapFloor::triangle({{39.42515254020691,43.867915868759155}, {38.897791504859924,42.0167475938797}, {42.474937438964844,41.44938588142395}}),
+				mapFloor::triangle({{43.050575256347656,43.28620433807373}, {42.474937438964844,41.44938588142395}, {43.41710805892944,41.32582247257233}}),mapFloor::triangle({{43.992745876312256,43.16264092922211}, {44.255539774894714,44.5544570684433}, {43.34287345409393,44.67802047729492}}),mapFloor::triangle({{38.897791504859924,42.0167475938797}, {38.53760361671448,40.825873613357544}, {42.083701491355896,40.268293023109436}}),
+				mapFloor::triangle({{46.14731967449188,42.88007318973541}, {46.34263217449188,44.271889328956604}, {44.255539774894714,44.5544570684433}}),mapFloor::triangle({{43.992745876312256,43.16264092922211}, {43.41710805892944,41.32582247257233}, {45.57168185710907,41.04325473308563}}),mapFloor::triangle({{43.41710805892944,41.32582247257233}, {43.01292896270752,39.76471722126007}, {45.167502760887146,39.48214948177338}}),}),true,{}),
+									mapFloor("WoodFloor", List<mapFloor::triangle>({mapFloor::triangle({{44.26324963569641,61.39955520629883}, {46.67193591594696,57.91361927986145}, {47.514209151268005,60.93399524688721}}),mapFloor::triangle({{47.514209151268005,60.93399524688721}, {55.145782232284546,56.70009255409241}, {55.98805546760559,59.720468521118164}}),mapFloor::triangle({{55.145782232284546,56.70009255409241}, {47.12591469287872,57.16918706893921}, {55.145782232284546,56.020671129226685}}),
+				mapFloor::triangle({{55.145782232284546,56.020671129226685}, {47.69083857536316,56.497544050216675}, {55.01830577850342,55.44818639755249}}),mapFloor::triangle({{55.145782232284546,56.020671129226685}, {55.57105541229248,55.36314845085144}, {55.69853186607361,55.935633182525635}}),mapFloor::triangle({{55.01830577850342,55.44818639755249}, {55.22027015686035,53.5888671875}, {55.57105541229248,55.36314845085144}}),
+				mapFloor::triangle({{47.69083857536316,56.497544050216675}, {54.462140798568726,53.70331406593323}, {55.01830577850342,55.44818639755249}}),mapFloor::triangle({{46.454012393951416,45.06559669971466}, {51.37625336647034,42.13124215602875}, {51.948899030685425,44.27867531776428}}),mapFloor::triangle({{47.40384221076965,52.7351975440979}, {52.41432785987854,46.02402448654175}, {54.01214361190796,52.01582908630371}}),
+				mapFloor::triangle({{46.7032790184021,46.841901540756226}, {44.278424978256226,52.997398376464844}, {42.04740822315216,47.53071665763855}}),mapFloor::triangle({{47.60114252567291,54.39493656158447}, {54.01214361190796,52.01582908630371}, {54.462140798568726,53.70331406593323}}),mapFloor::triangle({{41.90409481525421,53.16284894943237}, {42.273736000061035,50.68162679672241}, {42.7021324634552,53.11139225959778}}),
+				mapFloor::triangle({{42.7021324634552,53.11139225959778}, {44.46992874145508,50.567638874053955}, {44.46992874145508,52.997398376464844}}),mapFloor::triangle({{43.448323011398315,49.14799928665161}, {42.273736000061035,50.68162679672241}, {42.02996790409088,49.14799928665161}}),mapFloor::triangle({{46.7032790184021,46.841901540756226}, {51.948899030685425,44.27867531776428}, {52.41432785987854,46.02402448654175}}),
+				mapFloor::triangle({{47.40384221076965,52.7351975440979}, {44.756484031677246,54.16879057884216}, {44.278424978256226,52.997398376464844}}),mapFloor::triangle({{47.70389795303345,40.665894746780396}, {49.43193793296814,38.7274295091629}, {49.83611702919006,40.28853476047516}}),mapFloor::triangle({{47.8838324546814,40.665894746780396}, {46.0231751203537,43.46131682395935}, {45.449092984199524,41.04325473308563}}),
+				mapFloor::triangle({{45.449092984199524,41.04325473308563}, {47.42230772972107,39.10478949546814}, {47.8838324546814,40.665894746780396}}),mapFloor::triangle({{43.050575256347656,43.28620433807373}, {39.78189826011658,45.269814133644104}, {39.42515254020691,43.867915868759155}}),mapFloor::triangle({{39.42515254020691,43.867915868759155}, {42.474937438964844,41.44938588142395}, {43.050575256347656,43.28620433807373}}),
+				mapFloor::triangle({{43.050575256347656,43.28620433807373}, {43.41710805892944,41.32582247257233}, {43.992745876312256,43.16264092922211}}),mapFloor::triangle({{43.992745876312256,43.16264092922211}, {43.34287345409393,44.67802047729492}, {43.050575256347656,43.28620433807373}}),mapFloor::triangle({{38.897791504859924,42.0167475938797}, {42.083701491355896,40.268293023109436}, {42.474937438964844,41.44938588142395}}),
+				mapFloor::triangle({{46.14731967449188,42.88007318973541}, {44.255539774894714,44.5544570684433}, {43.992745876312256,43.16264092922211}}),mapFloor::triangle({{43.992745876312256,43.16264092922211}, {45.57168185710907,41.04325473308563}, {46.14731967449188,42.88007318973541}}),mapFloor::triangle({{43.41710805892944,41.32582247257233}, {45.167502760887146,39.48214948177338}, {45.57168185710907,41.04325473308563}}),
+				mapFloor::triangle({{44.26324963569641,61.39955520629883}, {43.420976400375366,58.37917923927307}, {46.67193591594696,57.91361927986145}}),mapFloor::triangle({{47.514209151268005,60.93399524688721}, {46.67193591594696,57.91361927986145}, {55.145782232284546,56.70009255409241}}),mapFloor::triangle({{55.145782232284546,56.70009255409241}, {46.67193591594696,57.91361927986145}, {47.12591469287872,57.16918706893921}}),
+				mapFloor::triangle({{55.145782232284546,56.020671129226685}, {47.12591469287872,57.16918706893921}, {47.69083857536316,56.497544050216675}}),mapFloor::triangle({{55.145782232284546,56.020671129226685}, {55.01830577850342,55.44818639755249}, {55.57105541229248,55.36314845085144}}),mapFloor::triangle({{55.01830577850342,55.44818639755249}, {54.462140798568726,53.70331406593323}, {55.22027015686035,53.5888671875}}),
+				mapFloor::triangle({{47.69083857536316,56.497544050216675}, {47.60114252567291,54.39493656158447}, {54.462140798568726,53.70331406593323}}),mapFloor::triangle({{46.454012393951416,45.06559669971466}, {46.14731967449188,42.88007318973541}, {51.37625336647034,42.13124215602875}}),mapFloor::triangle({{47.40384221076965,52.7351975440979}, {46.7032790184021,46.841901540756226}, {52.41432785987854,46.02402448654175}}),
+				mapFloor::triangle({{46.7032790184021,46.841901540756226}, {47.40384221076965,52.7351975440979}, {44.278424978256226,52.997398376464844}}),mapFloor::triangle({{47.60114252567291,54.39493656158447}, {47.40384221076965,52.7351975440979}, {54.01214361190796,52.01582908630371}}),mapFloor::triangle({{41.90409481525421,53.16284894943237}, {41.28230810165405,50.733089447021484}, {42.273736000061035,50.68162679672241}}),
+				mapFloor::triangle({{42.7021324634552,53.11139225959778}, {42.273736000061035,50.68162679672241}, {44.46992874145508,50.567638874053955}}),mapFloor::triangle({{43.448323011398315,49.14799928665161}, {44.46992874145508,50.567638874053955}, {42.273736000061035,50.68162679672241}}),mapFloor::triangle({{46.7032790184021,46.841901540756226}, {46.454012393951416,45.06559669971466}, {51.948899030685425,44.27867531776428}}),
+				mapFloor::triangle({{47.40384221076965,52.7351975440979}, {47.545406222343445,53.92605662345886}, {44.756484031677246,54.16879057884216}}),mapFloor::triangle({{47.70389795303345,40.665894746780396}, {47.29971885681152,39.10478949546814}, {49.43193793296814,38.7274295091629}}),mapFloor::triangle({{47.8838324546814,40.665894746780396}, {48.79792928695679,43.03125739097595}, {46.0231751203537,43.46131682395935}}),
+				mapFloor::triangle({{45.449092984199524,41.04325473308563}, {44.9875682592392,39.48214948177338}, {47.42230772972107,39.10478949546814}}),mapFloor::triangle({{43.050575256347656,43.28620433807373}, {43.34287345409393,44.67802047729492}, {39.78189826011658,45.269814133644104}}),mapFloor::triangle({{39.42515254020691,43.867915868759155}, {38.897791504859924,42.0167475938797}, {42.474937438964844,41.44938588142395}}),
+				mapFloor::triangle({{43.050575256347656,43.28620433807373}, {42.474937438964844,41.44938588142395}, {43.41710805892944,41.32582247257233}}),mapFloor::triangle({{43.992745876312256,43.16264092922211}, {44.255539774894714,44.5544570684433}, {43.34287345409393,44.67802047729492}}),mapFloor::triangle({{38.897791504859924,42.0167475938797}, {38.53760361671448,40.825873613357544}, {42.083701491355896,40.268293023109436}}),
+				mapFloor::triangle({{46.14731967449188,42.88007318973541}, {46.34263217449188,44.271889328956604}, {44.255539774894714,44.5544570684433}}),mapFloor::triangle({{43.992745876312256,43.16264092922211}, {43.41710805892944,41.32582247257233}, {45.57168185710907,41.04325473308563}}),mapFloor::triangle({{43.41710805892944,41.32582247257233}, {43.01292896270752,39.76471722126007}, {45.167502760887146,39.48214948177338}}),}),false,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "FLOORBOARD"})})),
+										}), {}, { 5000,5000 }, { Map<string, string>({
+											pair<string,string>({"song1",to_string(FIREPLACE_WAV_1) + " " + "AmbienceVolume"}),
+											pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
+											}) });
+		maps["EstateOutside1"] = mapInstance("EstateOutside1", MAP_ESTATEOUTSIDE1, { 24,95 }, List<mapObject>({
+										mapObject("FilmGrain1", false, true, true, imageLookup.getSequenceAsString("FilmGrain1","STAND_FRONT"),"1",1,imageLookup.layerDefaults["WEATHER"],"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+										mapObject("EstateOutside1TopLayer", false, true, false, imageLookup.getSequenceAsString("EstateOutside1TopLayer","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"] + 1,"1.0","2.0","CENTRE",{50, 50}, false, {}, {}),
+										mapObject("AT_EnterTown", true, false, false, "", "0", 0, 0, "1", "1.0", "CENTRE", { 24, 97 }, false, List<mapFloor::triangle>({mapFloor::triangle({{18.6276376247406,100.04528760910034}, {29.169324040412903,95.83765864372253}, {29.169324040412903,100.04528760910034}}),mapFloor::triangle({{18.6276376247406,100.04528760910034}, {18.24190318584442,95.83765864372253}, {29.169324040412903,95.83765864372253}}),}), Map<string, string>({
+																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Enter Bénouville"}),
+																		pair<string, string>({"copy","AT_EnterTown"}),
+																		pair<string, string>({"areaTransition","BénouvilleTown1"}),
+																		pair<string, string>({"direction","STAND_FRONT"}),
+																		pair<string, string>({"playerPosX","27"}),
+																		pair<string, string>({"playerPosY","6"}),
+																		pair<string, string>({"audio","STONESTEPS"}),
+																		pair<string, string>({"x","0"}),
+																		pair<string, string>({"y","0"}),
+																		pair<string, string>({"h","50"}),
+																		pair<string, string>({"w","50"}),
+																		pair<string, string>("colour", "WHITE"),
+																		pair<string, string>("uniqueID", mapPopupTextID),
+																		pair<string, string>("anchorStyle", "TOPLEFT"),
+																		pair<string, string>("shadowColour", "BLACK"),
+																		pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																		pair<string, string>({"format","LightText_20"}),
+										})),
+										mapObject("AT_EnterChapel", true, false, false, "", "0", 0, 0, "1", "1.0", "CENTRE", { 50, 53 }, false, List<mapFloor::triangle>({mapFloor::triangle({{46.45344018936157,48.13438355922699}, {53.231436014175415,55.1128625869751}, {46.286171674728394,54.11650538444519}}),mapFloor::triangle({{46.45344018936157,48.13438355922699}, {54.817503690719604,49.334290623664856}, {53.231436014175415,55.1128625869751}}),}), Map<string, string>({
+																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Enter Chapel"}),
+																		pair<string, string>({"copy","AT_EnterChapel"}),
+																		pair<string, string>({"areaTransition","ChapelEntryHall"}),
+																		pair<string, string>({"direction","STAND_BACK"}),
+																		pair<string, string>({"playerPosX","50"}),
+																		pair<string, string>({"playerPosY","80"}),
+																		pair<string, string>({"audio","CHAPELMULTISTEP"}),
+																		pair<string, string>({"x","0"}),
+																		pair<string, string>({"y","0"}),
+																		pair<string, string>({"h","50"}),
+																		pair<string, string>({"w","50"}),
+																		pair<string, string>("colour", "WHITE"),
+																		pair<string, string>("uniqueID", mapPopupTextID),
+																		pair<string, string>("anchorStyle", "TOPLEFT"),
+																		pair<string, string>("shadowColour", "BLACK"),
+																		pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																		pair<string, string>({"format","LightText_20"}),
+										})),
+										}), List<mapFloor>({
+											mapFloor("Walkable", List<mapFloor::triangle>({mapFloor::triangle({{18.425588309764862,96.11464142799377}, {29.18049693107605,100.02213716506958}, {29.424387216567993,96.01919651031494}}),mapFloor::triangle({{11.677411198616028,92.17037558555603}, {0.02800583024509251,96.27995491027832}, {11.831343173980713,96.27995491027832}}),mapFloor::triangle({{17.176538705825806,96.27995491027832}, {13.679563999176025,93.4194266796112}, {13.83349597454071,96.27995491027832}}),
+							mapFloor::triangle({{13.679563999176025,93.4194266796112}, {11.831343173980713,96.27995491027832}, {13.83349597454071,96.27995491027832}}),mapFloor::triangle({{18.425588309764862,96.11464142799377}, {17.02260673046112,92.88674592971802}, {17.176538705825806,96.27995491027832}}),mapFloor::triangle({{18.271654844284058,92.00506210327148}, {29.424387216567993,96.01919651031494}, {29.753458499908447,90.6181812286377}}),
+							mapFloor::triangle({{11.677411198616028,92.17037558555603}, {10.31193733215332,67.16897487640381}, {0.028006016509607434,92.17037558555603}}),mapFloor::triangle({{25.685718655586243,61.68085336685181}, {11.180254817008972,56.19272589683533}, {11.203084141016006,61.68085336685181}}),mapFloor::triangle({{21.96134328842163,67.16897487640381}, {11.203084141016006,61.68085336685181}, {10.31193733215332,67.16897487640381}}),
+							mapFloor::triangle({{4.150979220867157,38.1668359041214}, {15.012656152248383,32.15820491313934}, {0.16508987173438072,32.15820491313934}}),mapFloor::triangle({{11.180254817008972,56.19272589683533}, {24.506129324436188,50.18409490585327}, {9.658561646938324,50.18409490585327}}),mapFloor::triangle({{9.658561646938324,50.18409490585327}, {21.752338111400604,44.175463914871216}, {6.9047704339027405,44.175466895103455}}),
+							mapFloor::triangle({{6.9047704339027405,44.175466895103455}, {18.99854689836502,38.16683292388916}, {4.150979220867157,38.1668359041214}}),mapFloor::triangle({{0.16508987173438072,32.15820491313934}, {6.653813272714615,18.008416891098022}, {0.1650904887355864,18.008416891098022}}),mapFloor::triangle({{0.1650904887355864,18.008416891098022}, {3.557944670319557,12.898267805576324}, {2.8165917843580246,12.898267805576324}}),
+							mapFloor::triangle({{29.424387216567993,96.01919651031494}, {31.530937552452087,91.33017659187317}, {29.753458499908447,90.6181812286377}}),mapFloor::triangle({{31.530937552452087,96.01919651031494}, {34.66924428939819,91.33017659187317}, {31.530937552452087,91.33017659187317}}),mapFloor::triangle({{34.66924428939819,91.33017659187317}, {55.642688274383545,96.01919651031494}, {55.642688274383545,87.108314037323}}),
+							mapFloor::triangle({{55.642688274383545,87.108314037323}, {70.33275365829468,98.01185727119446}, {70.33275365829468,84.9461317062378}}),mapFloor::triangle({{85.12771725654602,98.94925355911255}, {99.92268085479736,80.53086996078491}, {85.12771725654602,77.4810791015625}}),mapFloor::triangle({{70.33275365829468,84.9461317062378}, {85.12771725654602,98.94925355911255}, {85.12771725654602,77.4810791015625}}),
+							mapFloor::triangle({{29.753458499908447,90.6181812286377}, {22.556772828102112,88.47372531890869}, {18.271654844284058,92.00506210327148}}),mapFloor::triangle({{22.556772828102112,85.04118919372559}, {29.054594039916992,81.41239881515503}, {18.620945513248444,81.79606199264526}}),mapFloor::triangle({{29.054591059684753,87.63798475265503}, {22.556772828102112,85.04118919372559}, {22.556772828102112,88.47372531890869}}),
+							mapFloor::triangle({{29.054594039916992,81.41239881515503}, {24.931316077709198,71.43762111663818}, {18.620945513248444,81.79606199264526}}),mapFloor::triangle({{33.09163749217987,76.09100341796875}, {34.22519266605377,62.14852333068848}, {24.931316077709198,71.43762111663818}}),mapFloor::triangle({{56.72540068626404,67.3406720161438}, {37.93248534202576,52.509552240371704}, {36.078840494155884,57.32903480529785}}),
+							mapFloor::triangle({{40.04891514778137,70.71596384048462}, {36.078840494155884,57.32903480529785}, {34.22519266605377,62.14852333068848}}),mapFloor::triangle({{53.221118450164795,52.85990238189697}, {47.390809655189514,55.22400140762329}, {52.40629315376282,55.65769672393799}}),mapFloor::triangle({{44.35563087463379,53.32358479499817}, {45.29799818992615,54.252493381500244}, {45.53695321083069,53.53021025657654}}),
+							mapFloor::triangle({{41.68132543563843,52.99226641654968}, {42.02336072921753,53.81617546081543}, {42.26231575012207,53.093886375427246}}),mapFloor::triangle({{39.27530646324158,52.392709255218506}, {37.651750445365906,52.94232368469238}, {39.26505148410797,53.097522258758545}}),mapFloor::triangle({{38.15609812736511,52.28326916694641}, {34.13381576538086,57.25926160812378}, {37.24566102027893,52.45164632797241}}),
+							mapFloor::triangle({{34.13381576538086,57.25926160812378}, {35.73026955127716,52.25265622138977}, {37.24566102027893,52.45164632797241}}),mapFloor::triangle({{32.36163556575775,55.14322519302368}, {34.980228543281555,51.04340314865112}, {35.73026955127716,52.25265622138977}}),mapFloor::triangle({{29.504981637001038,45.118504762649536}, {31.039106845855713,44.98625099658966}, {30.986210703849792,50.77890157699585}}),
+							mapFloor::triangle({{31.039106845855713,44.98625099658966}, {31.80617094039917,45.885565876960754}, {30.986210703849792,50.77890157699585}}),mapFloor::triangle({{30.986210703849792,50.77890157699585}, {31.80617094039917,45.885565876960754}, {34.980228543281555,51.04340314865112}}),mapFloor::triangle({{31.80617094039917,45.885565876960754}, {35.006678104400635,46.573275327682495}, {34.980228543281555,51.04340314865112}}),
+							mapFloor::triangle({{64.38435912132263,62.488824129104614}, {68.31786632537842,55.006927251815796}, {70.38880586624146,57.939743995666504}}),mapFloor::triangle({{54.56417798995972,54.919588565826416}, {55.45340180397034,56.133854389190674}, {55.743223428726196,55.138856172561646}}),mapFloor::triangle({{57.650065422058105,55.47063946723938}, {58.539289236068726,56.68490529060364}, {58.829110860824585,55.68990707397461}}),
+							mapFloor::triangle({{60.77273488044739,56.19435906410217}, {62.4065637588501,57.509517669677734}, {62.89755702018738,56.52485489845276}}),mapFloor::triangle({{62.89755702018738,56.52485489845276}, {64.32532668113708,57.787007093429565}, {64.61514830589294,56.79200887680054}}),mapFloor::triangle({{62.89755702018738,56.52485489845276}, {61.593979597091675,55.91084361076355}, {60.77273488044739,56.19435906410217}}),
+							mapFloor::triangle({{70.38880586624146,57.939743995666504}, {74.6977150440216,52.055054903030396}, {76.76865458488464,54.9878716468811}}),mapFloor::triangle({{76.76865458488464,54.9878716468811}, {85.21936535835266,47.68105745315552}, {88.02101016044617,49.92627799510956}}),mapFloor::triangle({{18.425588309764862,96.11464142799377}, {18.571951985359192,100.02213716506958}, {29.18049693107605,100.02213716506958}}),
+							mapFloor::triangle({{11.677411198616028,92.17037558555603}, {0.028006016509607434,92.17037558555603}, {0.02800583024509251,96.27995491027832}}),mapFloor::triangle({{17.176538705825806,96.27995491027832}, {17.02260673046112,92.88674592971802}, {13.679563999176025,93.4194266796112}}),mapFloor::triangle({{13.679563999176025,93.4194266796112}, {11.677411198616028,92.17037558555603}, {11.831343173980713,96.27995491027832}}),
+							mapFloor::triangle({{18.425588309764862,96.11464142799377}, {18.271654844284058,92.00506210327148}, {17.02260673046112,92.88674592971802}}),mapFloor::triangle({{18.271654844284058,92.00506210327148}, {18.425588309764862,96.11464142799377}, {29.424387216567993,96.01919651031494}}),mapFloor::triangle({{11.677411198616028,92.17037558555603}, {21.96134328842163,67.16897487640381}, {10.31193733215332,67.16897487640381}}),
+							mapFloor::triangle({{25.685718655586243,61.68085336685181}, {26.027822494506836,56.19272589683533}, {11.180254817008972,56.19272589683533}}),mapFloor::triangle({{21.96134328842163,67.16897487640381}, {25.685718655586243,61.68085336685181}, {11.203084141016006,61.68085336685181}}),mapFloor::triangle({{4.150979220867157,38.1668359041214}, {18.99854689836502,38.16683292388916}, {15.012656152248383,32.15820491313934}}),
+							mapFloor::triangle({{11.180254817008972,56.19272589683533}, {26.027822494506836,56.19272589683533}, {24.506129324436188,50.18409490585327}}),mapFloor::triangle({{9.658561646938324,50.18409490585327}, {24.506129324436188,50.18409490585327}, {21.752338111400604,44.175463914871216}}),mapFloor::triangle({{6.9047704339027405,44.175466895103455}, {21.752338111400604,44.175463914871216}, {18.99854689836502,38.16683292388916}}),
+							mapFloor::triangle({{0.16508987173438072,32.15820491313934}, {15.012656152248383,32.15820491313934}, {6.653813272714615,18.008416891098022}}),mapFloor::triangle({{0.1650904887355864,18.008416891098022}, {6.653813272714615,18.008416891098022}, {3.557944670319557,12.898267805576324}}),mapFloor::triangle({{29.424387216567993,96.01919651031494}, {31.530937552452087,96.01919651031494}, {31.530937552452087,91.33017659187317}}),
+							mapFloor::triangle({{31.530937552452087,96.01919651031494}, {34.66924428939819,96.01919651031494}, {34.66924428939819,91.33017659187317}}),mapFloor::triangle({{34.66924428939819,91.33017659187317}, {34.66924428939819,96.01919651031494}, {55.642688274383545,96.01919651031494}}),mapFloor::triangle({{55.642688274383545,87.108314037323}, {55.642688274383545,96.01919651031494}, {70.33275365829468,98.01185727119446}}),
+							mapFloor::triangle({{85.12771725654602,98.94925355911255}, {99.92268085479736,99.88664388656616}, {99.92268085479736,80.53086996078491}}),mapFloor::triangle({{70.33275365829468,84.9461317062378}, {70.33275365829468,98.01185727119446}, {85.12771725654602,98.94925355911255}}),mapFloor::triangle({{29.753458499908447,90.6181812286377}, {29.054591059684753,87.63798475265503}, {22.556772828102112,88.47372531890869}}),
+							mapFloor::triangle({{22.556772828102112,85.04118919372559}, {29.054591059684753,84.51884984970093}, {29.054594039916992,81.41239881515503}}),mapFloor::triangle({{29.054591059684753,87.63798475265503}, {29.054591059684753,84.51884984970093}, {22.556772828102112,85.04118919372559}}),mapFloor::triangle({{29.054594039916992,81.41239881515503}, {33.09163749217987,76.09100341796875}, {24.931316077709198,71.43762111663818}}),
+							mapFloor::triangle({{33.09163749217987,76.09100341796875}, {40.04891514778137,70.71596384048462}, {34.22519266605377,62.14852333068848}}),mapFloor::triangle({{56.72540068626404,67.3406720161438}, {68.95819902420044,58.69644284248352}, {37.93248534202576,52.509552240371704}}),mapFloor::triangle({{40.04891514778137,70.71596384048462}, {56.72540068626404,67.3406720161438}, {36.078840494155884,57.32903480529785}}),
+							mapFloor::triangle({{53.221118450164795,52.85990238189697}, {47.390809655189514,51.84012055397034}, {47.390809655189514,55.22400140762329}}),mapFloor::triangle({{44.35563087463379,53.32358479499817}, {44.281771779060364,54.164618253707886}, {45.29799818992615,54.252493381500244}}),mapFloor::triangle({{41.68132543563843,52.99226641654968}, {40.91855585575104,53.410136699676514}, {42.02336072921753,53.81617546081543}}),
+							mapFloor::triangle({{39.27530646324158,52.392709255218506}, {37.78132498264313,52.10805535316467}, {37.651750445365906,52.94232368469238}}),mapFloor::triangle({{38.15609812736511,52.28326916694641}, {35.905998945236206,59.37529802322388}, {34.13381576538086,57.25926160812378}}),mapFloor::triangle({{34.13381576538086,57.25926160812378}, {32.36163556575775,55.14322519302368}, {35.73026955127716,52.25265622138977}}),
+							mapFloor::triangle({{32.36163556575775,55.14322519302368}, {30.986210703849792,50.77890157699585}, {34.980228543281555,51.04340314865112}}),mapFloor::triangle({{31.80617094039917,45.885565876960754}, {32.46743381023407,45.99136710166931}, {35.006678104400635,46.573275327682495}}),mapFloor::triangle({{64.38435912132263,62.488824129104614}, {61.08102202415466,57.81071186065674}, {68.31786632537842,55.006927251815796}}),
+							mapFloor::triangle({{54.56417798995972,54.919588565826416}, {54.44459915161133,55.98297119140625}, {55.45340180397034,56.133854389190674}}),mapFloor::triangle({{57.650065422058105,55.47063946723938}, {57.53048658370972,56.534022092819214}, {58.539289236068726,56.68490529060364}}),mapFloor::triangle({{60.77273488044739,56.19435906410217}, {60.347479581832886,57.18100070953369}, {62.4065637588501,57.509517669677734}}),
+							mapFloor::triangle({{62.89755702018738,56.52485489845276}, {62.4065637588501,57.509517669677734}, {64.32532668113708,57.787007093429565}}),mapFloor::triangle({{62.89755702018738,56.52485489845276}, {62.46653199195862,56.046563386917114}, {61.593979597091675,55.91084361076355}}),mapFloor::triangle({{70.38880586624146,57.939743995666504}, {68.31786632537842,55.006927251815796}, {74.6977150440216,52.055054903030396}}),
+							mapFloor::triangle({{76.76865458488464,54.9878716468811}, {74.6977150440216,52.055054903030396}, {85.21936535835266,47.68105745315552}}),}),true,{}),
+											mapFloor("Stone", List<mapFloor::triangle>({mapFloor::triangle({{18.6276376247406,100.04528760910034}, {29.169324040412903,95.83765864372253}, {29.169324040412903,100.04528760910034}}),mapFloor::triangle({{46.45344018936157,48.13438355922699}, {53.231436014175415,55.1128625869751}, {46.286171674728394,54.11650538444519}}),mapFloor::triangle({{18.6276376247406,100.04528760910034}, {18.24190318584442,95.83765864372253}, {29.169324040412903,95.83765864372253}}),
+							mapFloor::triangle({{46.45344018936157,48.13438355922699}, {54.817503690719604,49.334290623664856}, {53.231436014175415,55.1128625869751}}),}),false,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "STONE"})})),
+											mapFloor("Grass", List<mapFloor::triangle>({mapFloor::triangle({{44.57570016384125,63.645631074905396}, {34.328269958496094,56.930023431777954}, {31.349855661392212,63.645631074905396}}),mapFloor::triangle({{22.556772828102112,85.04118919372559}, {13.061405718326569,78.597092628479}, {10.60677319765091,85.04118919372559}}),mapFloor::triangle({{22.556772828102112,85.04118919372559}, {10.60677319765091,88.47372531890869}, {22.556772828102112,88.47372531890869}}),
+							mapFloor::triangle({{41.94469153881073,65.972238779068}, {31.349855661392212,63.645631074905396}, {28.87129783630371,65.972238779068}}),mapFloor::triangle({{27.332475781440735,75.37504434585571}, {17.322339117527008,72.15299606323242}, {15.105758607387543,75.37504434585571}}),mapFloor::triangle({{34.11920666694641,69.43235993385315}, {26.392734050750732,67.41076111793518}, {21.49924486875534,69.43235993385315}}),
+							mapFloor::triangle({{47.737306356430054,54.43822741508484}, {34.328269958496094,56.930023431777954}, {47.737306356430054,56.930023431777954}}),mapFloor::triangle({{29.68539297580719,72.15299606323242}, {21.49924486875534,69.43235993385315}, {17.322339117527008,72.15299606323242}}),mapFloor::triangle({{39.31368291378021,67.41076111793518}, {28.87129783630371,65.972238779068}, {26.392734050750732,67.41076111793518}}),
+							mapFloor::triangle({{25.162380933761597,78.597092628479}, {15.105758607387543,75.37504434585571}, {13.061405718326569,78.597092628479}}),mapFloor::triangle({{22.556772828102112,88.47372531890869}, {10.60677394270897,97.02993631362915}, {22.556772828102112,97.02993631362915}}),mapFloor::triangle({{68.62673759460449,85.22711396217346}, {100.023353099823,99.41045641899109}, {100.023353099823,83.17570090293884}}),
+							mapFloor::triangle({{25.22178888320923,88.06313872337341}, {68.62673759460449,98.41127395629883}, {68.62673759460449,85.22711396217346}}),mapFloor::triangle({{100.023353099823,83.17570090293884}, {68.62673759460449,78.41885089874268}, {68.62673759460449,85.22711396217346}}),mapFloor::triangle({{31.31091296672821,73.34522008895874}, {52.496516704559326,76.21666193008423}, {54.43696975708008,73.34522008895874}}),
+							mapFloor::triangle({{25.83216428756714,84.8309874534607}, {48.34784269332886,88.06313872337341}, {48.95821809768677,84.8309874534607}}),mapFloor::triangle({{42.86315441131592,67.55860447883606}, {62.6322865486145,69.41741108894348}, {65.98920822143555,67.55860447883606}}),mapFloor::triangle({{46.220073103904724,64.81172442436218}, {65.98920822143555,67.55860447883606}, {69.34612989425659,64.81172442436218}}),
+							mapFloor::triangle({{27.61283814907074,79.08810377120972}, {48.95821809768677,84.8309874534607}, {50.73889493942261,79.08810377120972}}),mapFloor::triangle({{29.370462894439697,76.21666193008423}, {50.73889493942261,79.08810377120972}, {52.496516704559326,76.21666193008423}}),mapFloor::triangle({{35.02824306488037,71.03180289268494}, {54.43696975708008,73.34522008895874}, {58.154296875,71.03180289268494}}),
+							mapFloor::triangle({{39.50623571872711,69.41741108894348}, {58.154296875,71.03180289268494}, {62.6322865486145,69.41741108894348}}),mapFloor::triangle({{63.281917572021484,58.52283239364624}, {55.53277134895325,67.51523017883301}, {63.281917572021484,68.16364526748657}}),mapFloor::triangle({{46.220073103904724,64.81172442436218}, {49.88853931427002,66.96761846542358}, {49.88853931427002,57.326799631118774}}),
+							mapFloor::triangle({{83.56088399887085,51.322442293167114}, {87.14271187782288,58.924371004104614}, {87.14271187782288,49.28355515003204}}),mapFloor::triangle({{52.26941704750061,57.58877992630005}, {49.88853931427002,66.96761846542358}, {52.26941704750061,67.22959280014038}}),mapFloor::triangle({{54.42727208137512,57.74685740470886}, {52.26941704750061,67.22959280014038}, {54.42727208137512,67.38767623901367}}),
+							mapFloor::triangle({{75.95639228820801,53.61848473548889}, {83.56088399887085,60.963261127471924}, {83.56088399887085,51.322442293167114}}),mapFloor::triangle({{64.49455618858337,58.52283239364624}, {75.95639228820801,63.2593035697937}, {75.95639228820801,53.61848473548889}}),mapFloor::triangle({{63.281917572021484,58.52283239364624}, {64.49455618858337,68.16364526748657}, {64.49455618858337,58.52283239364624}}),
+							mapFloor::triangle({{55.53277134895325,57.874417304992676}, {54.42727208137512,67.38767623901367}, {55.53277134895325,67.51523017883301}}),mapFloor::triangle({{44.57570016384125,63.645631074905396}, {47.737306356430054,56.930023431777954}, {34.328269958496094,56.930023431777954}}),mapFloor::triangle({{22.556772828102112,85.04118919372559}, {25.162380933761597,78.597092628479}, {13.061405718326569,78.597092628479}}),
+							mapFloor::triangle({{22.556772828102112,85.04118919372559}, {10.60677319765091,85.04118919372559}, {10.60677319765091,88.47372531890869}}),mapFloor::triangle({{41.94469153881073,65.972238779068}, {44.57570016384125,63.645631074905396}, {31.349855661392212,63.645631074905396}}),mapFloor::triangle({{27.332475781440735,75.37504434585571}, {29.68539297580719,72.15299606323242}, {17.322339117527008,72.15299606323242}}),
+							mapFloor::triangle({{34.11920666694641,69.43235993385315}, {39.31368291378021,67.41076111793518}, {26.392734050750732,67.41076111793518}}),mapFloor::triangle({{47.737306356430054,54.43822741508484}, {34.328269958496094,51.92437767982483}, {34.328269958496094,56.930023431777954}}),mapFloor::triangle({{29.68539297580719,72.15299606323242}, {34.11920666694641,69.43235993385315}, {21.49924486875534,69.43235993385315}}),
+							mapFloor::triangle({{39.31368291378021,67.41076111793518}, {41.94469153881073,65.972238779068}, {28.87129783630371,65.972238779068}}),mapFloor::triangle({{25.162380933761597,78.597092628479}, {27.332475781440735,75.37504434585571}, {15.105758607387543,75.37504434585571}}),mapFloor::triangle({{22.556772828102112,88.47372531890869}, {10.60677319765091,88.47372531890869}, {10.60677394270897,97.02993631362915}}),
+							mapFloor::triangle({{68.62673759460449,85.22711396217346}, {68.62673759460449,98.41127395629883}, {100.023353099823,99.41045641899109}}),mapFloor::triangle({{25.22178888320923,88.06313872337341}, {25.22178888320923,97.02993631362915}, {68.62673759460449,98.41127395629883}}),mapFloor::triangle({{100.023353099823,83.17570090293884}, {100.023353099823,76.36743783950806}, {68.62673759460449,78.41885089874268}}),
+							mapFloor::triangle({{31.31091296672821,73.34522008895874}, {29.370462894439697,76.21666193008423}, {52.496516704559326,76.21666193008423}}),mapFloor::triangle({{25.83216428756714,84.8309874534607}, {25.22178888320923,88.06313872337341}, {48.34784269332886,88.06313872337341}}),mapFloor::triangle({{42.86315441131592,67.55860447883606}, {39.50623571872711,69.41741108894348}, {62.6322865486145,69.41741108894348}}),
+							mapFloor::triangle({{46.220073103904724,64.81172442436218}, {42.86315441131592,67.55860447883606}, {65.98920822143555,67.55860447883606}}),mapFloor::triangle({{27.61283814907074,79.08810377120972}, {25.83216428756714,84.8309874534607}, {48.95821809768677,84.8309874534607}}),mapFloor::triangle({{29.370462894439697,76.21666193008423}, {27.61283814907074,79.08810377120972}, {50.73889493942261,79.08810377120972}}),
+							mapFloor::triangle({{35.02824306488037,71.03180289268494}, {31.31091296672821,73.34522008895874}, {54.43696975708008,73.34522008895874}}),mapFloor::triangle({{39.50623571872711,69.41741108894348}, {35.02824306488037,71.03180289268494}, {58.154296875,71.03180289268494}}),mapFloor::triangle({{63.281917572021484,58.52283239364624}, {55.53277134895325,57.874417304992676}, {55.53277134895325,67.51523017883301}}),
+							mapFloor::triangle({{46.220073103904724,64.81172442436218}, {46.220073103904724,74.45254325866699}, {49.88853931427002,66.96761846542358}}),mapFloor::triangle({{83.56088399887085,51.322442293167114}, {83.56088399887085,60.963261127471924}, {87.14271187782288,58.924371004104614}}),mapFloor::triangle({{52.26941704750061,57.58877992630005}, {49.88853931427002,57.326799631118774}, {49.88853931427002,66.96761846542358}}),
+							mapFloor::triangle({{54.42727208137512,57.74685740470886}, {52.26941704750061,57.58877992630005}, {52.26941704750061,67.22959280014038}}),mapFloor::triangle({{75.95639228820801,53.61848473548889}, {75.95639228820801,63.2593035697937}, {83.56088399887085,60.963261127471924}}),mapFloor::triangle({{64.49455618858337,58.52283239364624}, {64.49455618858337,68.16364526748657}, {75.95639228820801,63.2593035697937}}),
+							mapFloor::triangle({{63.281917572021484,58.52283239364624}, {63.281917572021484,68.16364526748657}, {64.49455618858337,68.16364526748657}}),mapFloor::triangle({{55.53277134895325,57.874417304992676}, {54.42727208137512,57.74685740470886}, {54.42727208137512,67.38767623901367}}),}),false,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "GRASS"})})),
+											mapFloor("Beach", List<mapFloor::triangle>({mapFloor::triangle({{18.63568276166916,72.15299606323242}, {3.736230358481407,69.43235993385315}, {21.388080716133118,69.43235993385315}}),mapFloor::triangle({{14.210417866706848,97.02993631362915}, {0.5134537816047668,88.47372531890869}, {14.210417866706848,88.47372531890869}}),mapFloor::triangle({{15.827913582324982,78.597092628479}, {1.8445776775479317,75.37504434585571}, {17.17505306005478,75.37504434585571}}),
+							mapFloor::triangle({{24.612677097320557,67.41076111793518}, {5.917414277791977,65.972238779068}, {26.24594271183014,65.972238779068}}),mapFloor::triangle({{26.24594271183014,65.972238779068}, {6.6507503390312195,63.645631074905396}, {27.879205346107483,63.645631074905396}}),mapFloor::triangle({{17.17505306005478,75.37504434585571}, {2.5004014372825623,72.15299606323242}, {18.63568276166916,72.15299606323242}}),
+							mapFloor::triangle({{21.388080716133118,69.43235993385315}, {5.184076726436615,67.41076111793518}, {24.612677097320557,67.41076111793518}}),mapFloor::triangle({{27.879205346107483,63.645631074905396}, {7.53197968006134,56.930023431777954}, {29.841849207878113,56.930023431777954}}),mapFloor::triangle({{14.210417866706848,85.04118919372559}, {1.2397108599543571,78.597092628479}, {15.827913582324982,78.597092628479}}),
+							mapFloor::triangle({{29.841849207878113,56.930023431777954}, {7.53197968006134,51.92437767982483}, {29.841849207878113,51.92437767982483}}),mapFloor::triangle({{14.210417866706848,88.47372531890869}, {0.5134537816047668,85.04118919372559}, {14.210417866706848,85.04118919372559}}),mapFloor::triangle({{7.53197968006134,51.92437767982483}, {-1.1501282453536987,-0.9609699249267578}, {29.841849207878113,51.92437767982483}}),
+							mapFloor::triangle({{18.63568276166916,72.15299606323242}, {2.5004014372825623,72.15299606323242}, {3.736230358481407,69.43235993385315}}),mapFloor::triangle({{14.210417866706848,97.02993631362915}, {0.513453409075737,97.02993631362915}, {0.5134537816047668,88.47372531890869}}),mapFloor::triangle({{15.827913582324982,78.597092628479}, {1.2397108599543571,78.597092628479}, {1.8445776775479317,75.37504434585571}}),
+							mapFloor::triangle({{24.612677097320557,67.41076111793518}, {5.184076726436615,67.41076111793518}, {5.917414277791977,65.972238779068}}),mapFloor::triangle({{26.24594271183014,65.972238779068}, {5.917414277791977,65.972238779068}, {6.6507503390312195,63.645631074905396}}),mapFloor::triangle({{17.17505306005478,75.37504434585571}, {1.8445776775479317,75.37504434585571}, {2.5004014372825623,72.15299606323242}}),
+							mapFloor::triangle({{21.388080716133118,69.43235993385315}, {3.736230358481407,69.43235993385315}, {5.184076726436615,67.41076111793518}}),mapFloor::triangle({{27.879205346107483,63.645631074905396}, {6.6507503390312195,63.645631074905396}, {7.53197968006134,56.930023431777954}}),mapFloor::triangle({{14.210417866706848,85.04118919372559}, {0.5134537816047668,85.04118919372559}, {1.2397108599543571,78.597092628479}}),
+							mapFloor::triangle({{29.841849207878113,56.930023431777954}, {7.53197968006134,56.930023431777954}, {7.53197968006134,51.92437767982483}}),mapFloor::triangle({{14.210417866706848,88.47372531890869}, {0.5134537816047668,88.47372531890869}, {0.5134537816047668,85.04118919372559}}),mapFloor::triangle({{7.53197968006134,51.92437767982483}, {-23.45999777317047,-0.9609699249267578}, {-1.1501282453536987,-0.9609699249267578}}),}),false,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "BEACH"})})),
+											mapFloor("Gravel", List<mapFloor::triangle>({mapFloor::triangle({{25.22178888320923,88.06313872337341}, {22.556772828102112,85.04118919372559}, {22.556772828102112,88.47372531890869}}),mapFloor::triangle({{55.53277134895325,55.9597909450531}, {54.714274406433105,54.88609075546265}, {54.42727208137512,55.70458769798279}}),mapFloor::triangle({{54.42727208137512,57.74685740470886}, {55.53277134895325,55.9597909450531}, {54.42727208137512,55.70458769798279}}),
+							mapFloor::triangle({{52.26941704750061,57.58877992630005}, {54.42727208137512,55.70458769798279}, {52.26941704750061,55.288660526275635}}),mapFloor::triangle({{47.737306356430054,56.930023431777954}, {49.88853931427002,54.83500361442566}, {47.737306356430054,54.43822741508484}}),mapFloor::triangle({{49.88853931427002,57.326799631118774}, {52.26941704750061,55.288660526275635}, {49.88853931427002,54.83500361442566}}),
+							mapFloor::triangle({{46.220073103904724,64.81172442436218}, {47.737306356430054,56.930023431777954}, {44.57570016384125,63.645631074905396}}),mapFloor::triangle({{31.31091296672821,73.34522008895874}, {34.11920666694641,69.43235993385315}, {29.68539297580719,72.15299606323242}}),mapFloor::triangle({{42.86315441131592,67.55860447883606}, {44.57570016384125,63.645631074905396}, {41.94469153881073,65.972238779068}}),
+							mapFloor::triangle({{34.11920666694641,69.43235993385315}, {39.50623571872711,69.41741108894348}, {39.31368291378021,67.41076111793518}}),mapFloor::triangle({{25.83216428756714,84.8309874534607}, {25.162380933761597,78.597092628479}, {22.556772828102112,85.04118919372559}}),mapFloor::triangle({{27.61283814907074,79.08810377120972}, {27.332475781440735,75.37504434585571}, {25.162380933761597,78.597092628479}}),
+							mapFloor::triangle({{29.370462894439697,76.21666193008423}, {29.68539297580719,72.15299606323242}, {27.332475781440735,75.37504434585571}}),mapFloor::triangle({{39.31368291378021,67.41076111793518}, {42.86315441131592,67.55860447883606}, {41.94469153881073,65.972238779068}}),mapFloor::triangle({{22.556772828102112,88.47372531890869}, {25.22178888320923,97.02993631362915}, {25.22178888320923,88.06313872337341}}),
+							mapFloor::triangle({{55.53277134895325,57.874417304992676}, {63.281917572021484,56.608206033706665}, {55.53277134895325,55.9597909450531}}),mapFloor::triangle({{55.81977367401123,55.14129400253296}, {63.281917572021484,56.608206033706665}, {63.388216495513916,55.68341016769409}}),mapFloor::triangle({{63.281917572021484,58.52283239364624}, {64.49455618858337,56.608206033706665}, {63.281917572021484,56.608206033706665}}),
+							mapFloor::triangle({{64.49455618858337,56.608206033706665}, {75.95639228820801,53.61848473548889}, {75.95639228820801,51.703858375549316}}),mapFloor::triangle({{75.95639228820801,51.703858375549316}, {83.56088399887085,51.322442293167114}, {83.56088399887085,49.4078129529953}}),mapFloor::triangle({{83.56088399887085,49.4078129529953}, {87.14271187782288,49.28355515003204}, {85.54466366767883,48.08529019355774}}),
+							mapFloor::triangle({{25.22178888320923,88.06313872337341}, {25.83216428756714,84.8309874534607}, {22.556772828102112,85.04118919372559}}),mapFloor::triangle({{55.53277134895325,55.9597909450531}, {55.81977367401123,55.14129400253296}, {54.714274406433105,54.88609075546265}}),mapFloor::triangle({{54.42727208137512,57.74685740470886}, {55.53277134895325,57.874417304992676}, {55.53277134895325,55.9597909450531}}),
+							mapFloor::triangle({{52.26941704750061,57.58877992630005}, {54.42727208137512,57.74685740470886}, {54.42727208137512,55.70458769798279}}),mapFloor::triangle({{47.737306356430054,56.930023431777954}, {49.88853931427002,57.326799631118774}, {49.88853931427002,54.83500361442566}}),mapFloor::triangle({{49.88853931427002,57.326799631118774}, {52.26941704750061,57.58877992630005}, {52.26941704750061,55.288660526275635}}),
+							mapFloor::triangle({{46.220073103904724,64.81172442436218}, {49.88853931427002,57.326799631118774}, {47.737306356430054,56.930023431777954}}),mapFloor::triangle({{31.31091296672821,73.34522008895874}, {35.02824306488037,71.03180289268494}, {34.11920666694641,69.43235993385315}}),mapFloor::triangle({{42.86315441131592,67.55860447883606}, {46.220073103904724,64.81172442436218}, {44.57570016384125,63.645631074905396}}),
+							mapFloor::triangle({{34.11920666694641,69.43235993385315}, {35.02824306488037,71.03180289268494}, {39.50623571872711,69.41741108894348}}),mapFloor::triangle({{25.83216428756714,84.8309874534607}, {27.61283814907074,79.08810377120972}, {25.162380933761597,78.597092628479}}),mapFloor::triangle({{27.61283814907074,79.08810377120972}, {29.370462894439697,76.21666193008423}, {27.332475781440735,75.37504434585571}}),
+							mapFloor::triangle({{29.370462894439697,76.21666193008423}, {31.31091296672821,73.34522008895874}, {29.68539297580719,72.15299606323242}}),mapFloor::triangle({{39.31368291378021,67.41076111793518}, {39.50623571872711,69.41741108894348}, {42.86315441131592,67.55860447883606}}),mapFloor::triangle({{22.556772828102112,88.47372531890869}, {22.556772828102112,97.02993631362915}, {25.22178888320923,97.02993631362915}}),
+							mapFloor::triangle({{55.53277134895325,57.874417304992676}, {63.281917572021484,58.52283239364624}, {63.281917572021484,56.608206033706665}}),mapFloor::triangle({{55.81977367401123,55.14129400253296}, {55.53277134895325,55.9597909450531}, {63.281917572021484,56.608206033706665}}),mapFloor::triangle({{63.281917572021484,58.52283239364624}, {64.49455618858337,58.52283239364624}, {64.49455618858337,56.608206033706665}}),
+							mapFloor::triangle({{64.49455618858337,56.608206033706665}, {64.49455618858337,58.52283239364624}, {75.95639228820801,53.61848473548889}}),mapFloor::triangle({{75.95639228820801,51.703858375549316}, {75.95639228820801,53.61848473548889}, {83.56088399887085,51.322442293167114}}),mapFloor::triangle({{83.56088399887085,49.4078129529953}, {83.56088399887085,51.322442293167114}, {87.14271187782288,49.28355515003204}}),}),false,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "GRAVEL"})})),
+											}), {}, { 5000,5000 }, { Map<string, string>({
+												pair<string,string>({"song1",to_string(WINDOUTSIDE1_WAV) + " " + "AmbienceVolume/2"}),
+												pair<string,string>({"song2",to_string(OCEAN_LEFT_PAN_WAV) + " " + "AmbienceVolume/2"}),
+												pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
+												}) });
+		maps["ChapelEntryHall"] = mapInstance("ChapelEntryHall", EMPTYMAP, { 50,70 }, List<mapObject>({
+			mapObject("AT_ChapelRight", true, false, false, "","0",0,0,"1","1.0","CENTRE",{75, 52}, false, List<mapFloor::triangle>({mapFloor::triangle({{71.70406579971313,54.26681637763977}, {75.16726851463318,56.846749782562256}, {73.77936244010925,57.73525834083557}}),mapFloor::triangle({{71.70406579971313,54.26681637763977}, {73.90316724777222,53.41002345085144}, {75.16726851463318,56.846749782562256}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Enter Chapel Right Wing"}),
+												pair<string, string>({"copy","AT_ChapelRight"}),
+												pair<string, string>({"areaTransition","ChapelRight1"}),
+												pair<string, string>({"direction","STAND_RIGHT"}),
+												pair<string, string>({"playerPosX","3"}),
+												pair<string, string>({"playerPosY","42"}),
+												pair<string, string>({"audio","CHAPELDOOR"}),
+												pair<string, string>({"x","0"}),
+												pair<string, string>({"y","0"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"}),})),
+			mapObject("ChapelEntryAsObject", false, true, false, imageLookup.getSequenceAsString("ChapelEntryAsObject","STAND_FRONT"),"0",0,imageLookup.layerDefaults["Map"] + 1,"1.0","1.5","CENTRE",{50, 50}, false, {}, {}),
+			mapObject::getOnetimeTrigger("OudinIntro",List<mapFloor::triangle>({mapFloor::triangle({{57.646697759628296,83.61799120903015}, {42.36768186092377,77.54095792770386}, {42.36768186092377,83.61799120903015}}),mapFloor::triangle({{57.646697759628296,83.61799120903015}, {57.646697759628296,77.54092216491699}, {42.36768186092377,77.54095792770386}}),})),
+												mapObject("OUDIN", true, true, false, imageLookup.getSequenceAsString("OUDIN","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{49.5, 69}, false, List<mapFloor::triangle>({mapFloor::triangle({{51.356154680252075,72.34838604927063}, {47.68877923488617,68.95595192909241}, {47.68877923488617,72.34838604927063}}),mapFloor::triangle({{51.356154680252075,72.34838604927063}, {51.356154680252075,68.9559280872345}, {47.68877923488617,68.95595192909241}}),}), Map<string, string>({
+																			pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Talk to OUDIN"}),
+																			pair<string, string>({"copy","OUDIN"}),
+																			pair<string, string>({"cutscene","Oudin1"}),
+																			pair<string, string>({"x","5"}),
+																			pair<string, string>({"y","0"}),
+																			pair<string, string>({"h","50"}),
+																			pair<string, string>({"w","50"}),
+																			pair<string, string>("colour", "WHITE"),
+																			pair<string, string>("uniqueID", mapPopupTextID),
+																			pair<string, string>("anchorStyle", "TOPLEFT"),
+																			pair<string, string>("shadowColour", "BLACK"),
+																			pair<string, string>("don'tLoadIf", "OudinFlag1"),
+																			pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																			pair<string, string>({"format","LightText_20"})})),
+													mapObject("Shadow OUDIN", false, true, false, imageLookup.getSequenceAsString("Shadow OUDIN","STAND_FRONT"),"1",500,imageLookup.layerDefaults["PLAYER"] - 1,"0.5","1.0","CENTRE",{49.5, 69}, false, {},Map<string, string>({
+														pair<string, string>("don'tLoadIf", "OudinFlag1")
+													})),
+												mapObject("BrazierFire", false, true, false, imageLookup.getSequenceAsString("BrazierFire","STAND_FRONT"),"1",20,imageLookup.layerDefaults["PLAYER"] + 2,"1.0","1.5","CENTRE",{33.4, 75.3}, false, {}, {}),
+												mapObject("BrazierFire2", false, true, false, imageLookup.getSequenceAsString("BrazierFire","STAND_FRONT"),"1",20,imageLookup.layerDefaults["PLAYER"] + 2,"1.0","1.5","CENTRE",{37.2, 75.3}, false, {}, {}),
+												mapObject("BrazierFire3", false, true, false, imageLookup.getSequenceAsString("BrazierFire","STAND_FRONT"),"1",20,imageLookup.layerDefaults["PLAYER"] + 2,"1.0","1.5","CENTRE",{41, 75.3}, false, {}, {}),
+												mapObject("BrazierFire4", false, true, false, imageLookup.getSequenceAsString("BrazierFire","STAND_FRONT"),"1",20,imageLookup.layerDefaults["PLAYER"] + 2,"1.0","1.5","CENTRE",{59.2, 75.3}, false, {}, {}),
+												mapObject("BrazierFire5", false, true, false, imageLookup.getSequenceAsString("BrazierFire","STAND_FRONT"),"1",20,imageLookup.layerDefaults["PLAYER"] + 2,"1.0","1.5","CENTRE",{63.1, 75.3}, false, {}, {}),
+												mapObject("BrazierFire6", false, true, false, imageLookup.getSequenceAsString("BrazierFire","STAND_FRONT"),"1",20,imageLookup.layerDefaults["PLAYER"] + 2,"1.0","1.5","CENTRE",{66.7, 75.3}, false, {}, {}),
+												mapObject("ChapelEntryTopLayer1", false, true, false, imageLookup.getSequenceAsString("ChapelEntryTopLayer1","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"] + 1,"1.0","1.5","CENTRE",{50, 50}, false, {}, {}),
+												mapObject("ChapelEntryCandles", false, true, false, imageLookup.getSequenceAsString("ChapelEntryCandles","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"] + 2,"1.0","1.5","CENTRE",{50, 50}, false, {}, {}),
+												mapObject("FilmGrain1", false, true, true, imageLookup.getSequenceAsString("FilmGrain1","STAND_FRONT"),"1",1,imageLookup.layerDefaults["WEATHER"],"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+												mapObject("AT_Door", true, false, false, "","0",0,0,"1","1.0","CENTRE",{50, 83}, false, List<mapFloor::triangle>({mapFloor::triangle({{53.95346283912659,84.48187708854675}, {46.037787199020386,83.33396911621094}, {46.037787199020386,84.48187708854675}}),mapFloor::triangle({{53.95346283912659,84.48187708854675}, {53.95346283912659,83.33396911621094}, {46.037787199020386,83.33396911621094}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Leave Chapel"}),
+												pair<string, string>({"copy","AT_Door"}),
+												pair<string, string>({"areaTransition","EstateOutside1"}),
+												pair<string, string>({"direction","STAND_FRONT"}),
+												pair<string, string>({"playerPosX","50"}),
+												pair<string, string>({"playerPosY","55"}),
+												pair<string, string>({"audio","CHAPELMULTISTEP"}),
+												pair<string, string>({"x","0"}),
+												pair<string, string>({"y","0"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"}),})),
+												}), List<mapFloor>({
+										mapFloor("ChapelFloor", List<mapFloor::triangle>({mapFloor::triangle({{49.05902445316315,82.12100863456726}, {45.61507701873779,84.49022173881531}, {49.05902445316315,84.49022173881531}}),mapFloor::triangle({{43.81645321846008,81.9620132446289}, {45.61507701873779,84.49022173881531}, {45.61507701873779,81.56251907348633}}),mapFloor::triangle({{49.05902445316315,67.48740673065186}, {45.61507701873779,66.72072410583496}, {45.61507701873779,67.48740673065186}}),
+							mapFloor::triangle({{45.61507701873779,81.56251907348633}, {49.05902445316315,78.22794914245605}, {45.61507701873779,78.22794914245605}}),mapFloor::triangle({{49.05902445316315,78.22794914245605}, {45.61507701873779,76.37494802474976}, {45.61507701873779,78.22794914245605}}),mapFloor::triangle({{32.23850727081299,66.72072410583496}, {31.368547677993774,75.08246898651123}, {32.23850727081299,75.08246898651123}}),
+							mapFloor::triangle({{45.61507701873779,66.72072410583496}, {44.45151090621948,67.45651960372925}, {45.61507701873779,67.48740673065186}}),mapFloor::triangle({{37.002912163734436,74.11537170410156}, {32.23850727081299,66.72072410583496}, {32.23850727081299,75.08246898651123}}),mapFloor::triangle({{37.002912163734436,66.72072410583496}, {32.23850727081299,66.29634499549866}, {32.23850727081299,66.72072410583496}}),
+							mapFloor::triangle({{28.287193179130554,54.26681637763977}, {24.82398748397827,56.846749782562256}, {26.21188759803772,57.73525834083557}}),mapFloor::triangle({{32.23850727081299,66.29634499549866}, {36.76255941390991,64.32026028633118}, {31.534308195114136,64.55913186073303}}),mapFloor::triangle({{35.0428581237793,60.71818470954895}, {31.534308195114136,64.55913186073303}, {36.76255941390991,64.32026028633118}}),
+							mapFloor::triangle({{28.287193179130554,54.26681637763977}, {28.26991081237793,59.6733033657074}, {32.02490508556366,56.98847770690918}}),mapFloor::triangle({{32.02490508556366,56.98847770690918}, {29.885074496269226,61.77237033843994}, {35.0428581237793,60.71818470954895}}),mapFloor::triangle({{45.167478919029236,62.88251876831055}, {48.042574524879456,57.87727236747742}, {44.5986270904541,58.00451040267944}}),
+							mapFloor::triangle({{45.167478919029236,62.88251876831055}, {42.964327335357666,58.909064531326294}, {43.79924535751343,63.28083276748657}}),mapFloor::triangle({{45.61507701873779,66.72072410583496}, {43.79924535751343,63.28083276748657}, {44.45619583129883,66.72072410583496}}),mapFloor::triangle({{45.61507701873779,66.72072410583496}, {48.61142635345459,62.82649040222168}, {45.167478919029236,62.88251876831055}}),
+							mapFloor::triangle({{49.05902445316315,84.49022173881531}, {49.995625019073486,82.12100863456726}, {49.05902445316315,82.12100863456726}}),mapFloor::triangle({{48.61142635345459,62.82649040222168}, {49.995625019073486,57.87012577056885}, {48.042574524879456,57.87727236747742}}),mapFloor::triangle({{49.05902445316315,78.22794914245605}, {49.995625019073486,75.5698561668396}, {49.05902445316315,75.5698561668396}}),
+							mapFloor::triangle({{49.05902445316315,82.12100863456726}, {49.995625019073486,78.22794914245605}, {49.05902445316315,78.22794914245605}}),mapFloor::triangle({{49.05902445316315,75.5698561668396}, {49.995625019073486,67.48740673065186}, {49.05902445316315,67.48740673065186}}),mapFloor::triangle({{49.05902445316315,66.72072410583496}, {49.995625019073486,62.82649040222168}, {48.61142635345459,62.82649040222168}}),
+							mapFloor::triangle({{50.93224048614502,82.12100863456726}, {54.376184940338135,84.49022173881531}, {50.93224048614502,84.49022173881531}}),mapFloor::triangle({{56.17479681968689,81.9620132446289}, {54.376184940338135,84.49022173881531}, {54.376184940338135,81.56251907348633}}),mapFloor::triangle({{50.93224048614502,67.48740673065186}, {54.376184940338135,66.72072410583496}, {54.376184940338135,67.48740673065186}}),
+							mapFloor::triangle({{54.376184940338135,81.56251907348633}, {50.93224048614502,78.22794914245605}, {54.376184940338135,78.22794914245605}}),mapFloor::triangle({{50.93224048614502,78.22794914245605}, {54.376184940338135,76.37494802474976}, {54.376184940338135,78.22794914245605}}),mapFloor::triangle({{67.75274872779846,66.72072410583496}, {68.62270832061768,67.48740673065186}, {67.75274872779846,67.48740673065186}}),
+							mapFloor::triangle({{62.988340854644775,66.72072410583496}, {67.75274872779846,67.48740673065186}, {62.988340854644775,67.48740673065186}}),mapFloor::triangle({{62.988340854644775,66.72072410583496}, {67.75274872779846,66.29634499549866}, {67.75274872779846,66.72072410583496}}),mapFloor::triangle({{71.70406579971313,54.26681637763977}, {75.16726851463318,56.846749782562256}, {73.77936244010925,57.73525834083557}}),
+							mapFloor::triangle({{67.75274872779846,66.29634499549866}, {63.22869658470154,64.32026028633118}, {68.45694184303284,64.55913186073303}}),mapFloor::triangle({{64.94839191436768,60.71818470954895}, {68.45694184303284,64.55913186073303}, {63.22869658470154,64.32026028633118}}),mapFloor::triangle({{71.70406579971313,54.26681637763977}, {71.72134518623352,59.6733033657074}, {67.96635389328003,56.98847770690918}}),
+							mapFloor::triangle({{67.96635389328003,56.98847770690918}, {70.10618448257446,61.77237033843994}, {64.94839191436768,60.71818470954895}}),mapFloor::triangle({{54.82378005981445,62.88251876831055}, {51.948678493499756,57.87727236747742}, {55.39262294769287,58.00451040267944}}),mapFloor::triangle({{54.82378005981445,62.88251876831055}, {57.02692270278931,58.909064531326294}, {56.19201064109802,63.28083276748657}}),
+							mapFloor::triangle({{54.376184940338135,66.72072410583496}, {56.19201064109802,63.28083276748657}, {55.53506016731262,66.72072410583496}}),mapFloor::triangle({{54.376184940338135,66.72072410583496}, {51.37982964515686,62.82649040222168}, {54.82378005981445,62.88251876831055}}),mapFloor::triangle({{50.93224048614502,84.49022173881531}, {49.995625019073486,82.12100863456726}, {50.93224048614502,82.12100863456726}}),
+							mapFloor::triangle({{51.37982964515686,62.82649040222168}, {49.995625019073486,57.87012577056885}, {51.948678493499756,57.87727236747742}}),mapFloor::triangle({{50.93224048614502,78.22794914245605}, {49.995625019073486,75.5698561668396}, {50.93224048614502,75.5698561668396}}),mapFloor::triangle({{50.93224048614502,82.12100863456726}, {49.995625019073486,78.22794914245605}, {50.93224048614502,78.22794914245605}}),
+							mapFloor::triangle({{50.93224048614502,75.5698561668396}, {49.995625019073486,67.48740673065186}, {50.93224048614502,67.48740673065186}}),mapFloor::triangle({{50.93224048614502,66.72072410583496}, {49.995625019073486,62.82649040222168}, {51.37982964515686,62.82649040222168}}),mapFloor::triangle({{38.16927373409271,67.45674014091492}, {43.17518472671509,66.72072410583496}, {38.16927373409271,66.72072410583496}}),
+							mapFloor::triangle({{43.17518472671509,75.08246898651123}, {43.745025992393494,67.45651960372925}, {43.17518472671509,67.46883392333984}}),mapFloor::triangle({{38.16927373409271,74.11537170410156}, {43.17518472671509,67.46883392333984}, {38.16927373409271,67.45674014091492}}),mapFloor::triangle({{38.16927373409271,67.45674014091492}, {37.002912163734436,74.11537170410156}, {38.16927373409271,74.11537170410156}}),
+							mapFloor::triangle({{44.39351260662079,75.5698561668396}, {43.745025992393494,67.45651960372925}, {43.745025992393494,75.5698561668396}}),mapFloor::triangle({{61.84046268463135,67.48740673065186}, {62.988340854644775,74.15121793746948}, {61.84046268463135,74.15121793746948}}),mapFloor::triangle({{61.84046268463135,74.15121793746948}, {56.80861473083496,67.48740673065186}, {61.84046268463135,67.48740673065186}}),
+							mapFloor::triangle({{61.84046268463135,67.48740673065186}, {56.80861473083496,66.72072410583496}, {61.84046268463135,66.72072410583496}}),mapFloor::triangle({{50.93224048614502,67.48740673065186}, {49.995625019073486,66.72072410583496}, {50.93224048614502,66.72072410583496}}),mapFloor::triangle({{62.988340854644775,74.15121793746948}, {67.75274872779846,67.48740673065186}, {67.75274872779846,75.08246898651123}}),
+							mapFloor::triangle({{55.59239983558655,67.48740673065186}, {56.80861473083496,75.08246898651123}, {55.59239983558655,75.5698561668396}}),mapFloor::triangle({{67.75274872779846,67.48740673065186}, {68.62270832061768,75.08246898651123}, {67.75274872779846,75.08246898651123}}),mapFloor::triangle({{50.93224048614502,75.5698561668396}, {54.376184940338135,67.48740673065186}, {54.376184940338135,76.37494802474976}}),
+							mapFloor::triangle({{49.05902445316315,67.48740673065186}, {49.995625019073486,66.72072410583496}, {49.05902445316315,66.72072410583496}}),mapFloor::triangle({{45.61507701873779,67.48740673065186}, {44.39351260662079,75.5698561668396}, {45.61507701873779,76.37494802474976}}),mapFloor::triangle({{49.05902445316315,75.5698561668396}, {45.61507701873779,67.48740673065186}, {45.61507701873779,76.37494802474976}}),
+							mapFloor::triangle({{54.376184940338135,67.48740673065186}, {55.59239983558655,75.5698561668396}, {54.376184940338135,76.37494802474976}}),mapFloor::triangle({{54.376184940338135,67.48740673065186}, {55.53506016731262,66.72072410583496}, {55.59239983558655,67.48740673065186}}),mapFloor::triangle({{43.17518472671509,75.08246898651123}, {38.16927373409271,74.11537170410156}, {39.64410126209259,75.23702383041382}}),
+							mapFloor::triangle({{37.002912163734436,74.11537170410156}, {32.23850727081299,75.08246898651123}, {35.52808463573456,75.01250505447388}}),mapFloor::triangle({{56.80861473083496,75.08246898651123}, {61.84046268463135,74.15121793746948}, {60.0796103477478,75.0478982925415}}),mapFloor::triangle({{67.75274872779846,75.08246898651123}, {64.74919319152832,75.0478982925415}, {62.988340854644775,74.15121793746948}}),
+							mapFloor::triangle({{49.05902445316315,82.12100863456726}, {45.61507701873779,81.56251907348633}, {45.61507701873779,84.49022173881531}}),mapFloor::triangle({{43.81645321846008,81.9620132446289}, {43.81645321846008,84.49022173881531}, {45.61507701873779,84.49022173881531}}),mapFloor::triangle({{49.05902445316315,67.48740673065186}, {49.05902445316315,66.72072410583496}, {45.61507701873779,66.72072410583496}}),
+							mapFloor::triangle({{45.61507701873779,81.56251907348633}, {49.05902445316315,82.12100863456726}, {49.05902445316315,78.22794914245605}}),mapFloor::triangle({{49.05902445316315,78.22794914245605}, {49.05902445316315,75.5698561668396}, {45.61507701873779,76.37494802474976}}),mapFloor::triangle({{32.23850727081299,66.72072410583496}, {31.368547677993774,66.72072410583496}, {31.368547677993774,75.08246898651123}}),
+							mapFloor::triangle({{45.61507701873779,66.72072410583496}, {44.45619583129883,66.72072410583496}, {44.45151090621948,67.45651960372925}}),mapFloor::triangle({{37.002912163734436,74.11537170410156}, {37.002912163734436,66.72072410583496}, {32.23850727081299,66.72072410583496}}),mapFloor::triangle({{37.002912163734436,66.72072410583496}, {37.002912163734436,66.05746746063232}, {32.23850727081299,66.29634499549866}}),
+							mapFloor::triangle({{28.287193179130554,54.26681637763977}, {26.088088750839233,53.41002345085144}, {24.82398748397827,56.846749782562256}}),mapFloor::triangle({{32.23850727081299,66.29634499549866}, {37.002912163734436,66.05746746063232}, {36.76255941390991,64.32026028633118}}),mapFloor::triangle({{35.0428581237793,60.71818470954895}, {29.885074496269226,61.77237033843994}, {31.534308195114136,64.55913186073303}}),
+							mapFloor::triangle({{28.287193179130554,54.26681637763977}, {26.21188759803772,57.73525834083557}, {28.26991081237793,59.6733033657074}}),mapFloor::triangle({{32.02490508556366,56.98847770690918}, {28.26991081237793,59.6733033657074}, {29.885074496269226,61.77237033843994}}),mapFloor::triangle({{45.167478919029236,62.88251876831055}, {48.61142635345459,62.82649040222168}, {48.042574524879456,57.87727236747742}}),
+							mapFloor::triangle({{45.167478919029236,62.88251876831055}, {44.5986270904541,58.00451040267944}, {42.964327335357666,58.909064531326294}}),mapFloor::triangle({{45.61507701873779,66.72072410583496}, {45.167478919029236,62.88251876831055}, {43.79924535751343,63.28083276748657}}),mapFloor::triangle({{45.61507701873779,66.72072410583496}, {49.05902445316315,66.72072410583496}, {48.61142635345459,62.82649040222168}}),
+							mapFloor::triangle({{49.05902445316315,84.49022173881531}, {49.995625019073486,84.49022173881531}, {49.995625019073486,82.12100863456726}}),mapFloor::triangle({{48.61142635345459,62.82649040222168}, {49.995625019073486,62.82649040222168}, {49.995625019073486,57.87012577056885}}),mapFloor::triangle({{49.05902445316315,78.22794914245605}, {49.995625019073486,78.22794914245605}, {49.995625019073486,75.5698561668396}}),
+							mapFloor::triangle({{49.05902445316315,82.12100863456726}, {49.995625019073486,82.12100863456726}, {49.995625019073486,78.22794914245605}}),mapFloor::triangle({{49.05902445316315,75.5698561668396}, {49.995625019073486,75.5698561668396}, {49.995625019073486,67.48740673065186}}),mapFloor::triangle({{49.05902445316315,66.72072410583496}, {49.995625019073486,66.72072410583496}, {49.995625019073486,62.82649040222168}}),
+							mapFloor::triangle({{50.93224048614502,82.12100863456726}, {54.376184940338135,81.56251907348633}, {54.376184940338135,84.49022173881531}}),mapFloor::triangle({{56.17479681968689,81.9620132446289}, {56.17479681968689,84.49022173881531}, {54.376184940338135,84.49022173881531}}),mapFloor::triangle({{50.93224048614502,67.48740673065186}, {50.93224048614502,66.72072410583496}, {54.376184940338135,66.72072410583496}}),
+							mapFloor::triangle({{54.376184940338135,81.56251907348633}, {50.93224048614502,82.12100863456726}, {50.93224048614502,78.22794914245605}}),mapFloor::triangle({{50.93224048614502,78.22794914245605}, {50.93224048614502,75.5698561668396}, {54.376184940338135,76.37494802474976}}),mapFloor::triangle({{67.75274872779846,66.72072410583496}, {68.62270832061768,66.72072410583496}, {68.62270832061768,67.48740673065186}}),
+							mapFloor::triangle({{62.988340854644775,66.72072410583496}, {67.75274872779846,66.72072410583496}, {67.75274872779846,67.48740673065186}}),mapFloor::triangle({{62.988340854644775,66.72072410583496}, {62.988340854644775,66.05746746063232}, {67.75274872779846,66.29634499549866}}),mapFloor::triangle({{71.70406579971313,54.26681637763977}, {73.90316724777222,53.41002345085144}, {75.16726851463318,56.846749782562256}}),
+							mapFloor::triangle({{67.75274872779846,66.29634499549866}, {62.988340854644775,66.05746746063232}, {63.22869658470154,64.32026028633118}}),mapFloor::triangle({{64.94839191436768,60.71818470954895}, {70.10618448257446,61.77237033843994}, {68.45694184303284,64.55913186073303}}),mapFloor::triangle({{71.70406579971313,54.26681637763977}, {73.77936244010925,57.73525834083557}, {71.72134518623352,59.6733033657074}}),
+							mapFloor::triangle({{67.96635389328003,56.98847770690918}, {71.72134518623352,59.6733033657074}, {70.10618448257446,61.77237033843994}}),mapFloor::triangle({{54.82378005981445,62.88251876831055}, {51.37982964515686,62.82649040222168}, {51.948678493499756,57.87727236747742}}),mapFloor::triangle({{54.82378005981445,62.88251876831055}, {55.39262294769287,58.00451040267944}, {57.02692270278931,58.909064531326294}}),
+							mapFloor::triangle({{54.376184940338135,66.72072410583496}, {54.82378005981445,62.88251876831055}, {56.19201064109802,63.28083276748657}}),mapFloor::triangle({{54.376184940338135,66.72072410583496}, {50.93224048614502,66.72072410583496}, {51.37982964515686,62.82649040222168}}),mapFloor::triangle({{50.93224048614502,84.49022173881531}, {49.995625019073486,84.49022173881531}, {49.995625019073486,82.12100863456726}}),
+							mapFloor::triangle({{51.37982964515686,62.82649040222168}, {49.995625019073486,62.82649040222168}, {49.995625019073486,57.87012577056885}}),mapFloor::triangle({{50.93224048614502,78.22794914245605}, {49.995625019073486,78.22794914245605}, {49.995625019073486,75.5698561668396}}),mapFloor::triangle({{50.93224048614502,82.12100863456726}, {49.995625019073486,82.12100863456726}, {49.995625019073486,78.22794914245605}}),
+							mapFloor::triangle({{50.93224048614502,75.5698561668396}, {49.995625019073486,75.5698561668396}, {49.995625019073486,67.48740673065186}}),mapFloor::triangle({{50.93224048614502,66.72072410583496}, {49.995625019073486,66.72072410583496}, {49.995625019073486,62.82649040222168}}),mapFloor::triangle({{38.16927373409271,67.45674014091492}, {43.17518472671509,67.46883392333984}, {43.17518472671509,66.72072410583496}}),
+							mapFloor::triangle({{43.17518472671509,75.08246898651123}, {43.745025992393494,75.5698561668396}, {43.745025992393494,67.45651960372925}}),mapFloor::triangle({{38.16927373409271,74.11537170410156}, {43.17518472671509,75.08246898651123}, {43.17518472671509,67.46883392333984}}),mapFloor::triangle({{38.16927373409271,67.45674014091492}, {37.002912163734436,67.45674014091492}, {37.002912163734436,74.11537170410156}}),
+							mapFloor::triangle({{44.39351260662079,75.5698561668396}, {44.45151090621948,67.45651960372925}, {43.745025992393494,67.45651960372925}}),mapFloor::triangle({{61.84046268463135,67.48740673065186}, {62.988340854644775,67.48740673065186}, {62.988340854644775,74.15121793746948}}),mapFloor::triangle({{61.84046268463135,74.15121793746948}, {56.80861473083496,75.08246898651123}, {56.80861473083496,67.48740673065186}}),
+							mapFloor::triangle({{61.84046268463135,67.48740673065186}, {56.80861473083496,67.48740673065186}, {56.80861473083496,66.72072410583496}}),mapFloor::triangle({{50.93224048614502,67.48740673065186}, {49.995625019073486,67.48740673065186}, {49.995625019073486,66.72072410583496}}),mapFloor::triangle({{62.988340854644775,74.15121793746948}, {62.988340854644775,67.48740673065186}, {67.75274872779846,67.48740673065186}}),
+							mapFloor::triangle({{55.59239983558655,67.48740673065186}, {56.80861473083496,67.48740673065186}, {56.80861473083496,75.08246898651123}}),mapFloor::triangle({{67.75274872779846,67.48740673065186}, {68.62270832061768,67.48740673065186}, {68.62270832061768,75.08246898651123}}),mapFloor::triangle({{50.93224048614502,75.5698561668396}, {50.93224048614502,67.48740673065186}, {54.376184940338135,67.48740673065186}}),
+							mapFloor::triangle({{49.05902445316315,67.48740673065186}, {49.995625019073486,67.48740673065186}, {49.995625019073486,66.72072410583496}}),mapFloor::triangle({{45.61507701873779,67.48740673065186}, {44.45151090621948,67.45651960372925}, {44.39351260662079,75.5698561668396}}),mapFloor::triangle({{49.05902445316315,75.5698561668396}, {49.05902445316315,67.48740673065186}, {45.61507701873779,67.48740673065186}}),
+							mapFloor::triangle({{54.376184940338135,67.48740673065186}, {55.59239983558655,67.48740673065186}, {55.59239983558655,75.5698561668396}}),mapFloor::triangle({{54.376184940338135,67.48740673065186}, {54.376184940338135,66.72072410583496}, {55.53506016731262,66.72072410583496}}),}),true,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "CHAPELSTEP"})})),
+													}), {}, { 5000,5000 }, { Map<string, string>({
+											//pair<string,string>({"song1",to_string(FIREPLACE_WAV_1) + " " + "AmbienceVolume"}),
+											pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
+											}) });
+		maps["ChapelRight1"] = mapInstance("ChapelRight1", CHAPELRIGHT_1, { 13,87 /*2.5 42 */}, puzzleContainer.getWaterPuzzle1({50,35}) + List<mapObject>({
+			mapObject::getOnetimeTrigger("ChapelRightCorridor+PAIR",List<mapFloor::triangle>({mapFloor::triangle({{43.884652853012085,83.46079587936401}, {15.895740687847137,91.99681282043457}, {43.884652853012085,91.99681878089905}}),mapFloor::triangle({{43.884652853012085,83.46079587936401}, {15.895740687847137,83.46079587936401}, {15.895740687847137,91.99681282043457}}),})),
+			mapObject("RightWingStatue", true, false, false, "","0",0,0,"","","CENTRE",{56, 7}, false, List<mapFloor::triangle>({{mapFloor::triangle({{58.94955396652222,9.21408161520958}, {54.66281771659851,6.213817372918129}, {54.66281771659851,9.21408161520958}}),mapFloor::triangle({{58.94955396652222,9.21408161520958}, {58.94955396652222,6.213817372918129}, {54.66281771659851,6.213817372918129}}),}}), Map<string, string>({
+																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Inspect Statue"}),
+																		pair<string, string>({"copy","RightWingStatue"}),
+																		pair<string, string>({"cutscene","RightWingFountainCheck1"}),
+																		pair<string, string>({"x","3"}),
+																		pair<string, string>({"y","-5"}),
+																		pair<string, string>({"h","50"}),
+																		pair<string, string>({"w","50"}),
+																		pair<string, string>("colour", "WHITE"),
+																		pair<string, string>("uniqueID", mapPopupTextID),
+																		pair<string, string>("anchorStyle", "TOPLEFT"),
+																		pair<string, string>("shadowColour", "BLACK"),
+																		pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																		pair<string, string>({"format","LightText_20"})})),
+			mapObject("AT_DoorToCorridor", true, false, false, "","0",0,0,"","","CENTRE",{3, 17}, false, List<mapFloor::triangle>({mapFloor::triangle({{4.868385940790176,19.548895955085754}, {2.1298933774232864,18.80180388689041}, {2.1298933774232864,19.548895955085754}}),mapFloor::triangle({{4.868385940790176,19.548895955085754}, {4.868385940790176,18.80180388689041}, {2.1298933774232864,18.80180388689041}}),}), Map<string, string>({
+																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Enter"}),
+																		pair<string, string>({"copy","AT_DoorToCorridor"}),
+																		pair<string, string>({"cutscene","RightWingDoorToCorridor"}),
+																		pair<string, string>({"x","0"}),
+																		pair<string, string>({"y","0"}),
+																		pair<string, string>({"h","50"}),
+																		pair<string, string>({"w","50"}),
+																		pair<string, string>("colour", "WHITE"),
+																		pair<string, string>("uniqueID", mapPopupTextID),
+																		pair<string, string>("anchorStyle", "TOPLEFT"),
+																		pair<string, string>("shadowColour", "BLACK"),
+																		pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																		pair<string, string>({"format","LightText_20"})})),
+			mapObject("AT_CorridorToMain", true, false, false, "","0",0,0,"","","CENTRE",{7, 87}, false, List<mapFloor::triangle>({mapFloor::triangle({{8.092284947633743,85.75624227523804}, {6.611502170562744,89.70136642456055}, {8.09229090809822,89.70137238502502}}),mapFloor::triangle({{8.092284947633743,85.75624227523804}, {6.611502170562744,85.75624227523804}, {6.611502170562744,89.70136642456055}}),}), Map<string, string>({
+																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Enter"}),
+																		pair<string, string>({"copy","AT_CorridorToMain"}),
+																		pair<string, string>({"areaTransition","ChapelRight1"}),
+																		pair<string, string>({"x","0"}),
+																		pair<string, string>({"y","0"}),
+																		pair<string, string>({"h","50"}),
+																		pair<string, string>({"w","50"}),
+																		pair<string, string>("colour", "WHITE"),
+																		pair<string, string>("uniqueID", mapPopupTextID),
+																		pair<string, string>("anchorStyle", "TOPLEFT"),
+																		pair<string, string>("shadowColour", "BLACK"),
+																		pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																		pair<string, string>({"playerPosX","3"}),
+																		pair<string, string>({"playerPosY","19"}),
+																		pair<string, string>({"direction","STAND_FRONT"}),
+																		pair<string, string>({"format","LightText_20"})})),
+			mapObject("WATERDOOR_OPEN", true, true, false, imageLookup.getSequenceAsString("WATERDOOR","OPEN_FRONT"),"1",45,imageLookup.layerDefaults["MAP"] + 2,"1.0","2.0","CENTRE",{65, 20}, false, {}, Map<string, string>({
+				pair<string, string>("don'tLoadIfNot", "WaterPuzzleFinished")})),
+			mapObject("WATERDOOR_CLOSED", true, true, false, imageLookup.getSequenceAsString("WATERDOOR","CLOSED_FRONT"),"1",45,imageLookup.layerDefaults["MAP"] + 2,"1.0","2.0","CENTRE",{66.7, 22.5}, true, {}, Map<string, string>({
+	pair<string, string>("don'tLoadIf", "WaterPuzzleFinished")
+	})),
+			mapObject("WATERROOM", false, true, false, imageLookup.getSequenceAsString("WATERROOM","OFF_FRONT"),"1",90,imageLookup.layerDefaults["MAP"] + 1,"1.0","2.0","CENTRE",{50, 50}, false, {}, {}),
+			mapObject::getTreasureChest("ChapelRight1Chest1", {25,5},"NORMAL2_FRONT","Tome of Atrophy"),
+				mapObject::getTreasureChest("ChapelRight1Chest1", {86,6},"NORMAL2_FRONT","Tome of Atrophy"),
+				mapObject::getTreasureChest("ChapelRight1Chest1", {98,10},"NORMAL2_FRONT","Tome of Atrophy"),
+				mapObject::getTreasureChest("ChapelRight1Chest1", {93,45},"NORMAL2_FRONT","Tome of Atrophy"),
+				mapObject::getTreasureChest("ChapelRight1Chest1", {62.5,2.5},"NORMAL2_FRONT","Tome of Atrophy"),
+				mapObject::getTreasureChest("ChapelRight1Chest1", {52,2.5},"NORMAL2_FRONT","Tome of Atrophy"),
+				mapObject::getTreasureChest("ChapelRight1Chest1", {21,5},"NORMAL2_FRONT","Tome of Atrophy"),
+			mapObject("Lamp1", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{8, 39}, false, {}, {}),
+			mapObject("Lamp2", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{17, 39}, false, {}, {}),
+			mapObject("Lamp3", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{6, 23}, false, {}, {}),
+			mapObject("Lamp4", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{9.2, 23}, false, {}, {}),
+			mapObject("Lamp5", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{1.2, 18}, false, {}, {}),
+			mapObject("Lamp6", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{4.8, 18}, false, {}, {}),
+			mapObject("Lamp7", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{10, 10.5}, false, {}, {}),
+			mapObject("Lamp8", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{17, 10.5}, false, {}, {}),
+			mapObject("Lamp9", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{21, 10}, false, {}, {}),
+			mapObject("Lamp10", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{36, 6}, false, {}, {}),
+			mapObject("Lamp11", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{70, 27}, false, {}, {}),
+			mapObject("Lamp12", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{21, 28}, false, {}, {}),
+				mapObject("Lamp13", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{86, 55}, false, {}, {}),
+				mapObject("Lamp14", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{67, 12}, false, {}, {}),
+			mapObject("FilmGrain2", false, true, true, imageLookup.getSequenceAsString("FilmGrain2","STAND_FRONT"),"1",1,imageLookup.layerDefaults["WEATHER"],"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+			mapObject("GoingUpObstruction", false, false, false, "","0",0,0,"1.0","1.0","CENTRE",{0, 0}, false, List<mapFloor::triangle>({mapFloor::triangle({{28.859907388687134,15.32842069864273}, {6.54805526137352,16.799533367156982}, {28.859907388687134,16.799533367156982}}),mapFloor::triangle({{31.548160314559937,18.09774935245514}, {21.140572428703308,19.121621549129486}, {31.548160314559937,19.121621549129486}}),mapFloor::triangle({{32.51437842845917,18.988297879695892}, {31.153520941734314,14.3336221575737}, {31.153520941734314,18.988297879695892}}),
+	mapFloor::triangle({{17.191220819950104,18.410058319568634}, {9.56823006272316,19.691012799739838}, {17.191220819950104,19.691012799739838}}),mapFloor::triangle({{6.825210899114609,18.988296389579773}, {5.721496790647507,14.33362066745758}, {5.721496790647507,18.988296389579773}}),mapFloor::triangle({{17.46615171432495,20.91662883758545}, {17.188996076583862,18.172478675842285}, {17.188996076583862,20.91662883758545}}),
+	mapFloor::triangle({{21.207749843597412,20.91662883758545}, {20.930594205856323,18.172478675842285}, {20.930594205856323,20.91662883758545}}),mapFloor::triangle({{17.257435619831085,21.090461313724518}, {21.202699840068817,19.89494562149048}, {17.257435619831085,19.89494562149048}}),mapFloor::triangle({{28.859907388687134,15.32842069864273}, {6.54805526137352,15.32842069864273}, {6.54805526137352,16.799533367156982}}),
+	mapFloor::triangle({{31.548160314559937,18.09774935245514}, {21.140572428703308,18.09774935245514}, {21.140572428703308,19.121621549129486}}),mapFloor::triangle({{32.51437842845917,18.988297879695892}, {32.51437842845917,14.3336221575737}, {31.153520941734314,14.3336221575737}}),mapFloor::triangle({{17.191220819950104,18.410058319568634}, {9.56823006272316,18.410058319568634}, {9.56823006272316,19.691012799739838}}),
+	mapFloor::triangle({{6.825210899114609,18.988296389579773}, {6.825210899114609,14.33362066745758}, {5.721496790647507,14.33362066745758}}),mapFloor::triangle({{17.46615171432495,20.91662883758545}, {17.46615171432495,18.172478675842285}, {17.188996076583862,18.172478675842285}}),mapFloor::triangle({{21.207749843597412,20.91662883758545}, {21.207749843597412,18.172478675842285}, {20.930594205856323,18.172478675842285}}),
+	mapFloor::triangle({{17.257435619831085,21.090461313724518}, {21.202699840068817,21.090461313724518}, {21.202699840068817,19.89494562149048}}),}), List<pair<string,string>>({})),
+			mapObject("GoingUp1", false, false, false, "","0",0,0,"1.0","1.0","CENTRE",{0, 0}, false, List<mapFloor::triangle>({mapFloor::triangle({{9.455583989620209,22.694189846515656}, {6.599082797765732,24.271899461746216}, {9.455583989620209,24.271899461746216}}),mapFloor::triangle({{31.092330813407898,12.223661690950394}, {28.89198064804077,13.46537321805954}, {31.092330813407898,13.46537321805954}}),mapFloor::triangle({{9.455583989620209,22.694189846515656}, {6.599082797765732,22.694189846515656}, {6.599082797765732,24.271899461746216}}),
+				mapFloor::triangle({{31.092330813407898,12.223661690950394}, {28.89198064804077,12.223661690950394}, {28.89198064804077,13.46537321805954}}),}), List<pair<string,string>>({
+					pair<string, string>({"GoingUp","1"}),
+					pair<string, string>({"image","ChapelRight1Layer2"}),
+					pair<string, string>({"obstruction", "GoingUpObstruction"}),
+					pair<string, string>({"audioSwap", "ChapelFloorStoneOrWood=WOODCREAKY=CHAPELSTEP"}),
+				})),
+			mapObject("GoingUp2", false, false, false, "","0",0,0,"1.0","1.0","CENTRE",{0, 0}, false, List<mapFloor::triangle>({mapFloor::triangle({{9.455583989620209,21.232357621192932}, {6.599082797765732,22.694189846515656}, {9.455583989620209,22.694189846515656}}),mapFloor::triangle({{31.092330813407898,13.46537321805954}, {28.89198064804077,15.055710077285767}, {31.092330813407898,15.055710077285767}}),mapFloor::triangle({{9.455583989620209,21.232357621192932}, {6.599082797765732,21.232357621192932}, {6.599082797765732,22.694189846515656}}),
+	mapFloor::triangle({{31.092330813407898,13.46537321805954}, {28.89198064804077,13.46537321805954}, {28.89198064804077,15.055710077285767}}),}), List<pair<string,string>>({
+					pair<string, string>({"GoingUp","2"}),
+					pair<string, string>({"image","ChapelRight1Layer2"}),
+					pair<string, string>({"obstruction", "GoingUpObstruction"}),
+					pair<string, string>({"audioSwap", "ChapelFloorStoneOrWood=WOODCREAKY=CHAPELSTEP"}),
+				})),
+			mapObject("FilmGrain2", false, true, true, imageLookup.getSequenceAsString("FilmGrain2","STAND_FRONT"),"1",1,imageLookup.layerDefaults["WEATHER"],"1.0","1.0","CENTRE",{50, 50}, false, {}, {}),
+			mapObject("ChapelRight1Top", false, true, false, imageLookup.getSequenceAsString("ChapelRight1Top","STAND_FRONT"),"0",0,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","2.0","CENTRE",{50, 50}, false, {}, {}),
+			mapObject("ChapelRight1Layer2", false, true, false, imageLookup.getSequenceAsString("ChapelRight1Layer2","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"] + 1,"1.0","2.0","CENTRE",{50, 50}, false, {}, {}),
+			mapObject("ChapelRight1Layer3", false, true, false, imageLookup.getSequenceAsString("CHAPELRIGHTLAYER3","STAND_FRONT"), "1", 45, imageLookup.layerDefaults["PLAYER"] + 2, "1.0", "2.0", "CENTRE", {50,50},false, {},{}),
+			mapObject("Statue", false, true, false, imageLookup.getSequenceAsString("CHAPELRIGHTSTATUE","STAND_FRONT"), "0", 0, imageLookup.layerDefaults["PLAYER"], "1.0", "2.0", "BOTTOMCENTRE", {56.92,4.2},false, List<mapFloor::triangle>(),{}),
+			mapObject("Pulpit", false, true, false, imageLookup.getSequenceAsString("CHAPELRIGHTPULPIT","STAND_FRONT"), "0", 0, imageLookup.layerDefaults["PLAYER"], "1.0", "2.0", "CENTRE", {86.5,14.1},false, {},{}),
+			mapObject("Letter1", true, false, false, "","0",0,0,"","","CENTRE",{5, 38}, false, List<mapFloor::triangle>({mapFloor::triangle({{5.886439606547356,40.592700242996216}, {3.6629196256399155,38.5809063911438}, {3.6629196256399155,40.592700242996216}}),mapFloor::triangle({{5.886439606547356,40.592700242996216}, {5.886439606547356,38.5809063911438}, {3.6629196256399155,38.5809063911438}}),}), Map<string, string>({
+																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Read Note"}),
+																		pair<string, string>({"copy","Letter1"}),
+																		pair<string, string>({"cutscene","RightWingLetter1"}),
+																		pair<string, string>({"x","0"}),
+																		pair<string, string>({"y","0"}),
+																		pair<string, string>({"h","50"}),
+																		pair<string, string>({"w","50"}),
+																		pair<string, string>("colour", "WHITE"),
+																		pair<string, string>("uniqueID", mapPopupTextID),
+																		pair<string, string>("anchorStyle", "TOPLEFT"),
+																		pair<string, string>("shadowColour", "BLACK"),
+																		pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																		pair<string, string>({"format","LightText_20"})})),
+			mapObject("Letter2", true, false, false, "","0",0,0,"","","CENTRE",{11, 3}, false, List<mapFloor::triangle>({mapFloor::triangle({{14.080880582332611,6.756356358528137}, {9.695471078157425,4.553110525012016}, {9.695471078157425,6.756356358528137}}),mapFloor::triangle({{14.080880582332611,6.756356358528137}, {14.080880582332611,4.553110525012016}, {9.695471078157425,4.553110525012016}}),}), Map<string, string>({
+																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Read Note"}),
+																		pair<string, string>({"copy","Letter2"}),
+																		pair<string, string>({"cutscene","RightWingLetter2"}),
+																		pair<string, string>({"x","0"}),
+																		pair<string, string>({"y","0"}),
+																		pair<string, string>({"h","50"}),
+																		pair<string, string>({"w","50"}),
+																		pair<string, string>("colour", "WHITE"),
+																		pair<string, string>("uniqueID", mapPopupTextID),
+																		pair<string, string>("anchorStyle", "TOPLEFT"),
+																		pair<string, string>("shadowColour", "BLACK"),
+																		pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																		pair<string, string>({"format","LightText_20"})})),
+			mapObject("Letter3", true, false, false, "","0",0,0,"","","CENTRE",{15, 3}, false, List<mapFloor::triangle>({mapFloor::triangle({{18.565794825553894,6.756356358528137}, {14.180386066436768,4.553110897541046}, {14.180386066436768,6.756356358528137}}),mapFloor::triangle({{18.565794825553894,6.756356358528137}, {18.565794825553894,4.553110897541046}, {14.180386066436768,4.553110897541046}}),}), Map<string, string>({
+																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Read Document"}),
+																		pair<string, string>({"copy","Letter3"}),
+																		pair<string, string>({"cutscene","RightWingLetter3"}),
+																		pair<string, string>({"x","0"}),
+																		pair<string, string>({"y","0"}),
+																		pair<string, string>({"h","50"}),
+																		pair<string, string>({"w","50"}),
+																		pair<string, string>("colour", "WHITE"),
+																		pair<string, string>("uniqueID", mapPopupTextID),
+																		pair<string, string>("anchorStyle", "TOPLEFT"),
+																		pair<string, string>("shadowColour", "BLACK"),
+																		pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																		pair<string, string>({"format","LightText_20"})})),
+																		mapObject("Letter4", true, false, false, "", "0", 0, 0, "", "", "CENTRE", { 19, 19 }, false, List<mapFloor::triangle>({ mapFloor::triangle({{20.822320878505707,18.975870311260223}, {18.454352021217346,18.335318565368652}, {17.628709971904755,18.975870311260223}}),mapFloor::triangle({{19.77422684431076,21.89245969057083}, {17.595024406909943,19.616422057151794}, {18.6768040060997,21.89245969057083}}),mapFloor::triangle({{20.85600644350052,19.616422057151794}, {17.628709971904755,18.975870311260223}, {17.595024406909943,19.616422057151794}}),
+mapFloor::triangle({{20.822320878505707,18.975870311260223}, {19.996678829193115,18.335318565368652}, {18.454352021217346,18.335318565368652}}),mapFloor::triangle({{19.77422684431076,21.89245969057083}, {20.85600644350052,19.616422057151794}, {17.595024406909943,19.616422057151794}}),mapFloor::triangle({{20.85600644350052,19.616422057151794}, {20.822320878505707,18.975870311260223}, {17.628709971904755,18.975870311260223}}), }), Map<string, string>({
+																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Read Note"}),
+																		pair<string, string>({"copy","Letter4"}),
+																		pair<string, string>({"cutscene","RightWingLetter5"}),
+																		pair<string, string>({"x","0"}),
+																		pair<string, string>({"y","0"}),
+																		pair<string, string>({"h","50"}),
+																		pair<string, string>({"w","50"}),
+																		pair<string, string>("colour", "WHITE"),
+																		pair<string, string>("uniqueID", mapPopupTextID),
+																		pair<string, string>("anchorStyle", "TOPLEFT"),
+																		pair<string, string>("shadowColour", "BLACK"),
+																		pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																		pair<string, string>({"format","LightText_20"})})),
+	mapObject("Letter5", true, false, false, "", "0", 0, 0, "", "", "CENTRE", { 39, 1.5 }, false, List<mapFloor::triangle>({ mapFloor::triangle({{41.11878573894501,5.7086847722530365}, {37.61686980724335,4.212566092610359}, {37.61686980724335,5.7086847722530365}}),mapFloor::triangle({{41.11878573894501,5.7086847722530365}, {41.11878573894501,4.212566092610359}, {37.61686980724335,4.212566092610359}}) }), Map<string, string>({
+																			pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Read Document"}),
+																			pair<string, string>({"copy","Letter5"}),
+																			pair<string, string>({"cutscene","RightWingLetter5"}),
+																			pair<string, string>({"x","0"}),
+																			pair<string, string>({"y","0"}),
+																			pair<string, string>({"h","50"}),
+																			pair<string, string>({"w","50"}),
+																			pair<string, string>("colour", "WHITE"),
+																			pair<string, string>("uniqueID", mapPopupTextID),
+																			pair<string, string>("anchorStyle", "TOPLEFT"),
+																			pair<string, string>("shadowColour", "BLACK"),
+																			pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+																			pair<string, string>({"format","LightText_20"}) })),
+		mapObject("Letter6", true, false, false, "", "0", 0, 0, "", "", "CENTRE", { 43, 1.5 }, false, List<mapFloor::triangle>({ mapFloor::triangle({{44.610267877578735,5.7086847722530365}, {41.20502471923828,4.212566092610359}, {41.20502471923828,5.7086847722530365}}),mapFloor::triangle({{44.610267877578735,5.7086847722530365}, {44.610267877578735,4.212566092610359}, {41.20502471923828,4.212566092610359}}), }), Map<string, string>({
+				pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Read Document"}),
+				pair<string, string>({"copy","Letter6"}),
+				pair<string, string>({"cutscene","RightWingLetter6"}),
+				pair<string, string>({"x","0"}),
+				pair<string, string>({"y","0"}),
+				pair<string, string>({"h","50"}),
+				pair<string, string>({"w","50"}),
+				pair<string, string>("colour", "WHITE"),
+				pair<string, string>("uniqueID", mapPopupTextID),
+				pair<string, string>("anchorStyle", "TOPLEFT"),
+				pair<string, string>("shadowColour", "BLACK"),
+				pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+				pair<string, string>({"format","LightText_20"}) })),
+			mapObject("Letter7", true, false, false, "", "0", 0, 0, "", "", "CENTRE", { 86.2, 13.5 }, false, List<mapFloor::triangle>({ mapFloor::triangle({{87.29946613311768,13.440898060798645}, {85.15644073486328,11.799115687608719}, {85.15644073486328,13.440898060798645}}),mapFloor::triangle({{87.29946613311768,13.440898060798645}, {87.29946613311768,11.799115687608719}, {85.15644073486328,11.799115687608719}}), }), Map<string, string>({
+				pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Read Letter"}),
+				pair<string, string>({"copy","Letter7"}),
+				pair<string, string>({"cutscene","RightWingLetter7"}),
+				pair<string, string>({"x","0"}),
+				pair<string, string>({"y","0"}),
+				pair<string, string>({"h","50"}),
+				pair<string, string>({"w","50"}),
+				pair<string, string>("colour", "WHITE"),
+				pair<string, string>("uniqueID", mapPopupTextID),
+				pair<string, string>("anchorStyle", "TOPLEFT"),
+				pair<string, string>("shadowColour", "BLACK"),
+				pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+				pair<string, string>({"format","LightText_20"}) })),
+			mapObject("AT_ChapelMain", true, false, false, "","0",0,0,"1","1.0","CENTRE",{1, 42}, false, List<mapFloor::triangle>({mapFloor::triangle({{1.7091596499085426,44.20192539691925}, {-0.004104943946003914,40.115031599998474}, {-0.004105037078261375,44.20192539691925}}),mapFloor::triangle({{1.7091596499085426,44.20192539691925}, {1.7091598361730576,40.115031599998474}, {-0.004104943946003914,40.115031599998474}}),}), Map<string, string>({
+												pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Return to Entry Hall"}),
+												pair<string, string>({"copy","AT_ChapelMain"}),
+												pair<string, string>({"areaTransition","ChapelEntryHall"}),
+												pair<string, string>({"direction","STAND_LEFT"}),
+												pair<string, string>({"playerPosX","73"}),
+												pair<string, string>({"playerPosY","55"}),
+												pair<string, string>({"audio","CHAPELDOOR"}),
+												pair<string, string>({"x","0"}),
+												pair<string, string>({"y","0"}),
+												pair<string, string>({"h","50"}),
+												pair<string, string>({"w","50"}),
+												pair<string, string>("colour", "WHITE"),
+												pair<string, string>("uniqueID", mapPopupTextID),
+												pair<string, string>("anchorStyle", "TOPLEFT"),
+												pair<string, string>("shadowColour", "BLACK"),
+												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
+												pair<string, string>({"format","LightText_20"}),})),
+			}), List<mapFloor>({
+			mapFloor("ChapelFloorStone", List<mapFloor::triangle>({mapFloor::triangle({{9.692805260419846,39.87107276916504}, {-0.004105020343558863,44.31262910366058}, {9.692805260419846,44.31394934654236}}),mapFloor::triangle({{16.238251328468323,39.875590801239014}, {9.692805260419846,44.31394934654236}, {16.238251328468323,44.314610958099365}}),mapFloor::triangle({{18.46397966146469,39.88010883331299}, {16.238251328468323,44.314610958099365}, {18.46397966146469,44.31527256965637}}),
+mapFloor::triangle({{9.692806005477905,32.09443390369415}, {16.238251328468323,24.322311580181122}, {9.692806005477905,24.317793548107147}}),mapFloor::triangle({{9.692805260419846,39.87107276916504}, {16.238251328468323,32.09895193576813}, {9.692806005477905,32.09443390369415}}),mapFloor::triangle({{6.530769914388657,24.317793548107147}, {-0.004104524850845337,32.09443390369415}, {6.530769914388657,32.09443390369415}}),
+mapFloor::triangle({{9.692806005477905,24.317793548107147}, {6.530769914388657,32.09443390369415}, {9.692806005477905,32.09443390369415}}),mapFloor::triangle({{6.530769914388657,24.317793548107147}, {-0.004104286199435592,18.86223554611206}, {-0.004104524850845337,24.317793548107147}}),mapFloor::triangle({{9.692806005477905,24.317793548107147}, {16.238251328468323,19.806402921676636}, {9.692806005477905,19.80188488960266}}),
+mapFloor::triangle({{9.692806005477905,16.005899012088776}, {18.530678749084473,5.861721187829971}, {9.692806750535965,5.857203155755997}}),mapFloor::triangle({{17.349079251289368,24.322311580181122}, {18.459908664226532,21.046066284179688}, {17.349079251289368,19.806402921676636}}),mapFloor::triangle({{17.349079251289368,32.09895193576813}, {18.459907174110413,24.322311580181122}, {17.349079251289368,24.322311580181122}}),
+mapFloor::triangle({{16.238251328468323,32.09895193576813}, {17.349079251289368,24.322311580181122}, {16.238251328468323,24.322311580181122}}),mapFloor::triangle({{16.238251328468323,24.322311580181122}, {17.349079251289368,19.806402921676636}, {16.238251328468323,19.806402921676636}}),mapFloor::triangle({{19.963444769382477,16.01041704416275}, {26.97160542011261,9.01166945695877}, {19.963444769382477,9.01166945695877}}),
+mapFloor::triangle({{20.029211044311523,24.18041229248047}, {20.933127403259277,29.75674867630005}, {20.933127403259277,24.18041229248047}}),mapFloor::triangle({{20.933127403259277,24.18041229248047}, {26.97160542011261,29.75674867630005}, {26.97160542011261,24.18041229248047}}),mapFloor::triangle({{20.933127403259277,19.89494562149048}, {26.97160542011261,24.18041229248047}, {26.97160542011261,19.89494562149048}}),
+mapFloor::triangle({{20.029211044311523,21.046066284179688}, {20.933127403259277,24.18041229248047}, {20.933127403259277,19.89494562149048}}),mapFloor::triangle({{26.97160542011261,29.75674867630005}, {33.45235288143158,24.18041229248047}, {26.97160542011261,24.18041229248047}}),mapFloor::triangle({{19.963444769382477,9.01166945695877}, {26.97160542011261,4.605276882648468}, {19.963444769382477,4.605276510119438}}),
+mapFloor::triangle({{44.638168811798096,9.01167020201683}, {47.84111976623535,4.605277627706528}, {44.638168811798096,4.605277627706528}}),mapFloor::triangle({{35.61835289001465,9.01166945695877}, {44.638168811798096,4.605277627706528}, {35.61835289001465,4.605277255177498}}),mapFloor::triangle({{47.84111976623535,4.605277627706528}, {44.638168811798096,1.4417212456464767}, {44.638168811798096,4.605277627706528}}),
+mapFloor::triangle({{26.97160542011261,9.01166945695877}, {28.441134095191956,4.605276882648468}, {26.97160542011261,4.605276882648468}}),mapFloor::triangle({{31.626394391059875,9.01166945695877}, {28.441134095191956,12.952755391597748}, {31.626394391059875,12.952756881713867}}),mapFloor::triangle({{44.638168811798096,9.01167020201683}, {47.84111976623535,12.952756881713867}, {47.84111976623535,9.01167020201683}}),
+mapFloor::triangle({{59.89586114883423,12.952756881713867}, {64.6380066871643,9.01167094707489}, {58.06513428688049,7.278957217931747}}),mapFloor::triangle({{47.84111976623535,9.01167020201683}, {54.29689884185791,12.952756881713867}, {55.66410422325134,7.278957962989807}}),mapFloor::triangle({{54.29689884185791,12.952756881713867}, {58.06513428688049,7.278957217931747}, {55.66410422325134,7.278957962989807}}),
+mapFloor::triangle({{49.35427010059357,6.844031810760498}, {47.50262498855591,9.01167094707489}, {49.35427010059357,9.01167094707489}}),mapFloor::triangle({{53.83763909339905,1.5355270355939865}, {49.35427010059357,6.844031810760498}, {55.60700297355652,5.883525311946869}}),mapFloor::triangle({{58.06513428688049,7.278957217931747}, {64.66643810272217,6.8201810121536255}, {58.15420150756836,5.868171155452728}}),
+mapFloor::triangle({{55.66410422325134,7.278957962989807}, {49.35427010059357,6.844031810760498}, {49.35427010059357,9.01167094707489}}),mapFloor::triangle({{60.61218976974487,1.453267503529787}, {64.66643810272217,6.8201810121536255}, {64.7360622882843,1.453267689794302}}),mapFloor::triangle({{58.15420150756836,5.868171155452728}, {53.83763909339905,1.5355270355939865}, {55.60700297355652,5.883525311946869}}),
+mapFloor::triangle({{31.626394391059875,9.01166945695877}, {35.61835289001465,12.952756881713867}, {35.61835289001465,9.01166945695877}}),mapFloor::triangle({{28.441134095191956,9.01166945695877}, {31.626394391059875,4.605276882648468}, {28.441134095191956,4.605276882648468}}),mapFloor::triangle({{31.626394391059875,12.952756881713867}, {35.61835289001465,19.13439780473709}, {35.61835289001465,12.952756881713867}}),
+mapFloor::triangle({{35.61835289001465,12.952756881713867}, {44.0299391746521,19.13439780473709}, {44.0299391746521,12.952756881713867}}),mapFloor::triangle({{35.61835289001465,9.01166945695877}, {44.0299391746521,12.952756881713867}, {44.638168811798096,9.01167020201683}}),mapFloor::triangle({{31.626394391059875,9.01166945695877}, {35.61835289001465,4.605277255177498}, {31.626394391059875,4.605276882648468}}),
+mapFloor::triangle({{31.626394391059875,19.89494562149048}, {35.61835289001465,22.75586873292923}, {35.61835289001465,19.13439780473709}}),mapFloor::triangle({{31.626394391059875,19.89494562149048}, {28.346529603004456,22.75586873292923}, {31.626394391059875,22.75586873292923}}),mapFloor::triangle({{44.23523247241974,19.290319085121155}, {37.59697377681732,23.708607256412506}, {44.14079487323761,23.708607256412506}}),
+mapFloor::triangle({{44.14079487323761,23.708607256412506}, {37.993669509887695,25.427579879760742}, {44.53749060630798,25.427579879760742}}),mapFloor::triangle({{65.91168642044067,45.041364431381226}, {37.993669509887695,25.427579879760742}, {37.993669509887695,45.22719383239746}}),mapFloor::triangle({{67.75387525558472,27.632737159729004}, {65.95546007156372,23.473992943763733}, {62.26857304573059,23.75909686088562}}),
+mapFloor::triangle({{67.79491901397705,24.772989749908447}, {66.10853672027588,20.65746784210205}, {65.95546007156372,23.473992943763733}}),mapFloor::triangle({{66.5147602558136,23.735828697681427}, {72.79825806617737,12.731172144412994}, {66.5147602558136,12.731172144412994}}),mapFloor::triangle({{68.67315173149109,15.776905417442322}, {74.59683418273926,29.35398817062378}, {74.59683418273926,15.776903927326202}}),
+mapFloor::triangle({{84.87533330917358,15.776905417442322}, {87.64468431472778,29.35398817062378}, {87.64468431472778,15.776903927326202}}),mapFloor::triangle({{98.01170825958252,15.776905417442322}, {99.87488389015198,29.35398817062378}, {99.87488389015198,15.776903927326202}}),mapFloor::triangle({{100.01084804534912,27.31577455997467}, {70.262610912323,29.17895019054413}, {100.01084804534912,29.17895019054413}}),
+mapFloor::triangle({{100.01051425933838,18.297722935676575}, {74.59683418273926,15.776903927326202}, {74.55582022666931,18.297722935676575}}),mapFloor::triangle({{82.17763304710388,5.593329668045044}, {87.43307590484619,13.447986543178558}, {82.17763304710388,13.447986543178558}}),mapFloor::triangle({{77.7030348777771,13.448338210582733}, {85.05905270576477,16.437755525112152}, {77.7030348777771,16.437755525112152}}),
+mapFloor::triangle({{87.27898597717285,9.324761480093002}, {99.89020228385925,16.329263150691986}, {87.27898597717285,16.329263150691986}}),mapFloor::triangle({{84.3005895614624,29.089322686195374}, {88.21942806243896,42.96439290046692}, {88.21942806243896,29.089322686195374}}),mapFloor::triangle({{95.39399147033691,42.96439290046692}, {77.12602615356445,56.8394660949707}, {95.39399743080139,56.8394660949707}}),
+mapFloor::triangle({{53.16888689994812,85.75624227523804}, {6.611502170562744,89.70136642456055}, {53.1688928604126,89.70137238502502}}),mapFloor::triangle({{44.0299391746521,19.13439780473709}, {37.45991885662079,19.290319085121155}, {44.23523247241974,19.290319085121155}}),mapFloor::triangle({{9.692805260419846,39.87107276916504}, {-0.004104826075490564,39.86203968524933}, {-0.004105020343558863,44.31262910366058}}),
+mapFloor::triangle({{16.238251328468323,39.875590801239014}, {9.692805260419846,39.87107276916504}, {9.692805260419846,44.31394934654236}}),mapFloor::triangle({{18.46397966146469,39.88010883331299}, {16.238251328468323,39.875590801239014}, {16.238251328468323,44.314610958099365}}),mapFloor::triangle({{9.692806005477905,32.09443390369415}, {16.238251328468323,32.09895193576813}, {16.238251328468323,24.322311580181122}}),
+mapFloor::triangle({{9.692805260419846,39.87107276916504}, {16.238251328468323,39.875590801239014}, {16.238251328468323,32.09895193576813}}),mapFloor::triangle({{6.530769914388657,24.317793548107147}, {-0.004104524850845337,24.317793548107147}, {-0.004104524850845337,32.09443390369415}}),mapFloor::triangle({{9.692806005477905,24.317793548107147}, {6.530769914388657,24.317793548107147}, {6.530769914388657,32.09443390369415}}),
+mapFloor::triangle({{6.530769914388657,24.317793548107147}, {6.530769914388657,18.86223554611206}, {-0.004104286199435592,18.86223554611206}}),mapFloor::triangle({{9.692806005477905,24.317793548107147}, {16.238251328468323,24.322311580181122}, {16.238251328468323,19.806402921676636}}),mapFloor::triangle({{9.692806005477905,16.005899012088776}, {18.530678749084473,16.01041704416275}, {18.530678749084473,5.861721187829971}}),
+mapFloor::triangle({{17.349079251289368,24.322311580181122}, {18.459907174110413,24.322311580181122}, {18.459908664226532,21.046066284179688}}),mapFloor::triangle({{17.349079251289368,32.09895193576813}, {18.459907174110413,32.09895193576813}, {18.459907174110413,24.322311580181122}}),mapFloor::triangle({{16.238251328468323,32.09895193576813}, {17.349079251289368,32.09895193576813}, {17.349079251289368,24.322311580181122}}),
+mapFloor::triangle({{16.238251328468323,24.322311580181122}, {17.349079251289368,24.322311580181122}, {17.349079251289368,19.806402921676636}}),mapFloor::triangle({{19.963444769382477,16.01041704416275}, {26.97160542011261,16.01041704416275}, {26.97160542011261,9.01166945695877}}),mapFloor::triangle({{20.029211044311523,24.18041229248047}, {20.029211044311523,29.75674867630005}, {20.933127403259277,29.75674867630005}}),
+mapFloor::triangle({{20.933127403259277,24.18041229248047}, {20.933127403259277,29.75674867630005}, {26.97160542011261,29.75674867630005}}),mapFloor::triangle({{20.933127403259277,19.89494562149048}, {20.933127403259277,24.18041229248047}, {26.97160542011261,24.18041229248047}}),mapFloor::triangle({{20.029211044311523,21.046066284179688}, {20.029211044311523,24.18041229248047}, {20.933127403259277,24.18041229248047}}),
+mapFloor::triangle({{26.97160542011261,29.75674867630005}, {33.45235288143158,29.75674867630005}, {33.45235288143158,24.18041229248047}}),mapFloor::triangle({{19.963444769382477,9.01166945695877}, {26.97160542011261,9.01166945695877}, {26.97160542011261,4.605276882648468}}),mapFloor::triangle({{44.638168811798096,9.01167020201683}, {47.84111976623535,9.01167020201683}, {47.84111976623535,4.605277627706528}}),
+mapFloor::triangle({{35.61835289001465,9.01166945695877}, {44.638168811798096,9.01167020201683}, {44.638168811798096,4.605277627706528}}),mapFloor::triangle({{47.84111976623535,4.605277627706528}, {47.84111976623535,1.4417212456464767}, {44.638168811798096,1.4417212456464767}}),mapFloor::triangle({{26.97160542011261,9.01166945695877}, {28.441134095191956,9.01166945695877}, {28.441134095191956,4.605276882648468}}),
+mapFloor::triangle({{31.626394391059875,9.01166945695877}, {28.441134095191956,9.01166945695877}, {28.441134095191956,12.952755391597748}}),mapFloor::triangle({{44.638168811798096,9.01167020201683}, {44.0299391746521,12.952756881713867}, {47.84111976623535,12.952756881713867}}),mapFloor::triangle({{59.89586114883423,12.952756881713867}, {64.6380066871643,12.952756881713867}, {64.6380066871643,9.01167094707489}}),
+mapFloor::triangle({{47.84111976623535,9.01167020201683}, {47.84111976623535,12.952756881713867}, {54.29689884185791,12.952756881713867}}),mapFloor::triangle({{54.29689884185791,12.952756881713867}, {59.89586114883423,12.952756881713867}, {58.06513428688049,7.278957217931747}}),mapFloor::triangle({{49.35427010059357,6.844031810760498}, {47.50262498855591,6.844031810760498}, {47.50262498855591,9.01167094707489}}),
+mapFloor::triangle({{53.83763909339905,1.5355270355939865}, {49.35427010059357,1.5355270355939865}, {49.35427010059357,6.844031810760498}}),mapFloor::triangle({{58.06513428688049,7.278957217931747}, {64.6380066871643,9.01167094707489}, {64.66643810272217,6.8201810121536255}}),mapFloor::triangle({{55.66410422325134,7.278957962989807}, {55.60700297355652,5.883525311946869}, {49.35427010059357,6.844031810760498}}),
+mapFloor::triangle({{60.61218976974487,1.453267503529787}, {58.15420150756836,5.868171155452728}, {64.66643810272217,6.8201810121536255}}),mapFloor::triangle({{58.15420150756836,5.868171155452728}, {60.61218976974487,1.453267503529787}, {53.83763909339905,1.5355270355939865}}),mapFloor::triangle({{31.626394391059875,9.01166945695877}, {31.626394391059875,12.952756881713867}, {35.61835289001465,12.952756881713867}}),
+mapFloor::triangle({{28.441134095191956,9.01166945695877}, {31.626394391059875,9.01166945695877}, {31.626394391059875,4.605276882648468}}),mapFloor::triangle({{31.626394391059875,12.952756881713867}, {31.626394391059875,19.89494562149048}, {35.61835289001465,19.13439780473709}}),mapFloor::triangle({{35.61835289001465,12.952756881713867}, {35.61835289001465,19.13439780473709}, {44.0299391746521,19.13439780473709}}),
+mapFloor::triangle({{35.61835289001465,9.01166945695877}, {35.61835289001465,12.952756881713867}, {44.0299391746521,12.952756881713867}}),mapFloor::triangle({{31.626394391059875,9.01166945695877}, {35.61835289001465,9.01166945695877}, {35.61835289001465,4.605277255177498}}),mapFloor::triangle({{31.626394391059875,19.89494562149048}, {31.626394391059875,22.75586873292923}, {35.61835289001465,22.75586873292923}}),
+mapFloor::triangle({{31.626394391059875,19.89494562149048}, {28.346529603004456,19.89494562149048}, {28.346529603004456,22.75586873292923}}),mapFloor::triangle({{44.23523247241974,19.290319085121155}, {37.45991885662079,19.290319085121155}, {37.59697377681732,23.708607256412506}}),mapFloor::triangle({{44.14079487323761,23.708607256412506}, {37.59697377681732,23.708607256412506}, {37.993669509887695,25.427579879760742}}),
+mapFloor::triangle({{65.91168642044067,45.041364431381226}, {65.91168642044067,25.427579879760742}, {37.993669509887695,25.427579879760742}}),mapFloor::triangle({{67.75387525558472,27.632737159729004}, {67.79491901397705,24.772989749908447}, {65.95546007156372,23.473992943763733}}),mapFloor::triangle({{67.79491901397705,24.772989749908447}, {70.38183808326721,25.201591849327087}, {66.10853672027588,20.65746784210205}}),
+mapFloor::triangle({{66.5147602558136,23.735828697681427}, {72.79825806617737,23.735828697681427}, {72.79825806617737,12.731172144412994}}),mapFloor::triangle({{68.67315173149109,15.776905417442322}, {68.67315173149109,29.35398817062378}, {74.59683418273926,29.35398817062378}}),mapFloor::triangle({{84.87533330917358,15.776905417442322}, {84.87533330917358,29.35398817062378}, {87.64468431472778,29.35398817062378}}),
+mapFloor::triangle({{98.01170825958252,15.776905417442322}, {98.01170825958252,29.35398817062378}, {99.87488389015198,29.35398817062378}}),mapFloor::triangle({{100.01084804534912,27.31577455997467}, {70.262610912323,27.31577455997467}, {70.262610912323,29.17895019054413}}),mapFloor::triangle({{100.01051425933838,18.297722935676575}, {100.01051425933838,15.693190693855286}, {74.59683418273926,15.776903927326202}}),
+mapFloor::triangle({{82.17763304710388,5.593329668045044}, {87.43307590484619,5.593328177928925}, {87.43307590484619,13.447986543178558}}),mapFloor::triangle({{77.7030348777771,13.448338210582733}, {85.05905270576477,9.193995594978333}, {85.05905270576477,16.437755525112152}}),mapFloor::triangle({{87.27898597717285,9.324761480093002}, {99.89020228385925,9.324760735034943}, {99.89020228385925,16.329263150691986}}),
+mapFloor::triangle({{84.3005895614624,29.089322686195374}, {84.3005895614624,42.96439290046692}, {88.21942806243896,42.96439290046692}}),mapFloor::triangle({{95.39399147033691,42.96439290046692}, {77.12602019309998,42.96439290046692}, {77.12602615356445,56.8394660949707}}),mapFloor::triangle({{53.16888689994812,85.75624227523804}, {6.611502170562744,85.75624227523804}, {6.611502170562744,89.70136642456055}}),
+mapFloor::triangle({{44.0299391746521,19.13439780473709}, {35.61835289001465,19.13439780473709}, {37.45991885662079,19.290319085121155}}),}),true,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "CHAPELSTEP"})})),
+			mapFloor("ChapelFloorStoneOrWood", List<mapFloor::triangle>({mapFloor::triangle({{9.269341826438904,16.00787043571472}, {6.873767077922821,19.80188488960266}, {9.269341826438904,19.803854823112488}}),mapFloor::triangle({{31.498736143112183,16.01041704416275}, {28.715652227401733,19.805826246738434}, {31.498736143112183,19.806402921676636}}),mapFloor::triangle({{28.715652227401733,16.00984036922455}, {31.498736143112183,12.943169474601746}, {28.715652227401733,12.942591309547424}}),
+mapFloor::triangle({{28.715652227401733,16.00984036922455}, {9.269341826438904,19.803854823112488}, {28.715652227401733,19.805826246738434}}),mapFloor::triangle({{9.269341826438904,19.803854823112488}, {6.873767077922821,24.327275156974792}, {9.269341826438904,24.32924509048462}}),mapFloor::triangle({{9.269341826438904,16.00787043571472}, {6.873767077922821,16.005899012088776}, {6.873767077922821,19.80188488960266}}),
+mapFloor::triangle({{31.498736143112183,16.01041704416275}, {28.715652227401733,16.00984036922455}, {28.715652227401733,19.805826246738434}}),mapFloor::triangle({{28.715652227401733,16.00984036922455}, {31.498736143112183,16.01041704416275}, {31.498736143112183,12.943169474601746}}),mapFloor::triangle({{28.715652227401733,16.00984036922455}, {9.269341826438904,16.00787043571472}, {9.269341826438904,19.803854823112488}}),
+mapFloor::triangle({{9.269341826438904,19.803854823112488}, {6.873767077922821,19.80188488960266}, {6.873767077922821,24.327275156974792}}),}),true,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "CHAPELSTEP"})})),
+				}), {}, { 5000, 5000 }, { Map<string, string>({
+
+					pair<string, string>({ "LoadingScreenImage",to_string(LOADINGSCREEN_1) }),
+					}) });
+	}
+
+
+	void loadMap(string mapName) {
+		defineAllMaps();
+		currentMap = maps[mapName];
+		playerOnMap.position = currentMap.playerStartPosition;
+		mapSize = currentMap.imageSize;
+		resolutionAsFloat = { mapSize.first * 100.0f / actualRenderSizeAsFloat.first, mapSize.second * 100.0f / actualRenderSizeAsFloat.second };
+	}
+	mapObject& getThisMapObject(string name) {
+		for (mapObject& obj : currentMap.objects.internalList) {
+			if (obj.name == name) {
+				return *&obj;
+			}
+		}
+	}
+	map<string, pair<float, float>> getUpdatedMapImagePositions() {
+		map<string, pair<float, float>> result;
+		if (perspective == "FOLLOW_PLAYER") {
+			activeCamera.position = playerOnMap.position;
+		}
+		result["player image position"] = { 50.0f,50.0f };
+		result["map position"] = { 50.0f + (50.0f - activeCamera.position.first) * resolutionAsFloat.first / 100.0f , 50.0f + (50.0f - activeCamera.position.second) * resolutionAsFloat.second / 100.0f };
+
+		float xLimitMax; float xLimitMin; float yLimitMax; float yLimitMin;
+
+		if (mapSize.first == 5000) {
+			xLimitMax = 0.04 * mapSize.first; // 0.03944
+			xLimitMin = -97.5;
+			yLimitMax = 0.06944 * mapSize.second;
+			yLimitMin = -245.549377;
+		}
+		else {
+			xLimitMax = 98.6f;
+			xLimitMin = 1.6f;
+			yLimitMax = 173.6f;
+			yLimitMin = -73.6f;
+		}
+
+		bool hold = true;
+
+
+		if (hold) {
+			if (result["map position"].first > xLimitMax) {
+				float difference = result["map position"].first - xLimitMax;
+				result["map position"].first = xLimitMax;
+				result["player image position"].first = 50.0f - difference;
+			}
+			if (result["map position"].first < xLimitMin) {
+				float difference = result["map position"].first;
+				result["map position"].first = xLimitMin;
+				result["player image position"].first = (difference + 50.0f) * -1;
+			}
+			if (result["map position"].second > yLimitMax) {
+				float difference = result["map position"].second;
+				result["map position"].second = yLimitMax;
+				result["player image position"].second = 50 + (yLimitMax - difference);
+			}
+			if (result["map position"].second < yLimitMin) {
+				float difference = result["map position"].second;
+				result["map position"].second = yLimitMin;
+				result["player image position"].second = 50 - (yLimitMin * -1 + difference);
+			}
+		}
+		result["absolute map position"] = {
+			actualRenderSizeAsFloat.first * result["map position"].first / 100.0f,
+			actualRenderSizeAsFloat.second * result["map position"].second / 100.0f,
+		};
+		result["absolute map top left"] = {
+			result["absolute map position"].second - (mapSize.second / 2),
+			result["absolute map position"].first - (mapSize.first / 2),
+		};
+
+		if (perspective == "FOLLOW_CAMERA") {
+			float absoluteXPos = result["absolute map top left"].second + (mapSize.first / 100 * playerOnMap.position.first);
+			float absoluteYPos = result["absolute map top left"].first + (mapSize.second / 100 * playerOnMap.position.second);
+			float percentXPos = absoluteXPos * 100.0f / actualRenderSizeAsFloat.first;
+			float percentYPos = absoluteYPos * 100.0f / actualRenderSizeAsFloat.second;
+			float percentOffsetX = 0.0;
+			float percentOffsetY = 0.0;
+			pair<float, float> objectPosition = {
+				percentXPos,
+				percentYPos,
+			};
+			result["player image position"] = objectPosition;
+		}
+
+		for (auto x : currentMap.objects.internalList) {
+			if (x.tracksToPlayer) { result[x.name] = { 50.0f, 50.0f }; }
+			if (!x.tracksToPlayer) {
+				float absoluteXPos = result["absolute map top left"].second + (mapSize.first / 100 * x.positionOnMap.first);
+				float absoluteYPos = result["absolute map top left"].first + (mapSize.second / 100 * x.positionOnMap.second);
+				float percentXPos = absoluteXPos * 100.0f / actualRenderSizeAsFloat.first;
+				float percentYPos = absoluteYPos * 100.0f / actualRenderSizeAsFloat.second;
+				float percentOffsetX = 0.0;
+				float percentOffsetY = 0.0;
+				pair<float, float> objectPosition = {
+					percentXPos,
+					percentYPos,
+				};
+
+				result[x.name] = objectPosition;
+
+				if (x.data.getKeys().contains("copy")) {
+					percentOffsetX = stof(x.data["x"]);
+					percentOffsetY = stof(x.data["y"]);
+				}
+				result[x.name + "_text"] = { percentXPos + percentOffsetX, percentYPos + percentOffsetY };
+			}
+		}
+
+		return result;
+	}
+	bool isThisDestinationWalkable(pair<float, float> position) {
+		bool walkable = false;
+		bool obstructed = false;
+		for (auto x : currentMap.walkables.internalList) {
+			if (x.traversable and x.isSteppedOn(position)) {
+				walkable = true;
+			}
+		}
+		for (auto x : currentMap.objects.internalList) {
+			if (x.obstruction and x.isSteppedOn(position)) {
+				obstructed = true;
+			}
+		}
+		return (walkable and not obstructed);
+	}
+	void playWalkingAudio() {
+		List<mapFloor> currentlySteppedOn = getCurrentlySteppedOn();
+		for (auto walkable : currentlySteppedOn.internalList) {
+			if (walkable.hasAudio()) {
+				walkable.playAudio();
+				return;
+			}
+		}
+	}
+	void tryToMovePlayer(string direction) {
+		pair<float, float> proposedPosition;
+		pair<float, float> toMove;
+		float unit = unitOfMovement;
+		if (direction == "BACK") { toMove.second -= unit; }
+		if (direction == "FRONT") { toMove.second += unit; }
+		if (direction == "LEFT") { toMove.first -= unit; }
+		if (direction == "RIGHT") { toMove.first += unit; }
+		proposedPosition.first = TChange(playerOnMap.position.first, toMove.first, 0.0f, 100.0f);
+		proposedPosition.second = TChange(playerOnMap.position.second, toMove.second, 0.0f, 100.0f);
+		if (isThisDestinationWalkable(proposedPosition)) {
+			playerOnMap.position.first = TChange(playerOnMap.position.first, toMove.first, 0.0f, 100.0f);
+			playerOnMap.position.second = TChange(playerOnMap.position.second, toMove.second, 0.0f, 100.0f);
+		}
+	}
+	string debug() {
+		map<string, pair<float, float>> updatedImagePositions = getUpdatedMapImagePositions();
+		string result = "Player Position On Map: " + to_string(playerOnMap.position.first) + ", " + to_string(playerOnMap.position.second);
+		result += "\nStepped On: ";
+		List<mapFloor> steppedOn = getCurrentlySteppedOn();
+		List<mapObject> objectsSteppedOn = getObjectsInRange();
+		List<mapObject> nearby = getObjectsThatAreClose();
+		for (auto const& x : steppedOn.internalList) {
+			result += x.uniqueID;
+		}
+		result += "\nIn range of these objects: ";
+		for (auto const& x : nearby.internalList) {
+			result += x.name;
+		}
+		result += "\nStepped on these objects: ";
+		for (auto const& x : objectsSteppedOn.internalList) {
+			result += x.name;
+		}
+		result += "\nMap Image Position: " + to_string(updatedImagePositions["map position"].first) + " " + to_string(updatedImagePositions["map position"].second);
+		return result;
+	}
+	List<mapFloor> getCurrentlySteppedOn() {
+		List<mapFloor> result;
+		for (auto x : currentMap.walkables.internalList) {
+			if (x.isSteppedOn(playerOnMap.position)) {
+				result.push_back(x);
+			}
+		}
+		return result;
+	}
+	List<mapObject> getObjectsInRange() {
+		// stepped on
+		List<mapObject> result;
+		for (auto x : currentMap.objects.internalList) {
+			if (x.isSteppedOn(playerOnMap.position)) {
+				result.push_back(x);
+			}
+		}
+		return result;
+	}
+	List<mapObject> getObjectsThatAreClose() {
+		// stepped near
+		List<mapObject> result;
+		for (auto x : currentMap.objects.internalList) {
+			if (x.isSteppedNear(playerOnMap.position)) {
+				result.push_back(x);
+			}
+		}
+		return result;
+	}
+	void disableThisObject(string objectName) {
+		for (int x = 0; x < currentMap.objects.size(); x++) {
+			if (currentMap.objects.at(x).name == objectName) {
+				currentMap.objects.at(x).canInteract = false;
+			}
+		}
+	}
+	Map<string, int> getAnimationSpeeds() {
+		Map<string, int> result;
+		result.internalMap = { pair<string, int>("WALK",200) , pair<string, int>("STAND" ,500), pair<string, int>("MOVE", mapSize.first / 50) };
+		return result;
+	}
+	bool areThesePointsInSamePlace(pair<float, float> LHS, pair<float, float> RHS, bool ignoreFirst, bool ignoreSecond) {
+		bool firstSame = abs(LHS.first - RHS.first) < 0.01;
+		bool secondSame = abs(LHS.second - RHS.second) < 0.01;
+		if (ignoreFirst and ignoreSecond) {
+			return true;
+		}
+		if (ignoreFirst) {
+			return secondSame;
+		}
+		if (ignoreSecond) {
+			return firstSame;
+		}
+		return firstSame and secondSame;
+	}
+	pair<float, float> moveLHSCloserToRHS(pair<float, float> LHS, pair<float, float> RHS, bool ignoreFirst, bool ignoreSecond, float unit) {
+		bool firstAreSame = abs(LHS.first - RHS.first) < 0.05;
+		bool secondAreSame = abs(LHS.second - RHS.second) < 0.05;
+		bool firstIsLower = LHS.first < RHS.first;
+		bool secondIsLower = LHS.second < RHS.second;
+		if (ignoreFirst and ignoreSecond) {
+			return LHS;
+		}
+		if (!ignoreFirst) {
+			if (!firstAreSame) {
+				if (firstIsLower) {
+					LHS.first += unit;
+				}
+				else {
+					LHS.first -= unit;
+				}
+			}
+		}
+		if (!ignoreSecond) {
+			if (!secondAreSame) {
+				if (secondIsLower) {
+					LHS.second += unit;
+				}
+				else {
+					LHS.second -= unit;
+				}
+			}
+		}
+		return LHS;
+	}
+	Map<string, pair<float, float>> getPositionsOfAllObjects() {
+		Map<string, pair<float, float>> result;
+		for (auto object : currentMap.objects.internalList) {
+			result[object.name] = object.positionOnMap;
+		}
+		return result;
+	}
+	string decideDirectionDependingOnTwoPoints(pair<float, float> LHS, pair<float, float> RHS) {
+		bool front = false; bool back = false; bool left = false; bool right = false;
+		if (LHS.first < RHS.first) {
+			right = true;
+		}
+		else {
+			left = true;
+		}
+		if (LHS.second < RHS.second) {
+			front = true;
+		}
+		else {
+			back = true;
+		}
+		if (front) {
+			return "FRONT";
+		}
+		if (back) {
+			return "BACK";
+		}
+		return ""; // no change
+	}
+
+	int resource;
+	float unitOfMovement = 0.5;
+	camera activeCamera;
+	playerObject playerOnMap;
+	mapInstance currentMap;
+	string perspective = "FOLLOW_PLAYER";
+	string mapPopupTextID = "mappopuptextID";
+	Map<string, mapInstance> maps;
+	pair<int, int> resolution = controller.actualRenderSizeAsFloat;
+	pair<float, float> actualRenderSizeAsFloat = controller.actualRenderSizeAsFloat;
+	pair<int, int> mapSize = { 2500,2500 };
+	pair<float, float> resolutionAsFloat = { mapSize.first * 100.0f / actualRenderSizeAsFloat.first, mapSize.second * 100.0f / actualRenderSizeAsFloat.second };
+};
+Explorer explorer;

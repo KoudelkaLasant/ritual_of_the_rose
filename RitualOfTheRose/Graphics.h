@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Utils.h"
+#include "Explorer.h"
 
 
 template<class Interface>
@@ -371,6 +371,9 @@ public:
             }
             if (animationStyles.contains("SINGLE") and animationStyles.contains("FADEOUT")) {
                 return opacity == 0.0;
+            }
+            if (animationStyles.contains("SINGLE") and animationStyles.contains("FADEIN")) {
+                return opacity == 1.0;
             }
             return frame == textures.size() - 1;
         }
