@@ -40,6 +40,8 @@ public:
         shadowColourTagLookupTable[wchar_t(9318)] = "HEALINGGREEN"; // ⑦
         colourTagLookupTable[wchar_t(9319)] = "HEALINGBLUE"; // ⑧
         shadowColourTagLookupTable[wchar_t(9319)] = "HEALINGBLUE"; // ⑧
+        colourTagLookupTable[wchar_t(9320)] = "DAMAGEPURPLE"; // ⑨
+        shadowColourTagLookupTable[wchar_t(9320)] = "DAMAGEPURPLE"; // ⑨
         customFonts = { 
             pair<string, int>({"Centaur", IDF_CENTAUR}), 
             pair<string,int>({ "GoudyMedieval", IDF_GOUDYMEDIEVAL }),
@@ -53,10 +55,11 @@ public:
         Colours["BLUE"] = { 0.0,0.0,1.0,1.0 };
         Colours["GREEN"] = { 0.0,1.0,0.0,1.0 };
         Colours["RED"] = { 1.0,0.0,0.0,1.0 };
-        Colours["DAMAGERED"] = convertIntColour({ 213,0,0,255 });
+        Colours["DAMAGERED"] = convertIntColour({ 213,0,0,255 }); // life damage
         Colours["INVISIBLE"] = { 0.0,0.0,0.0,0.0 };
-        Colours["HEALINGGREEN"] = convertIntColour({ 16,223,0,255 });
-        Colours["HEALINGBLUE"] = convertIntColour({ 71,205,255,255 });
+        Colours["HEALINGGREEN"] = convertIntColour({ 16,223,0,255 }); // life heal
+        Colours["HEALINGBLUE"] = convertIntColour({ 71,205,255,255 }); // energy heal
+        Colours["DAMAGEPURPLE"] = convertIntColour({ 166,10,255,255 }); // energy damage
         Colours["DARKBROWN"] = convertIntColour({100,35,0,255});
         Colours["SKILLTEXTBLUE"] = convertIntColour({ 0,246,255,255 });
         Colours["SKILLTEXTBLUEBACKDROP"] = convertIntColour({ 0,6,255,255 });
@@ -439,6 +442,14 @@ public:
         void forceThisImageToGoToLastFrameAndStayThere() {
             animated = false;
             frame = sources.size() - 1;
+        }
+        pair<float, float> getSizeAsPercentage(Graphics& graphics) {
+            D2D1_RECT_F position = getPosition(*&graphics);
+            D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
+            float width = position.right - position.left;
+            float height = position.bottom - position.top;
+            pair<float, float> result = convertActualToPercent(renderTargetSize, {width, height});
+            return result;
         }
 
         List<int> sources;

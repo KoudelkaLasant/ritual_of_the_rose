@@ -81,7 +81,7 @@ public:
 
 				for (auto song : existingSongs.internalList) {
 					string songName = split(song, " ").at(0);
-					if (!upcomingSongs.contains(songName)) {
+					if (!upcomingSongs.contains(song)) {
 						audio.fadeOutAndStopThis(stoi(songName), 3);
 						if (unloadAudio) {
 							audio.unloadThisAudio(stoi(songName));
@@ -93,7 +93,7 @@ public:
 					string songName = split(song, " ").at(0);
 					string volumeName = split(song, " ").at(1);
 					float volume = audio.getVolumeBasedOnName(volumeName);
-					if (!existingSongs.contains(songName)) {
+					if (!existingSongs.contains(song)) {
 						if (!audio.isThisAudioLoaded(stoi(songName))) {
 							audio.loadAudio(stoi(songName));
 						}
@@ -181,7 +181,7 @@ public:
 							needToLoad = status;
 						}
 						if (data.hasKey("don'tLoadIf")) {
-							string flagName = data["don'tLoadIfNot"];
+							string flagName = data["don'tLoadIf"];
 							bool status = saveContainer.current.flags[flagName];
 							needToLoad = !status;
 						}
@@ -921,6 +921,7 @@ public:
 						return false;
 					}
 					if (controller.hasThisBeenPressed(VK_F3)) {
+						saveContainer.current.flags["IntroFinished"] = true;
 						saveContainer.current.flags["debugFlag"] = true;
 						saveContainer.current.flags["WaterPuzzleActivated"] = true;
 						saveContainer.current.flags["ChapelRightWingKeyToCorridor"] = true;
@@ -929,7 +930,7 @@ public:
 						gameEngine.stateFlags["SHOWFPS"] = "1";
 					}
 					if (controller.hasThisBeenPressed(VK_F5)) {
-						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "TownCutscene3", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "AttackMadRider", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 						return false;
 					}
 					if (controller.hasThisBeenPressed(VK_F6)) {
@@ -1213,10 +1214,16 @@ public:
 				string speakerID = data["speaker"];
 				if (speakerID.find("$ASYNC$") != -1) {
 					speakerID = SReplace(speakerID, "$ASYNC$", "");
-					bool finishedNextEvent = gameEngine.activeProcedure.eventList.at(1).run(*&gameEngine);
-					if (finishedNextEvent) {
-						graphics.tearDownSpecifiedText("speakerDialogueText");
-						return true;
+					if (gameEngine.activeProcedure.eventList.at(1).name != "PostCutscene") {
+						bool finishedNextEvent = gameEngine.activeProcedure.eventList.at(1).run(*&gameEngine);
+						if (finishedNextEvent) {
+							if (gameEngine.activeProcedure.eventList.at(1).type != "DIALOGUE") {
+								gameEngine.activeProcedure.eventList.remove_at(1);
+								return false;
+							}
+							graphics.tearDownSpecifiedText("speakerDialogueText");
+								return true;
+					}
 					}
 				}
 				string displayName = speakerID;
@@ -2698,14 +2705,18 @@ return true;
 					gameEngine.activeProcedure.eventList.clear();
 					gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "HANDLECOMBAT", {}));
 					gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "PRINTSKILLSTACKRESULTS", {}));
-					gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "EXECUTESKILLINCOMBAT", {}));
+					gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "EXECUTESKILLINCOMBAT", List<pair<string, string>>({
+							//pair<string, string>("passive", "1"),
+						})));
 					gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "DETERMINESKILLEFFECTSTACK", List<pair<string, string>>({
 							pair<string, string>("passive", "1"),
 						})));
 					if (actor->c.finishedCasting()) {
 						// skill had a 0 round activation cost = cast now
 						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "PRINTSKILLSTACKRESULTS", {}));
-						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "EXECUTESKILLINCOMBAT", {}));
+						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "EXECUTESKILLINCOMBAT", List<pair<string, string>>({
+							pair<string, string>("active", "1"),
+							})));
 						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "DETERMINESKILLEFFECTSTACK", List<pair<string, string>>({
 							pair<string, string>("active", "1"),
 							})));
@@ -4195,6 +4206,7 @@ return true;
 							pair<string, string>("y", to_string(pos.second)),
 							pair<string, string>("scale", combat.layerScaleLookup["TEAM1"]),
 							pair<string, string>("mode", mode),
+							pair<string, string>("sizeOfTeam", to_string(team1.size())),
 							pair<string, string>("uniqueID", team1.at(x)->c.uniqueCombatID),
 							pair<string, string>("layer", to_string(imageLookup.layerDefaults["COMBATTEAM1"])),
 						}))).run(*&gameEngine);
@@ -4207,6 +4219,7 @@ return true;
 							pair<string, string>("y", to_string(pos.second)),
 							pair<string, string>("scale", combat.layerScaleLookup["TEAM2"]),
 							pair<string, string>("mode", mode),
+							pair<string, string>("sizeOfTeam", to_string(team2.size())),
 							pair<string, string>("uniqueID", team2.at(x)->c.uniqueCombatID),
 							pair<string, string>("layer",to_string(imageLookup.layerDefaults["COMBATTEAM2"])),
 						}))).run(*&gameEngine);
@@ -4218,6 +4231,7 @@ return true;
 							pair<string, string>("x", to_string(pos.first)),
 							pair<string, string>("y", to_string(pos.second)),
 							pair<string, string>("scale", combat.layerScaleLookup["TEAM1ALLIES"]),
+							pair<string, string>("sizeOfTeam", to_string(team1allies.size())),
 							pair<string, string>("uniqueID", team1allies.at(x)->c.uniqueCombatID),
 							pair<string, string>("layer", to_string(imageLookup.layerDefaults["COMBATTEAM1ALLIES"])),
 							pair<string, string>("mode", mode),
@@ -4231,6 +4245,7 @@ return true;
 							pair<string, string>("y", to_string(pos.second)),
 							pair<string, string>("scale", combat.layerScaleLookup["TEAM2ALLIES"]),
 							pair<string, string>("uniqueID", team2allies.at(x)->c.uniqueCombatID),
+							pair<string, string>("sizeOfTeam", to_string(team2allies.size())),
 							pair<string, string>("layer", to_string(imageLookup.layerDefaults["COMBATTEAM2ALLIES"])),
 							pair<string, string>("mode", mode),
 						}))).run(*&gameEngine);
@@ -4249,6 +4264,10 @@ return true;
 				string mana = uniqueIDBase + "_MANA";
 				string scale = data["scale"];
 				string mode = data["mode"];
+
+				if (data["sizeOfTeam"] == "1") {
+					x = to_string(stoi(x) - 10);
+				}
 
 				Combat::CombatantInstance* actor = combat.currentBattle->getThisCombatant(uniqueIDBase);
 				if (actor->c.isDead()) {
@@ -4609,7 +4628,9 @@ return true;
 						gameEngine.activeProcedure.eventList.clear();
 						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "HANDLECOMBAT", {}));
 						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "PRINTSKILLSTACKRESULTS", {}));
-						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "EXECUTESKILLINCOMBAT", {}));
+						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "EXECUTESKILLINCOMBAT", List<pair<string, string>>({
+								pair<string, string>("passive", "1"),
+							})));
 						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "DETERMINESKILLEFFECTSTACK", List<pair<string, string>>({
 								pair<string, string>("passive", "1"),
 							})));
@@ -4684,7 +4705,9 @@ return true;
 
 				if (combat.currentBattle->currentEventStackObject.isAnimationFinished()) {
 					if (combat.currentBattle->currentEventStackObject.ongoingReport.empty()) {
-						return true;
+						if (data.hasKey("passive")) {
+							return true;
+						}
 					}
 					for (auto report : combat.currentBattle->currentEventStackObject.ongoingReport.internalList) {
 						if (report.sData["success"] != "1") { 
@@ -4997,7 +5020,9 @@ return true;
 			}
 
 
-			List<string> defaultAnimateOnTarget = list<string>({"Revitalise","Strength of Reason", "Laying of Hands", "Heal Wounds", "Serrated Strike", "Shadow Spike", "Brilliant Spark", "BURNING", "BLEEDING"});
+			List<string> defaultAnimateOnTarget = list<string>({"Revitalise","Strength of Reason", "Laying of Hands", "Heal Wounds", "Serrated Strike", "Shadow Spike", "Brilliant Spark", "Stone Strike", 
+				"Stone Curse", "Atrophy", "Blade of Blood", 
+				"BURNING", "BLEEDING"});
 
 
 			if (procedureName == "BURNING") {
@@ -5127,8 +5152,12 @@ return true;
 				}
 				return false;
 			}
-			if (procedureName == "Life Drain" or procedureName == "DEFAULT_LEECHSKILL") {
+			if (List<string>({"Life Drain", "DEFAULT_LEECHSKILL", "Aura Drain"}).contains(procedureName)) {
 				int numberOfBubbles = 50;
+				string audio = "1060";
+				if (procedureName == "Aura Drain") {
+					audio = "7669";
+				}
 				if (!started) {
 					pair<float, float> destination = { casterLocation.first, casterLocation.second - 5 };
 					if (extras.hasKey("xOffset")) {
@@ -5163,7 +5192,7 @@ return true;
 					}
 					started = true;
 					GameEngine::Event("PlayAudio", "PLAYSFX", Map<string, string>({
-							pair<string, string>("audio","1060"),
+							pair<string, string>("audio",audio),
 							pair<string, string>("direct","1"),
 							pair<string, string>("delay","0.3"),
 						})).run(*&gameEngine);
@@ -5318,10 +5347,42 @@ return true;
 				}
 				return false;
 			}
-			if (procedureName == "Rainstorm") {
+			if (procedureName == "Rainstorm" or procedureName == "Healing Rain") {
 				if (!started) {
 					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
-						pair<string, string>("sources", imageLookup.getSequenceAsString("Rainstorm", "ACTION_1")),
+						pair<string, string>("sources", imageLookup.getSequenceAsString(procedureName, "ACTION_1")),
+						pair<string, string>("x", "50"),
+						pair<string, string>("y", "50"),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", "1.0"),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
+						pair<string, string>("scale", "2.0"),
+						pair<string, string>("animated", "1"),
+						pair<string, string>("styles", "SINGLE"),
+						pair<string, string>("animation_speed", "30"),
+						pair<string, string>("uniqueID", "Skill Animation"), }))).run(*&gameEngine);
+					GameEngine::Event("PlayAudio", "PLAYSFX", Map<string, string>({
+								pair<string, string>("audio",to_string(combat.skillDefinitions[procedureName].audioSource)),
+								pair<string, string>("direct","1"),
+								pair<string, string>("delay","0"),
+						})).run(*&gameEngine);
+					started = true;
+					return false;
+				}
+				if (started) {
+					Graphics::Image* theImage = graphics.accessImageViaUniqueID("Skill Animation");
+					if (theImage->hasThisFinishedAnimating()) {
+						graphics.tearDownSpecifiedImage("Skill Animation");
+						started = false;
+						return true;
+					}
+				}
+				return false;
+			}
+			if (procedureName == "Sandstorm") {
+				if (!started) {
+					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", imageLookup.getSequenceAsString("Sandstorm", "ACTION_1")),
 						pair<string, string>("x", "50"),
 						pair<string, string>("y", "50"),
 						pair<string, string>("anchor", "CENTRE"),
@@ -5333,7 +5394,7 @@ return true;
 						pair<string, string>("animation_speed", "20"),
 						pair<string, string>("uniqueID", "Skill Animation"), }))).run(*&gameEngine);
 					GameEngine::Event("PlayAudio", "PLAYSFX", Map<string, string>({
-								pair<string, string>("audio","6068"),
+								pair<string, string>("audio","7298"),
 								pair<string, string>("direct","1"),
 								pair<string, string>("delay","0"),
 						})).run(*&gameEngine);
@@ -5495,22 +5556,23 @@ return true;
 
 				
 			}
-			if (procedureName == "Atrophy") {
+			if (procedureName == "Basalt Bastion") {
 				if (!started) {
+					pair<float, float> sizeOfTarget = target->getSizeAsPercentage(*&graphics);
 					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
-						pair<string, string>("sources", imageLookup.getSequenceAsString("Atrophy", "ACTION_1")),
+						pair<string, string>("sources", imageLookup.getSequenceAsString("Basalt Bastion", "ACTION_1")),
 						pair<string, string>("x", to_string(targetLocation.first)),
-						pair<string, string>("y", to_string(targetLocation.second)),
+						pair<string, string>("y", to_string(targetLocation.second + (sizeOfTarget.second/4))),
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
 						pair<string, string>("scale", "1.0"),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "SINGLE"),
-						pair<string, string>("animation_speed", "50"),
+						pair<string, string>("animation_speed", "55"),
 						pair<string, string>("uniqueID", "Default Skill Animation"), }))).run(*&gameEngine);
 					GameEngine::Event("PlayAudio", "PLAYSFX", Map<string, string>({
-								pair<string, string>("audio","6500"),
+								pair<string, string>("audio","7540"),
 								pair<string, string>("direct","1"),
 								pair<string, string>("delay","0"),
 						})).run(*&gameEngine);
