@@ -209,9 +209,7 @@ struct List {
 	}
 	static List<string> quickMake(list<string> input) {
 		List<string> result;
-		for (auto x : input) {
-			result.internalList.push_back(string{ "",x });
-		}
+		result.internalList = input;
 		return result;
 	}
 

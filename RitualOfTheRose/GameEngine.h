@@ -350,6 +350,9 @@ public:
 				if (message == L"$LATESTCOMBATSTRING$") {
 					message = combat.currentBattle->combatMessages.front().second;
 				}
+				if (message == L"$INFINITYSYMBOL$") {
+					message = L"∞";
+				}
 
 				if (data["animateExisting"] == "1") {
 					data["x"] = "0";
@@ -378,6 +381,12 @@ public:
 				}
 				if (data["getStringFromCombatant"] == "skillprintout") {
 					message = combat.loadPartyMemberAsCombatant(data["message"]).getSkillPrintOut(gameEngine.language, data["skill"], * &combat, data["influences"]=="1");
+					if (combat.currentBattle != NULL) {
+						Combat::CombatantInstance* actor = combat.currentBattle->getThisCombatant(combat.currentBattle->currentRound.whoseTurnIsIt());
+						wstring canThisBeUsedOrNotMessage = actor->getCanIUseThisSkillOrNotMessage(*&combat, data["skill"]);
+						canThisBeUsedOrNotMessage = WSReplace(canThisBeUsedOrNotMessage, L" ", L"⑥");
+						message += L"\n⑥\n" + canThisBeUsedOrNotMessage + L"⑥\n⑥\n";
+					}
 				}
 				if (data["getStringFromCombatant"] == "skillName") {
 					message = combat.loadPartyMemberAsCombatant(data["message"]).getSkillName(gameEngine.language, data["skill"]);
@@ -540,7 +549,7 @@ public:
 					pair<string, string>("team2allies",""),
 					pair<string, string>("background", to_string(BATTLEBACKGROUND_TOWN)),
 					pair<string, string>("song",""),
-					pair<string, string>("postBattle","NewGameCutscene"),
+					pair<string, string>("postBattle","RETURNTOEXPLORE"),
 					pair<string, string>("LOOT$GOLD", "1"),
 					pair<string, string>("LOOT$Tome of Chaos Storm", "1"),
 					pair<string, string>("direction", "STAND_FRONT"),
@@ -847,7 +856,7 @@ public:
 				if (forceRedraw and data["mode"] == "reform") {
 						Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 						pair<string, string>("offsetX", "32"),
-						pair<string, string>("offsetY", "25"),
+						pair<string, string>("offsetY", "20"),
 						pair<string, string>("scale", data["scale"]),
 						pair<string, string>("what", "PARTY"),
 						pair<string, string>("moveExisting", "1"),
@@ -855,7 +864,7 @@ public:
 							})).run(*&gameEngine);
 						Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 							pair<string, string>("offsetX", "67"),
-							pair<string, string>("offsetY", "25"),
+							pair<string, string>("offsetY", "20"),
 							pair<string, string>("scale", data["scale"]),
 							pair<string, string>("what", "RESERVES"),
 							pair<string, string>("moveExisting", "1"),
@@ -1451,14 +1460,14 @@ public:
 				if (menu.data.hasKey("PARTYREFORM")) {
 					Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 						pair<string, string>("offsetX", "32"),
-						pair<string, string>("offsetY", "25"),
+						pair<string, string>("offsetY", "20"),
 						pair<string, string>("what", "PARTY"),
 						pair<string, string>("scale", "0.25"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
 						})).run(*&gameEngine);
 					Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 						pair<string, string>("offsetX", "67"),
-						pair<string, string>("offsetY", "25"),
+						pair<string, string>("offsetY", "20"),
 						pair<string, string>("what", "RESERVES"),
 						pair<string, string>("scale", "0.25"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
@@ -1674,7 +1683,7 @@ public:
 					imageIDSuffix = "_" + who + "_SKILLSELECTIONBORDER";
 					xSpaceFactor *= 0.5;
 				}
-				Map<int, List<pair<float, float>>> positions = Menu::getPlayerCardReformGridPositions(offsetX, offsetY, scale*xSpaceFactor);
+				Map<int, List<pair<float, float>>> positions = Menu::getPlayerCardReformGridPositions(offsetX, offsetY, scale*xSpaceFactor, 10);
 				int rowSize = positions[0].size();
 				int currentRow = 0;
 				for (int x = 0; x < toDrawOrder.size(); x++) {
@@ -1687,13 +1696,13 @@ public:
 					string current = toDrawOrder.at(x);
 					int currentValue = toDraw[current];
 					if (data["moveExisting"] == "1") {
-						graphics.accessImageViaUniqueID(current + imageIDSuffix)->positionAsPercentage = positions[currentRow].at(x);
+						graphics.accessImageViaUniqueID(current + imageIDSuffix)->positionAsPercentage = positions[currentRow].at(x - (rowSize * currentRow));
 					}
 					else {
 					Event("LoadThisCharacter'sCard", "LOADIMAGE", List <pair<string, string>>({
 						pair<string, string>("sources", to_string(currentValue)),
-						pair<string, string>("x", to_string(positions[currentRow].at(x).first)),
-						pair<string, string>("y", to_string(positions[currentRow].at(x).second)),
+						pair<string, string>("x", to_string(positions[currentRow].at(x - (rowSize * currentRow)).first)),
+						pair<string, string>("y", to_string(positions[currentRow].at(x - (rowSize * currentRow)).second)),
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("scale", to_string(scale)),
@@ -1896,7 +1905,7 @@ public:
 					for (auto whichTree : equippedSkillTrees.getKeys().internalList) {
 						Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 							pair<string, string>("offsetX", xPositions[whichTree]),
-							pair<string, string>("offsetY", "18"),
+							pair<string, string>("offsetY", Menu::skillGridYLoc()),
 							pair<string, string>("scale", "0.5"),
 							pair<string, string>("what", "SKILLS"),
 							pair<string, string>("skillTreeName",equippedSkillTrees[whichTree]),
@@ -1905,7 +1914,7 @@ public:
 							})).run(*&gameEngine);
 						Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 							pair<string, string>("offsetX", xPositions[whichTree]),
-							pair<string, string>("offsetY", "18"),
+							pair<string, string>("offsetY", "8"),
 							pair<string, string>("what", "SKILLBORDERS"),
 							pair<string, string>("skillTreeName",equippedSkillTrees[whichTree]),
 							pair<string, string>("who", who),
@@ -3373,12 +3382,7 @@ return true;
 				if (isMouseHoveredOverAnySkill and namingStyle == "COMBAT") {
 					string textColour = "WHITE";
 					Combat::EffectObjectInstance* toDraw = NULL;
-					try {
-						toDraw = combat.currentBattle->getThisEffect(who, whichSkill);
-					}
-					catch (...) {
-						return false;
-					}
+					toDraw = combat.currentBattle->getThisEffect(who, whichSkill);
 					if (toDraw == NULL) {
 						return false;
 					}
@@ -3586,7 +3590,7 @@ return true;
 					for (auto whichTree : equippedSkillTrees.getKeys().internalList) {
 						Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 							pair<string, string>("offsetX", xPositions[whichTree]),
-							pair<string, string>("offsetY", "18"),
+							pair<string, string>("offsetY", Menu::skillGridYLoc()),
 							pair<string, string>("what", "SKILLS"),
 							pair<string, string>("scale", "0.5"),
 							pair<string, string>("skillTreeName",equippedSkillTrees[whichTree]),
@@ -3596,7 +3600,7 @@ return true;
 							})).run(*&gameEngine);
 						Event("LoadPartyGrid", "LOADXINAGRID", Map<string, string>({
 							pair<string, string>("offsetX", xPositions[whichTree]),
-							pair<string, string>("offsetY", "18"),
+							pair<string, string>("offsetY", Menu::skillGridYLoc()),
 							pair<string, string>("what", "SKILLBORDERS"),
 							pair<string, string>("scale", "0.5"),
 							pair<string, string>("skillTreeName",equippedSkillTrees[whichTree]),
@@ -4336,6 +4340,32 @@ return true;
 						pair<string, string>("uniqueID", borderName),
 						}))).run(*&gameEngine);
 
+					if (opacity == "0.0") {
+						graphics.tearDownSpecifiedText(imageName);
+					}
+					else {
+						string duration = "";
+						if (effect->e.infinite or effect->e.roundsLeft > 99) {
+							duration = "$INFINITYSYMBOL$";
+						}
+						else {
+							duration = to_string(effect->e.roundsLeft+1);
+						}
+						Event("DrawText", "DRAWTEXT", Map<string, string>({
+							pair<string, string>("message",duration),
+							pair<string, string>("format", "HighTowerText_12"),
+							pair<string, string>("anchorStyle", "CENTRE"),
+							pair<string, string>("x", to_string(effectPositions[effectCount].first)),
+							pair<string, string>("y", to_string(effectPositions[effectCount].second)),
+							pair<string, string>("w", "50"),
+							pair<string, string>("h", "50"),
+							pair<string, string>("colour", "WHITE"),
+							pair<string, string>("shadowColour", "DARKBROWN"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+							pair<string, string>("uniqueID", imageName),
+							pair<string, string>("direct", "1"),
+							})).run(*&gameEngine);
+					}
 					effectCount++;
 				}
 
@@ -4538,6 +4568,10 @@ return true;
 			}
 			if (type == "HANDLECOMBAT") {
 				Event("Text", "UPDATECOMBATMESSAGES", {}).run(*&gameEngine);
+				if (combat.currentBattle->combatMessages.size() < 2 and graphics.accessTextViaUniqueID("combatText")->howFarAlong() < 100) {
+					CLOCK.startClock("CombatStartWait");
+					return false;
+				}
 				if (!CLOCK.hasEnoughTimePassedDoNotResetClock("CombatStartWait", 1000)) {
 					return false;
 				}
@@ -4608,10 +4642,18 @@ return true;
 								pair<string, string>("scale", "0.66"),
 								pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
 							}))).run(*&gameEngine);
+						float position = pos.second - 30;
+						if (who.find("Tianshun Song") != -1) {
+							position += 15;
+						}
+						if (who.find("Angela Fleuret") != -1) {
+							position += 10;
+						}
+						
 						Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 							pair<string, string>("sources", imageLookup.getSequenceAsString("WHOSETURN", "FRONT_ACTION")),
 							pair<string, string>("x", to_string(pos.first)),
-							pair<string, string>("y", to_string(pos.second - 30)),
+							pair<string, string>("y", to_string(position)),
 							pair<string, string>("anchor", "CENTRE"),
 							pair<string, string>("opacity", "1.0"),
 							pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
@@ -4745,6 +4787,12 @@ return true;
 				// Tianshun is small so move Y axis down a bit
 				if (caster.find("Tianshun Song") != -1) {
 					extras["yOffset"] = "10";
+				}
+				// move down a bit if an opponent
+				if (target != "WORLD") {
+					if (combat.currentBattle->getThisCombatant(target)->team.find("TEAM2") != -1) {
+						extras["yOffset"] = "5";
+					}
 				}
 				if (sData.hasKey("SUMMONTHIS")) {
 					extras["SUMMONTHIS"] = sData["SUMMONTHIS"];
@@ -5019,17 +5067,27 @@ return true;
 				willResurrect = true;
 			}
 
+			if (procedureName == "Septicemia") {
+				procedureName = "DISEASED";
+			}
 
 			List<string> defaultAnimateOnTarget = list<string>({"Revitalise","Strength of Reason", "Laying of Hands", "Heal Wounds", "Serrated Strike", "Shadow Spike", "Brilliant Spark", "Stone Strike", 
-				"Stone Curse", "Atrophy", "Blade of Blood", 
-				"BURNING", "BLEEDING"});
+				"Stone Curse", "Atrophy", "Blade of Blood", "Vampiric Strike",
+				"BURNING", "BLEEDING", "DISEASED", "POISONED"});
 
 
 			if (procedureName == "BURNING") {
 				extras["audioSource"] = "6414";
 			}
+			if (procedureName == "DISEASED" or procedureName == "DISEASED2") {
+				procedureName = "DISEASED";
+				extras["audioSource"] = "7807";
+			}
 			if (procedureName == "BLEEDING") {
 				extras["audioSource"] = "6193";
+			}
+			if (procedureName == "POISONED") {
+				extras["audioSource"] = "7859";
 			}
 			if (procedureName == "Heal Wounds") {
 				// skills that are not called Heal Wounds may kick off a Heal Wounds animation
@@ -5840,10 +5898,10 @@ return true;
 				pair<string, string>("uniqueID", "Olyver Sumner")
 				}))),
 			Event("Load Map", "MANAGEAUDIOSWAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "ChapelRight1"),
+				pair<string, string>("targetMap", "ChapelRight2"),
 			}))),
 			Event("Load Map", "LOADMAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "ChapelRight1"),
+				pair<string, string>("targetMap", "ChapelRight2"),
 			}))),
 			Event("Debug Exploring", "EXPLORE", Map<string,string>(List<pair<string,string>>({}))),
 			})) }),
@@ -5941,7 +5999,7 @@ return true;
 					pair<string, string>("SKILLEXPLAIN", "2"),
 					pair<string, string>("SELECTCHARACTERTOEDIT", "1"),
 					pair<string, string>("CHARACTERTOEDITOFFSETX", "5"),
-					pair<string, string>("CHARACTERTOEDITOFFSETY", "20"),
+					pair<string, string>("CHARACTERTOEDITOFFSETY", Menu::skillGridYLoc()),
 					pair<string, string>("CHARACTERTOEDITSCALE", "0.25"),
 					pair<string, string>("MANAGESKILLS", "1"),
 					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " FROMSKILLMANAGETOPARTYMANAGE")}))),

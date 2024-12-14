@@ -352,7 +352,6 @@ public:
 
 		wstring getDescription(Combat& combat, string language) {
 			if (combat.skillDefinitions.getKeys().contains(uniqueID)) {
-				// description comes from a skill
 				wstring result = strings[language]["Skill Descriptions"][uniqueID];
 				for (auto value : values.getKeys().internalList) {
 					wstring name = StringToWString(toUpper(value));
@@ -360,8 +359,10 @@ public:
 				}
 				return result;
 			}
-			// add stuff for effects that aren't also skills
 			wstring result = strings[language]["Effect Descriptions"][uniqueID];
+
+
+
 			return result;
 		}
 
@@ -825,7 +826,7 @@ public:
 			// if this combatant is in a battle and suffering from WEAKNESS, reduce all atts before calculating power
 			if (combat.currentBattle != NULL) {
 				for (EffectObjectInstance* effect : combat.currentBattle->getAllEffectsOnXInTimeOrderOldestFirst(uniqueCombatID).internalList) {
-					if (effect->e.logicName == "WEAKNESS") {
+					if (effect->e.logicName == "WEAKENED") {
 						for (auto v : percentInfluences.getKeys().internalList) {
 							if (v.find("_ATT") != -1) {
 								percentInfluences[v] = TChange(percentInfluences[v], -2, 0, 9999);
@@ -930,6 +931,9 @@ public:
 				throw exception("This actor is not using a skill, but getSkillBeingCast was called.");
 			}
 			return *&combatSkills[indexOfSkillCurrentlyBeingCast];
+		}
+		Skill& getSkillByName(string skillName) {
+			return *&combatSkills[getIndexOfThisSkill(skillName)];
 		}
 		int getIndexOfThisSkill(string skillName) {
 			for (auto s : combatSkills.getKeys().internalList) {
@@ -1143,7 +1147,20 @@ public:
 						}
 					}
 				}
-				string decision = RANDOM.diceRollChoice(chanceOfUsingSkill);
+				// if AI can't make any valid decisions force them to wait
+				bool noOptions = true;
+				for (auto skill : chanceOfUsingSkill.getValues().internalList) {
+					if (skill > 0) {
+						noOptions = false;
+					}
+				}
+				string decision = "";
+				if (noOptions) {
+					decision = "DEFAULT_WAIT";
+				}
+				else {
+					decision = RANDOM.diceRollChoice(chanceOfUsingSkill);
+				}
 				return decision;
 			}
 		};
@@ -1236,6 +1253,24 @@ public:
 
 			return result;
 		}
+		wstring getCanIUseThisSkillOrNotMessage(Combat& combat, string skillName) {
+			wstring result = L"";
+			Skill theSkill = c.getSkillByName(skillName);
+
+			// not enough energy to use it
+			if (!theSkill.canPayEnergyCost(*&combat)) {
+				result += strings[combat.language]["Combat Messages"]["NOTENOUGHENERGY"];
+			}
+
+			// no one valid to use it on
+			if (!theSkill.areThereAnyValidTargets(*&combat)) {
+				result += strings[combat.language]["Combat Messages"]["NOVALIDTARGETS"];
+			}
+
+			// see if an effect prevents it from being used
+
+			return result;
+		}
 
 		void changeTargetOrCancelCastingIfCurrentTargetIsNowInapplicable(Combat& combat, string language) {
 			CombatantInstance* target = combat.currentBattle->getThisCombatant(c.currentTarget);
@@ -1310,6 +1345,7 @@ public:
 			// decide if skill attempt should succeed at all
 			List<EffectObjectInstance*> allEffects = combat.currentBattle->getAllEffectsInTimeOrderOldestFirst();
 			List<CombatantInstance*> allOpponents = getMyFoesThatAreAlive(*&combat);
+			List<CombatantInstance*> allAllies = getAllMyOtherAlliesNotMe(*&combat);
 
 			// go through all effects
 			List<pair<string,string>> effectsThatNeedToBeRemoved;
@@ -1320,7 +1356,7 @@ public:
 						if (effect->e.triggers.contains("ANYALLYATTACKEDPHYSICAL")
 							and !magical 
 							and !getKeysWhichContainX(c.combatSkills[c.indexOfSkillCurrentlyBeingCast].skillLogicNames, "DAMAGE").empty()) {
-							if (effect->e.logicName == "Gentleman's Riposte") { // this will fail if the user doesn't have DEFAULT_ATTACK as their 0th skill!
+							if (effect->e.logicName == "Gentleman's Riposte") {
 								skillSData["success"] = "0";
 								skillSData["failReason"] = "ATTACKBLOCKED";
 								string foeUsingRiposte = actor->c.uniqueCombatID;
@@ -1342,10 +1378,42 @@ public:
 						Map<string, string> bleedingSData;
 						Map<string, int> bleedingVData;
 						bleedingSData["success"] = "1";
-						bleedingVData["DAMAGE_SINGLE_PHYSICAL"] = 40;
+						bleedingVData["DAMAGE_SINGLE_NEUTRAL"] = 40;
 						string user = effect->e.owner;
 						string victim = c.uniqueCombatID;
-						results.push_back(CombatEvent("DAMAGE_SINGLE_PHYSICAL", "SKILL", "BLEEDING", user, { victim }, bleedingSData, bleedingVData));
+						results.push_back(CombatEvent("DAMAGE_SINGLE_NEUTRAL", "SKILL", "BLEEDING", user, { victim }, bleedingSData, bleedingVData));
+					}
+					if (effect->e.logicName == "POISONED" and c.getSkillBeingCast().skillTypeTags.contains("PHYSICAL") and c.getSkillBeingCast().uniqueID != "DEFAULT_WAIT") {
+						Map<string, string> poisonedSData;
+						Map<string, int> poisonedVData;
+						poisonedSData["success"] = "1";
+						poisonedVData["DAMAGE_SINGLE_NEUTRAL"] = 40;
+						string user = effect->e.owner;
+						string victim = c.uniqueCombatID;
+						results.push_back(CombatEvent("DAMAGE_SINGLE_NEUTRAL", "SKILL", "POISONED", user, { victim }, poisonedSData, poisonedVData));
+					}
+					if (effect->e.logicName == "DISEASED" and c.getSkillBeingCast().uniqueID != "DEFAULT_WAIT") {
+						Map<string, string> diseasedSData;
+						Map<string, int> diseasedVData;
+						diseasedSData["success"] = "1";
+						diseasedVData["DAMAGE_SINGLE_NEUTRAL"] = 10;
+						string user = effect->e.owner;
+						string victim = c.uniqueCombatID;
+						results.push_back(CombatEvent("DAMAGE_SINGLE_NEUTRAL", "SKILL", "DISEASED", user, { victim }, diseasedSData, diseasedVData));
+						CombatantInstance* currentActor = combat.currentBattle->getThisCombatant(user);
+						if (currentActor->c.currentTarget != "WORLD") {
+							CombatantInstance* theTarget = combat.currentBattle->getThisCombatant(currentActor->c.currentTarget);
+							if (allAllies.contains(theTarget)) {
+								Map<string, string> spreadDiseaseSData;
+								Map<string, int> spreadDiseaseVData;
+								spreadDiseaseSData["success"] = "1";
+								spreadDiseaseSData["sourceOfTheDisease"] = user;
+								spreadDiseaseVData["DURATION_DISEASED"] = effect->e.roundsLeft;
+								results.push_back(CombatEvent("APPLY_DISEASED_SINGLE", "SKILL", "DISEASED2", user, { theTarget->c.uniqueCombatID }, diseasedSData, diseasedVData));
+								// this is DISEASED2 because in this case we want the game to animate the same skill animation twice in a row!
+							}
+						}
+						
 					}
 					if (effect->e.logicName == "CONCUSSED" and c.getSkillBeingCast().skillTypeTags.contains("MAGICAL")) {
 						int diceRoll = RANDOM.getRandom(1, 100);
@@ -1507,7 +1575,7 @@ public:
 					List<CombatantInstance* > targets;
 
 					if (report.sData.hasKey("ifCondition")) {
-						List<string> targetHasAStatus = List<string>({"TARGETHASDUSTY"});
+						List<string> targetHasAStatus = List<string>::quickMake({"TARGETHASDUSTY", "TARGETHASBLEEDING"});
 						if (targetHasAStatus.contains(report.sData["ifCondition"])) {
 							string effectName = SReplace(report.sData["ifCondition"], "TARGETHAS", "");
 							if (!combat.currentBattle->doesTargetXHaveStatusY(report.combatantsAffected.at(0), effectName)) {
@@ -1768,6 +1836,13 @@ public:
 									for (auto subeffect : subeffects.getKeys().internalList) {
 										report.vData[subeffect] = subeffects[subeffect];
 									}
+								}
+								if (report.sourceName == "DISEASED2") {
+									combat.currentBattle->addCombatMessage("DISEASE", List<pair<string, string>>({
+												pair<string, string>("name",combat.currentBattle->getThisCombatant(user)->c.uniqueID),
+												pair<string, string>("language",language),
+												pair<string, string>("target",combat.currentBattle->all[currentTarget]->c.uniqueID),
+										}), 0);
 								}
 							}
 						}
@@ -2275,6 +2350,11 @@ public:
 				message = WSReplace(message, L"$X$", StringToWString(combatMessageData["damage"]));
 				message = WSReplace(message, L"$2$", strings[language]["NPCNames"][combatMessageData["target"]]);
 			}
+			if (type == "DISEASE") {
+				message = strings[language]["Combat Messages"]["DISEASE"];
+				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][combatMessageData["name"]]);
+				message = WSReplace(message, L"$2$", strings[language]["NPCNames"][combatMessageData["target"]]);
+			}
 			combatMessages.push_front({ verbosity, message });
 		}
 		void announceCombatantTurn(string language) {
@@ -2492,6 +2572,10 @@ public:
 				delete allEffectsInPlay[who][name];
 				allEffectsInPlay[who][name] = NULL;
 				allEffectsInPlay[who].internalMap.erase(name);
+				string imageName = who + "$" + name + "$COMBATEFFECT";
+				string borderName = who + "$" + name + "$COMBATBORDER";
+				graphics.tearDownSpecifiedImage(imageName);
+				graphics.tearDownSpecifiedImage(borderName);
 			}
 		}
 		EffectObjectInstance* getThisEffect(string who, string name) {
@@ -2559,52 +2643,52 @@ public:
 		float party2Y = 30;
 
 		results["TEAM1_4"] = Map<string, pair<float, float>>({
-				pair<string, pair<float, float>>("1", {10, party1Y}),
-				pair<string, pair<float, float>>("2", {30, party1Y}),
-				pair<string, pair<float, float>>("3", {50, party1Y}),
-				pair<string, pair<float, float>>("4", {70, party1Y}),
+				pair<string, pair<float, float>>("1", {12, party1Y}),
+				pair<string, pair<float, float>>("2", {32, party1Y}),
+				pair<string, pair<float, float>>("3", {52, party1Y}),
+				pair<string, pair<float, float>>("4", {72, party1Y}),
 			});
 		results["TEAM1_3"] = Map<string, pair<float, float>>({
-			pair<string, pair<float, float>>("1", {15, party1Y}),
-			pair<string, pair<float, float>>("2", {35, party1Y}),
-			pair<string, pair<float, float>>("3", {55, party1Y}),
+			pair<string, pair<float, float>>("1", {17, party1Y}),
+			pair<string, pair<float, float>>("2", {37, party1Y}),
+			pair<string, pair<float, float>>("3", {57, party1Y}),
 			});
 		results["TEAM1_2"] = Map<string, pair<float, float>>({
-			pair<string, pair<float, float>>("1", {25, party1Y}),
-			pair<string, pair<float, float>>("2", {45, party1Y}),
+			pair<string, pair<float, float>>("1", {27, party1Y}),
+			pair<string, pair<float, float>>("2", {47, party1Y}),
 			});
 		results["TEAM1_1"] = Map<string, pair<float, float>>({
-			pair<string, pair<float, float>>("1", {35, party1Y}),
+			pair<string, pair<float, float>>("1", {37, party1Y}),
 			});
 		results["TEAM1_ALLIES"] = Map<string, pair<float, float>>({
-				pair<string, pair<float, float>>("1", {15, party1alliesY}),
-				pair<string, pair<float, float>>("2", {35, party1alliesY}),
-				pair<string, pair<float, float>>("3", {55, party1alliesY}),
-				pair<string, pair<float, float>>("4", {75, party1alliesY}),
+				pair<string, pair<float, float>>("1", {17, party1alliesY}),
+				pair<string, pair<float, float>>("2", {37, party1alliesY}),
+				pair<string, pair<float, float>>("3", {57, party1alliesY}),
+				pair<string, pair<float, float>>("4", {77, party1alliesY}),
 			});
 		results["TEAM2_4"] = Map<string, pair<float, float>>({
-				pair<string, pair<float, float>>("1", {25, party2Y}),
-				pair<string, pair<float, float>>("2", {45, party2Y}),
-				pair<string, pair<float, float>>("3", {65, party2Y}),
-				pair<string, pair<float, float>>("4", {85, party2Y}),
+				pair<string, pair<float, float>>("1", {27, party2Y}),
+				pair<string, pair<float, float>>("2", {47, party2Y}),
+				pair<string, pair<float, float>>("3", {67, party2Y}),
+				pair<string, pair<float, float>>("4", {87, party2Y}),
 			});
 		results["TEAM2_3"] = Map<string, pair<float, float>>({
-			pair<string, pair<float, float>>("1", {35, party2Y}),
-			pair<string, pair<float, float>>("2", {55, party2Y}),
-			pair<string, pair<float, float>>("3", {75, party2Y}),
+			pair<string, pair<float, float>>("1", {37, party2Y}),
+			pair<string, pair<float, float>>("2", {57, party2Y}),
+			pair<string, pair<float, float>>("3", {77, party2Y}),
 			});
 		results["TEAM2_2"] = Map<string, pair<float, float>>({
-			pair<string, pair<float, float>>("1", {45, party2Y}),
-			pair<string, pair<float, float>>("2", {65, party2Y}),
+			pair<string, pair<float, float>>("1", {47, party2Y}),
+			pair<string, pair<float, float>>("2", {67, party2Y}),
 			});
 		results["TEAM2_1"] = Map<string, pair<float, float>>({
-			pair<string, pair<float, float>>("1", {55, party2Y}),
+			pair<string, pair<float, float>>("1", {57, party2Y}),
 			});
 		results["TEAM2_ALLIES"] = Map<string, pair<float, float>>({
-				pair<string, pair<float, float>>("1", {20, party2alliesY}),
-				pair<string, pair<float, float>>("2", {40, party2alliesY}),
-				pair<string, pair<float, float>>("3", {60, party2alliesY}),
-				pair<string, pair<float, float>>("4", {80, party2alliesY}),
+				pair<string, pair<float, float>>("1", {22, party2alliesY}),
+				pair<string, pair<float, float>>("2", {42, party2alliesY}),
+				pair<string, pair<float, float>>("3", {62, party2alliesY}),
+				pair<string, pair<float, float>>("4", {82, party2alliesY}),
 			});
 		return results;
 
@@ -2674,7 +2758,7 @@ public:
 
 		// SANGROMANCY
 		skillDefinitions["Life Drain"] = Skill("Life Drain", "Life Drain", "Sangromancy", SKILLICON_LIFEDRAIN, 10, 0, 1, "SINGLEFOE",
-			list<string>({ "APPLY_Life Drain_SINGLE", "LIFESTEAL_SINGLE_UNHOLY" }),
+			list<string>({ "APPLY_Life Drain_SINGLE",}),
 			list<string>({ "MAGICAL","BLOOD","UNHOLY" }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DURATION_Life Drain", PowerValue("DURATION_Life Drain", 5, 5, 8, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
@@ -2684,11 +2768,20 @@ public:
 			list<string>({ "DEALDAMAGE", "HEALSELF" }), 1060);
 
 		skillDefinitions["Atrophy"] = Skill("Atrophy", "Atrophy", "Sangromancy", SKILLICON_ATROPHY, 5, 0, 0, "SINGLEFOE",
-			list<string>({ "APPLY_WEAKNESS_SINGLE" }),
+			list<string>({ "APPLY_WEAKENED_SINGLE" }),
 			list<string>({ "MAGICAL","BLOOD","UNHOLY" }),
-			Map<string, PowerValue>({ pair<string, PowerValue>("DURATION_WEAKNESS", PowerValue("DURATION_WEAKNESS", 5, 0, 15, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+			Map<string, PowerValue>({ pair<string, PowerValue>("DURATION_WEAKENED", PowerValue("DURATION_WEAKENED", 5, 0, 15, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
 				}),
 			list<string>({ "CURSEFOE", }), ATROPHY_WAV);
+
+		skillDefinitions["Vampiric Strike"] = Skill("Vampiric Strike", "Vampiric Strike", "Sangromancy", SKILLICON_VAMPIRICSTRIKE, 10, 0, 2, "SINGLEFOE",
+			list<string>({ "APPLY_BLEEDING_SINGLE", }),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY" }),
+			Map<string, PowerValue>({ 
+				pair<string, PowerValue>("DURATION_BLEEDING", PowerValue("DURATION_BLEEDING", 3, 0, 15, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				pair<string, PowerValue>("LIFESTEAL_SINGLE_UNHOLY", PowerValue("LIFESTEAL_SINGLE_UNHOLY", 9, 0, 99, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				}),
+			list<string>({ "DEALDAMAGE", }), ATROPHY_WAV);
 
 		skillDefinitions["Blade of Blood"] = Skill("Blade of Blood", "Blade of Blood", "Sangromancy", SKILLICON_BLADEOFBLOOD, 5, 0, 5, "SINGLEALLY",
 			list<string>({ "APPLY_Blade of Blood_SINGLE" }),
@@ -2705,6 +2798,13 @@ public:
 			Map<string, PowerValue>({ pair<string, PowerValue>("POWER_Aura Drain", PowerValue("Power_Aura Drain", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
 				}),
 			list<string>({ "REMOVEBOON", }), AURADRAIN_WAV);
+
+		skillDefinitions["Septicemia"] = Skill("Septicemia", "Septicemia", "Sangromancy", SKILLICON_SEPTICEMIA, 10, 0, 2, "SINGLEFOE",
+			list<string>({ "APPLY_DISEASEDIF?TARGETHASBLEEDING_SINGLE" }),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY" }),
+			Map<string, PowerValue>({ pair<string, PowerValue>("DURATION_DISEASED", PowerValue("DURATION_DISEASED", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				}),
+			list<string>({ "CURSEFOE", }), ATROPHY_WAV);
 
 		// NECROMANCY
 		skillDefinitions["Animate Skeleton Warrior"] = Skill("Animate Skeleton Warrior", "Animate Skeleton Warrior", "Necromancy", SKILLICON_ANIMATESKELETONWARRIOR, 55, 1, 8, "SELF", // debug 0, real = 2
@@ -2967,13 +3067,26 @@ public:
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
 						pair<string, string>("0", "DEFAULT_WAIT"),
-						pair<string, string>("1", "Strength of Reason"),
-						pair<string, string>("2", "Blade of Blood"),
-						pair<string, string>("3", "Gentleman's Riposte"),
-						pair<string, string>("4", "Basalt Bastion"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 				}));
+		definedCombatants["DebugWoman"] = Combatant("DebugWoman", "DebugWoman", Map<string, int>({
+				pair<string, int>("PIETY", 100),
+			}),
+			Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("EnragedNoblewoman", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("EnragedNoblewoman", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("BLEEDING", "999"),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_WAIT"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+				}));
+
 
 		// SUMMONS
 		definedCombatants["Skeleton Warrior"] = Combatant("Skeleton Warrior", "Skeleton Warrior", {},
@@ -3064,7 +3177,7 @@ public:
 					}));
 		definedCombatants["EnragedMagician"] = Combatant("EnragedMagician", "EnragedMagician",
 			Map<string, int>({
-				pair<string, int>("INTELLIGENCE", 1),
+				pair<string, int>("INTELLIGENCE", 2),
 				}),
 				Map<string, Map<string, string>>({
 					pair<string, Map<string, string>>("Images", Map<string, string>({
@@ -3073,6 +3186,20 @@ public:
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
 						pair<string, string>("1", "Brilliant Spark"),
+						})),
+					}));
+		definedCombatants["EnragedNoblewoman"] = Combatant("EnragedNoblewoman", "EnragedNoblewoman",
+			Map<string, int>({
+				pair<string, int>("PIETY", 2),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("EnragedNoblewoman", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("EnragedNoblewoman", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("1", "Sandstorm"),
+						pair<string, string>("2", "Stone Strike"),
 						})),
 					}));
 		definedCombatants["EnragedRider"] = Combatant("EnragedRider", "EnragedRider",
@@ -3099,7 +3226,7 @@ public:
 		// pair is leader -> team
 		// DEBUG
 		definedTeams["DEBUG"] = { "SadBag", List<Combatant>({
-			definedCombatants["SadBag"]}) };
+			definedCombatants["SadBag"], definedCombatants["DebugWoman"]}) };
 
 		// EVENT
 		definedTeams["EVENT1"] = { "EnragedVilomah", List<Combatant>({
@@ -3181,8 +3308,16 @@ public:
 			List<string>(list<string>({ "BURNING", })),
 			List<string>(list<string>({ "EVERYTURN" })));
 
-		allEffectDefinitions["WEAKNESS"] = EffectObject("WEAKNESS", "BANE", EFFECTICON_WEAKNESS, "WEAKNESS", false,
-			List<string>(list<string>({ "WEAKNESS", })),
+		allEffectDefinitions["WEAKENED"] = EffectObject("WEAKENED", "BANE", EFFECTICON_WEAKNESS, "WEAKENED", false,
+			List<string>(list<string>({ "WEAKENED", })),
+			List<string>(list<string>({  })));
+
+		allEffectDefinitions["DISEASED"] = EffectObject("DISEASED", "BANE", EFFECTICON_DISEASED, "DISEASED", false,
+			List<string>(list<string>({ "DISEASED", })),
+			List<string>(list<string>({  })));
+
+		allEffectDefinitions["POISONED"] = EffectObject("POISONED", "BANE", EFFECTICON_POISONED, "POISONED", false,
+			List<string>(list<string>({ "POISONED", })),
 			List<string>(list<string>({  })));
 
 		// permanent

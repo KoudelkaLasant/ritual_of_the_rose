@@ -49,7 +49,7 @@ public:
             pair<string,int>({ "Morris Roman", IDF_MORRIS }),
             pair<string, int>({"HighTowerText", IDF_HIGHTOWER}),
         };
-        customFontSizes = {5,10,12,13,14,15,16,17,18,19,20,25,30,35,37,40,50};
+        customFontSizes = {1,2,3,4,5,10,12,13,14,15,16,17,18,19,20,25,30,35,37,40,50};
         Colours["BLACK"] = { 0.0,0.0,0.0,1.0 };
         Colours["WHITE"] = { 1.0,1.0,1.0,1.0 };
         Colours["BLUE"] = { 0.0,0.0,1.0,1.0 };

@@ -216,7 +216,7 @@ public:
 		// for party rearrange
 		return List<pair<float, float>>({ pair<float, float>(35,25),pair<float, float>(53,25),pair<float, float>(71,25),pair<float, float>(89,25) });
 	}
-	static const Map<int, List<pair<float, float>>> getPlayerCardReformGridPositions(float xOffset, float yOffset, float xSpace) {
+	static const Map<int, List<pair<float, float>>> getPlayerCardReformGridPositions(float xOffset, float yOffset, float xSpace, float ySpace) {
 		Map<int, List<pair<float, float>>> results;
 
 		List<pair<float, float>> firstRow({ pair<float, float>(xOffset,yOffset),pair<float, float>(xSpace + xOffset,yOffset),pair<float, float>(xSpace*2 + xOffset,yOffset),
@@ -224,7 +224,7 @@ public:
 		for (int x = 1; x < 6; x++) {
 			List<pair<float, float>> currentRow = firstRow;
 			for (int y = 0; y < currentRow.size(); y++) {
-				currentRow.at(y).second *= x;
+				currentRow.at(y).second += (ySpace * x-1);
 			}
 			results[x - 1] = currentRow;
 		}
@@ -392,6 +392,9 @@ public:
 			}
 		}
 		return results;
+	}
+	static string skillGridYLoc() {
+		return "8";
 	}
 
 	string uniqueID;
