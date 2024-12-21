@@ -3202,6 +3202,19 @@ public:
 						pair<string, string>("2", "Stone Strike"),
 						})),
 					}));
+		definedCombatants["EnragedButcher"] = Combatant("EnragedNoblewoman", "EnragedNoblewoman",
+			Map<string, int>({
+				pair<string, int>("STRENGTH", 3),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("EnragedButcher", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("EnragedButcher", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("1", "DEFAULT_ATTACK"),
+						})),
+					}));
 		definedCombatants["EnragedRider"] = Combatant("EnragedRider", "EnragedRider",
 			Map<string, int>({
 				pair<string, int>("STRENGTH", 20),
@@ -3240,6 +3253,8 @@ public:
 
 		definedTeams["EVENT3"] = { "EnragedRider", List<Combatant>({
 			definedCombatants["EnragedRider"],}) };
+
+		definedTeams["EVENT4"] = {};
 
 		// ENRAGED
 

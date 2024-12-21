@@ -960,6 +960,11 @@ public:
         ImageMap[current].forcibleRemove(theImage);
         ImageMap[current + amount].push_front(theImage);
     }
+    void moveLayer(Image* theImage, int target) {
+        int current = whichLayerIsThisImageOn(theImage);
+        ImageMap[current].forcibleRemove(theImage);
+        ImageMap[target].push_front(theImage);
+    }
     int whichLayerIsThisImageOn(Image* theImage) {
         for (auto layer : ImageMap.getKeys().internalList) {
             if (ImageMap[layer].contains(theImage)) {

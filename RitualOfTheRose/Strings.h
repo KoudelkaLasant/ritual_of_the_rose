@@ -422,8 +422,13 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Return to Entry Hall", L"Return to Entry Hall"},
 			{"Enter Chapel Right Wing", L"Enter Chapel Right Wing"},
 			{"Enter", L"Enter"},
+			{"Leave", L"Leave"},
 			{"Inspect Statue", L"Check the Statue"},
 			{"Attack the Mad Rider", L"Attack William de Vaines"},
+			{"WaterTank1", L"Inspect the Water Tank"},
+			{"Return to Corridor", L"Return to Corridor"},
+			{"Enter Water Room", L"Enter Water Room"},
+			{"Check Tool Bench", L"Check Tool Bench"},
 		}},
 		{ "Default Merchant Dialogue", {
 			{"Buy" , L"Greetings, traveller, and welcome to my store! I have some items for sale that might interest you! If you have any questions don't hesitate to ask, I'm here to help."},
@@ -2188,6 +2193,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"33 $ANIMATEOBJECT$", L"Shadow Angela Fleuret_Shadow Angela Fleuret_STAND_FRONT"},
 			{"34 Angela Fleuret$DIRECT$", L"Hmm..."},
 			{"35 $AREATRANSITION$", L"ChapelRight1$26,87.5$STAND_RIGHT$direction=STAND_RIGHT"},
+			{"44 $CHANGECAMERAOPERTATION$", L"1"},
 		}},
 		{ "ChapelRightCorridor$Angela Fleuret$Hernando Pizarro", {
 			{"0 $LOADOBJECT$", L"CutsceneLoadingScreen_0_0_25_50_CutsceneLoadingScreen_ACTION_1_2.0_0.0_1_CENTRE"},
@@ -2545,6 +2551,44 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"2 Hernando Pizarro", L"You are not worthy of that fine woman, not after all your atrocities. En garde!"},
 			{"2 Gihat al-Din Jaqmaq", L"I have a better idea. How about I end your worthless life and share the joyous news with your soon to be ex-wife?"},
 			{"10 $STARTCOMBAT$", L"team1=PARTY,team1allies=N/A,team2=EVENT3,team2allies=N/A,background=7673,song=N/A,postBattle=RETURNTOEXPLORE,LOOT$William's Left-Hand Sword=1,LOOT$William's Right-Hand Sword=1,direction=STAND_FRONT,x=55,y=83"},
+		}},
+		{ "ToolsOnBenchCorrectPickUp", {
+			{"1 PLAYER", L"How odd... this wrench looks like it was recently in contact with water and it's still wet. I think someone must have used this earlier today."},
+			{"2 PLAYER", L"I think I'll hold onto this for now... I may need it too."},
+			{"2.1 $PLAYSFX$", L"6897_0_1"},
+			{"3 PLAYER", L"Huh?!"},
+			{"4 $SETFLAG$", L"ChapelRightWingGotTools=1"},
+			{"5 $ANIMATEOBJECT$", L"PLAYER1_PLAYER1_STAND_LEFT"},
+			{"6 $ANIMATEOBJECT$", L"Shadow PLAYER1_Shadow PLAYER1_STAND_LEFT"},
+			{"7 PLAYER", L"Who's there?! Show yourself!"},
+			{"8 $SETFLAG$", L"ChapelRightWingGotTools=1"},
+			//{"10 $STARTCOMBAT$", L"team1=PARTY,team1allies=N/A,team2=EVENT3,team2allies=N/A,background=7673,song=N/A,postBattle=RETURNTOEXPLORE,LOOT$William's Left-Hand Sword=1,LOOT$William's Right-Hand Sword=1,direction=STAND_FRONT,x=55,y=83"},
+		}},
+		{ "ToolsOnBenchAlreadyHave", {
+			{"1 PLAYER", L"Various tools a carpenter or a plumber might use. Nothing else here stands out as being useful."},
+		} },
+		{ "WaterTankNoWrench",{
+			{"1 PLAYER", L"If I had the right tools, I could turn this valve."},
+		} },
+		{ "WaterTankActivated",{
+			{"1 $PLAYSFX$", L"7869_0_1"},
+			{"2 PLAYER", L"There, that should do it."},
+			{"3 PLAYER", L"Now that the water's running, let's see what difference it made downstairs..."},
+			{"4 $SETFLAG$", L"WaterPuzzleActivated=1"},
+		} },
+		{ "WaterTankFinished",{
+			{"1 PLAYER", L"The machine is already activated."},
+		}},
+		{ "WaterPuzzleFinished1", {
+			{"0 $CHANGEANIMATIONSPEED$", L"WATERDOORCLOSED$400$SINGLE"}, //what_what$speed$styles
+			{"1 $ANIMATEOBJECT$", L"WATERDOORCLOSED_WATERDOOR_OPENING_FRONT"},
+			{"2 $PLAYSFX$", L"7870_0_1"},
+			{"3 $SETOBSTRUCTION$", L"WATERDOORCLOSED_0"},
+			{"4 $SETFLAG$", L"WaterPuzzleFinished=1"},
+		}},
+		{ "RightWingDoorToSecret", {
+			{"0 $PLAYSFX$", L"7296_0_1"},
+			{"1 $AREATRANSITION$", L"ChapelRight1$78,98$STAND_BACK$direction=STAND_BACK"},
 		}},
 		{"DEBUG", {
 			{"0 EMPTY$DIRECT$", L"Press➀Esc to access the➀Main➀Menu. Click on➀Party➀Management and then➀Reform➀Party to change the current party members by clicking and dragging the characters."},

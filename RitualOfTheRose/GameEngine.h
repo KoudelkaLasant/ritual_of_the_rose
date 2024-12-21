@@ -932,14 +932,17 @@ public:
 					if (controller.hasThisBeenPressed(VK_F3)) {
 						saveContainer.current.flags["IntroFinished"] = true;
 						saveContainer.current.flags["debugFlag"] = true;
+						saveContainer.current.flags["ChapelRightWingGotTools"] = true;
+						saveContainer.current.flags["ChapelRightCorridor+PAIR_TRIGGERED"] = true;
 						saveContainer.current.flags["WaterPuzzleActivated"] = true;
 						saveContainer.current.flags["ChapelRightWingKeyToCorridor"] = true;
+						saveContainer.current.flags["WaterPuzzleSecretFinished"] = true;
 					}
 					if (controller.hasThisBeenPressed(VK_F4)) {
 						gameEngine.stateFlags["SHOWFPS"] = "1";
 					}
 					if (controller.hasThisBeenPressed(VK_F5)) {
-						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "AttackMadRider", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "WaterPuzzleFinished1", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 						return false;
 					}
 					if (controller.hasThisBeenPressed(VK_F6)) {
@@ -969,6 +972,7 @@ public:
 				Graphics::Image* shadowImage = graphics.accessImageViaUniqueID(shadowID);
 				string currentDirection = image->direction;
 				string currentAction = image->action;
+
 
 				for (auto const& x : controller.keysPressedInOrderAsInts.internalList) {
 					if (controller.up.contains(x) or controller.down.contains(x) or controller.left.contains(x) or controller.right.contains(x)) {
@@ -1040,7 +1044,59 @@ public:
 				Map<string, string> walkableDataToMoveOn; // send this to function that deals with next step
 				if (force) { moving = false; force = false; }
 				if (force or (moving and CLOCK.hasEnoughTimePassed("EXPLORE",exploreAnimationSpeeds["MOVE"]))) {
-					explorer.tryToMovePlayer(newDirection);
+					// allow for 8-way movement without new animation
+					string eightWayMove = "";
+					for (auto const& x : controller.keysPressedInOrderAsInts.internalList) {
+						if (newDirection == "FRONT") {
+							if (controller.left.contains(x)) {
+								eightWayMove = "LEFT";
+								break;
+							}
+							if (controller.right.contains(x)) {
+								eightWayMove = "RIGHT";
+								break;
+							}
+						}
+						if (newDirection == "LEFT") {
+							if (controller.up.contains(x)) {
+								eightWayMove = "BACK";
+								break;
+							}
+							if (controller.down.contains(x)) {
+								eightWayMove = "FRONT";
+								break;
+							}
+						}
+						if (newDirection == "BACK") {
+							if (controller.left.contains(x)) {
+								eightWayMove = "LEFT";
+								break;
+							}
+							if (controller.right.contains(x)) {
+								eightWayMove = "RIGHT";
+								break;
+							}
+						}
+						if (newDirection == "RIGHT") {
+							if (controller.up.contains(x)) {
+								eightWayMove = "BACK";
+								break;
+							}
+							if (controller.down.contains(x)) {
+								eightWayMove = "FRONT";
+								break;
+							}
+						}
+					}
+					if (eightWayMove == "") {
+						explorer.tryToMovePlayer(newDirection, explorer.unitOfMovement);
+					}
+					else {
+						explorer.tryToMovePlayer(eightWayMove, explorer.unitOfMovement / 1.41421);
+						explorer.tryToMovePlayer(newDirection, explorer.unitOfMovement / 1.41421);
+					}
+					
+
 					if (data["audio"] != "0") {
 						if (data["noaudioyet"] == "1") {
 							data["noaudioyet"] = "0";
@@ -3987,7 +4043,10 @@ return true;
 				List<int> sources = imageLookup.animationFrames[character][action + "_" + direction];
 				image->resetSources(*&graphics, sources);
 				image->action = action;
-				image->animationSpeed = explorer.getAnimationSpeeds()[action];
+				int fillInSpeed = explorer.getAnimationSpeeds()[action];
+				if (fillInSpeed != 0) {
+					image->animationSpeed = fillInSpeed;
+				}
 				image->direction = direction;
 				Event("UpdateMap", "MAPMOVE", {}).run(*&gameEngine);
 				return true;
@@ -4047,6 +4106,13 @@ return true;
 								explorer.currentMap.objects.at(x).imageSources = imageLookup.getSequenceAsString(character, action + "_" + direction);
 							}
 						}
+					}
+					if (results.first["FONT9"] == "ON") { // main puzzle finished
+						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "WaterPuzzleFinished1", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+						return false;
+					}
+					if (results.first["FONT15"] == "ON") { // main puzzle finished
+						saveContainer.current.flags["WaterPuzzleSecretFinished"] = true;
 					}
 				}
 				return true;
@@ -5032,6 +5098,18 @@ return true;
 				saveContainer.save();
 				return true;
 			}
+			if (type == "CHANGEIMAGELAYER") {
+				string imageID = data["uniqueID"];
+				int layer = stoi(data["layer"]);
+				graphics.moveLayer(graphics.accessImageViaUniqueID(imageID), layer);
+				return true;
+			}
+			if (type == "SETOBSTRUCTION") {
+				string objectName = data["uniqueID"];
+				bool isObstruction = data["isObstruction"] == "1";
+				explorer.getThisMapObject(objectName).obstruction = isObstruction;
+				return true;
+			}
 			return false;
 }
 		string name;
@@ -5898,10 +5976,10 @@ return true;
 				pair<string, string>("uniqueID", "Olyver Sumner")
 				}))),
 			Event("Load Map", "MANAGEAUDIOSWAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "ChapelRight2"),
+				pair<string, string>("targetMap", "ChapelRight1"),
 			}))),
 			Event("Load Map", "LOADMAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "ChapelRight2"),
+				pair<string, string>("targetMap", "ChapelRight1"),
 			}))),
 			Event("Debug Exploring", "EXPLORE", Map<string,string>(List<pair<string,string>>({}))),
 			})) }),
@@ -6454,6 +6532,22 @@ return true;
 					Map<string, string> data;
 					data["whichPuzzle"] = WStringToString(val);
 					results.push_back(Event("Puzzle", "RUNPUZZLELOGIC", data));
+					continue;
+				}
+				if (speaker == "$CHANGEIMAGELAYER$") {
+					List<string> parsedData = split(WStringToString(val), "_");
+					Map<string, string> data;
+					data["uniqueID"] = parsedData.at(0);
+					data["layer"] = parsedData.at(1);
+					results.push_back(Event("ChangeImageLayer", "CHANGEIMAGELAYER", data));
+					continue;
+				}
+				if (speaker == "$SETOBSTRUCTION$") {
+					List<string> parsedData = split(WStringToString(val), "_");
+					Map<string, string> data;
+					data["uniqueID"] = parsedData.at(0);
+					data["isObstruction"] = parsedData.at(1);
+					results.push_back(Event("ChangeImageLayer", "SETOBSTRUCTION", data));
 					continue;
 				}
 				if (speaker != "PLAYER" and speaker != mainCharacter and speaker != "PLAYER$ASYNC$" and speaker != "EMPTY$ASYNC$") {

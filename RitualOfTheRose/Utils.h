@@ -1696,13 +1696,14 @@ public:
 		animationFrames["WATERDOOR"]["CLOSED_FRONT"].internalList = { WATERDOOR_1 };
 		animationFrames["WATERDOOR"]["OPENING_FRONT"].internalList = { WATERDOOR_1,WATERDOOR_2,WATERDOOR_3,WATERDOOR_4,WATERDOOR_5, };
 		animationFrames["WATERDOOR"]["OPEN_FRONT"].internalList = { WATERDOOR_6, };
+		animationFrames["WATERDOORARCHONLY"]["STAND_FRONT"].internalList = { WATERDOORARCH };
 
 		animationFrames["CHAPELRIGHTLAYER3"]["STAND_FRONT"].internalList = { CHAPELRIGHTWINGLAYER3_1,CHAPELRIGHTWINGLAYER3_2,CHAPELRIGHTWINGLAYER3_3,CHAPELRIGHTWINGLAYER3_4,CHAPELRIGHTWINGLAYER3_5,CHAPELRIGHTWINGLAYER3_6, };
 		animationFrames["CHAPELRIGHTSTATUE"]["STAND_FRONT"].internalList = { CHAPELRIGHTWINGSTATUE };
 		animationFrames["CHAPELRIGHTPULPIT"]["STAND_FRONT"].internalList = { CHAPELRIGHTWINGPULPIT };
 
 		animationFrames["CHAPELRIGHTWALLLAMP1"]["STAND_FRONT"].internalList = { CHAPELRWALLLAMP1_1,CHAPELRWALLLAMP1_2,CHAPELRWALLLAMP1_3,CHAPELRWALLLAMP1_4,CHAPELRWALLLAMP1_5,CHAPELRWALLLAMP1_6, };
-		animationFrames["CHAPELRIGHT2_TOP"]["STAND_FRONT"].internalList = { CHAPELRIGHT_2_TOP, };
+		animationFrames["CHAPELRIGHT_2_TOP"]["STAND_FRONT"].internalList = { CHAPELRIGHT_2_TOP, };
 	}
 
 	string getSequenceAsString(string character, string action) {
@@ -1847,6 +1848,35 @@ public:
 		if (cutsceneName == "RightWingFountainCheck1") {
 			if (flags["ChapelRightWingKeyToCorridor"]) {
 				cutsceneName = "RightWingFountainCheck2";
+			}
+		}
+		if (cutsceneName == "WaterTank1") {
+			if (flags["WaterPuzzleActivated"]) {
+				cutsceneName = "WaterTankFinished";
+			}
+			if (!flags["ChapelRightWingGotTools"]) {
+				cutsceneName = "WaterTankNoWrench";
+			}
+			if (!flags["WaterPuzzleActivated"] and flags["ChapelRightWingGotTools"]) {
+				cutsceneName = "WaterTankActivated";
+			}
+		}
+		if (cutsceneName == "ToolsOnBenchCorrect") {
+			if (!flags["ChapelRightWingGotTools"]) {
+				cutsceneName = "ToolsOnBenchCorrectPickUp";
+			}
+			else {
+				cutsceneName = "ToolsOnBenchAlreadyHave";
+			}
+		}
+		if (cutsceneName == "WaterPuzzleFinished1") {
+			if (flags["WaterPuzzleFinished"]) {
+				cutsceneName = "WaterPuzzleFinished2";
+			}
+		}
+		if (cutsceneName == "RightWingDoorToSecret") {
+			if (!flags["WaterPuzzleSecretFinished"]) {
+				cutsceneName = "Locked";
 			}
 		}
 		return cutsceneName;
