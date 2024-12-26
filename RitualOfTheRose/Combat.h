@@ -433,8 +433,20 @@ public:
 				if (subeffect == "Sandstorm") {
 					result["APPLY_DUSTY_ALL"] = e.values["duration"];
 				}
+				if (subeffect == "Heatwave") {
+					result["APPLY_PARCHED_ALL"] = e.values["duration"];
+				}
+				if (subeffect == "Pressure Front") {
+					result["APPLY_STATIC_ALL"] = e.values["duration"];
+				}
 				if (subeffect == "Healing Rain") {
 					result["LIFEHEAL_AOE_WATER"] = e.values["power"];
+				}
+				if (subeffect == "Great Gospel") {
+					result["LIFEHEAL_SINGLE_HOLY"] = e.values["power"];
+				}
+				if (subeffect == "Apostle of Patience") {
+					result["LIFEHEAL_SINGLE_HOLY"] = e.values["power"];
 				}
 			}
 			return result;
@@ -1066,7 +1078,7 @@ public:
 						if (strategy.find("HEAL") != -1) {
 							float lifeAsPercentage = actor->c.getLifeAsPercentage();
 							if (lifeAsPercentage > 0.99 or actor->c.isDead()) {
-								targetProbability[actor->c.uniqueCombatID] = 0;
+								targetProbability[actor->c.uniqueCombatID] = 1;
 							}
 							targetProbability[actor->c.uniqueCombatID] += (1000 - (lifeAsPercentage * 1000));
 						}
@@ -1226,6 +1238,16 @@ public:
 			}
 			return result;
 		}
+		List<CombatantInstance*> getMyDeadFoes(Combat& combat) {
+			List<CombatantInstance*> allFoes = getMyFoes(*&combat);
+			List<CombatantInstance*> result;
+			for (CombatantInstance* actor : allFoes.internalList) {
+				if (actor->c.isDead()) {
+					result.push_back(actor);
+				}
+			}
+			return result;
+		}
 		List<string> getAllPossiblePositionsICouldPutASummon(Combat& combat) {
 			Map<string, Map<string, pair<float, float>>> lookup = combat.getCombatantPositionLookup();
 			List<string> alreadyOccupied;
@@ -1270,6 +1292,19 @@ public:
 			// see if an effect prevents it from being used
 
 			return result;
+		}
+		List<CombatantInstance*> getMyFoesThatWereSummoned(Combat& combat) {
+			List<CombatantInstance*> all = getMyFoesThatAreAlive(*&combat);
+			List<CombatantInstance*> result;
+			for (CombatantInstance* actor : all.internalList) {
+				if (actor->wasISummoned()) {
+					result.push_back(actor);
+				}
+			}
+			return result;
+		}
+		bool wasISummoned() {
+			return c.data["EXTRAS"]["SUMMONED"] == "1";
 		}
 
 		void changeTargetOrCancelCastingIfCurrentTargetIsNowInapplicable(Combat& combat, string language) {
@@ -1374,6 +1409,14 @@ public:
 				}
 				// effect is on the user
 				if (effect->e.target == c.uniqueCombatID) {
+					if (effect->e.logicName == "Cestodarian Siphon" and c.getSkillBeingCast().skillTypeTags.contains("MAGICAL")) {
+						string user = effect->e.owner;
+						string victim = c.uniqueCombatID;
+						Map<string, string> subSData; subSData["success"] = "1";
+						subSData["audioSource"] = "8737";
+						Map<string, int> subVData; subVData["LIFESTEAL_SINGLE_UNHOLY"] = effect->e.values["power"];
+						results.push_back(CombatEvent("LIFESTEAL_SINGLE_UNHOLY", "SKILL", "Cestodarian Siphon", user, { victim }, subSData, subVData));
+					}
 					if (effect->e.logicName == "BLEEDING" and c.getSkillBeingCast().skillTypeTags.contains("MAGICAL")) {
 						Map<string, string> bleedingSData;
 						Map<string, int> bleedingVData;
@@ -1444,19 +1487,41 @@ public:
 				List<string> combatantsAffected;
 				Map<string, string> sData = skillSData;
 				Map<string, int> vData = skillVData;
-				if (skillLogicName.find("IF?") != -1) {
+				if (skillLogicName.find("APPLY_") != -1 and skillLogicName.find("IF?") != -1) {
 					List<string> conditionData = split(skillLogicName, "IF?");
 					sData["ifCondition"] = split(conditionData.at(1), "_").at(0);
 					skillLogicName = SReplace(skillLogicName, "IF?" + sData["ifCondition"], "");
 				}
-
 				if (skillLogicName.find("_SINGLE") != -1 or skillLogicName.find("_SELF") != -1) {
-					combatantsAffected.push_back(combat.currentBattle->getThisCombatant(c.currentTarget)->c.uniqueCombatID);
+					if (skillLogicName.find("_SELF") != -1 and c.currentTarget != c.uniqueCombatID) {
+						combatantsAffected.push_back(c.uniqueCombatID);
+					}
+					combatantsAffected.addToBackIfNotAlreadyInList(combat.currentBattle->getThisCombatant(c.currentTarget)->c.uniqueCombatID);
 					sData["message"] = SReplace(skillSData["message"], "$TARGET$",
 						" " + WStringToString(strings[language]["Skill Actions"]["ON"]) + " " + WStringToString(targetName)
 					);
 					skillSData["message"] = sData["message"];
 					results.push_back(CombatEvent(skillLogicName, "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, combatantsAffected, sData, vData));
+					if (skillLogicName.find("LIFEHEAL_") != -1) {
+						for (auto person : combatantsAffected.internalList) {
+							if (combat.currentBattle->doesTargetXHaveStatusY(person, "Beggar's Blessing")) {
+								EffectObjectInstance * effect = combat.currentBattle->getThisEffect(person, "Beggar's Blessing");
+								CombatantInstance* caster = combat.currentBattle->getThisCombatant(effect->e.owner);
+								if (!caster->c.isDead()) {
+									Map<string, string> subSData;
+									subSData["success"] = "1";
+									subSData["audioSource"] = to_string(BEGGARBLESSING_WAV);
+									Map<string, int> subVData;
+									for (auto key : vData.getKeys().internalList) {
+										if (key.find("LIFEHEAL_") != -1) {
+											subVData[SReplace(key, "LIFEHEAL_", "LIFESTEAL_")] = vData[key] * 0.5;
+										}
+									}
+									results.push_back(CombatEvent("LIFESTEAL_SINGLE_UNHOLY", "SKILL", "Beggar's Blessing", caster->c.uniqueCombatID, combatantsAffected, subSData, subVData));
+								}
+							}
+						}
+					}
 				}
 				if (skillLogicName.find("_WORLD") != -1) {
 					combatantsAffected.push_back("WORLD");
@@ -1465,7 +1530,26 @@ public:
 					skillSData["message"] = sData["message"];
 					results.push_back(CombatEvent(skillLogicName, "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, combatantsAffected, sData, vData));
 				}
-				if (skillLogicName.find("_ALL") != -1) {
+				if (skillLogicName.find("_ALLFOES") != -1) {
+					for (CombatantInstance* actor : getMyFoesThatAreAlive(*&combat).internalList) {
+						combatantsAffected.push_back(actor->c.uniqueCombatID);
+					}
+					results.push_back(CombatEvent(skillLogicName, "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, combatantsAffected, sData, vData));
+					sData["message"] = SReplace(WStringToString(strings[language]["Skill Actions"]["WORLD_DONE"]), "$PLAYER$", WStringToString(userName));
+					sData["message"] = SReplace(sData["message"], "$SKILL$", WStringToString(skillName));
+					skillSData["message"] = sData["message"];
+				}
+				if (skillLogicName.find("_ALLALLIES") != -1) {
+					for (CombatantInstance* actor : getAllMyAllies(*&combat).internalList) {
+						if (actor->c.isDead()) { continue; }
+						combatantsAffected.push_back(actor->c.uniqueCombatID);
+					}
+					results.push_back(CombatEvent(skillLogicName, "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, combatantsAffected, sData, vData));
+					sData["message"] = SReplace(WStringToString(strings[language]["Skill Actions"]["WORLD_DONE"]), "$PLAYER$", WStringToString(userName));
+					sData["message"] = SReplace(sData["message"], "$SKILL$", WStringToString(skillName));
+					skillSData["message"] = sData["message"];
+				}
+				if (skillLogicName.find("_ALL") != -1 and skillLogicName.find("FOES") == -1 and skillLogicName.find("_ALLALLIES") == -1) {
 					for (CombatantInstance* actor : combat.currentBattle->getAllCombatants().internalList) {
 						combatantsAffected.push_back(actor->c.uniqueCombatID);
 					}
@@ -1477,6 +1561,19 @@ public:
 				if (skillLogicName.find("_AOE") != -1) {
 					List<CombatantInstance*> targets = combat.currentBattle->getThisCombatant(c.currentTarget)->getMyTeam(*&combat);
 					string newLogicName = SReplace(skillLogicName, "_AOE", "_SINGLE");
+					for (CombatantInstance* target : targets.internalList) {
+						results.push_back(CombatEvent(newLogicName, "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, { target->c.uniqueCombatID }, sData, vData));
+					}
+				}
+				if (skillLogicName.find("ALLUNDEADORDEMONICFOES") != -1) {
+					List<CombatantInstance*> all = getMyFoesThatAreAlive(*&combat);
+					List<CombatantInstance*> targets;
+					for (CombatantInstance* actor : all.internalList) {
+						if (combat.currentBattle->doesTargetXHaveStatusY(actor->c.uniqueCombatID, "UNDEAD") or combat.currentBattle->doesTargetXHaveStatusY(actor->c.uniqueCombatID, "DEMONIC")) {
+							targets.push_back(actor);
+						}
+					}
+					string newLogicName = SReplace(skillLogicName, "_ALLUNDEADORDEMONICFOES", "_SINGLE");
 					for (CombatantInstance* target : targets.internalList) {
 						results.push_back(CombatEvent(newLogicName, "SKILL", c.combatSkills[c.indexOfSkillCurrentlyBeingCast].uniqueID, c.uniqueCombatID, { target->c.uniqueCombatID }, sData, vData));
 					}
@@ -1611,6 +1708,18 @@ public:
 					}
 					List<string> reportKeys = report.vData.getKeys();
 
+					if (report.logic.find("INTERRUPTIF?TARGETHAS") != -1) {
+						string data = SReplace(report.logic, "INTERRUPTIF?TARGETHAS", "");
+						string req = split(data, "_").at(0);
+						string howMany = split(data, "_").at(1);
+						for (CombatantInstance* actor : targets.internalList) {
+							if (combat.currentBattle->doesTargetXHaveStatusY(actor->c.uniqueCombatID, req)) {
+								report.logic = "INTERRUPT_SINGLE";
+							}
+						}
+
+					}
+
 					if (report.logic.find("INTERRUPT_SINGLE") != -1) {
 						for (EffectObjectInstance* effect : combat.currentBattle->getAllEffectsOnXInTimeOrderOldestFirst(report.originalUser).internalList) {
 							if (effect->e.triggers.contains("ONTRYINGTOINTERRUPT")) {
@@ -1646,7 +1755,21 @@ public:
 					}
 
 					if (report.logic.find("LIFEHEAL_SINGLE") != -1) {
+						if (report.sourceName == "Conciliatory Prayer") {
+							CombatantInstance* user = combat.currentBattle->getThisCombatant(report.originalUser);
+							CombatantInstance* target = combat.currentBattle->getThisCombatant(report.combatantsAffected.front());
+							if (user->c.combatStats["CURRENTLIFE"] > target->c.combatStats["CURRENTLIFE"]) {
+								report.vData["LIFEHEAL_SINGLE_HOLY"] *= 1.5;
+							}
+						}
 						for (auto v : reportKeys.internalList) {
+							for (CombatantInstance* target : targets.internalList) {
+								if (target->c.isDead()) {
+									if (v.find("LIFEHEAL") != -1) {
+										report.vData[v] = 0;
+									}
+								}
+							}
 							for (EffectObjectInstance* effect : allEffects.internalList) {
 								CombatantInstance* target = combat.currentBattle->getThisCombatant(effect->e.target);
 								if (targets.contains(target)) { // the effect is on the one being healed
@@ -1660,8 +1783,30 @@ public:
 						}
 					}
 
-					if (report.logic.find("LIFESTEAL_SINGLE") != -1) {
+					if (report.logic.find("LIFESACRIFICE_SINGLE") != -1) {
+						// convert percentage to actual
+						int powerAsPercentage = report.vData["LIFESACRIFICE_SINGLE"];
+						float resultPower = user->c.combatStats["LIFE"] * 100 / powerAsPercentage;
+						report.vData["LIFESACRIFICE_SINGLE"] = resultPower;
+						// effects which make user sacrifice more
+					}
+
+					if (report.logic.find("LIFESTEAL_SINGLE") != -1 or report.vData.hasKey("LIFESTEAL_SINGLE_UNHOLY")) {
+						if (report.sourceName == "Botched Procedure") {
+							List<EffectObjectInstance*> effectsOnVictim = combat.currentBattle->getAllEffectsOnXThatAreThisType(report.combatantsAffected.front(), "BANE");
+							report.vData["power"] = effectsOnVictim.size();
+							report.vData["LIFESTEAL_SINGLE_UNHOLY"] *= report.vData["power"];
+						}
 						for (EffectObjectInstance* effect : allEffects.internalList) {
+							if (effect->e.target == report.originalUser) { // this effect is on the user
+								if (effect->e.triggers.contains("ONSTEALINGLIFE")) {
+									if (effect->e.logicName == "Viper Eyes") {
+										if (report.vData.hasKey("LIFESTEAL_SINGLE_UNHOLY")) {
+											report.vData["LIFESTEAL_SINGLE_UNHOLY"] *= 1.8;
+										}
+									}
+								}
+							}
 							if (effect->e.target == "WORLD") { continue; }
 							CombatantInstance* target = combat.currentBattle->getThisCombatant(effect->e.target);
 							if (targets.contains(target)) {
@@ -1687,6 +1832,11 @@ public:
 												report.vData["DAMAGE_SINGLE_HOLY"] = effect->e.values["power"];
 											}
 										}
+										if (effect->e.logicName == "Order of the Wasp") {
+											if (report.vData.hasKey("DAMAGE_SINGLE_PHYSICAL")) {
+												report.vData["MANASTEAL_SINGLE_UNHOLY"] = effect->e.values["power"];
+											}
+										}
 									}
 								}
 								if (effect->e.target == "WORLD") {
@@ -1695,11 +1845,26 @@ public:
 								}
 								CombatantInstance* target = combat.currentBattle->getThisCombatant(effect->e.target);
 								if (targets.contains(target)) { // this effect is on the victim
+									if (effect->e.uniqueID == "Curse from Beyond the Grave") {
+										if (combat.currentBattle->getThisCombatant(report.originalUser)->wasISummoned()) {
+											for (auto key : report.vData.getKeys().internalList) {
+												if (key.find("DAMAGE_") != -1) {
+													report.vData[key] *= 2;
+												}
+											}
+										}
+									}
+									if (effect->e.uniqueID == "Viper Eyes") {
+										report.vData[v] *= 1.33;
+									}
 									if (effect->e.uniqueID == "Fragile") {
 										report.vData[v] *= 100;
 									}
 									if (v == "DAMAGE_SINGLE_ELECTRIC" and effect->e.triggers.contains("ONTAKINGELECTRICDAMAGE")) {
 										if (effect->e.logicName == "WET") {
+											report.vData["DAMAGE_SINGLE_ELECTRIC"] *= 1.25;
+										}
+										if (effect->e.logicName == "STATIC") {
 											report.vData["DAMAGE_SINGLE_ELECTRIC"] *= 1.25;
 										}
 										if (effect->e.logicName == "DUSTY") {
@@ -1710,6 +1875,12 @@ public:
 										if (effect->e.logicName == "WET") {
 											report.vData["DAMAGE_SINGLE_FIRE"] *= 0.9;
 										}
+										if (effect->e.logicName == "PARCHED") {
+											report.vData["DAMAGE_SINGLE_FIRE"] *= 1.25;
+										}
+										if (effect->e.logicName == "STATIC") {
+											report.vData["DAMAGE_SINGLE_FIRE"] *= 1.25;
+										}
 									}
 									if (v == "DAMAGE_SINGLE_COLD" and effect->e.triggers.contains("ONTAKINGCOLDDAMAGE")) {
 										if (effect->e.logicName == "WET") {
@@ -1718,10 +1889,19 @@ public:
 										if (effect->e.logicName == "DUSTY") {
 											report.vData["DAMAGE_SINGLE_ELECTRIC"] *= 1.25;
 										}
+										if (effect->e.logicName == "PARCHED") {
+											report.vData["DAMAGE_SINGLE_FIRE"] *= 0.9;
+										}
 									}
 									if (v == "DAMAGE_SINGLE_EARTH" and effect->e.triggers.contains("ONTAKINGEARTHDAMAGE")) {
 										if (effect->e.logicName == "DUSTY") {
 											report.vData["DAMAGE_SINGLE_EARTH"] *= 1.25;
+										}
+										if (effect->e.logicName == "PARCHED") {
+											report.vData["DAMAGE_SINGLE_FIRE"] *= 1.25;
+										}
+										if (effect->e.logicName == "STATIC") {
+											report.vData["DAMAGE_SINGLE_FIRE"] *= 0.9;
 										}
 									}
 									if (v == "DAMAGE_SINGLE_HOLY" and effect->e.triggers.contains("ONTAKINGHOLYDAMAGE")) {
@@ -1754,7 +1934,32 @@ public:
 							report.vData["MANASTEAL_SINGLE_" + element] = power;
 						}
 					}
-				}
+					if (report.logic.find("REMOVEBANE_") != -1) {
+						CombatantInstance* target = combat.currentBattle->getThisCombatant(report.combatantsAffected.front());
+						List<EffectObjectInstance*> effects = combat.currentBattle->getAllEffectsOnXThatAreThisType(target->c.uniqueCombatID, "BANE");
+						if (effects.empty()) {
+							report.sData["success"] = "0";
+							report.sData["failReason"] = "noBaneToRemove";
+						}
+						else {
+							report.sData["success"] = "1";
+							report.sData["removeThisBane"] = effects.back()->e.uniqueID;
+						}
+					}
+					if (report.logic.find("REMOVEXBANES_") != -1) {
+						CombatantInstance* target = combat.currentBattle->getThisCombatant(report.combatantsAffected.front());
+						List<EffectObjectInstance*> effects = combat.currentBattle->getAllEffectsOnXThatAreThisType(target->c.uniqueCombatID, "BANE");
+						if (effects.empty()) {
+							report.sData["success"] = "0";
+							report.sData["failReason"] = "noBaneToRemove";
+						}
+						else {
+							report.sData["success"] = "1";
+							report.vData["howManyBanes"] = report.vData["power"];
+						}
+					}
+
+}
 
 				// predict if targets will die during resolution
 				Map<string, int> projectedLifeLoss;
@@ -1812,10 +2017,39 @@ public:
 				for (auto& report : ongoingReport.internalList) {
 					string user = report.originalUser;
 					if (report.sData["success"] == "1") {
+						if (report.logic == "WISHINGWELL_SELF") {
+							CombatantInstance* actor = combat.currentBattle->getThisCombatant(user);
+							List<CombatantInstance*> allAllies = actor->getAllMyOtherAlliesNotMe(*&combat);
+							for (CombatantInstance* person : allAllies.internalList) {
+								for (auto skill : person->c.combatSkills.getKeys().internalList) {
+									if (person->c.combatSkills[skill].uniqueID == "Wishing Well") { continue; }
+									person->c.combatSkills[skill].timeToRecharge = 0;
+								}
+							}
+						}
+						if (report.logic == "SUICIDE_SELF") {
+							combat.currentBattle->getThisCombatant(user)->c.combatStats["CURRENTLIFE"] = 0;
+						}
+						if (report.logic.find("EXILE") != -1) {
+							for (auto currentTarget : report.combatantsAffected.internalList) {
+								combat.currentBattle->getThisCombatant(currentTarget)->c.combatStats["CURRENTLIFE"] = 0;
+							}
+						}
 						if (report.logic.find("APPLY_") != -1) {
 							List<string> effectData = split(report.logic, "_");
-							if (report.combatantsAffected.contains("ALL") or report.logic.find("_ALL") != -1) {
+							if (report.combatantsAffected.contains("ALLALLIES") or report.logic.find("_ALLIES") != -1) {
+								CombatantInstance* actor = combat.currentBattle->getThisCombatant(report.originalUser);
+								List<CombatantInstance*> toApplyTo = actor->getAllMyAllies(*&combat);
+								for (CombatantInstance* person : toApplyTo.internalList) {
+									if (person->c.isDead()) { continue; }
+									report.combatantsAffected.addToBackIfNotAlreadyInList(person->c.uniqueCombatID);
+								}
+							}
+							if (report.combatantsAffected.contains("ALL") or (report.logic.find("ALLALLIES") == -1 and report.logic.find("_ALL") != -1)) {
 								report.combatantsAffected = combat.currentBattle->all.getKeys();
+							}
+							if (report.logic.find("_SELF") != -1) {
+								report.combatantsAffected = List<string>({report.originalUser});
 							}
 							for (auto currentTarget : report.combatantsAffected.internalList) {
 								string effectName = effectData.at(1);
@@ -1846,6 +2080,9 @@ public:
 								}
 							}
 						}
+						if (report.logic.find("LIFESACRIFICE_SELF_UNHOLY") != -1) {
+							combat.currentBattle->getThisCombatant(user)->c.takeDamage(report.vData["LIFESACRIFICE_SELF_UNHOLY"]);
+						}
 						if (report.logic.find("LIFEHEAL_") != -1) {
 							for (auto effect : report.vData.getKeys().internalList) {
 								if (effect.find("LIFEHEAL_") != -1) {
@@ -1860,6 +2097,24 @@ public:
 												pair<string, string>("target",combat.currentBattle->all[currentTarget]->c.uniqueID),
 											}), 0);
 										toPrint.push_back(Result(currentTarget, to_string(report.vData[effect]), "HEALINGGREEN", graphics.accessImageViaUniqueID(currentTarget)->positionAsPercentage));
+									}
+								}
+							}
+						}
+						if (report.logic.find("MANAHEAL_") != -1) {
+							for (auto effect : report.vData.getKeys().internalList) {
+								if (effect.find("MANAHEAL_") != -1) {
+									string type = split(effect, "_").at(2);
+									for (auto currentTarget : report.combatantsAffected.internalList) {
+										combat.currentBattle->getThisCombatant(currentTarget)->c.gainEnergy(report.vData[effect]);
+										combat.currentBattle->addCombatMessage("MANAHEAL", List<pair<string, string>>({
+												pair<string, string>("name",combat.currentBattle->getThisCombatant(user)->c.uniqueID),
+												pair<string, string>("language",language),
+												pair<string, string>("type",type),
+												pair<string, string>("damage",to_string(report.vData[effect])),
+												pair<string, string>("target",combat.currentBattle->all[currentTarget]->c.uniqueID),
+											}), 0);
+										toPrint.push_back(Result(currentTarget, to_string(report.vData[effect]), "HEALINGBLUE", graphics.accessImageViaUniqueID(currentTarget)->positionAsPercentage));
 									}
 								}
 							}
@@ -1893,6 +2148,7 @@ public:
 								summoned->c.setCombatStats(*&combat, true);
 								summoned->c.combatStats["CURRENTLIFE"] = vData["LIFE"]; // give them life described in the skill
 								summoned->c.combatStats["LIFE"] = vData["LIFE"]; // give them life described in the skill
+								summoned->c.data["EXTRAS"]["SUMMONED"] = "1";
 								summoned->c.data["EXTRAS"]["WHOSUMMONEDME"] = user;
 								combat.currentBattle->addNewCombatantDuringBattle(*&combat, summoned);
 								combat.currentBattle->getThisCombatant(user)->c.currentTarget = targetUniqueCombatID;
@@ -1939,6 +2195,24 @@ public:
 								}
 							}
 						}
+						if (report.logic.find("MANASTEAL_") != -1 or !getKeysWhichContainX(report.vData.getKeys(), "MANASTEAL_").empty()) {
+							for (auto effect : report.vData.getKeys().internalList) {
+								if (effect.find("MANASTEAL") != -1) {
+									for (auto currentTarget : report.combatantsAffected.internalList) {
+										combat.currentBattle->getThisCombatant(currentTarget)->c.takeManaDamage(report.vData[effect]);
+										combat.currentBattle->getThisCombatant(user)->c.gainEnergy(report.vData[effect]);
+										combat.currentBattle->addCombatMessage("ENERGYSTEAL", List<pair<string, string>>({
+												pair<string, string>("name",combat.currentBattle->getThisCombatant(user)->c.uniqueID),
+												pair<string, string>("language",language),
+												pair<string, string>("damage",to_string(report.vData[effect])),
+												pair<string, string>("target",combat.currentBattle->getThisCombatant(currentTarget)->c.uniqueID),
+											}), 0);
+										toPrint.push_back(Result(currentTarget + "damage", to_string(report.vData[effect]), "DAMAGEPURPLE", graphics.accessImageViaUniqueID(currentTarget)->positionAsPercentage));
+										toPrint.push_back(Result(user + "heal", to_string(report.vData[effect]), "HEALINGBLUE", graphics.accessImageViaUniqueID(user)->positionAsPercentage));
+									}
+								}
+							}
+						}
 						if (report.logic.find("RESURRECT_") != -1) {
 							int resPower = 1;
 							string type = split(report.logic, "_").at(2);
@@ -1970,6 +2244,20 @@ public:
 							string whichBoon = report.sData["removeThisBoon"];
 							string who = report.combatantsAffected.front();
 							combat.currentBattle->removeAnEffect(who, whichBoon);
+						}
+						if (report.logic.find("REMOVEBANE") != -1) {
+							string whichBoon = report.sData["removeThisBane"];
+							string who = report.combatantsAffected.front();
+							combat.currentBattle->removeAnEffect(who, whichBoon);
+						}
+						if (report.logic.find("REMOVEXBANES") != -1) {
+							string who = report.combatantsAffected.front();
+							int howMany = report.vData["howManyBanes"];
+							for (int x = 0; x < howMany; x++) {
+								List<EffectObjectInstance*> banes = combat.currentBattle->getAllEffectsOnXThatAreThisType(who, "BANE");
+								if (banes.empty()) { break; }
+								combat.currentBattle->removeAnEffect(who, banes.back()->e.uniqueID);
+							}
 						}
 						if (report.logic.find("MANASTEAL_") != -1) {
 							for (auto effect : report.vData.getKeys().internalList) {
@@ -2288,6 +2576,17 @@ public:
 				message = WSReplace(message, L"$X$", StringToWString(combatMessageData["damage"]));
 				message = WSReplace(message, L"$2$", strings[language]["NPCNames"][combatMessageData["target"]]);
 			}
+			if (type == "MANAHEAL") {
+				if (combatMessageData["name"] == combatMessageData["target"]) {
+					message = strings[language]["Combat Messages"]["MANAHEAL_SELF"];
+				}
+				else {
+					message = strings[language]["Combat Messages"]["MANAHEAL_OTHER"];
+				}
+				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][combatMessageData["name"]]);
+				message = WSReplace(message, L"$X$", StringToWString(combatMessageData["damage"]));
+				message = WSReplace(message, L"$2$", strings[language]["NPCNames"][combatMessageData["target"]]);
+			}
 			if (type == "ENERGYSTEAL") {
 				message = strings[language]["Combat Messages"]["ENERGYSTEAL"];
 				message = WSReplace(message, L"$1$", strings[language]["NPCNames"][combatMessageData["name"]]);
@@ -2323,6 +2622,11 @@ public:
 						message += to_wstring(rewardForWinning[item]) + L" " + itemName + L"\n";
 					}
 				}
+				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][leader]) + L"\n";
+			}
+			if (type == "DEFEAT") {
+				string leader = saveContainer.getCurrentMainCharacter();
+				message = strings[language]["Combat Messages"]["DEFEAT"];
 				message = WSReplace(message, L"$PLAYER$", strings[language]["NPCNames"][leader]) + L"\n";
 			}
 			if (type == "FAILED_NO_TARGETS") {
@@ -2411,6 +2715,9 @@ public:
 			if (targetLogic == "SINGLEFOE") {
 				results = combatant->getMyFoesThatAreAlive(*&combat);
 			}
+			if (targetLogic == "DEADFOE") {
+				results = combatant->getMyDeadFoes(*&combat);
+			}
 			if (targetLogic == "SINGLEALLY") {
 				results = combatant->getAllMyAllies(*&combat);
 			}
@@ -2420,9 +2727,13 @@ public:
 			if (targetLogic == "DEADPARTYMEMBER") {
 				results = combatant->getMyDeadPartyMembers(*&combat);
 			}
-			if (List<string>({ "SELF", "ALL", "ALLALLIES", "ALLFOES" }).contains(targetLogic)) {
+			if (targetLogic == "SINGLESUMMONEDFOE") {
+				results = combatant->getMyFoesThatWereSummoned(*&combat);
+			}
+			if (List<string>({ "SELF", "ALL", "ALLALLIES", "ALLFOES", "ALLUNDEADORDEMONICFOES"}).contains(targetLogic)) {
 				results.push_back(combatant); // use on "self" but the effect hits the right place
 			}
+
 
 			return results;
 		}
@@ -2548,9 +2859,11 @@ public:
 				if (effect->e.triggers.contains("EVERYTURN")) {
 					currentEventStackObject.ongoingReport.push_back(CombatEvent(*&combat, effect));
 				}
-				if (effect->e.triggers.contains("ONEND")) {}
-				if (effect->e.expired()) {
-					removeAnEffect(nextActor, effect->e.uniqueID);
+			
+				if (effect->e.roundsLeft == 0) {
+					if (effect->e.triggers.contains("ONEND")) {
+						currentEventStackObject.ongoingReport.push_back(CombatEvent(*&combat, effect));
+					}
 				}
 			}
 			currentEventStackObject.executeTheStack(*&combat);
@@ -2639,7 +2952,7 @@ public:
 		// positions as % of screen
 		float party1Y = 60;
 		float party1alliesY = 55;
-		float party2alliesY = 25;
+		float party2alliesY = 35;
 		float party2Y = 30;
 
 		results["TEAM1_4"] = Map<string, pair<float, float>>({
@@ -2705,6 +3018,11 @@ public:
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("STEALLIFEFORMASTER",PowerValue("STEALLIFEFORMASTER",7,0,999,true,list<string>({"INTELLIGENCE"}))) }), list<string>({"STEALLIFEFORMASTER"}), 1060);
 
+		// debug
+		skillDefinitions["Suicide"] = Skill("Suicide", "Suicide", "Debug", SKILLICON_WAIT, 0, 0, 0, "SELF", { "SUICIDE_SELF" }, list<string>({ "PHYSICAL","UNHOLY" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("SUICIDE",PowerValue("STEALLIFEFORMASTER",0,0,0,true,list<string>({}))) }), list<string>({}), 5819);
+
 		// CLEROMANCY
 		skillDefinitions["Heal Wounds"] = Skill("Heal Wounds", "Heal Wounds", "Cleromancy", SKILLICON_HEALWOUNDS, 10, 1, 1, "SINGLEALLY",
 			list<string>({ "LIFEHEAL_SINGLE_HOLY" }),
@@ -2718,11 +3036,41 @@ public:
 			Map<string, PowerValue>({ pair<string, PowerValue>("LIFEHEAL_SINGLE_HOLY", PowerValue("LIFEHEAL_SINGLE_HOLY", 80, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))) }),
 			list<string>({ "HEALALLY" }), HEALWOUNDS_WAV);
 
-		skillDefinitions["Revitalise"] = Skill("Revitalise", "Revitalise", "Cleromancy", SKILLICON_REVITALISE, 25, 0, 0, "DEADPARTYMEMBER", // 25 2 10
+		skillDefinitions["Revitalise"] = Skill("Revitalise", "Revitalise", "Cleromancy", SKILLICON_REVITALISE, 25, 2, 5, "DEADPARTYMEMBER", // 25 2 10
 			list<string>({ "RESURRECT_SINGLE_HOLY" }),
 			list<string>({ "MAGICAL","HOLY", "HEAL","TARGETSALLIES" }),
 			Map<string, PowerValue>({ pair<string, PowerValue>("RESURRECT_SINGLE_HOLY", PowerValue("RESURRECT_SINGLE_HOLY", 10, 0, 100, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))) }),
 			list<string>({ "RESURRECT" }), REVITALISE_WAV);
+
+		skillDefinitions["Conciliatory Prayer"] = Skill("Conciliatory Prayer", "Conciliatory Prayer", "Cleromancy", SKILLICON_CONCILIATORYPRAYER, 15, 1, 4, "SINGLEOTHERALLY",
+			list<string>({ "LIFEHEAL_SINGLE_HOLY" }),
+			list<string>({ "MAGICAL","HOLY", "HEAL","TARGETSALLIES" }),
+			Map<string, PowerValue>({ pair<string, PowerValue>("LIFEHEAL_SINGLE_HOLY", PowerValue("LIFEHEAL_SINGLE_HOLY", 70, 0, 100, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))) }),
+			list<string>({ "HEALALLY" }), CONCILIATORYPRAYER_WAV);
+
+		skillDefinitions["Great Gospel"] = Skill("Great Gospel", "Great Gospel", "Cleromancy", SKILLICON_GREATGOSPEL, 30, 0, 5, "SELF",
+			list<string>({ "APPLY_Great Gospel_ALLALLIES" }),
+			list<string>({ "MAGICAL","HOLY","HEAL", "ELITE" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DURATION_Great Gospel", PowerValue("DURATION_Great Gospel", 8, 0, 99, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))),
+				pair<string, PowerValue>("POWER_Great Gospel", PowerValue("POWER_Great Gospel", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))),
+				}),
+				list<string>({ "HEALSELF", "HEALALLY",}), GREATGOSPEL_WAV);
+
+		skillDefinitions["Thoughtful Prayer"] = Skill("Thoughtful Prayer", "Thoughtful Prayer", "Cleromancy", SKILLICON_THOUGHTFULPRAYER, 20, 1, 3, "SINGLEOTHERALLY",
+			list<string>({ "LIFEHEAL_SINGLE_HOLY", "REMOVEBANE_SINGLE_HOLY"}),
+			list<string>({ "MAGICAL","HOLY", "HEAL","TARGETSALLIES" }),
+			Map<string, PowerValue>({ pair<string, PowerValue>("LIFEHEAL_SINGLE_HOLY", PowerValue("LIFEHEAL_SINGLE_HOLY", 60, 0, 100, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))) }),
+			list<string>({ "HEALALLY", "HEALSELF"}), THOUGHTFULPRAYER_WAV);
+
+		skillDefinitions["Apostle of Patience"] = Skill("Apostle of Patience", "Apostle of Patience", "Cleromancy", SKILLICON_APOSTLEOFPATIENCE, 20, 0, 2, "SINGLEALLY",
+			list<string>({ "APPLY_Apostle of Patience_SINGLE" }),
+			list<string>({ "MAGICAL","HOLY", "HEAL","TARGETSALLIES" }),
+			Map<string, PowerValue>({ 
+				pair<string, PowerValue>("DURATION_Apostle of Patience", PowerValue("DURATION_Apostle of Patience", 2, 2, 2, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))),
+				pair<string, PowerValue>("POWER_Apostle of Patience", PowerValue("POWER_Apostle of Patience", 150, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))),
+				}),
+			list<string>({ "HEALALLY", "HEALSELF" }), THOUGHTFULPRAYER_WAV);
 
 		// HAGIOMANCY
 		skillDefinitions["Heavenstrike"] = Skill("Heavenstrike", "Heavenstrike", "Hagiomancy", SKILLICON_HEAVENSTRIKE, 10, 2, 0, "SINGLEFOE",
@@ -2735,18 +3083,18 @@ public:
 				list<string>({ "DEALDAMAGE", "DEALDAMAGE_HOLY" }), HEALWOUNDS_WAV);
 
 		skillDefinitions["Light of Day"] = Skill("Light of Day", "Light of Day", "Hagiomancy", SKILLICON_LIGHTOFDAY, 5, 0, 0, "ALLUNDEADORDEMONICFOES",
-			list<string>({ "LIGHT OF DAY" }),
+			list<string>({ "DAMAGE_HOLY_ALLUNDEADORDEMONICFOES" }),
 			list<string>({ "MAGICAL","HOLY", "TARGETSFOES" }),
-			Map<string, PowerValue>({ pair<string, PowerValue>("DAMAGE_HOLY_1", PowerValue("DAMAGE_HOLY_1", 30, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))) }),
-			list<string>({ "KILLUNDEAD", "KILLDEMONS" }), -1);
+			Map<string, PowerValue>({ pair<string, PowerValue>("DAMAGE_HOLY_SINGLE", PowerValue("DAMAGE_HOLY_SINGLE", 30, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))) }),
+			list<string>({ "KILLUNDEAD", "KILLDEMONS" }), LIGHTOFDAY_WAV);
 
-		skillDefinitions["Exile"] = Skill("Exile", "Exile", "Hagiomancy", SKILLICON_EXILE, 10, 0, 10, "SINGLESUMMONEDCREATURE",
-			list<string>({ "EXILE" }),
+		skillDefinitions["Exile"] = Skill("Exile", "Exile", "Hagiomancy", SKILLICON_EXILE, 10, 0, 10, "SINGLESUMMONEDFOE",
+			list<string>({ "EXILE_SINGLE" }),
 			list<string>({ "MAGICAL","HOLY", }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("RECHARGE", PowerValue("RECHARGE", 10, 0, 10, false, list<string>({ "INTELLIGENCE", "HOLYBOOST", "MAGICALRECHARGE","HOLYRECHARGE"}))),
 				}),
-				list<string>({ "KILLSUMMON" }), -1);
+				list<string>({ "KILLSUMMON" }), EXILE_WAV);
 
 		skillDefinitions["Strength of Reason"] = Skill("Strength of Reason", "Strength of Reason", "Hagiomancy", SKILLICON_STRENGTHOFREASON, 10, 0, 1, "SINGLEALLY",
 			list<string>({ "APPLY_Strength of Reason_SINGLE" }),
@@ -2806,6 +3154,112 @@ public:
 				}),
 			list<string>({ "CURSEFOE", }), ATROPHY_WAV);
 
+		skillDefinitions["Blood Boil"] = Skill("Blood Boil", "Blood Boil", "Sangromancy", SKILLICON_BLOODBOIL, 20, 0, 2, "SINGLEFOE",
+			list<string>({ "APPLY_BURNINGIF?TARGETHASBLEEDING_SINGLE" }),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY" }),
+			Map<string, PowerValue>({ pair<string, PowerValue>("DURATION_BURNING", PowerValue("DURATION_BURNING", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				}),
+			list<string>({ "CURSEFOE", }), ATROPHY_WAV);
+
+		skillDefinitions["Curse from Beyond the Grave"] = Skill("Curse from Beyond the Grave", "Curse from Beyond the Grave", "Sangromancy", SKILLICON_CURSEFROMBEYONDTHEGRAVE, 15, 0, 0, "SINGLEFOE",
+			list<string>({ "APPLY_Curse from Beyond the Grave_SINGLE" }),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY", "ELITE"}),
+			Map<string, PowerValue>({ pair<string, PowerValue>("DURATION_Curse from Beyond the Grave", PowerValue("DURATION_Curse from Beyond the Grave", 8, 0, 999, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				}),
+			list<string>({ "CURSEFOE", }), CURSEFROMBEYONDTHEGRAVE_WAV);
+
+		skillDefinitions["Brain Drain"] = Skill("Brain Drain", "Brain Drain", "Sangromancy", SKILLICON_BRAINDRAIN, 10, 0, 2, "DEADFOE",
+			list<string>({ "MANAHEAL_SELF_UNHOLY" }),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY" }),
+			Map<string, PowerValue>({ pair<string, PowerValue>("MANAHEAL_SINGLE_UNHOLY", PowerValue("MANAHEAL_SINGLE_UNHOLY", 15, 0, 999, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				}),
+			list<string>({ "HEALSELF", }), ATROPHY_WAV);
+
+		skillDefinitions["Wishing Well"] = Skill("Wishing Well", "Wishing Well", "Sangromancy", SKILLICON_WISHINGWELL, 20, 0, 0, "DEADFOE",
+			list<string>({ "WISHINGWELL_SELF" }),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY", "ELITE"}),
+			Map<string, PowerValue>({ 
+				pair<string, PowerValue>("RECHARGE", PowerValue("RECHARGE", 15, 1, 5, false, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				}),
+			list<string>({ "HEALSELF", }), WISHINGWELL_WAV);
+
+		skillDefinitions["Blood Gift"] = Skill("Blood Gift", "Blood Gift", "Sangromancy", SKILLICON_BLOODGIFT, 10, 0, 4, "SINGLEOTHERALLY",
+			list<string>({  "LIFEHEAL_SINGLE_UNHOLY", "APPLY_BLEEDING_SELF" }),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY" }),
+			Map<string, PowerValue>({ 
+				pair<string, PowerValue>("LIFEHEAL_SINGLE_UNHOLY", PowerValue("LIFEHEAL_SINGLE_UNHOLY", 50, 0, 999, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				pair<string, PowerValue>("APPLY_BLEEDING_SELF", PowerValue("APPLY_BLEEDING_SELF", 2, 2, 2, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				}),
+			list<string>({ "HEALSELF", }), BLOODGIFT_WAV);
+
+		skillDefinitions["Order of the Wasp"] = Skill("Order of the Wasp", "Order of the Wasp", "Sangromancy", SKILLICON_ORDEROFTHEWASP, 20, 0, 2, "SELF",
+			list<string>({ "APPLY_Order of the Wasp_ALLALLIES" }),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY", "ELITE" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DURATION_Order of the Wasp", PowerValue("DURATION_Order of the Wasp", 2, 0, 5, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				pair<string, PowerValue>("POWER_Order of the Wasp", PowerValue("POWER_Order of the Wasp", 8, 0, 999, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				}),
+				list<string>({ "HEALSELF", }), ORDEROFTHEWASP_WAV);
+
+		skillDefinitions["Viper Eyes"] = Skill("Viper Eyes", "Viper Eyes", "Sangromancy", SKILLICON_VIPEREYES, 20, 0, 5, "SELF",
+			list<string>({ "APPLY_Viper Eyes_SELF" }),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY", "ELITE" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DURATION_Viper Eyes", PowerValue("DURATION_Viper Eyes", 5, 0, 20, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				}),
+				list<string>({ "HEALSELF", }), ATROPHY_WAV);
+
+		skillDefinitions["Contract from Below"] = Skill("Contract from Below", "Contract from Below", "Sangromancy", SKILLICON_CONTRACTFROMBELOW, 1, 0, 10, "SELF",
+			list<string>({ "LIFESACRIFICE_SELF_UNHOLY", "MANAHEAL_SELF_UNHOLY"}),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY"}),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("LIFESACRIFICE_SELF_UNHOLY", PowerValue("LIFESACRIFICE", 50, 50, 999, true, list<string>({}))),
+				pair<string, PowerValue>("MANAHEAL_SELF_UNHOLY", PowerValue("MANAHEAL_SELF_UNHOLY", 50, 0, 999, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				}),
+				list<string>({ "HEALSELF", }), ATROPHY_WAV);
+
+		skillDefinitions["Hypoxia"] = Skill("Hypoxia", "Hypoxia", "Sangromancy", SKILLICON_HYPOXIA, 15, 0, 2, "SINGLEFOE",
+			list<string>({ "INTERRUPTIF?TARGETHASWEAKENED_SINGLE" }),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("LIFESTEAL_SINGLE_UNHOLY", PowerValue("LIFESTEAL_SINGLE_UNHOLY", 10, 0, 999, true, list<string>({}))),
+				}),
+				list<string>({ "DEALDAMAGE", }), HYPOXIA_WAV);
+
+		skillDefinitions["Pact with Darkness"] = Skill("Pact with Darkness", "Pact with Darkness", "Sangromancy", SKILLICON_PACTWITHDARKNESS, 15, 0, 5, "SINGLEALLY",
+			list<string>({ "LIFESACRIFICE_SELF_UNHOLY", "MANAHEAL_SINGLE_UNHOLY" }),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("LIFESACRIFICE_SELF_UNHOLY", PowerValue("LIFESACRIFICE", 33, 33, 999, true, list<string>({}))),
+				pair<string, PowerValue>("MANAHEAL_SINGLE_UNHOLY", PowerValue("MANAHEAL_SINGLE_UNHOLY", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "BLOODBOOST"}))),
+				}),
+				list<string>({ "HEALALLY", }), ATROPHY_WAV);
+
+		skillDefinitions["Beggar's Blessing"] = Skill("Beggar's Blessing", "Beggar's Blessing", "Sangromancy", SKILLICON_BEGGARSBLESSING, 25, 0, 3, "SINGLEFOE",
+			list<string>({ "APPLY_Beggar's Blessing_SINGLE" }),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DURATION_Beggar's Blessing", PowerValue("DURATION_Beggar's Blessing", 5, 0, 999, true, list<string>({"INTELLIGENCE", "BLOODBOOST"}))),
+				}),
+				list<string>({ "CURSEFOE", }), BEGGARBLESSING_WAV);
+
+		skillDefinitions["Botched Procedure"] = Skill("Botched Procedure", "Botched Procedure", "Sangromancy", SKILLICON_BOTCHEDPROCEDURE, 20, 0, 0, "SINGLEFOE",
+			list<string>({ "REMOVEXBANES_LIFESTEAL_SINGLE_UNHOLY" }),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("LIFESTEAL_SINGLE_UNHOLY", PowerValue("LIFESTEAL_SINGLE_UNHOLY", 5, 0, 999, true, list<string>({"INTELLIGENCE", "BLOODBOOST"}))),
+				}),
+				list<string>({ "DEALDAMAGE", }), BOTCHEDPROCEDURE_WAV);
+
+		skillDefinitions["Cestodarian Siphon"] = Skill("Cestodarian Siphon", "Cestodarian Siphon", "Sangromancy", SKILLICON_CESTODARIANSIPHON, 20, 0, 4, "SINGLEFOE",
+			list<string>({ "APPLY_Cestodarian Siphon_SINGLE" }),
+			list<string>({ "MAGICAL","BLOOD","UNHOLY" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("POWER_Cestodarian Siphon", PowerValue("POWER_Cestodarian", 15, 0, 999, true, list<string>({"INTELLIGENCE", "BLOODBOOST"}))),
+				pair<string, PowerValue>("DURATION_Cestodarian Siphon", PowerValue("POWER_Cestodarian", 8, 0, 999, true, list<string>({"INTELLIGENCE", "BLOODBOOST"}))),
+				}),
+				list<string>({ "DEALDAMAGE", }), CESTODARIANSIPHON_WAV);
+
 		// NECROMANCY
 		skillDefinitions["Animate Skeleton Warrior"] = Skill("Animate Skeleton Warrior", "Animate Skeleton Warrior", "Necromancy", SKILLICON_ANIMATESKELETONWARRIOR, 55, 1, 8, "SELF", // debug 0, real = 2
 			list<string>({ "SUMMON_Skeleton Warrior_SELF" }),
@@ -2845,6 +3299,26 @@ public:
 				pair<string, PowerValue>("DURATION_DUSTY", PowerValue("DURATION_DUSTY", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
 				}),
 				list<string>({ "MAKEITSAND", "WORLDEFFECT"}), SANDSTORM_WAV);
+
+		skillDefinitions["Heatwave"] = Skill("Heatwave", "Heatwave", "Meteomancy", SKILLICON_HEATWAVE, 15, 0, 0, "ALL", // 1
+			list<string>({ "APPLY_Heatwave_WORLD", "APPLY_PARCHED_ALL" }),
+			list<string>({ "MAGICAL","FIRE","ELEMENTAL" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DURATION_Heatwave", PowerValue("DURATION_Heatwave", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
+				pair<string, PowerValue>("POWER_Heatwave", PowerValue("POWER_Heatwave", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
+				pair<string, PowerValue>("DURATION_PARCHED", PowerValue("DURATION_PARCHED", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
+				}),
+				list<string>({ "MAKEITHOT", "WORLDEFFECT" }), SANDSTORM_WAV);
+
+		skillDefinitions["Pressure Front"] = Skill("Pressure Front", "Pressure Front", "Meteomancy", SKILLICON_PRESSUREFRONT, 15, 0, 0, "ALL", // 1
+			list<string>({ "APPLY_Pressure Front_WORLD", "APPLY_STATIC_ALL" }),
+			list<string>({ "MAGICAL","ELECTRIC","ELEMENTAL" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DURATION_Pressure Front", PowerValue("DURATION_Pressure Front", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
+				pair<string, PowerValue>("POWER_Pressure Front", PowerValue("POWER_Pressure Front", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
+				pair<string, PowerValue>("DURATION_STATIC", PowerValue("DURATION_STATIC", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
+				}),
+				list<string>({ "MAKEITSTATIC", "WORLDEFFECT" }), PRESSUREFRONT_WAV);
 
 		// ELECTROMANCY
 		skillDefinitions["Plasma Pulse"] = Skill("Plasma Pulse", "Plasma Pulse", "Electromancy", SKILLICON_PLASMAPULSE, 35, 2, 5, "SINGLEFOE",
@@ -3062,11 +3536,10 @@ public:
 					})),
 					pair<string, Map<string, string>>("Effects", Map<string, string>({
 						pair<string, string>("UNDEAD", "1"),
-						pair<string, string>("Gentleman's Riposte", "1"),
-						//pair<string, string>("Fragile", "1"),
+						pair<string, string>("Fragile", "1"),
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
-						pair<string, string>("0", "DEFAULT_WAIT"),
+						pair<string, string>("0", "Heal Wounds"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 				}));
@@ -3079,10 +3552,10 @@ public:
 						pair<string, string>("Front", imageLookup.getSequenceAsString("EnragedNoblewoman", "COMBAT_FRONT")),
 					})),
 					pair<string, Map<string, string>>("Effects", Map<string, string>({
-						pair<string, string>("BLEEDING", "999"),
+						pair<string, string>("Fragile", "1"),
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
-						pair<string, string>("0", "DEFAULT_WAIT"),
+						pair<string, string>("0", "Heal Wounds"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 				}));
@@ -3277,6 +3750,14 @@ public:
 			List<string>(list<string>({ "Sandstorm", })),
 			List<string>(list<string>({ "EVERYTURN", "ONAPPLY" })));
 
+		allEffectDefinitions["Heatwave"] = EffectObject("Heatwave", "NEUTRAL", SKILLICON_HEATWAVE, "APPLY_PARCHED_ALL", false,
+			List<string>(list<string>({ "Heatwave", })),
+			List<string>(list<string>({ "EVERYTURN", "ONAPPLY" })));
+
+		allEffectDefinitions["Pressure Front"] = EffectObject("Pressure Front", "NEUTRAL", SKILLICON_PRESSUREFRONT, "APPLY_STATIC_ALL", false,
+			List<string>(list<string>({ "Pressure Front", })),
+			List<string>(list<string>({ "EVERYTURN", "ONAPPLY" })));
+
 		allEffectDefinitions["Healing Rain"] = EffectObject("Healing Rain", "NEUTRAL", SKILLICON_HEALINGRAIN, "LIFEHEAL_AOE_WATER", false,
 			List<string>(list<string>({ "Healing Rain", })),
 			List<string>(list<string>({ "EVERYTURN", "ONAPPLY" })));
@@ -3297,6 +3778,33 @@ public:
 			List<string>(list<string>({ "PROTECTVSINTERRUPTION", })),
 			List<string>(list<string>({ "ONBEINGINTERRUPTED", })));
 
+		allEffectDefinitions["Order of the Wasp"] = EffectObject("Order of the Wasp", "BOON", SKILLICON_ORDEROFTHEWASP, "Order of the Wasp", false,
+			List<string>(list<string>({ "Order of the Wasp", })),
+			List<string>(list<string>({ "ONDOINGPHYSICALATTACK", })));
+
+		allEffectDefinitions["Curse from Beyond the Grave"] = EffectObject("Curse from Beyond the Grave", "BANE", SKILLICON_CURSEFROMBEYONDTHEGRAVE, "Curse from Beyond the Grave", false,
+			List<string>(list<string>({ "Curse from Beyond the Grave", })),
+			List<string>(list<string>({ "ONTAKINGDAMAGE", })));
+
+		allEffectDefinitions["Viper Eyes"] = EffectObject("Viper Eyes", "BOON", SKILLICON_VIPEREYES, "Viper Eyes", false,
+			List<string>(list<string>({ "Viper Eyes", })),
+			List<string>(list<string>({ "ONSTEALINGLIFE", })));
+
+		allEffectDefinitions["Beggar's Blessing"] = EffectObject("Beggar's Blessing", "BANE", SKILLICON_BEGGARSBLESSING, "Beggar's Blessing", false,
+			List<string>(list<string>({ "Beggar's Blessing", })),
+			List<string>(list<string>({ "ONBEINGHEALED", })));
+
+		allEffectDefinitions["Cestodarian Siphon"] = EffectObject("Cestodarian Siphon", "BANE", SKILLICON_CESTODARIANSIPHON, "Cestodarian Siphon", false,
+			List<string>(list<string>({ "Cestodarian Siphon", })),
+			List<string>(list<string>({ "WHENCASTINGASPELL", })));
+
+		allEffectDefinitions["Great Gospel"] = EffectObject("Great Gospel", "BOON", SKILLICON_GREATGOSPEL, "LIFEHEAL_SINGLE_HOLY", false,
+			List<string>(list<string>({ "Great Gospel", })),
+			List<string>(list<string>({ "EVERYTURN", })));
+
+		allEffectDefinitions["Apostle of Patience"] = EffectObject("Apostle of Patience", "BOON", SKILLICON_APOSTLEOFPATIENCE, "LIFEHEAL_SINGLE_HOLY", false,
+			List<string>(list<string>({ "Apostle of Patience", })),
+			List<string>(list<string>({ "ONEND", })));
 
 		// neutral conditions
 		allEffectDefinitions["WET"] = EffectObject("WET", "NEUTRAL", EFFECTICON_WET, "WET", false,
@@ -3307,6 +3815,16 @@ public:
 			List<string>(list<string>({ "DUSTY", })),
 			List<string>(list<string>({ "ONTAKINGCOLDDAMAGE",  "ONTAKINGEARTHDAMAGE", "ONTAKINGELECTRICEDAMAGE" })));
 
+		allEffectDefinitions["PARCHED"] = EffectObject("PARCHED", "NEUTRAL", EFFECTICON_PARCHED, "PARCHED", false,
+			List<string>(list<string>({ "PARCHED", })),
+			List<string>(list<string>({ "ONTAKINGCOLDDAMAGE",  "ONTAKINGEARTHDAMAGE", "ONTAKINGFIREDAMAGE" })));
+
+		allEffectDefinitions["STATIC"] = EffectObject("STATIC", "NEUTRAL", EFFECTICON_STATIC, "STATIC", false,
+			List<string>(list<string>({ "STATIC", })),
+			List<string>(list<string>({ "ONTAKINGEARTHDAMAGE",  "ONTAKINGELECTRICDAMAGE", "ONTAKINGFIREDAMAGE" })));
+
+
+		// negative conditions
 		allEffectDefinitions["CONCUSSED"] = EffectObject("CONCUSSED", "BANE", EFFECTICON_CONCUSSED, "CONCUSSED", false,
 			List<string>(list<string>({ "CONCUSSED", })),
 			List<string>(list<string>({ "WHENCASTINGASPELL" })));
@@ -3334,6 +3852,8 @@ public:
 		allEffectDefinitions["POISONED"] = EffectObject("POISONED", "BANE", EFFECTICON_POISONED, "POISONED", false,
 			List<string>(list<string>({ "POISONED", })),
 			List<string>(list<string>({  })));
+
+		
 
 		// permanent
 		allEffectDefinitions["UNDEAD"] = EffectObject("UNDEAD", "PERM", EFFECTICON_UNDEAD, "UNDEAD", true,
