@@ -666,6 +666,7 @@ public:
             replacements[L"$SELL$"] = strings[language]["Default Merchant Dialogue"]["Sell"];
             replacements[L"$KIND$"] = strings[language]["Terms Per Character"][ saveContainer.getCurrentMainCharacter() + "_Kind"];
             replacements[L"$POLITE$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_Polite"];
+            replacements[L"$RUDE$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_Rude"];
             replacements[L"$GENDER$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_Gender"];
             replacements[L"$GENDERUPPER$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_GenderUpper"];
             replacements[L"$POLITETITLE$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_PoliteTitle"];

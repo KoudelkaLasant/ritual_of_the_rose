@@ -556,7 +556,7 @@ public:
 					pair<string, string>("team1allies",""),
 					pair<string, string>("team2","DEBUG"),
 					pair<string, string>("team2allies",""),
-					pair<string, string>("background", to_string(BATTLEBACKGROUND_TOWN)),
+					pair<string, string>("background", to_string(BATTLEBACKGROUND_CHAPEL1)),
 					pair<string, string>("song",""),
 					pair<string, string>("postBattle","RETURNTOEXPLORE"),
 					pair<string, string>("LOOT$GOLD", "1"),
@@ -951,7 +951,7 @@ public:
 						gameEngine.stateFlags["SHOWFPS"] = "1";
 					}
 					if (controller.hasThisBeenPressed(VK_F5)) {
-						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "WaterPuzzleFinished1", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "AttackMadRider", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 						return false;
 					}
 					if (controller.hasThisBeenPressed(VK_F6)) {
@@ -2183,11 +2183,10 @@ return true;
 							Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "CODEX1")).run(*&gameEngine);
 							Event("LoadAMenu", "LOADMENU", Map<string, string>({
 								pair<string, string>("uniqueID", "CODEX1") })).run(*&gameEngine);
-							return false;
 						}
 					}
 				}
-				if (CLOCK.hasEnoughTimePassed("MENUINPUTDELAY", 100) and not controller.menuItemCooldown) {
+				if ((whichMenu == "CODEX1" or CLOCK.hasEnoughTimePassed("MENUINPUTDELAY", 25)) and not controller.menuItemCooldown) {
 					for (auto const& [key, value] : gameEngine.storedMenus[whichMenu].getKeyboardShortcutsForThisMenu().internalMap) {
 						bool hasBeenPressed = false;
 						if (key < 0) {
@@ -3028,6 +3027,7 @@ return true;
 						}))).run(*&gameEngine);
 					saveContainer.current.party = { gameEngine.stateFlags["PARTYEDITSELECTED"] };
 					saveContainer.current.allCharacters = { gameEngine.stateFlags["PARTYEDITSELECTED"] };
+					audio.fadeOutAndStopThis(MENU1_WAV, 3);
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "NewGameCutscene", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return false;
 				}
@@ -4865,15 +4865,18 @@ return true;
 							return true;
 						}
 					}
-					for (auto report : combat.currentBattle->currentEventStackObject.ongoingReport.internalList) {
-						if (report.sData["success"] != "1") { 
-							graphics.tearDownSpecifiedText("combatText");
-							return true; }
-					}
 					int howFar = graphics.accessTextViaUniqueID("combatText")->howFarAlong();
 					if (howFar < 100) {
 						CLOCK.startClock("Combat Wait");
 						return false;
+					}
+					for (auto report : combat.currentBattle->currentEventStackObject.ongoingReport.internalList) {
+						if (report.sData["success"] != "1") {
+							graphics.tearDownSpecifiedText("combatText");
+							gameEngine.activeProcedure.eventList.clear();
+							gameEngine.activeProcedure.eventList.push_back(Event("Handle Combat", "HANDLECOMBAT", {}));
+							return false;
+						}
 					}
 					if (!combat.currentBattle->currentEventStackObject.toPrint.empty()) {
 						return true;
@@ -5232,10 +5235,14 @@ return true;
 			}
 
 			List<string> defaultAnimateOnTarget = list<string>({"Revitalise","Strength of Reason", "Laying of Hands", "Heal Wounds", "Serrated Strike", "Shadow Spike", "Brilliant Spark", "Stone Strike", 
-				"Stone Curse", "Atrophy", "Blade of Blood", "Vampiric Strike", "Exile", "Brain Drain","Blood Gift","Curse from Beyond the Grave","Viper Eyes", "Hypoxia", "Beggar's Blessing", "Botched Procedure", "Cestodarian Siphon", "Conciliatory Prayer", "Thoughtful Prayer", "Apostle of Patience",
+				"Stone Curse", "Atrophy", "Blade of Blood", "Vampiric Strike", "Exile", "Brain Drain","Blood Gift","Curse from Beyond the Grave","Viper Eyes", "Hypoxia", "Beggar's Blessing", "Botched Procedure", "Cestodarian Siphon", "Conciliatory Prayer", "Thoughtful Prayer", "Apostle of Patience","Shield of a Goddess", "Ivory Sanctuary", "Papalcy", "Incessant Devotion", "Ambrosia", "Blessed Light","Gift of Knowledge", "Paraclete's Invitation", "Castigate Cruor", "Entomb Spirit","Exalted Smash", "Erase Evil", "Absolution", "Adjudicate", "Stalked by Vengeance", "Rotation Blade", "Trickblade", "Debilitating Smash", "Clobber", "Cleave Armour", "Knee Crack", "Bulldoze","Knight Vision", "On My Target!", "Glass Sword", "Hack",
 				"BURNING", "BLEEDING", "DISEASED", "POISONED"});
-			List<string> defaultAnimateFullScreen = list<string>({"Light of Day", "Wishing Well", "Heatwave", "Pressure Front"});
-			List<string> defaultAnimateOnEveryTarget = list<string>({"Order of the Wasp", "Great Gospel"});
+			List<string> defaultAnimateFullScreen = list<string>({"Light of Day", "Wishing Well", "Heatwave", "Pressure Front", "Prophesized Return", "Overrule",});
+			List<string> defaultAnimateOnEveryTarget = list<string>({"Order of the Wasp", "Great Gospel", "Remedy Ward", "Angelic Observatory"});
+
+			if (procedureName == "Don't Give Up!") {
+				procedureName = "Revitalise";
+			}
 
 			if (procedureName == "Contract from Below" or procedureName == "Pact with Darkness") {
 				procedureName = "BLEEDING";
@@ -6143,10 +6150,10 @@ return true;
 				pair<string, string>("uniqueID", "Olyver Sumner")
 				}))),
 			Event("Load Map", "MANAGEAUDIOSWAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "ChapelRight1"),
+				pair<string, string>("targetMap", "RoadToBénouville"),
 			}))),
 			Event("Load Map", "LOADMAP", Map<string,string>(List<pair<string,string>>({
-				pair<string, string>("targetMap", "ChapelRight1"),
+				pair<string, string>("targetMap", "RoadToBénouville"),
 			}))),
 			Event("Debug Exploring", "EXPLORE", Map<string,string>(List<pair<string,string>>({}))),
 			})) }),
