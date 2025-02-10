@@ -50,7 +50,7 @@ public:
 	};
 	Menu(string _uniqueID, List<Button> _buttons, Map<string, string> _data) {
 		uniqueID = _uniqueID;
-		buttons = _buttons;
+		buttonReplace(_buttons);
 		data = _data;
 	}
 	Map<int, string> getKeyboardShortcutsForThisMenu() {
@@ -66,7 +66,7 @@ public:
 	}
 	List<Button> getClickableButtons() {
 		List<Button> results;
-		for (auto button : buttons.internalList) {
+		for (auto button : buttons.getValues().internalList) {
 			if (button.clickable and button.visible) {
 				results.push_back(button);
 			}
@@ -74,8 +74,14 @@ public:
 		return results;
 	}
 	List<Button> getButtonsToLoad() {
-		List<Button> result = buttons;
+		List<Button> result = buttons.getValues();
 		return result;
+	}
+	void buttonReplace(List<Button> _buttons) {
+		buttons.clear();
+		for (auto b : _buttons.internalList) {
+			buttons[b.uniqueID] = b;
+		}
 	}
 
 	static Button standardButton(string baseID, string buttonMessage, pair<float, float> position) {
@@ -221,12 +227,12 @@ public:
 
 		List<pair<float, float>> firstRow({ pair<float, float>(xOffset,yOffset),pair<float, float>(xSpace + xOffset,yOffset),pair<float, float>(xSpace*2 + xOffset,yOffset),
 			pair<float, float>(xSpace*3 + xOffset,yOffset), pair<float, float>(xSpace*4 + xOffset,yOffset) });
-		for (int x = 1; x < 6; x++) {
+		for (int x = 0; x < 5; x++) {
 			List<pair<float, float>> currentRow = firstRow;
 			for (int y = 0; y < currentRow.size(); y++) {
-				currentRow.at(y).second += (ySpace * x-1);
+				currentRow.at(y).second += (ySpace * x);
 			}
-			results[x - 1] = currentRow;
+			results[x] = currentRow;
 		}
 		return results;
 	}
@@ -339,9 +345,28 @@ public:
 		return result;
 	}
 	static const List<Button> getDefaultCombatMenuButtons() {
-		return List<Menu::Button>({
-			   Menu::smallButton("COMBAT1OPENMENU", "GUI_COMBAT1BUTTON", {92, 96}),
+		List<Button> result = List<Button>({
+			Menu::smallButton("COMBAT1OPENMENU", "GUI_COMBAT1BUTTON", { 92, 96 }),
 			});
+		return result;
+	}
+	static const List<Button> getDefaultMenuButtonsForTomes() {
+		List<Button> result = List<Button>({
+			Menu::smallButton("SKILLTREETOME", "GUI_AVAILABLETOMES", {20, 10}),
+			Menu::smallButton("FROMTOMETOPAUSE", "GUI_FROMAUDIOTOPAUSEBUTTON", {85, 80}),
+			});
+		return result;
+	}
+	void editExistingButton(string language, string buttonName, Button replacement) {
+		graphics.accessTextViaUniqueID(buttonName + "_TEXT")->resetMessage(*&graphics, strings[language]["GUI"][SReplace(replacement.buttonContent, "GUI_", "")]);
+		graphics.accessTextViaUniqueID(buttonName + "_TEXT")->unique_ID = replacement.textID;
+		graphics.accessImageViaUniqueID(buttonName + "_IMAGE")->unique_ID = replacement.imageID;
+		buttons[buttonName] = replacement;
+	}
+	void removeThisButton(string buttonName) {
+		graphics.tearDownSpecifiedImage(buttonName + "_IMAGE");
+		graphics.tearDownSpecifiedText(buttonName + "_TEXT");
+		buttons.internalMap.erase(buttonName);
 	}
 	static const List<Button> getCodexButtons(string currentBook, string currentPage) {
 		List<Button> results;
@@ -394,10 +419,20 @@ public:
 		return results;
 	}
 	static string skillGridYLoc() {
-		return "8";
+		return "25";
+	}
+	int getIndexOfThisButton(string buttonName) {
+		int x = 0;
+		for (auto b : buttons.getValues().internalList) {
+			if (b.uniqueID == buttonName) {
+				return x;
+			}
+			x++;
+		}
+		throw exception("Trying to get a button that doesn't currently exist.");
 	}
 
 	string uniqueID;
-	List<Button> buttons;
+	Map<string, Button> buttons;
 	Map<string, string> data;
 };

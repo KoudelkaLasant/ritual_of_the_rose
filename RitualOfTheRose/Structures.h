@@ -181,6 +181,13 @@ struct List {
 		}
 		return index;
 	}
+	List<T> removeThese(List<T> toRemove) {
+		for (T item : toRemove.internalList) {
+			forcibleRemove(item);
+		}
+		return *this;
+	}
+
 
 	// returns list that is x -> the end, empty if the end is bigger than the whole list
 	List<T> sublistXToEnd(int number) {
