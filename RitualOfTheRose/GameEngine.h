@@ -56,6 +56,10 @@ public:
 				}
 				return true;
 			}
+			if (type == "STOPTHISSONG") {
+				audio.fadeOutAndStopThis(stoi(data["uniqueID"]), 3);
+				return true;
+			}
 			if (type == "PLAYALLSONGSFORTHISMAP") {
 				// for when combat ends and we go back to explore mode
 				List<string> existingSongs = explorer.currentMap.getSongNames();
@@ -197,6 +201,7 @@ public:
 						if (!needToLoad) {
 							x.visible = false;
 							x.canInteract = false;
+							x.obstruction = false;
 						}
 						else {
 							if (x.imageSources != "") {
@@ -563,7 +568,7 @@ public:
 					pair<string, string>("team1allies",""),
 					pair<string, string>("team2","DEBUG"),
 					pair<string, string>("team2allies",""),
-					pair<string, string>("background", to_string(BATTLEBACKGROUND_CHAPEL1)),
+					pair<string, string>("background", to_string(BATTLEBACKGROUND_ROADTOTOWN)),
 					pair<string, string>("song",""),
 					pair<string, string>("postBattle","RETURNTOEXPLORE"),
 					pair<string, string>("LOOT$GOLD", "1"),
@@ -1312,7 +1317,7 @@ public:
 					Event("Load TextBox", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 				pair<string, string>("sources", to_string(TEXTBOX)),
 				pair<string, string>("x", "50"),
-				pair<string, string>("y", "86"),
+				pair<string, string>("y", "90"),
 				pair<string, string>("anchor", "CENTRE"),
 				pair<string, string>("opacity", "1.0"),
 				pair<string, string>("layer", to_string(imageLookup.layerDefaults["UI"] + 1)),
@@ -1332,7 +1337,7 @@ public:
 					pair<string, string>("format", "HighTowerText_40"),
 					pair<string, string>("anchorStyle", "TOPLEFT"),
 					pair<string, string>("x", "18"),
-					pair<string, string>("y", "72"),
+					pair<string, string>("y", "76"),
 					pair<string, string>("w", "50"),
 					pair<string, string>("h", "50"),
 					pair<string, string>("colour", "BLACK"),
@@ -1355,7 +1360,7 @@ public:
 				pair<string, string>("format", "Centaur_25"),
 				pair<string, string>("anchorStyle", "TOPLEFT"),
 				pair<string, string>("x", x),
-				pair<string, string>("y", "79"),
+				pair<string, string>("y", "83"),
 				pair<string, string>("w", width),
 				pair<string, string>("h", "33"),
 				pair<string, string>("direct",direct),
@@ -2471,6 +2476,36 @@ return true;
 					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("PARTYMANAGEMENT");
 					return true;
 				}
+				if (buttonLogic == "PARTYMANAGEHELP") {
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "PARTYMANAGEMENT")).run(*&gameEngine);
+					saveContainer.save();
+					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("HELPMENU");
+					Event("LoadCodexImage", "LOADIMAGE", Map<string, string>({
+						pair<string, string>("sources", "130"),
+						pair<string, string>("x", "50"),
+						pair<string, string>("y", "50"),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", "1.0"),
+						pair<string, string>("scale", "1.0"),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"] - 1)),
+						pair<string, string>("uniqueID", "HELPIMAGE"),
+						})).run(*&gameEngine);
+					Event("DrawText", "DRAWTEXT", Map<string, string>({
+						pair<string, string>("message","$LANGUAGE$_GUI_HELP1"),
+						pair<string, string>("direct", "0"),
+						pair<string, string>("format", "HighTowerText_50"),
+						pair<string, string>("anchorStyle", "TOPLEFT"),
+						pair<string, string>("x", "30"),
+						pair<string, string>("y", "10"),
+						pair<string, string>("w", "70"),
+						pair<string, string>("h", "90"),
+						pair<string, string>("colour", "WHITE"),
+						pair<string, string>("shadowColour", "DARKBROWN"),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+						pair<string, string>("uniqueID", "HELPTEXT"),
+						})).run(*&gameEngine);
+					return true;
+				}
 				if (buttonLogic == "SKILLTREE1") {
 					if (gameEngine.stateFlags["PARTYEDITSELECTED"] == "") { return true; }
 					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("SKILLTREEEDIT1");
@@ -2746,6 +2781,12 @@ return true;
 					saveContainer.save();
 					return true;
 				}
+				if (buttonLogic == "TUTYES") {
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "TUTORIALCONFIRM")).run(*&gameEngine);
+					string player = saveContainer.getCurrentMainCharacter();
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "Tutorial", player, "EXPLORE");
+					return false;
+				}
 				if (buttonLogic == "TUTNO") {
 					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "TUTORIALCONFIRM")).run(*&gameEngine);
 					string player = saveContainer.getCurrentMainCharacter();
@@ -2758,9 +2799,44 @@ return true;
 					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "COMBAT1")).run(*&gameEngine);
 					gameEngine.storedMenus["COMBAT1"].buttonReplace(Menu::getDefaultCombatMenuButtons());
 					Event("Return", "LOADMENU", pair<string, string>("uniqueID", "COMBAT1")).run(*&gameEngine);
-					
-					Event("RestoreOpacity", "RESTORECOMBATANTOPACITY", {}).run(*&gameEngine);
 
+					Event("RestoreOpacity", "RESTORECOMBATANTOPACITY", {}).run(*&gameEngine);
+					return true;
+				}
+				if (buttonLogic == "COMBAT2QUIT") {
+						Event("Return", "LOADMENU", pair<string, string>("uniqueID", "COMBATQUIT")).run(*&gameEngine);
+						gameEngine.activeProcedure.eventList.push_front(Event("Quit?", "HANDLEMENU", List<pair<string, string>>({
+								pair<string, string>("uniqueID", "COMBATQUIT"),
+							})));
+						return true;
+				}
+				if (buttonLogic == "COMBATQUITCANCEL") {
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "COMBATQUIT")).run(*&gameEngine);
+					gameEngine.activeProcedure.eventList.pop_front();
+					return true;
+				}
+				if (buttonLogic == "QUITCOMBAT") {
+					combat.currentBattle->playerQuitBattle();
+					string who = combat.currentBattle->currentRound.whoseTurnIsIt();
+					Combat::CombatantInstance* actor = combat.currentBattle->getThisCombatant(who);
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "COMBATQUIT")).run(*&gameEngine);
+					Event("RestoreOpacity", "RESTORECOMBATANTOPACITY", {}).run(*&gameEngine);
+					Event("Lifebars", "RELOADALLCOMBATANTIMAGES", Map<string, string>(List<pair<string, string>>({
+								pair<string, string>("mode", "HIDEBARS"),
+						}))).run(*&gameEngine);
+					Event("RemoveSkillBar", "TEARDOWNTHISSKILLBAR", Map<string, string>({
+						pair<string, string>("who", actor->c.uniqueID),
+						})).run(*&gameEngine);
+					Event("RemoveCursor", "TEARDOWNIMAGE", Map<string, string>({
+						pair<string, string>("uniqueID", "whoseTurn"),
+						})).run(*&gameEngine);
+					Event("RemoveHorizontal", "TEARDOWNLIFEBARSHORIZONTAL", {}).run(*&gameEngine);
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "COMBAT1")).run(*&gameEngine);
+					gameEngine.activeProcedure.eventList.pop_front();
+					gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "HANDLECOMBATTICK", {}));
+					gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "DETERMINESKILLEFFECTSTACK", List<pair<string, string>>({
+							pair<string, string>("passive", "1"),
+						})));
 					return true;
 				}
 				if (buttonLogic.find("STARTUSINGSKILLON") != -1) {
@@ -2809,6 +2885,7 @@ return true;
 						})));
 					if (actor->c.finishedCasting()) {
 						// skill had a 0 round activation cost = cast now
+
 						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "PRINTSKILLSTACKRESULTS", {}));
 						gameEngine.activeProcedure.eventList.push_front(Event("Run Skill", "EXECUTESKILLINCOMBAT", List<pair<string, string>>({
 							pair<string, string>("active", "1"),
@@ -3026,6 +3103,7 @@ return true;
 					saveContainer.current.party = { gameEngine.stateFlags["PARTYEDITSELECTED"] };
 					saveContainer.current.allCharacters = { gameEngine.stateFlags["PARTYEDITSELECTED"] };
 					audio.fadeOutAndStopThis(MENU1_WAV, 3);
+					Event("Play This Song", "PLAYTHISSONG", Map<string, string>(List<pair<string, string>>({ pair<string, string>("uniqueID", to_string(WINDOUTSIDE1_WAV)), }))).run(*&gameEngine);
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "NewGameCutscene", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return false;
 				}
@@ -3217,6 +3295,10 @@ return true;
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "ChapelR2Teleport", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return false;
 				}
+				if (buttonLogic == "DebugButton_TeleportToChapelR2ByStairs") {
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "ChapelR2ByStairsTeleport", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					return false;
+				} 
 				if (buttonLogic == "DebugButton_TeleportToChapelR3") {
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "ChapelR3Teleport", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return false;
@@ -3233,8 +3315,15 @@ return true;
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "ChapelEntryHallCrackInWallTeleport", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return true;
 				}
+				if (buttonLogic == "DebugButton_TeleportToChapelLeft1") {
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "Chapel2LeftWing", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					return true;
+				}
 				if (buttonLogic == "DebugButton_RunCutscene") {
-					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "Tavern1", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					Event("ResetMenu", "TEARDOWNMENU", Map<string, string>(List<pair<string, string>>({
+								pair<string, string>("uniqueID", "DEBUGMENU"),
+						}))).run(*&gameEngine);
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "Tutorial", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return false;
 				}
 				if (buttonLogic == "DebugButton_AddAllPlayable") {
@@ -3244,7 +3333,9 @@ return true;
 					return true;
 				}
 				if (buttonLogic == "DebugButton_VariousChapelR2Flags") {
-					List<string> toToggle = List<string>({"OudinIntro_TRIGGERED", "OudinCutscenePlanks_TRIGGERED", "VisionRoom_TRIGGERED", "VisionRoom2_TRIGGERED", "OudinHostileTriggered", "SawOudinThroughGap"});
+					List<string> toToggle = List<string>({"OudinIntro_TRIGGERED", "OudinCutscenePlanks_TRIGGERED", "VisionRoom_TRIGGERED", "VisionRoom2_TRIGGERED", "OudinHostileTriggered", "SawOudinThroughGap",
+						"BloodWallIntro_TRIGGERED", "BloodWallIntro", "WaterPuzzleFinished",
+						});
 					for (auto t : toToggle.internalList) {
 						Event("DoButton", "HANDLEBUTTON", Map<string, string>({
 							pair<string, string>("uniqueID", "DebugButton_ToggleFlag_" + t),
@@ -3292,6 +3383,15 @@ return true;
 						pair<string, string>("uniqueID", "learnedASkill"),
 						pair<string, string>("direct", "0"),
 						})).run(*&gameEngine);
+				}
+				if (buttonLogic == "HelpMenu_BackToPartyManage") {
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "HELPMENU")).run(*&gameEngine);
+					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("PARTYMANAGEMENT");
+					Event("TearDownThisSkillIcon", "TEARDOWNIMAGE", pair<string, string>("uniqueID", "HELPIMAGE")).run(*&gameEngine);
+					Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+							pair<string, string>("uniqueID","HELPTEXT"),
+						})).run(*&gameEngine);
+					return true;
 				}
 				return true;
 }
@@ -4495,10 +4595,28 @@ return true;
 				string y = data["y"];
 				string opacity = data["opacity"];
 				bool followPlayer = data["followPlayer"] == "1";
+				bool useScreenNotMapForLoc = data["followPlayer"] == "2";
 				string anchor = data["anchor"];
 				string scale = "1.0";
 				if (data.hasKey("scale")) {
 					scale = data["scale"];
+				}
+
+				if (useScreenNotMapForLoc) {
+					// this object is not on the map so don't add it as an object
+					Event("Load" + name, "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources",sources),
+						pair<string, string>("x", x),
+						pair<string, string>("y", y),
+						pair<string, string>("anchor", anchor),
+						pair<string, string>("layer", layer),
+						pair<string, string>("animated", "1"),
+						pair<string, string>("animation_speed", animationSpeed),
+						pair<string, string>("styles", "LOOP"),
+						pair<string, string>("scale", scale),
+						pair<string, string>("opacity", opacity),
+						pair<string, string>("uniqueID", name), }))).run(*&gameEngine);
+					return true;
 				}
 
 				Explorer::mapObject objectToAdd(name, false, true, followPlayer, sources, "1", stoi(animationSpeed), stoi(layer), "1.0", scale, anchor, {stof(x), stof(y)}, false, {}, {});
@@ -5315,6 +5433,11 @@ return true;
 					if (controller.hasThisBeenPressed(VK_F1)) {
 						// make combat end instantly
 					}
+					if (controller.hasThisBeenPressed(VK_F2)) {
+						// make text disappear and remove film grain
+						combat.currentBattle->combatMessages.push_front({ 0, L"" });
+						graphics.accessImageViaUniqueID("FilmGrain")->opacity = 0.0;
+					}
 				}
 				Event("HandleSkillBarExplain", "HANDLESKILLEXPLAIN", Map<string, string>({
 						pair<string, string>("x","5"),
@@ -5361,12 +5484,13 @@ return true;
 							return false;
 						}
 					}
-					if (!combat.currentBattle->currentEventStackObject.toPrint.empty()) {
+					if (!combat.currentBattle->currentEventStackObject.toPrint.empty() and combat.currentBattle->currentEventStackObject.counter >= combat.currentBattle->currentEventStackObject.ongoingReport.size()) {
 						return true;
 					}
 					if (CLOCK.hasEnoughTimePassed("Combat Wait", 500)) {
 						data["mostRecentMessage"] = WStringToString(graphics.accessTextViaUniqueID("combatText")->fullMessage);
-						return true;
+						if (combat.currentBattle->currentEventStackObject.isAnimationFinished()) { return true; }
+						return false;
 					}
 					return false;
 				}
@@ -5586,7 +5710,9 @@ return true;
 					}
 					combat.currentBattle->combatEnding = true;
 					Event("SwapAudio", "STOPALLSONGS", {}).run(*&gameEngine);
-
+					if (combat.currentBattle->data["song"] != "") {
+						audio.fadeOutAndStopThis(stoi(combat.currentBattle->data["song"]), 3);
+					}
 					if (combat.currentBattle->battleStatusCheck() == "PLAYERWIN") {
 						Event("LoadNewMap", "LOADMAP", Map<string, string>({
 						pair<string, string>("targetMap",explorer.currentMap.name),
@@ -5618,10 +5744,16 @@ return true;
 					string postCombat = combat.currentBattle->data["postBattle"];
 					if (combat.currentBattle->battleStatusCheck() == "PLAYERLOSE") {
 						if (!saveContainer.current.flags["IntroFinished"]) {
-							postCombat = "TownCutscene1";
+							if (saveContainer.current.flags["FailedTutorial"]) {
+								postCombat = "Tutorial";
+							}
+							else {
+								postCombat = "TownCutscene1";
+							}
+							
 						}
 						else {
-							postCombat = "RETURNTOEXPLORE";
+							postCombat = "TavernTeleport";
 						}
 					}
 					combat.tearDownBattle();
@@ -5721,6 +5853,7 @@ return true;
 			int targetLayer = graphics.whichLayerIsThisImageOn(target);
 			int xOffset = 0;
 			int yOffset = 0;
+			string opacity = "1.0";
 			if (extras.hasKey("xOffset")) {
 				xOffset = stoi(extras["xOffset"]);
 			}
@@ -5755,16 +5888,22 @@ return true;
 
 
 			List<string> defaultAnimateOnTarget = list<string>({"Revitalise","Strength of Reason", "Laying of Hands", "Heal Wounds", "Serrated Strike", "Shadow Spike", "Brilliant Spark", "Stone Strike", 
-				"Stone Curse", "Atrophy", "Blade of Blood", "Vampiric Strike", "Exile", "Brain Drain","Blood Gift","Curse from Beyond the Grave","Viper Eyes", "Hypoxia", "Beggar's Blessing", "Botched Procedure", "Cestodarian Siphon", "Conciliatory Prayer", "Thoughtful Prayer", "Apostle of Patience","Shield of a Goddess", "Ivory Sanctuary", "Papalcy", "Incessant Devotion", "Ambrosia", "Blessed Light","Gift of Knowledge", "Paraclete's Invitation", "Castigate Cruor", "Entomb Spirit","Exalted Smash", "Erase Evil", "Absolution", "Adjudicate", "Stalked by Vengeance", "Rotation Blade", "Trickblade", "Debilitating Smash", "Clobber", "Cleave Armour", "Knee Crack", "Bulldoze","Knight Vision", "On My Target!", "Glass Sword", "Hack", "Bramble Cloak", "Shield of the Messenger", "Smuggler's Gambit", "Magebane Strike","Skewer", "Dragon Smash", "Weaponsmithing", "Winter Blast", "Sanctum Shroud", "Lacrymactory", "Mourning Edge", "Exemplar's Posture", "Bewrayment", "Avenger's Prayer", "Proscribe", "Conversion", "Fading Justice","Suppress","I Shall Take Care of This!","Song of Angels", "Lord's Authority", "Bailiff's Blade", "Fight the Pain!", "Fencer's Flash", "You're Worthless!", "Vapour Blade", "Light from the Other Side", "You're Revolting!", "Night Fracture", "Mug","Charm Collapse","Stalked by Shadows","Psychic Pithing", "Mind Maze", "Blinded Eye", "Black Djinn's Breath", "Wastrel's Comeuppance", "Petrifying Touch", "Rude Awakening", "Time Walk", "Deathdancer's Strike", "Natural Stab",
+				"Stone Curse", "Atrophy", "Blade of Blood", "Vampiric Strike", "Exile", "Brain Drain","Blood Gift","Curse from Beyond the Grave","Viper Eyes", "Hypoxia", "Beggar's Blessing", "Botched Procedure", "Cestodarian Siphon", "Conciliatory Prayer", "Thoughtful Prayer", "Apostle of Patience","Shield of a Goddess", "Ivory Sanctuary", "Papalcy", "Incessant Devotion", "Ambrosia", "Blessed Light","Gift of Knowledge", "Paraclete's Invitation", "Castigate Cruor", "Entomb Spirit","Exalted Smash", "Erase Evil", "Absolution", "Adjudicate", "Stalked by Vengeance", "Rotation Blade", "Trickblade", "Debilitating Smash", "Clobber", "Cleave Armour", "Knee Crack", "Bulldoze","Knight Vision", "On My Target!", "Glass Sword", "Hack", "Bramble Cloak", "Shield of the Messenger", "Smuggler's Gambit", "Magebane Strike","Skewer", "Dragon Smash", "Weaponsmithing", "Winter Blast", "Sanctum Shroud", "Lacrymactory", "Mourning Edge", "Exemplar's Posture", "Bewrayment", "Avenger's Prayer", "Proscribe", "Conversion", "Fading Justice","Suppress","I Shall Take Care of This!","Song of Angels", "Lord's Authority", "Bailiff's Blade", "Fight the Pain!", "Fencer's Flash", "You're Worthless!", "Vapour Blade", "Light from the Other Side", "You're Revolting!", "Night Fracture", "Mug","Charm Collapse","Stalked by Shadows","Psychic Pithing", "Mind Maze", "Blinded Eye", "Black Djinn's Breath", "Wastrel's Comeuppance", "Petrifying Touch", "Rude Awakening", "Time Walk", "Deathdancer's Strike", "Natural Stab", "Platinum Lotus Strike", "Summer Strike", "Ring of Ash", "Charge Bolt", "Shock Value", "Electrocute", "Ball Lightning", "Double-Edged Lightning", "Chain Lightning", "Blinding Flash",
 				"BURNING", "BLEEDING", "DISEASED", "POISONED"});
-			List<string> defaultAnimateFullScreen = list<string>({"Light of Day", "Wishing Well", "Heatwave", "Pressure Front", "Prophesized Return", "Overrule", "Ice Age", "Global Warming", "Tempest", "Drought", "Rainstorm", "Healing Rain", "Excommunicative Assault", "Godly Repulsion","No One Said You Could Touch!", "Ice Storm", "Chaos Storm",});
+			List<string> defaultAnimateFullScreen = list<string>({"Light of Day", "Wishing Well", "Heatwave", "Pressure Front", "Prophesized Return", "Overrule", "Ice Age", "Global Warming", "Tempest", "Drought", "Rainstorm", "Healing Rain", "Excommunicative Assault", "Godly Repulsion","No One Said You Could Touch!", "Ice Storm", "Chaos Storm", "Underworld Dreams", "Rageflame", "Cataclysm", });
 			List<string> defaultAnimateOnEveryTarget = list<string>({"Order of the Wasp", "Great Gospel", "Remedy Ward", "Angelic Observatory", "Iridescent Breath", "Healing Winds", "Heal Wounds All", "Go On Without Me!", "Time Vortex"});
 
 			if (procedureName == "Don't Give Up!") {
 				procedureName = "Revitalise";
 			}
+			if (procedureName == "Cataclysm") {
+				opacity = "0.5";
+			}
 			if (procedureName == "Crazed Chop") {
 				procedureName = "Hack";
+			}
+			if (procedureName == "Wildfire") {
+				procedureName = "BURNING";
 			}
 
 			if (procedureName == "Contract from Below" or procedureName == "Pact with Darkness") {
@@ -5841,7 +5980,7 @@ return true;
 						pair<string, string>("x", "50"),
 						pair<string, string>("y", "50"),
 						pair<string, string>("anchor", "CENTRE"),
-						pair<string, string>("opacity", "1.0"),
+						pair<string, string>("opacity", opacity),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
 						pair<string, string>("scale", "4.0"),
 						pair<string, string>("animated", "1"),
@@ -6740,15 +6879,22 @@ return true;
 				Menu::smallButton("DebugButton_TeleportToTown", "GUI_TELEPORTTOTOWN", {40,25}),
 				Menu::smallButton("DebugButton_TeleportToEstateSecret", "GUI_TELEPORTTOESTATESECRET", {40,30}),
 				Menu::smallButton("DebugButton_TeleportToChapelCrackInWall", "GUI_TELEPORTTOESTATECRACKINWALL", {40,35}),
+				Menu::smallButton("DebugButton_TeleportToChapelLeft1", "GUI_TELEPORTTOCHAPELLEFT1", {40,40}),
+				Menu::smallButton("DebugButton_TeleportToChapelR2ByStairs", "GUI_TELEPORTTOCHAPELR2BYSTAIRS", {40,45}),
 
 				Menu::smallButton("DebugButton_AddAllPlayable", "GUI_ADDALLPLAYABLE", {55,5}),
 
 				Menu::smallButton("DebugButton_ToggleFlag_IntroFinished", "GUI_IntroFinishedFlag", {70,5}),
 				Menu::smallButton("DebugButton_ToggleFlag_OudinDefeated", "GUI_OudinDefeatedFlag", {70,10}),
 				Menu::smallButton("DebugButton_VariousChapelR2Flags", "GUI_ChapelRightWing2Cutscenes", {70,15}),
-
 				}), Map<string, string>({
 					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " DebugButton_BackToExplore"),
+				}))),
+		pair<string, Menu>(
+			"HELPMENU", Menu("HELPMENU", List<Menu::Button>({
+				Menu::smallButton("HelpMenu_BackToPartyManage", "GUI_RETURN", {10,90}),
+			}),Map<string, string>({
+					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " HelpMenu_BackToPartyManage"),
 				}))),
 		pair<string, Menu>(
 			"EXPLOREPAUSE", Menu("EXPLOREPAUSE", List<Menu::Button>({
@@ -6885,8 +7031,17 @@ return true;
 				Menu::standardButton("TUTYES", "GUI_TUTYES", {50, 60}),
 				}), Map<string, string>({}))),
 		pair<string, Menu>(
-			"COMBAT1", Menu("COMBAT1", Menu::getDefaultCombatMenuButtons(), Map<string, string>({
+			"COMBAT1", Menu("COMBAT1", {}, Map<string, string>({
 				pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " COMBAT1CANCEL"),
+				pair<string, string>("BUTTONMAP2", to_string(0x51) + " COMBAT2QUIT"),
+			}))),
+		pair<string, Menu>(
+			"COMBATQUIT", Menu("COMBATQUIT", List<Menu::Button>({
+					Menu::TextBox("TEXTBOX1", "GUI_QUITCOMBAT", "VERY_SMALL", {50, 30}),
+					Menu::smallButton("QUITCOMBAT", "GUI_Yes", {33, 50}),
+					Menu::smallButton("COMBATQUITCANCEL", "GUI_No", {66, 50}),
+			}), Map<string, string>({
+				pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " COMBATQUITCANCEL"),
 			}))),
 		pair<string, Menu>(
 			"COMBATRESULT", Menu("COMBATRESULT", List<Menu::Button>({
@@ -7002,6 +7157,11 @@ return true;
 			pair<string, string>("waitDuration","50"),
 			})));
 		events.push_back(Event("SwapAudio", "STOPALLSONGS", {}));
+		if (data["song"] != "") {
+			events.push_back(Event("Play This Song", "PLAYTHISSONG", Map<string, string>(List<pair<string, string>>({
+					pair<string, string>("uniqueID", data["song"]),
+				}))));
+		}
 		events.push_back(Event("StartCombat", "SETUPBATTLE", data));
 		events.push_back(Event("FadeOut", "ANIMATEIMAGE", Map<string, string>(List<pair<string, string>>({
 				pair<string, string>("uniqueID", "LoadingScreen"),
@@ -7166,6 +7326,22 @@ return true;
 						pair<string, string>("audio", parsedData.at(0)),
 						pair<string, string>("delay", parsedData.at(1)),
 						pair<string, string>("direct", parsedData.at(2)),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue; 
+				}
+				if (speaker == "$PLAYSONG$") {
+					List<string> parsedData = WStringToString(val);
+					results.push_back(Event("PlayAudio", "PLAYTHISSONG", Map<string, string>({
+						pair<string, string>("uniqueID", parsedData.at(0)),
+						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "$STOPSONG$") {
+					List<string> parsedData = WStringToString(val);
+					results.push_back(Event("PlayAudio", "STOPTHISSONG", Map<string, string>({
+						pair<string, string>("uniqueID", parsedData.at(0)),
 						})));
 					acceptedLines.push_back(thisLine);
 					continue;

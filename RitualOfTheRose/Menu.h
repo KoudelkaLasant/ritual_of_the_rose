@@ -345,6 +345,8 @@ public:
 		return result;
 	}
 	static const List<Button> getDefaultCombatMenuButtons() {
+		return {};
+		// removed
 		List<Button> result = List<Button>({
 			Menu::smallButton("COMBAT1OPENMENU", "GUI_COMBAT1BUTTON", { 92, 96 }),
 			});

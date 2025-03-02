@@ -362,11 +362,16 @@ public:
                 loadTexture(*&graphics);
                 texture = getWhichTexture();
             }
-            D2D1_SIZE_F size = texture->GetSize();
-            D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
-            pair<float, float> position = getAbsolutePosition(renderTargetSize);
-            D2D1_RECT_F rect = getRect(position, size);
-            return rect;
+            try {
+                D2D1_SIZE_F size = texture->GetSize();
+                D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
+                pair<float, float> position = getAbsolutePosition(renderTargetSize);
+                D2D1_RECT_F rect = getRect(position, size);
+                return rect;
+            }
+            catch (...) {
+                return D2D1::RectF(0, 0, 0, 0);
+            }
         }
         bool hasThisFinishedAnimating() {
             if (!animationStyles.contains("SINGLE")) {
