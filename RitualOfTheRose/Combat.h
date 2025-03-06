@@ -488,6 +488,12 @@ public:
 				if (subeffect == "Ice Storm") {
 					result["DAMAGE_SINGLE_COLD"] = e.values["power"];
 				}
+				if (subeffect == "Thunderstorm") {
+					result["DAMAGE_RANDOMFOE_ELECTRIC"] = e.values["power"];
+				}
+				if (subeffect == "Stormseeker") {
+					result["DAMAGE_RANDOMFOE_ELECTRIC"] = e.values["power"];
+				}
 				if (subeffect == "Cataclysm") {
 					result["DAMAGE_SINGLE_FIRE"] = e.values["power"];
 				}
@@ -499,6 +505,9 @@ public:
 				}
 				if (subeffect == "Apostle of Patience") {
 					result["LIFEHEAL_SINGLE_HOLY"] = e.values["power"];
+				}
+				if (subeffect == "Thunderbolt") {
+					result["DAMAGE_SINGLE_ELECTRIC"] = e.values["power"];
 				}
 				if (subeffect == "Ice AgeW") {
 					result["APPLY_Ice Age_ALL"] = e.values["duration"];
@@ -1006,6 +1015,11 @@ public:
 					if (which.skillTypeTags.contains("MAGICAL") and which.uniqueID != "DEFAULT_WAIT" and effect->e.logicName == "Time Walk") {
 						result = 0;
 					}
+					if (effect->e.uniqueID == "Storm Djinn's Grace" and which.skillTree == "Electromancy") {
+						if (result > 0) {
+							result--;
+						}
+					}
 				}
 				for (EffectObjectInstance* effect : combat.currentBattle->getAllEffectsOnXInTimeOrderOldestFirst(currentTarget).internalList) { // effect on victim
 					if (which.skillTypeTags.contains("ATTACK") and effect->e.logicName == "Proscribe") {
@@ -1026,6 +1040,11 @@ public:
 						result += effect->e.values["power"];
 					}
 					if (which.skillTypeTags.contains("ATTACK") and effect->e.logicName == "Exemplar's Posture") {
+						if (result > 0) {
+							result--;
+						}
+					}
+					if (effect->e.uniqueID == "Storm Djinn's Grace" and which.skillTree == "Electromancy") {
 						if (result > 0) {
 							result--;
 						}
@@ -1697,6 +1716,20 @@ public:
 					}
 				}
 
+				// effect is on the target
+				if (effect->e.target == target) {
+					// target is an opponent
+					if (allOpponents.contains(combat.currentBattle->getThisCombatant(c.currentTarget))) {
+						if (effect->e.uniqueID == "Electric Loop") {
+							Map<string, int> electricLoopVData;
+							Map<string, string> electricLoopSData;
+							electricLoopSData["success"] = "1";
+							electricLoopVData["DAMAGE_SINGLE_ELECTRIC"] = combat.currentBattle->getThisEffect(target, "Electric Loop")->e.values["power"];
+							results.push_back(CombatEvent("DAMAGE_SINGLE_ELECTRIC", "SKILL", "Electric Loop", target, { c.uniqueCombatID }, electricLoopSData, electricLoopVData));
+						}
+					}
+				}
+
 				// effect is on the user
 				if (effect->e.target == c.uniqueCombatID) {
 					if (effect->e.logicName == "Shield of the Messenger" and c.getSkillBeingCast().skillTypeTags.contains("MAGICAL")) {
@@ -1791,7 +1824,37 @@ public:
 							results.push_back(CombatEvent("APPLY_Wildfire_SINGLE", "SKILL", "Wildfire", user, { actor->c.uniqueCombatID }, applyWildfireSData, applyWildfireVData));
 						}
 					}
-					
+					if (effect->e.logicName == "Valkyrie's Aura" and c.getSkillBeingCast().skillTypeTags.contains("PHYSICAL") and c.getSkillBeingCast().uniqueID != "DEFAULT_WAIT") {
+						// deal with applying blindness here, deal with damage packet later
+						Map<string, int> valkVData;
+						Map<string, string> valkSData;
+						valkSData["success"] = "1";
+						valkVData["DURATION_BLIND"] = 1;
+						results.push_back(CombatEvent("APPLY_BLIND_SINGLE", "SKILL", "Valkyrie's Aura", c.uniqueCombatID, { target }, valkSData, valkVData));
+					}
+					if (effect->e.logicName == "Twilightning" and allOpponents.contains(combat.currentBattle->getThisCombatant(c.currentTarget))) {
+						Map<string, int> durationStaticVData;
+						Map<string, string> durationStaticSData;
+						durationStaticSData["success"] = "1";
+						durationStaticVData["DURATION_STATIC"] = effect->e.values["duration"];
+						results.push_back(CombatEvent("APPLY_STATIC_SINGLE", "SKILL", "Twilightning", c.uniqueCombatID, { target }, durationStaticSData, durationStaticVData));
+
+
+						Map<string, int> damageTwilightningVData;
+						Map<string, string> damageTwilightningSData;
+						damageTwilightningSData["success"] = "1";
+						damageTwilightningVData["DAMAGE_SINGLE_ELECTRIC"] = effect->e.values["power"];
+						results.push_back(CombatEvent("DAMAGE_SINGLE_ELECTRIC", "SKILL", "Twilightning", c.uniqueCombatID, { target }, damageTwilightningSData, damageTwilightningVData));
+					}
+					if (effect->e.logicName == "Arcane Furnace" and
+						combat.currentBattle->doesTargetXHaveStatusY(c.uniqueCombatID, "BURNING") and
+						toCast.skillTypeTags.contains("MAGICAL")) {
+						Map<string, string> subSData;
+						Map<string, int> subVData;
+						subSData["success"] = "1";
+						subVData["MANAHEAL_SELF_FIRE"] = effect->e.values["power"];
+						results.push_back(CombatEvent("MANAHEAL_SELF_FIRE", "SKILL", "Arcane Furnace", c.uniqueCombatID, { c.uniqueCombatID }, subSData, subVData));
+					}
 				}
 			}
 			for (auto eff : effectsThatNeedToBeRemoved.internalList) {
@@ -1830,6 +1893,11 @@ public:
 						results.push_back(CombatEvent(skillLogicName, "SKILL", toCast.uniqueID, c.uniqueCombatID, {victim}, sData, vData));
 					}
 
+				}
+				if (skillLogicName.find("_RANDOMFOE_") != -1) {
+					CombatantInstance* victim = scrambleList(getMyFoesThatAreAlive(*&combat)).front();
+					c.currentTarget = victim->c.uniqueCombatID;
+					skillLogicName = SReplace(skillLogicName, "_RANDOMFOE_", "_SINGLE_");
 				}
 				if (skillLogicName.find("_SINGLE") != -1 or skillLogicName.find("_SELF") != -1) {
 					if (skillLogicName.find("DAMAGE_SELF_") != -1) {
@@ -2177,6 +2245,10 @@ public:
 				// passive effects which damage all foes should be converted into individual damage reports so they can be resisted individually
 				List<CombatEvent> reportsBasedOnPassiveEffect;
 				for (auto& report : ongoingReport.internalList) {
+					if (report.logic.find("DAMAGE_RANDOMFOE_") != -1) {
+						report.logic = SReplace(report.logic, "DAMAGE_RANDOMFOE_", "DAMAGE_SINGLE");
+						report.combatantsAffected = scrambleList(combat.currentBattle->getThisCombatant(report.originalUser)->getMyFoesThatAreAlive(*&combat)).front()->c.uniqueCombatID;
+					}
 					if (report.logic.find("DAMAGE_ALLFOES_") != -1 or report.logic.find("MANABURN_ALLFOES_") != -1) {
 						string logicName = SReplace(report.logic, "_ALLFOES_", "_SINGLE_");
 						for (CombatantInstance* C : combat.currentBattle->getThisCombatant(report.originalUser)->getMyFoesThatAreAlive(*&combat).internalList) {
@@ -2250,6 +2322,8 @@ public:
 							}
 						}
 					}
+
+
 					if (report.sourceName == "Absolution") {
 						List<EffectObjectInstance*> effects = combat.currentBattle->getAllEffectsOnXThatAreThisType(report.combatantsAffected.front(), "BANE");
 						int howManyBanes = effects.size();
@@ -2552,6 +2626,11 @@ public:
 												report.vData["DAMAGE_SINGLE_HOLY"] += effect->e.values["power"];
 											}
 										}
+										if (effect->e.logicName == "Valkyrie's Aura") {
+											if (report.vData.hasKey("DAMAGE_SINGLE_PHYSICAL")) {
+												report.vData["DAMAGE_SINGLE_ELECTRIC"] += effect->e.values["power"];
+											}
+										}
 										if (effect->e.logicName == "Fading Justice") {
 											if (report.vData.hasKey("DAMAGE_SINGLE_PHYSICAL")) {
 												int modifier = effect->e.values["power"];
@@ -2638,6 +2717,9 @@ public:
 									}
 									if (effect->e.uniqueID == "Go On Without Me!") {
 										report.vData[v] *= 0.75;
+									}
+									if (effect->e.uniqueID == "Storm Djinn's Grace") {
+										report.vData[v] *= 1.1;
 									}
 									if (v == "DAMAGE_SINGLE_ELECTRIC" and effect->e.triggers.contains("ONTAKINGELECTRICDAMAGE")) {
 										if (effect->e.logicName == "ARMOURVSELECTRIC") {
@@ -3789,6 +3871,15 @@ public:
 						return results; // can't cast any spells
 					}
 				}
+				if (combat.currentBattle->doesTargetXHaveStatusY(combatant->c.uniqueCombatID, "Shadow Game")) {
+					if (skillDefinition.uniqueID != "DEFAULT_WAIT") {
+						List<string> cannotUse = List<string>({ "SINGLEALLY", "SINGLEOTHERALLY", "SINGLEOTHERALLYWITHNOBOONS", "DEADPARTYMEMBER",
+								"ALL","ALLALLIES"});
+						if (cannotUse.contains(targetLogic)) {
+							return results;
+						}
+					}
+				}
 			}
 			if (targetLogic == "FOECASTINGASPELL") {
 				results = combatant->getMyFoesThatAreCastingASpell(*&combat);
@@ -4822,14 +4913,117 @@ public:
 				}),
 				list<string>({ "DEALDAMAGE", }), BLINDINGFLASH_WAV);
 
-		skillDefinitions["Electric Loop"] = Skill("Electric Loop", "Electric Loop", "Electromancy", SKILLICON_BLINDINGFLASH, 20, 0, 4, "SINGLEFOE",
+		skillDefinitions["Electric Loop"] = Skill("Electric Loop", "Electric Loop", "Electromancy", SKILLICON_ELECTRICLOOP, 20, 0, 4, "SELF",
 			list<string>({ "APPLY_Electric Loop_SELF", }),
 			list<string>({ "MAGICAL","ELECTRIC", "ELEMENTAL", }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DURATION_Electric Loop", PowerValue("DURATION_Electric Loop", 6, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("POWER_Electric Loop", PowerValue("POWER_Electric Loop", 15, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
 				}),
-				list<string>({ "DEALDAMAGE", }), SKILLICON_ELECTRICLOOP);
+				list<string>({ "DEALDAMAGE", }), ELECTRICLOOP_WAV);
+
+		skillDefinitions["Mind Fry"] = Skill("Mind Fry", "Mind Fry", "Electromancy", SKILLICON_MINDFRY, 10, 0, 2, "SINGLEFOE",
+			list<string>({ "DAMAGE_SINGLE_ELECTRIC", "MANABURN_SINGLE_ELECTRIC", "APPLY_WEAKENED_SINGLE"}),
+			list<string>({ "MAGICAL","ELECTRIC", "ELEMENTAL", "ELITE",}),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DAMAGE_SINGLE_ELECTRIC", PowerValue("DAMAGE_SINGLE_ELECTRIC", 50, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_WEAKENED", PowerValue("DURATION_WEAKENED", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("MANABURN_SINGLE_ELECTRIC", PowerValue("MANABURN_SINGLE_ELECTRIC", 7, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "DEALDAMAGE", }), MINDFRY_WAV);
+
+		skillDefinitions["Valkyrie's Aura"] = Skill("Valkyrie's Aura", "Valkyrie's Aura", "Electromancy", SKILLICON_VALKYRIESAURA, 25, 0, 5, "SINGLEALLY",
+			list<string>({ "APPLY_Valkyrie's Aura_SINGLE",}),
+			list<string>({ "MAGICAL","ELECTRIC", "ELEMENTAL", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DURATION_Valkyrie's Aura", PowerValue("DURATION_Valkyrie's Aura", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER_Valkyrie's Aura", PowerValue("POWER_Valkyrie's Aura", 7, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_BLIND", PowerValue("DURATION_BLIND", 1, 0, 1, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "BUFFALLY","BUFFSELF"}), ELECTRICLOOP_WAV);
+
+		skillDefinitions["Thunderstorm"] = Skill("Thunderstorm", "Thunderstorm", "Electromancy", SKILLICON_THUNDERSTORM, 25, 1, 8, "SELF",
+			list<string>({ "APPLY_Thunderstorm_WORLD", }),
+			list<string>({ "MAGICAL","ELECTRIC", "ELEMENTAL", "ELITE"}),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("POWER_Thunderstorm", PowerValue("POWER_Thunderstorm", 100, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_Thunderstorm", PowerValue("DURATION_Thunderstorm", 10, 0, 10, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "DEALDAMAGE" }), THUNDERSTORM_WAV);
+
+		skillDefinitions["Stormseeker"] = Skill("Stormseeker", "Stormseeker", "Electromancy", SKILLICON_STORMSEEKER, 25, 0, 8, "SELF",
+			list<string>({ "APPLY_Stormseeker_WORLD", }),
+			list<string>({ "MAGICAL","ELECTRIC", "ELEMENTAL", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("POWER_Stormseeker", PowerValue("POWER_Stormseeker", 15, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_Stormseeker", PowerValue("DURATION_Stormseeker", 10, 0, 10, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "BUFFSELF" }), THUNDERSTORM_WAV);
+
+		skillDefinitions["Thunderbolt"] = Skill("Thunderbolt", "Thunderbolt", "Electromancy", SKILLICON_THUNDERBOLT, 20, 0, 3, "SINGLEFOE",
+			list<string>({ "DAMAGE_SINGLE_ELECTRIC", "APPLY_Thunderbolt_SINGLE"}),
+			list<string>({ "MAGICAL","ELECTRIC", "ELEMENTAL", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DAMAGE_SINGLE_ELECTRIC", PowerValue("DAMAGE_SINGLE_ELECTRIC", 16, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER_Thunderbolt", PowerValue("POWER_Thunderbolt", 16, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_Thunderbolt", PowerValue("DURATION_Thunderbolt", 2, 0, 2, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "DAMAGEFOE" }), CHAINLIGHTNING_WAV);
+
+		skillDefinitions["Twilightning"] = Skill("Twilightning", "Twilightning", "Electromancy", SKILLICON_TWILIGHTNING, 10, 0, 1, "SELF",
+			list<string>({ "APPLY_STATIC_SELF", "APPLY_Twilightning_SINGLE" }),
+			list<string>({ "MAGICAL","ELECTRIC", "ELEMENTAL", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DURATION_STATIC", PowerValue("DURATION_STATIC", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER1_Twilightning", PowerValue("POWER1_Twilightning", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+
+				pair<string, PowerValue>("POWER_Twilightning", PowerValue("POWER_Twilightning", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_Twilightning", PowerValue("DURATION_Twilightning", 15, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "BUFFSELF" }), ELECTRICLOOP_WAV);
+
+		skillDefinitions["Storm Djinn's Grace"] = Skill("Storm Djinn's Grace", "Storm Djinn's Grace", "Electromancy", SKILLICON_STORMDJINNSGRACE, 25, 0, 1, "SELF",
+			list<string>({ "APPLY_Storm Djinn's Grace_SELF", }),
+			list<string>({ "MAGICAL","ELECTRIC", "ELEMENTAL", "ELITE"}),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DURATION_Storm Djinn's Grace", PowerValue("DURATION_Storm Djinn's Grace", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "BUFFSELF" }), STORMDJINNSHASTE_WAV);
+
+		skillDefinitions["Short Circuit"] = Skill("Short Circuit", "Short Circuit", "Electromancy", SKILLICON_SHORTCIRCUIT, 20, 0, 3, "SINGLEFOE",
+			list<string>({ "DAMAGE_SINGLE_ELECTRIC", "INTERRUPT_SINGLE_ELECTRIC"}),
+			list<string>({ "MAGICAL","ELECTRIC", "ELEMENTAL", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DAMAGE_SINGLE_ELECTRIC", PowerValue("DAMAGE_SINGLE_ELECTRIC", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "DEALDAMAGE" }), CHARGEBOLT_WAV);
+
+		skillDefinitions["Shocking Defeat"] = Skill("Shocking Defeat", "Shocking Defeat", "Electromancy", SKILLICON_SHOCKINGDEFEAT, 30, 1, 4, "SINGLEFOE",
+			list<string>({ "DAMAGE_SINGLE_ELECTRIC", "INTERRUPT_SINGLE_ELECTRIC" }),
+			list<string>({ "MAGICAL","ELECTRIC", "ELEMENTAL", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DAMAGE_SINGLE_ELECTRIC", PowerValue("DAMAGE_SINGLE_ELECTRIC", 60, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "DEALDAMAGE" }), CHAINLIGHTNING_WAV);
+
+		skillDefinitions["Energy Bolt"] = Skill("Energy Bolt", "Energy Bolt", "Electromancy", SKILLICON_ENERGYBOLT, 30, 0, 1, "SINGLEFOE",
+			list<string>({ "DAMAGE_SINGLE_ELECTRIC", "MANAHEAL_SELF_ELECTRIC" }),
+			list<string>({ "MAGICAL","ELECTRIC", "ELEMENTAL", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DAMAGE_SINGLE_ELECTRIC", PowerValue("DAMAGE_SINGLE_ELECTRIC", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("MANAHEAL_SELF_ELECTRIC", PowerValue("DAMAGE_SINGLE_ELECTRIC", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "DEALDAMAGE" }), CHAINLIGHTNING_WAV);
+
+		skillDefinitions["Scowling Rift"] = Skill("Scowling Rift", "Scowling Rift", "Electromancy", SKILLICON_SCOWLINGRIFT, 30, 2, 1, "SINGLEFOE",
+			list<string>({ "DAMAGE_SINGLE_ELECTRIC", "APPLY_WEAKENED_SINGLE", }),
+			list<string>({ "MAGICAL","ELECTRIC", "ELEMENTAL", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DAMAGE_SINGLE_ELECTRIC", PowerValue("DAMAGE_SINGLE_ELECTRIC", 60, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_WEAKENED", PowerValue("DURATION_WEAKENED", 4, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "DEALDAMAGE" }), SCOWLINGRIFT_WAV);
 
 		// MINOR ARMS
 		skillDefinitions["Doublestrike"] = Skill("Doublestrike", "Doublestrike", "Minor Arms", SKILLICON_DOUBLESTRIKE, 15, 0, 0, "SINGLEFOE",
@@ -5028,6 +5222,14 @@ public:
 				pair<string, PowerValue>("DURATION_Underworld Dreams", PowerValue("DURATION_Underworld Dreams", 6, 0, 999, true, list<string>({ "INTELLIGENCE", "SHADOWBOOST"}))),
 				}),
 				list<string>({ "CURSEFOE" }), TIMEVORTEX_WAV);
+
+		skillDefinitions["Shadow Game"] = Skill("Shadow Game", "Shadow Game", "Umbromancy", SKILLICON_SHADOWGAME, 5, 0, 5, "SINGLEFOE",
+			list<string>({ "APPLY_Shadow Game_SINGLE" }),
+			list<string>({ "MAGICAL", "SHADOW", "ELITE",}),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DURATION_Shadow Game", PowerValue("DURATION_Shadow Game", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "SHADOWBOOST"}))),
+				}),
+				list<string>({ "CURSEFOE" }), SHADOWGAME_WAV);
 
 		// ARMS
 		skillDefinitions["Fine Strike"] = Skill("Fine Strike", "Fine Strike", "Arms", SKILLICON_FINESTRIKE, 5, 0, 0, "SINGLEFOE",
@@ -5339,7 +5541,7 @@ public:
 		// PYROMANCY
 		skillDefinitions["Brilliant Spark"] = Skill("Brilliant Spark", "Brilliant Spark", "Pyromancy", SKILLICON_BRILLIANTSPARK, 20, 0, 1, "SINGLEFOE",
 			list<string>({ "DAMAGE_SINGLE_FIRE", "APPLY_BURNING_SINGLE" }),
-			list<string>({ "MAGICAL", }),
+			list<string>({ "MAGICAL","FIRE", "ELEMENTAL" }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DAMAGE_SINGLE_FIRE", PowerValue("DAMAGE_SINGLE_FIRE", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("DURATION_BURNING", PowerValue("DURATION_BURNING", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
@@ -5348,7 +5550,7 @@ public:
 
 		skillDefinitions["Rageflame"] = Skill("Rageflame", "Rageflame", "Pyromancy", SKILLICON_RAGEFLAME, 25, 1, 2, "SINGLEFOE",
 			list<string>({ "DAMAGE_ALLFOES_FIRE", "MANAHEAL_ALLFOES_FIRE" }),
-			list<string>({ "MAGICAL", }),
+			list<string>({ "MAGICAL","FIRE", "ELEMENTAL" }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DAMAGE_ALLFOES_FIRE", PowerValue("DAMAGE_ALLFOES_FIRE", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("MANAHEAL_ALLFOES_FIRE", PowerValue("MANAHEAL_ALLFOES_FIRE", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
@@ -5357,7 +5559,7 @@ public:
 
 		skillDefinitions["Summer Strike"] = Skill("Summer Strike", "Summer Strike", "Pyromancy", SKILLICON_SUMMERSTRIKE, 30, 2, 2, "SINGLEFOE",
 			list<string>({ "DAMAGE_SINGLE_FIRE", }),
-			list<string>({ "MAGICAL", }),
+			list<string>({ "MAGICAL","FIRE", "ELEMENTAL" }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DAMAGE_SINGLE_FIRE", PowerValue("DAMAGE_SINGLE_FIRE", 95, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
 				}),
@@ -5365,17 +5567,20 @@ public:
 
 		skillDefinitions["Wildfire"] = Skill("Wildfire", "Wildfire", "Pyromancy", SKILLICON_WILDFIRE, 20, 0, 0, "SINGLEFOE",
 			list<string>({ "APPLY_Wildfire_SINGLE", "DAMAGE_SINGLE_FIRE"}),
-			list<string>({ "MAGICAL", }),
+			list<string>({ "MAGICAL","FIRE", "ELEMENTAL" }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DURATION_Wildfire", PowerValue("DURATION_Wildfire", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("POWER_Wildfire", PowerValue("POWER_Wildfire", 15, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("DAMAGE_SINGLE_FIRE", PowerValue("DAMAGE_SINGLE_FIRE", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
+
+				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER1_Wildfire", PowerValue("POWER1_Wildfire", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "CURSEFOE", }), SUMMERSTRIKE_WAV);
 
 		skillDefinitions["Cataclysm"] = Skill("Cataclysm", "Cataclysm", "Pyromancy", SKILLICON_CATACLYSM, 40, 2, 10, "SINGLEFOE",
 			list<string>({ "APPLY_Cataclysm_WORLD", "DAMAGE_ALLFOES_FIRE", }),
-			list<string>({ "MAGICAL", }),
+			list<string>({ "MAGICAL","FIRE", "ELEMENTAL" }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("Duration_Cataclysm", PowerValue("Duration_Cataclysm Storm", 10, 10, 10, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("POWER_Cataclysm", PowerValue("POWER_Cataclysm", 18, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
@@ -5385,7 +5590,7 @@ public:
 
 		skillDefinitions["Ring of Ash"] = Skill("Ring of Ash", "Ring of Ash", "Pyromancy", SKILLICON_RINGOFASH, 5, 0, 0, "SELF",
 			list<string>({ "APPLY_Ring of Ash_SELF", }),
-			list<string>({ "MAGICAL", }),
+			list<string>({ "MAGICAL","FIRE", "ELEMENTAL" }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DURATION_Ring of Ash", PowerValue("DURATION_Ring of Ash", 10, 10, 10, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("POWER_Ring of Ash", PowerValue("POWER_Ring of Ash", 1, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
@@ -5393,10 +5598,35 @@ public:
 				}),
 				list<string>({ "DEALDAMAGE", }), RINGOFASH_WAV);
 
+		skillDefinitions["Fire Bolt"] = Skill("Fire Bolt", "Fire Bolt", "Pyromancy", SKILLICON_FIREBOLT, 15, 0, 0, "SINGLEFOE",
+			list<string>({ "DAMAGE_SINGLE_FIRE", }),
+			list<string>({ "MAGICAL","FIRE", "ELEMENTAL" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DAMAGE_SINGLE_FIRE", PowerValue("DAMAGE_SINGLE_FIRE", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "DEALDAMAGE", }), FIREBOLT_WAV);
+
+		skillDefinitions["Arcane Furnace"] = Skill("Arcane Furnace", "Arcane Furnace", "Pyromancy", SKILLICON_ARCANEFURNACE, 5, 0, 0, "SELF",
+			list<string>({ "APPLY_Arcane Furnace_SELF", }),
+			list<string>({ "MAGICAL","FIRE", "ELEMENTAL" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DURATION_Arcane Furnace", PowerValue("DURATION_Arcane Furnace", 10, 10, 10, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER_Arcane Furnace", PowerValue("POWER_Arcane Furnace", 15, 0, 999, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "ENCHANTSELF", }), ARCANEFURNACE_WAV);
+
+		skillDefinitions["Flame Wave"] = Skill("Flame Wave", "Flame Wave", "Pyromancy", SKILLICON_FLAMEWAVE, 15, 0, 0, "SELF",
+			list<string>({ "DAMAGE_ALLFOES_FIRE", }),
+			list<string>({ "MAGICAL","FIRE", "ELEMENTAL" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DAMAGE_ALLFOES_FIRE", PowerValue("DAMAGE_ALLFOES_FIRE", 10, 10, 10, true, list<string>({ "INTELLIGENCE", "FIREBOOST", "ELEMENTALBOOST"}))),
+				}),
+				list<string>({ "ENCHANTSELF", }), ARCANEFURNACE_WAV);
+
 		// TERRAMANCY
 		skillDefinitions["Stone Strike"] = Skill("Stone Strike", "Stone Strike", "Terramancy", SKILLICON_STONESTRIKE, 20, 0, 1, "SINGLEFOE",
 			list<string>({ "DAMAGE_SINGLE_EARTH", "APPLY_BLEEDINGIF?TARGETHASDUSTY_SINGLE" }),
-			list<string>({ "MAGICAL", }),
+			list<string>({ "MAGICAL", "EARTH", "ELEMENTAL", }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DAMAGE_SINGLE_EARTH", PowerValue("DAMAGE_SINGLE_EARTH", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("DURATION_BLEEDING", PowerValue("DURATION_BLEEDING", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
@@ -5405,7 +5635,7 @@ public:
 
 		skillDefinitions["Stone Curse"] = Skill("Stone Curse", "Stone Curse", "Terramancy", SKILLICON_STONECURSE, 5, 0, 0, "SINGLEFOE",
 			list<string>({"APPLY_Stone Curse_SINGLE" }),
-			list<string>({ "MAGICAL", }),
+			list<string>({ "MAGICAL","EARTH", "ELEMENTAL", }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DURATION_Stone Curse", PowerValue("DURATION_Stone Curse", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
 				}),
@@ -5413,7 +5643,7 @@ public:
 
 		skillDefinitions["Basalt Bastion"] = Skill("Basalt Bastion", "Basalt Bastion", "Terramancy", SKILLICON_BASALTBASTION, 10, 0, 5, "SELF",
 			list<string>({ "APPLY_Basalt Bastion_SINGLE" }),
-			list<string>({ "MAGICAL", }),
+			list<string>({ "MAGICAL","EARTH", "ELEMENTAL", }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DURATION_Basalt Bastion", PowerValue("DURATION_Basalt Bastion", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
 				}),
@@ -5422,7 +5652,7 @@ public:
 		// HYDROMANCY
 		skillDefinitions["Healing Rain"] = Skill("Healing Rain", "Healing Rain", "Hydromancy", SKILLICON_HEALINGRAIN, 25, 1, 10, "SELF",
 			list<string>({ "APPLY_Healing Rain_WORLD", "LIFEHEAL_AOE_WATER"}),
-			list<string>({ "MAGICAL", }),
+			list<string>({ "MAGICAL","WATER","ELEMENTAL"}),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DURATION_Healing Rain", PowerValue("DURATION_Healing Rain", 10, 0, 10, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("POWER_Healing Rain", PowerValue("POWER_Healing Rain", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
@@ -5432,7 +5662,7 @@ public:
 
 		skillDefinitions["Winter Blast"] = Skill("Winter Blast", "Winter Blast", "Hydromancy", SKILLICON_WINTERBLAST, 30, 1, 3, "SINGLEFOE",
 			list<string>({ "DAMAGE_SINGLE_COLD", "APPLY_FROZEN_SINGLE" }),
-			list<string>({ "MAGICAL", }),
+			list<string>({ "MAGICAL","WATER","ELEMENTAL" }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DAMAGE_SINGLE_COLD", PowerValue("DAMAGE_SINGLE_COLD", 50, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("DURATION_FROZEN", PowerValue("DURATION_FROZEN", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
@@ -5441,7 +5671,7 @@ public:
 
 		skillDefinitions["Vapour Blade"] = Skill("Vapour Blade", "Vapour Blade", "Hydromancy", SKILLICON_VAPOURBLADE, 30, 1, 4, "SINGLEFOE",
 			list<string>({ "DAMAGE_SINGLE_COLD", }),
-			list<string>({ "MAGICAL", }),
+			list<string>({ "MAGICAL","WATER","ELEMENTAL" }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DAMAGE_SINGLE_COLD", PowerValue("DAMAGE_SINGLE_COLD", 42, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
 				}),
@@ -5449,7 +5679,7 @@ public:
 
 		skillDefinitions["Light from the Other Side"] = Skill("Light from the Other Side", "Light from the Other Side", "Hydromancy", SKILLICON_LFROMTHEOTHERS, 15, 0, 3, "SINGLEALLY",
 			list<string>({ "REMOVEBANE_SINGLE", "LIFEHEAL_SINGLE_COLD", "MANAHEAL_SELF_COLD"}),
-			list<string>({ "MAGICAL", "ELITE"}),
+			list<string>({ "MAGICAL","WATER","ELEMENTAL", "ELITE"}),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("LIFEHEAL_SINGLE_COLD", PowerValue("LIFEHEAL_SINGLE_COLD", 100, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("MANAHEAL_SELF_COLD", PowerValue("MANAHEAL_SELF_COLD", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
@@ -5458,7 +5688,7 @@ public:
 
 		skillDefinitions["Ice Storm"] = Skill("Ice Storm", "Ice Storm", "Hydromancy", SKILLICON_ICESTORM, 30, 2, 10, "SINGLEFOE",
 			list<string>({ "APPLY_Ice Storm_WORLD", "DAMAGE_ALLFOES_COLD", }),
-			list<string>({ "MAGICAL", "ELITE" }),
+			list<string>({ "MAGICAL", "WATER","ELEMENTAL", "ELITE" }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("Duration_Ice Storm", PowerValue("Duration_Ice Storm", 10, 10, 10, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("POWER_Ice Storm", PowerValue("POWER_Ice Storm", 23, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
@@ -5603,7 +5833,7 @@ public:
 						//pair<string, string>("BLIND", "999"),
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
-						pair<string, string>("0", "DEFAULT_WAIT"),
+						pair<string, string>("0", "Brilliant Spark"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 				}));
@@ -5974,6 +6204,10 @@ public:
 			List<string>(list<string>({ "Ice Storm", })),
 			List<string>(list<string>({ "EVERYTURN", })));
 
+		allEffectDefinitions["Thunderstorm"] = EffectObject("Thunderstorm", "NEUTRAL", SKILLICON_THUNDERSTORM, "DAMAGE_RANDOMFOE_ELECTRIC", false,
+			List<string>(list<string>({ "Thunderstorm", })),
+			List<string>(list<string>({ "EVERYTURN", })));
+
 		allEffectDefinitions["Chaos Storm"] = EffectObject("Chaos Storm", "NEUTRAL", SKILLICON_CHAOSSTORM, "MANABURN_ALLFOES_SHADOW", false,
 			List<string>(list<string>({ "Chaos Storm", })),
 			List<string>(list<string>({ "EVERYTURN", })));
@@ -6228,7 +6462,35 @@ public:
 
 		allEffectDefinitions["Electric Loop"] = EffectObject("Electric Loop", "BOON", SKILLICON_ELECTRICLOOP, "Electric Loop", false,
 			List<string>(list<string>({ "Electric Loop", })),
-			List<string>(list<string>({ "ONUSINGSKILLS", })));
+			List<string>(list<string>({ "ONBEINGTARGETED", })));
+
+		allEffectDefinitions["Valkyrie's Aura"] = EffectObject("Valkyrie's Aura", "BOON", SKILLICON_VALKYRIESAURA, "Valkyrie's Aura", false,
+			List<string>(list<string>({ "Electric Loop", })),
+			List<string>(list<string>({ "ONATTACKING", })));
+
+		allEffectDefinitions["Shadow Game"] = EffectObject("Shadow Game", "BANE", SKILLICON_SHADOWGAME, "Shadow Game", false,
+			List<string>(list<string>({ "Shadow Game", })),
+			List<string>(list<string>({ "ONUSINGSKILL", })));
+
+		allEffectDefinitions["Stormseeker"] = EffectObject("Stormseeker", "BOON", SKILLICON_STORMSEEKER, "DAMAGE_RANDOMFOE_ELECTRIC", false,
+			List<string>(list<string>({ "Stormseeker", })),
+			List<string>(list<string>({ "EVERYTURN", })));
+
+		allEffectDefinitions["Thunderbolt"] = EffectObject("Thunderbolt", "BANE", SKILLICON_THUNDERBOLT, "DAMAGE_SINGLE_ELECTRIC", false,
+			List<string>(list<string>({ "Thunderbolt", })),
+			List<string>(list<string>({ "ONEND", })));
+
+		allEffectDefinitions["Twilightning"] = EffectObject("Twilightning", "BOON", SKILLICON_TWILIGHTNING, "Twilightning", false,
+			List<string>(list<string>({ "Twilightning", })),
+			List<string>(list<string>({ "ONUSINGSKILL", })));
+
+		allEffectDefinitions["Storm Djinn's Grace"] = EffectObject("Storm Djinn's Grace", "BOON", SKILLICON_STORMDJINNSGRACE, "Storm Djinn's Grace", false,
+			List<string>(list<string>({ "Storm Djinn's Grace", })),
+			List<string>(list<string>({ "ONUSINGSKILL", })));
+
+		allEffectDefinitions["Arcane Furnace"] = EffectObject("Arcane Furnace", "BOON", SKILLICON_ARCANEFURNACE, "Arcane Furnace", false,
+			List<string>(list<string>({ "Arcane Furnace", })),
+			List<string>(list<string>({ "ONUSINGSKILL", })));
 
 		// sourced from equipment
 		allEffectDefinitions["ARMOURVSELECTRIC"] = EffectObject("ARMOURVSELECTRIC", "BOON", EFFECTICON_ARMOURVSELECTRIC, "ARMOURVSELECTRIC", true,
