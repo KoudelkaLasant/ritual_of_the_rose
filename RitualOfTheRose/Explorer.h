@@ -3292,31 +3292,48 @@ mapFloor::triangle({{17.77019500732422,51.26824975013733}, {1.2017056345939636,5
 		}
 		return firstSame and secondSame;
 	}
-	pair<float, float> moveLHSCloserToRHS(pair<float, float> LHS, pair<float, float> RHS, bool ignoreFirst, bool ignoreSecond, float unit) {
+	bool areThesePointsThisClose(pair<float, float> LHS, pair<float, float> RHS, bool ignoreFirst, bool ignoreSecond, float distance) {
+		bool firstSame = abs(LHS.first - RHS.first) < distance;
+		bool secondSame = abs(LHS.second - RHS.second) < distance;
+		if (ignoreFirst and ignoreSecond) {
+			return true;
+		}
+		if (ignoreFirst) {
+			return secondSame;
+		}
+		if (ignoreSecond) {
+			return firstSame;
+		}
+		return firstSame and secondSame;
+	}
+
+	pair<float, float> moveLHSCloserToRHS(pair<float, float> LHS, pair<float, float> RHS, bool ignoreFirst, bool ignoreSecond, float unitAsPercentage) {
 		bool firstAreSame = abs(LHS.first - RHS.first) < 0.2;
 		bool secondAreSame = abs(LHS.second - RHS.second) < 0.2;
 		bool firstIsLower = LHS.first < RHS.first;
 		bool secondIsLower = LHS.second < RHS.second;
+		float XUnit = abs(LHS.first - RHS.first) / unitAsPercentage;
+		float YUnit = abs(LHS.second - RHS.second) / unitAsPercentage;
 		if (ignoreFirst and ignoreSecond) {
 			return LHS;
 		}
 		if (!ignoreFirst) {
 			if (!firstAreSame) {
 				if (firstIsLower) {
-					LHS.first += unit;
+					LHS.first += XUnit;
 				}
 				else {
-					LHS.first -= unit;
+					LHS.first -= XUnit;
 				}
 			}
 		}
 		if (!ignoreSecond) {
 			if (!secondAreSame) {
 				if (secondIsLower) {
-					LHS.second += unit;
+					LHS.second += YUnit;
 				}
 				else {
-					LHS.second -= unit;
+					LHS.second -= YUnit;
 				}
 			}
 		}

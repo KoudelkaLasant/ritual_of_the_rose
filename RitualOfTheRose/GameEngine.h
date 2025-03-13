@@ -562,6 +562,21 @@ public:
 					})).run(*&gameEngine);
 				return gameEngine.skillAnimationContainer.handleAnimation(*&gameEngine, graphics.accessPlayerImage(), graphics.accessImageViaUniqueID("victim"), "Life Drain", {});
 			}
+			if (type == "DEBUGSTRAIGHT") {
+				Event("LoadImage", "LOADIMAGE", Map<string, string>({
+							pair<string, string>("uniqueID", "victim"),
+							pair<string, string>("sources",imageLookup.getSequenceAsString("OldBookMan", "STAND_FRONT")),
+							pair<string, string>("x","0"),
+							pair<string, string>("y","0"),
+							pair<string, string>("layer","10"),
+							pair<string, string>("scale","1.0"),
+							pair<string, string>("anchor","CENTRE"),
+							pair<string, string>("animated","1"),
+							pair<string, string>("opacity","1.0"),
+							pair<string, string>("animation_speed", "200"),
+					})).run(*&gameEngine);
+				return gameEngine.skillAnimationContainer.handleAnimation(*&gameEngine, graphics.accessPlayerImage(), graphics.accessImageViaUniqueID("victim"), "Ice Beam", {});
+			}
 			if (type == "DEBUGCOMBAT") {
 				Map<string, string>combatData({
 					pair<string, string>("team1","PARTY"),
@@ -952,6 +967,9 @@ public:
 					if (controller.hasThisBeenPressed(VK_F2)) {
 						gameEngine.activeProcedure.eventList.push_front(Event("Debug Combat", "DEBUGCOMBAT", {}));
 						return false;
+					}
+					if (controller.hasThisBeenPressed(VK_F3)) {
+						gameEngine.activeProcedure.eventList.push_front(Event("Debug", "DEBUGSTRAIGHT", {}));
 					}
 					if (Args.get("SPEEDCHEAT") == "1") {
 						exploreAnimationSpeeds["MOVE"] = 10;
@@ -5880,6 +5898,9 @@ return true;
 			if (procedureName == "Thunderbolt" or procedureName == "Energy Bolt") {
 				procedureName = "Charge Bolt";
 			}
+			if (procedureName == "Delay Blast 2") {
+				extras["audioSource"] = "822";
+			}
 			char ending = procedureName.at(procedureName.size() - 1);
 			if (procedureName.at(procedureName.size()-1) == 87) {
 				string replacement;
@@ -5891,10 +5912,10 @@ return true;
 
 
 			List<string> defaultAnimateOnTarget = list<string>({"Revitalise","Strength of Reason", "Laying of Hands", "Heal Wounds", "Serrated Strike", "Shadow Spike", "Brilliant Spark", "Stone Strike", 
-				"Stone Curse", "Atrophy", "Blade of Blood", "Vampiric Strike", "Exile", "Brain Drain","Blood Gift","Curse from Beyond the Grave","Viper Eyes", "Hypoxia", "Beggar's Blessing", "Botched Procedure", "Cestodarian Siphon", "Conciliatory Prayer", "Thoughtful Prayer", "Apostle of Patience","Shield of a Goddess", "Ivory Sanctuary", "Papalcy", "Incessant Devotion", "Ambrosia", "Blessed Light","Gift of Knowledge", "Paraclete's Invitation", "Castigate Cruor", "Entomb Spirit","Exalted Smash", "Erase Evil", "Absolution", "Adjudicate", "Stalked by Vengeance", "Rotation Blade", "Trickblade", "Debilitating Smash", "Clobber", "Cleave Armour", "Knee Crack", "Bulldoze","Knight Vision", "On My Target!", "Glass Sword", "Hack", "Bramble Cloak", "Shield of the Messenger", "Smuggler's Gambit", "Magebane Strike","Skewer", "Dragon Smash", "Weaponsmithing", "Winter Blast", "Sanctum Shroud", "Lacrymactory", "Mourning Edge", "Exemplar's Posture", "Bewrayment", "Avenger's Prayer", "Proscribe", "Conversion", "Fading Justice","Suppress","I Shall Take Care of This!","Song of Angels", "Lord's Authority", "Bailiff's Blade", "Fight the Pain!", "Fencer's Flash", "You're Worthless!", "Vapour Blade", "Light from the Other Side", "You're Revolting!", "Night Fracture", "Mug","Charm Collapse","Stalked by Shadows","Psychic Pithing", "Mind Maze", "Blinded Eye", "Black Djinn's Breath", "Wastrel's Comeuppance", "Petrifying Touch", "Rude Awakening", "Time Walk", "Deathdancer's Strike", "Natural Stab", "Platinum Lotus Strike", "Summer Strike", "Ring of Ash", "Charge Bolt", "Shock Value", "Electrocute", "Ball Lightning", "Double-Edged Lightning", "Chain Lightning", "Blinding Flash", "Electric Loop","Mind Fry", "Valkyrie's Aura","Shadow Game", "Twilightning", "Storm Djinn's Grace", "Short Circuit", "Shocking Defeat", "Scowling Rift", "Fire Bolt", "Arcane Furnace",
+				"Stone Curse", "Atrophy", "Blade of Blood", "Vampiric Strike", "Exile", "Brain Drain","Blood Gift","Curse from Beyond the Grave","Viper Eyes", "Hypoxia", "Beggar's Blessing", "Botched Procedure", "Cestodarian Siphon", "Conciliatory Prayer", "Thoughtful Prayer", "Apostle of Patience","Shield of a Goddess", "Ivory Sanctuary", "Papalcy", "Incessant Devotion", "Ambrosia", "Blessed Light","Gift of Knowledge", "Paraclete's Invitation", "Castigate Cruor", "Entomb Spirit","Exalted Smash", "Erase Evil", "Absolution", "Adjudicate", "Stalked by Vengeance", "Rotation Blade", "Trickblade", "Debilitating Smash", "Clobber", "Cleave Armour", "Knee Crack", "Bulldoze","Knight Vision", "On My Target!", "Glass Sword", "Hack", "Bramble Cloak", "Shield of the Messenger", "Smuggler's Gambit", "Magebane Strike","Skewer", "Dragon Smash", "Weaponsmithing", "Winter Blast", "Sanctum Shroud", "Lacrymactory", "Mourning Edge", "Exemplar's Posture", "Bewrayment", "Avenger's Prayer", "Proscribe", "Conversion", "Fading Justice","Suppress","I Shall Take Care of This!","Song of Angels", "Lord's Authority", "Bailiff's Blade", "Fight the Pain!", "Fencer's Flash", "You're Worthless!", "Vapour Blade", "Light from the Other Side", "You're Revolting!", "Night Fracture", "Mug","Charm Collapse","Stalked by Shadows","Psychic Pithing", "Mind Maze", "Blinded Eye", "Black Djinn's Breath", "Wastrel's Comeuppance", "Petrifying Touch", "Rude Awakening", "Time Walk", "Deathdancer's Strike", "Natural Stab", "Platinum Lotus Strike", "Summer Strike", "Ring of Ash", "Charge Bolt", "Shock Value", "Electrocute", "Ball Lightning", "Double-Edged Lightning", "Chain Lightning", "Blinding Flash", "Electric Loop","Mind Fry", "Valkyrie's Aura","Shadow Game", "Twilightning", "Storm Djinn's Grace", "Short Circuit", "Shocking Defeat", "Scowling Rift", "Fire Bolt", "Arcane Furnace", "Hellraiser's Haste", "Glittering Gaze", "Fireball", "Ensorcell", "Phoenix", "Stalked by Flames", "Delay Blast", "Delay Blast 2", "Exalted Explosion", "Starburst", "Odyllic Cleansing", "Brine", "Cryogenic Sleep", "Polar Prison", "Nacreous Aura",
 				"BURNING", "BLEEDING", "DISEASED", "POISONED"});
-			List<string> defaultAnimateFullScreen = list<string>({"Light of Day", "Wishing Well", "Heatwave", "Pressure Front", "Prophesized Return", "Overrule", "Ice Age", "Global Warming", "Tempest", "Drought", "Rainstorm", "Healing Rain", "Excommunicative Assault", "Godly Repulsion","No One Said You Could Touch!", "Ice Storm", "Chaos Storm", "Underworld Dreams", "Rageflame", "Cataclysm","Thunderstorm", "Stormseeker"});
-			List<string> defaultAnimateOnEveryTarget = list<string>({"Order of the Wasp", "Great Gospel", "Remedy Ward", "Angelic Observatory", "Iridescent Breath", "Healing Winds", "Heal Wounds All", "Go On Without Me!", "Time Vortex"});
+			List<string> defaultAnimateFullScreen = list<string>({"Light of Day", "Wishing Well", "Heatwave", "Pressure Front", "Prophesized Return", "Overrule", "Ice Age", "Global Warming", "Tempest", "Drought", "Rainstorm", "Healing Rain", "Excommunicative Assault", "Godly Repulsion","No One Said You Could Touch!", "Ice Storm", "Chaos Storm", "Underworld Dreams", "Rageflame", "Cataclysm","Thunderstorm", "Stormseeker", "Flame Wave", "Firespitter", "Vault of Destruction", "Tsunami", "Borealis Blast", });
+			List<string> defaultAnimateOnEveryTarget = list<string>({"Order of the Wasp", "Great Gospel", "Remedy Ward", "Angelic Observatory", "Iridescent Breath", "Healing Winds", "Heal Wounds All", "Go On Without Me!", "Time Vortex", "Nacreous Aura 2"});
 
 			if (procedureName == "Don't Give Up!") {
 				procedureName = "Revitalise";
@@ -6017,6 +6038,9 @@ return true;
 						example.combatantsAffected.push_back(target->c.uniqueCombatID);
 					}
 				} 
+				if (procedureName == "Nacreous Aura 2") {
+					extras["audioSource"] = "3502";
+				}
 				if (!started) {
 					for (auto who : example.combatantsAffected.internalList) {
 						pair<float, float> location = graphics.accessImageViaUniqueID(who)->positionAsPercentage;
@@ -6200,6 +6224,99 @@ return true;
 					return true;
 				}
 				return false;
+			}
+			if (List<string>({ "Snowblind", "Ice Beam", "Ice Beam"}).contains(procedureName)) {
+				int numberOfBubbles = 33;
+				int varSize = 33;
+				int speed = 40;
+				int audio = 3275;
+
+				if (procedureName == "Ice Beam") {
+					audio = ICEBEAM_WAV;
+					varSize = 2;
+				}
+
+				if (!started) {
+					pair<float, float> source = caster->positionAsPercentage;
+					pair<float, float> destination = target->positionAsPercentage;
+					if (source.first < destination.first) {
+						destination.first += 7;
+					}
+					if (source.first > destination.first) {
+						destination.first -= 7;
+					}
+					if (source.second < destination.second) {
+						destination.second += 5;
+					}
+					if (source.second > destination.second) {
+						destination.second -= 5;
+					}
+
+					source.second -= 15;
+
+					straightPlots.clear();
+					for (int x = 0; x < numberOfBubbles; x++) {
+						pair<float, float> currentDestination = destination;
+						currentDestination.second += RANDOM.getRandom(varSize * -1, varSize);
+						string imageName = "LIFEBUBBLE" + to_string(x);
+						List<string> randomScales = List<string>({ "2.5","2.6","2.4","2.3","2.2","2.1","2.16","2.7","2.8","2.9","3" });
+						List<int> randomTimes = List<int>({ 50,100,200,300,400,500,600,800,700, });
+						Event("Loading Screen", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+							pair<string, string>("sources", imageLookup.getSequenceAsString(procedureName, "ACTION_1")),
+							pair<string, string>("x", to_string(source.first)),
+							pair<string, string>("y", to_string(source.second)),
+							pair<string, string>("anchor", "CENTRE"),
+							pair<string, string>("opacity", "0"),
+							pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
+							pair<string, string>("scale", RANDOM.getRandom(randomScales)),
+							pair<string, string>("animated", "1"),
+							pair<string, string>("styles", "LOOP"),
+							pair<string, string>("animation_speed", "10"),
+							pair<string, string>("uniqueID", imageName), }))).run(*&gameEngine);
+						straightPlots[imageName] = currentDestination;
+						timers[imageName] = RANDOM.getRandom(randomTimes);
+						timers[imageName + "START"] = RANDOM.getRandom(randomTimes) + 50;
+						CLOCK.startClock(imageName + "START");
+					}
+					started = true;
+					GameEngine::Event("PlayAudio", "PLAYSFX", Map<string, string>({
+							pair<string, string>("audio",to_string(audio)),
+							pair<string, string>("direct","1"),
+							pair<string, string>("delay","0.3"),
+						})).run(*&gameEngine);
+					return false;
+				}
+				bool allFinished = true;
+				for (int x = 0; x < numberOfBubbles; x++) {
+					string imageName = "LIFEBUBBLE" + to_string(x);
+					if (!CLOCK.hasEnoughTimePassedDoNotResetClock(imageName + "START", timers[imageName])) {
+						allFinished = false;
+						continue;
+					}
+					Graphics::Image * current = graphics.accessImageViaUniqueID(imageName);
+					if (explorer.areThesePointsThisClose(current->positionAsPercentage, straightPlots[imageName], false, false, 10)) {
+						current->animationStyles.addToBackIfNotAlreadyInList("FADEOUT");
+					}
+					else {
+						current->opacity = 1.0;
+						current->animationStyles = List<string>({"LOOP"});
+					}
+					if (explorer.areThesePointsThisClose(current->positionAsPercentage, straightPlots[imageName], false, false, 5)) {
+						current->opacity = 0;
+					}
+					else {
+						current->positionAsPercentage = explorer.moveLHSCloserToRHS(current->positionAsPercentage, straightPlots[imageName], false, false, speed);
+						allFinished = false;
+					}
+
+				}
+				if (!allFinished) { return false; }
+				for (int x = 0; x < numberOfBubbles; x++) {
+					string imageName = "LIFEBUBBLE" + to_string(x);
+					graphics.tearDownSpecifiedImage(imageName);
+				}
+				started = false;
+				return true;
 			}
 			if (procedureName == "Fine Strike") {
 				if (!started) {
@@ -6612,6 +6729,7 @@ return true;
 
 		bool started = false;
 		Map<string, List<pair<float, float>>> bezierPlots;
+		Map<string, pair<float, float>> straightPlots;
 		Map<string, int> timers;
 	};
 	Map<string, Procedure> storedProcedures = List<pair<string, Procedure>>({
