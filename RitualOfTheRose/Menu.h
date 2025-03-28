@@ -44,6 +44,7 @@ public:
 		int audioHover;
 		bool visible;
 		bool clickable;
+		bool scrollable;
 		float width = 100;
 		float height = 0;
 		int layer = 0;
@@ -437,4 +438,6 @@ public:
 	string uniqueID;
 	Map<string, Button> buttons;
 	Map<string, string> data;
+	Map<string, int> currentScrolls; // uniqueID -> how far along the list to index into
+	Map<string, int> maxSizes; // uniqueID -> how many items to show at once if scrollable
 };

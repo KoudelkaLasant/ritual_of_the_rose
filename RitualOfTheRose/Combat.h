@@ -22,7 +22,10 @@ public:
 		// less skill trees use this tag so give slightly higher bonus
 		influenceLookups["SHADOWBOOST"] = 0.06;
 		influenceLookups["FIREBOOST"] = 0.06;
-		influenceLookups["WATERBOOST"] = 0.06;
+		influenceLookups["COLDBOOST"] = 0.06;
+		influenceLookups["ELECTRICBOOST"] = 0.06;
+		influenceLookups["EARTHBOOST"] = 0.06;
+
 		influenceLookups["WAYFARINGBOOST"] = 0.06;
 		influenceLookups["WEATHERBOOST"] = 0.06;
 		influenceLookups["BLOODBOOST"] = 0.06;
@@ -40,6 +43,10 @@ public:
 		// armour boosts
 		influenceLookups["ARMOURVSPHYSICAL"] = 0.05;
 		influenceLookups["ARMOURVSELECTRIC"] = 0.05;
+		influenceLookups["ARMOURVSCOLD"] = 0.05;
+		influenceLookups["ARMOURVSEARTH"] = 0.05;
+		influenceLookups["ARMOURVSFIRE"] = 0.05;
+		influenceLookups["ARMOURVSELEMENTS"] = 0.01;
 
 		AttributesInOrder = { "VITALITY","PIETY","STRENGTH", "INTELLIGENCE", "AGILITY","LUCK" };
 		statsInOrder = { "LIFE","ENERGY","ENERGYREGEN", "SPEED" };
@@ -91,6 +98,30 @@ public:
 			{"AGILITY", 0},
 			{"LUCK", 1}
 		};
+		defaultAttInvestments["Koudelka Bloodmire"] = {
+			{"STRENGTH" , 0},
+			{"INTELLIGENCE" , 8},
+			{"VITALITY", 2},
+			{"PIETY", 8},
+			{"AGILITY", 1},
+			{"LUCK", 1}
+		};
+		defaultAttInvestments["Adriana Aragon"] = {
+			{"STRENGTH" , 0},
+			{"INTELLIGENCE" , 8},
+			{"VITALITY", 2},
+			{"PIETY", 9},
+			{"AGILITY", 0},
+			{"LUCK", 1}
+		};
+		defaultAttInvestments["Stacia Silver"] = {
+			{"STRENGTH" , 10},
+			{"INTELLIGENCE" , 0},
+			{"VITALITY", 2},
+			{"PIETY", 9},
+			{"AGILITY", 0},
+			{"LUCK", 1}
+		};
 
 		defaultSkillTreeChoices["Angela Fleuret"] = {
 			{"1", "Cleromancy"},
@@ -116,13 +147,27 @@ public:
 			{"1", "Cleromancy"},
 			{"2", "Hagiomancy"},
 		};
+
+		defaultSkillTreeChoices["Koudelka Bloodmire"] = {
+			{"1", "Electromancy"},
+			{"2", "Necromancy"},
+		};
+		defaultSkillTreeChoices["Adriana Aragon"] = {
+			{"1", "Hydromancy"},
+			{"2", "Electromancy"},
+		};
+		defaultSkillTreeChoices["Stacia Silver"] = {
+			{"1", "Pyromancy"},
+			{"2", "Arms"},
+		};
+
 		defaultSkillChoices["Angela Fleuret"] = {
 			{"1", "Heal Wounds"},
 			{"5", "Heavenstrike"}
 		};
 		defaultSkillChoices["Tianshun Song"] = {
 			{"1", "Life Drain"},
-			{"5", "Animate Skeleton Warrior"}
+			{"5", "Skeleton Warrior"}
 		};
 		defaultSkillChoices["Olyver Sumner"] = {
 			{"1", "Rainstorm"},
@@ -140,6 +185,29 @@ public:
 			{"1", "Heal Wounds"},
 			{"2", "Strength of Reason"},
 		};
+		defaultSkillChoices["Koudelka Bloodmire"] = {
+			{"1", "Shock Value"},
+			{"2", "Electrocute"},
+			{"3", "Thunderbolt"},
+			{"4", "Blinding Flash"},
+			{"5", "Mind Fry"},
+		};
+		defaultSkillChoices["Adriana Aragon"] = {
+			pair<string, string>("1", "Vapour Blade"),
+			pair<string, string>("2", "Ice Beam"),
+			pair<string, string>("3", "Snowblind"),
+			pair<string, string>("4", "Cryogenic Sleep"),
+			pair<string, string>("5", "Mirror of Ice"),
+		};
+		defaultSkillChoices["Stacia Silver"] = {
+			pair<string, string>("1", "Rotation Blade"),
+			pair<string, string>("2", "Glass Sword"),
+			pair<string, string>("3", "Reckless Swing"),
+			pair<string, string>("4", "Ring of Ash"),
+			pair<string, string>("5", "Ensorcell"),
+		};
+
+
 		defaultEquipment["Angela Fleuret"] = {
 			{"Weapon", "Withered Secespita"},
 			{"Armour" , "Vatican Vestiments"},
@@ -170,6 +238,21 @@ public:
 			{"Armour" , "Vatican Vestiments"},
 			{"Accessory", "Cross of St Jeanne-Marie"}
 		};
+		defaultEquipment["Koudelka Bloodmire"] = {
+			{"Weapon", "Koudelka's Umbrella"},
+			{"Armour" , "Mourning Veil"},
+			{"Accessory", "Amethyst Pendant"}
+		};
+		defaultEquipment["Adriana Aragon"] = {
+			{"Weapon", "Adriana's Mirror"},
+			{"Armour" , "Snow Maiden's Brooch"},
+			{"Accessory", "Snow Maiden's Spectacles"}
+		};
+		defaultEquipment["Stacia Silver"] = {
+			{"Weapon", "Sunspear Whip"},
+			{"Armour" , "Sunspear Armour"},
+			{"Accessory", "Sunspear Sash"}
+		};
 
 
 		defineAllSkills();
@@ -182,6 +265,8 @@ public:
 		layerScaleLookup["TEAM1ALLIES"] = "0.9";
 		layerScaleLookup["TEAM2ALLIES"] = "0.8";
 		layerScaleLookup["TEAM2"] = "0.7";
+
+		elements = {"FIRE","EARTH","ELECTRIC","COLD"};
 	}
 	class PowerValue {
 	public:
@@ -486,7 +571,7 @@ public:
 					result["APPLY_STATIC_ALL"] = e.values["duration"];
 				}
 				if (subeffect == "Healing Rain") {
-					result["LIFEHEAL_AOE_WATER"] = e.values["power"];
+					result["LIFEHEAL_AOE_COLD"] = e.values["power"];
 				}
 				if (subeffect == "Ice Storm") {
 					result["DAMAGE_SINGLE_COLD"] = e.values["power"];
@@ -503,7 +588,7 @@ public:
 					result["DURATION_CRIPPLED"] = e.values["POWER1"];
 				}
 				if (subeffect == "Cryogenic Sleep") {
-					result["MANAHEAL_SELF_WATER"] = e.values["power"];
+					result["MANAHEAL_SELF_COLD"] = e.values["power"];
 				}
 				if (subeffect == "Thunderstorm") {
 					result["DAMAGE_RANDOMFOE_ELECTRIC"] = e.values["power"];
@@ -1224,7 +1309,7 @@ public:
 						result.addToBackIfNotAlreadyInList("INTERRUPTFOE");
 					}
 					if (!actor->c.isDead() and actor->c.getEnergyAsPercentage() < 10) {
-						result.addToBackIfNotAlreadyInList("MANABURN");
+						result.addToBackIfNotAlreadyInList("MANADAMAGE");
 					}
 					for (EffectObjectInstance* effect : combat.currentBattle->getAllEffectsOnXInTimeOrderOldestFirst(actor->c.uniqueCombatID).internalList) {
 						if (effect->e.uniqueID == "UNDEAD") {
@@ -1907,12 +1992,12 @@ public:
 						Map<string, string> subSData;
 						Map<string, int> subVData;
 						subSData["success"] = "1";
-						subVData["LIFEHEAL_AOE_WATER"] = effect->e.values["power"];
+						subVData["LIFEHEAL_AOE_COLD"] = effect->e.values["power"];
 						List<string> targets;
 						for (CombatantInstance* actor : getMyAlliesThatAreAlive(*&combat).internalList) {
 							targets.push_back(actor->c.uniqueCombatID);
 						}
-						results.push_back(CombatEvent("LIFEHEAL_AOE_WATER", "SKILL", "Nacreous Aura 2", c.uniqueCombatID, targets, subSData, subVData));
+						results.push_back(CombatEvent("LIFEHEAL_AOE_COLD", "SKILL", "Nacreous Aura 2", c.uniqueCombatID, targets, subSData, subVData));
 					}
 					if (effect ->e.logicName == "Ensorcell" and c.getSkillBeingCast().skillTypeTags.contains("PHYSICAL")) {
 						Map<string, string> subSData;
@@ -2913,7 +2998,21 @@ public:
 									if (effect->e.uniqueID == "Parting Stab") {
 										report.vData[v] *= 0.5;
 									}
+									if (effect->e.logicName == "SPIRIT") {
+										for (auto element : combat.elements.internalList) {
+											if (v.find("DAMAGE_") != -1 and v.find(element) != -1) {
+												report.vData[v] *= 1.5;
+											}
+										}
+										if (v.find("DAMAGE_") != -1 and v.find("PHYSICAL") != -1) {
+											report.vData[v] *= 0.5;
+										}
+									}
 									if (v == "DAMAGE_SINGLE_ELECTRIC" and effect->e.triggers.contains("ONTAKINGELECTRICDAMAGE")) {
+										if (effect->e.logicName == "ARMOURVSELEMENTS") {
+											float power = (100.0 - effect->e.values["power"]) / 100;
+											report.vData["DAMAGE_SINGLE_ELECTRIC"] *= power;
+										}
 										if (effect->e.logicName == "ARMOURVSELECTRIC") {
 											float power = (100.0 - effect->e.values["power"]) / 100;
 											report.vData["DAMAGE_SINGLE_ELECTRIC"] *= power;
@@ -2932,6 +3031,14 @@ public:
 										}
 									}
 									if (v == "DAMAGE_SINGLE_FIRE" and effect->e.triggers.contains("ONTAKINGFIREDAMAGE")) {
+										if (effect->e.logicName == "ARMOURVSELEMENTS") {
+											float power = (100.0 - effect->e.values["power"]) / 100;
+											report.vData["DAMAGE_SINGLE_FIRE"] *= power;
+										}
+										if (effect->e.logicName == "ARMOURVSFIRE") {
+											float power = (100.0 - effect->e.values["power"]) / 100;
+											report.vData["DAMAGE_SINGLE_FIRE"] *= power;
+										}
 										if (effect->e.logicName == "WET") {
 											report.vData["DAMAGE_SINGLE_FIRE"] *= 0.9;
 										}
@@ -2946,6 +3053,14 @@ public:
 										}
 									}
 									if (v == "DAMAGE_SINGLE_COLD" and effect->e.triggers.contains("ONTAKINGCOLDDAMAGE")) {
+										if (effect->e.logicName == "ARMOURVSELEMENTS") {
+											float power = (100.0 - effect->e.values["power"]) / 100;
+											report.vData["DAMAGE_SINGLE_COLD"] *= power;
+										}
+										if (effect->e.logicName == "ARMOURVSCOLD") {
+											float power = (100.0 - effect->e.values["power"]) / 100;
+											report.vData["DAMAGE_SINGLE_COLD"] *= power;
+										}
 										if (effect->e.logicName == "WET") {
 											report.vData["DAMAGE_SINGLE_COLD"] *= 1.25;
 										}
@@ -2960,6 +3075,14 @@ public:
 										}
 									}
 									if (v == "DAMAGE_SINGLE_EARTH" and effect->e.triggers.contains("ONTAKINGEARTHDAMAGE")) {
+										if (effect->e.logicName == "ARMOURVSELEMENTS") {
+											float power = (100.0 - effect->e.values["power"]) / 100;
+											report.vData["DAMAGE_SINGLE_EARTH"] *= power;
+										}
+										if (effect->e.logicName == "ARMOURVSEARTH") {
+											float power = (100.0 - effect->e.values["power"]) / 100;
+											report.vData["ARMOURVSEARTH"] *= power;
+										}
 										if (effect->e.logicName == "DUSTY") {
 											report.vData["DAMAGE_SINGLE_EARTH"] *= 1.25;
 										}
@@ -4505,10 +4628,14 @@ public:
 
 		skillDefinitions["DEFAULT_WAIT"] = Skill("DEFAULT_WAIT", "DEFAULT_WAIT", "Default", SKILLICON_WAIT, 0, 0, 0, "SELF", {}, {}, {}, list<string>({ "WAIT" }), -1);
 
-		// used by the animated mound of leeches
-		skillDefinitions["DEFAULT_LEECHSKILL"] = Skill("DEFAULT_LEECHSKILL", "DEFAULT_LEECHSKILL", "Default", SKILLICON_WAIT, 0, 0, 0, "SINGLEFOE", {"STEALLIFEFORMASTER"}, list<string>({ "MAGICAL","UNHOLY" }),
+		// MONSTER-ONLY SKILLS
+		skillDefinitions["DEFAULT_LEECHSKILL"] = Skill("DEFAULT_LEECHSKILL", "DEFAULT_LEECHSKILL", "Default", SKILLICON_WAIT, 0, 0, 0, "SINGLEFOE", {"STEALLIFEFORMASTER"}, list<string>({ "UNHOLY" }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("STEALLIFEFORMASTER",PowerValue("STEALLIFEFORMASTER",7,0,999,true,list<string>({"INTELLIGENCE"}))) }), list<string>({"STEALLIFEFORMASTER"}), 1060);
+
+		skillDefinitions["DEFAULT_AFFECTION"] = Skill("DEFAULT_AFFECTION", "DEFAULT_AFFECTION", "Default", SKILLICON_WAIT, 0, 0, 0, "SELF", { "MANAHEAL_ALLALLIES_UNHOLY" }, list<string>({ "UNHOLY" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("MANAHEAL_ALLALLIES_UNHOLY",PowerValue("MANAHEAL_ALLALLIES_UNHOLY",4,0,999,true,list<string>({"INTELLIGENCE"}))) }), list<string>({ "MANAHEAL" }), AFFECTIONHEAL_WAV);
 
 		// debug
 		skillDefinitions["Suicide"] = Skill("Suicide", "Suicide", "Debug", SKILLICON_WAIT, 0, 0, 0, "SELF", { "SUICIDE_SELF" }, list<string>({ "PHYSICAL","UNHOLY" }),
@@ -5008,23 +5135,51 @@ public:
 				list<string>({ "ENCHANTSELF", }), LACRYMACTORY_WAV);
 
 		// NECROMANCY
-		skillDefinitions["Animate Skeleton Warrior"] = Skill("Animate Skeleton Warrior", "Animate Skeleton Warrior", "Necromancy", SKILLICON_ANIMATESKELETONWARRIOR, 30, 1, 8, "SELF", // debug 0, real = 2
+		skillDefinitions["Skeleton Warrior"] = Skill("Skeleton Warrior", "Skeleton Warrior", "Necromancy", SKILLICON_ANIMATESKELETONWARRIOR, 30, 1, 8, "SELF",
 			list<string>({ "SUMMON_Skeleton Warrior_SELF" }),
 			list<string>({ "MAGICAL","UNHOLY", "ELITE", "SUMMON" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 80, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
-				pair<string, PowerValue>("STRENGTH", PowerValue("STRENGTH", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 100, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("STRENGTH", PowerValue("STRENGTH", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				}),
 				list<string>({ "SUMMON", }), 5686);
 
-		skillDefinitions["Animate Mound of Leeches"] = Skill("Animate Mound of Leeches", "Animate Mound of Leeches", "Necromancy", SKILLICON_ANIMATEMOUNDOFLEECHES, 40, 1, 10, "SELF",
+		skillDefinitions["Mound of Leeches"] = Skill("Mound of Leeches", "Mound of Leeches", "Necromancy", SKILLICON_ANIMATEMOUNDOFLEECHES, 40, 1, 10, "SELF",
 			list<string>({ "SUMMON_Mound of Leeches_SELF" }),
 			list<string>({ "MAGICAL","UNHOLY", "SUMMON" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 35, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				pair<string, PowerValue>("INTELLIGENCE", PowerValue("INTELLIGENCE", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				}),
 				list<string>({ "SUMMON", }), 7064);
+
+		skillDefinitions["Bone Priest"] = Skill("Bone Priest", "Bone Priest", "Necromancy", SKILLICON_BONEPRIEST, 30, 1, 10, "SELF",
+			list<string>({ "SUMMON_Bone Priest_SELF" }),
+			list<string>({ "MAGICAL","UNHOLY", "SUMMON", "ELITE", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 66, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("PIETY", PowerValue("PIETY", 12, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("INTELLIGENCE", PowerValue("INTELLIGENCE", 12, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				}),
+				list<string>({ "SUMMON", }), BONEPRIEST_WAV);
+
+		skillDefinitions["Avatar of the Night"] = Skill("Avatar of the Night", "Avatar of the Night", "Necromancy", SKILLICON_AVATAROFTHENIGHT, 40, 1, 10, "SELF",
+			list<string>({ "SUMMON_Avatar of the Night_SELF" }),
+			list<string>({ "MAGICAL","UNHOLY", "SUMMON", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 35, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("PIETY", PowerValue("PIETY", 8, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("INTELLIGENCE", PowerValue("INTELLIGENCE", 8, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				}),
+				list<string>({ "SUMMON", }), AVATAROFTHENIGHT_WAV);
+
+		skillDefinitions["Affection"] = Skill("Affection", "Affection", "Necromancy", SKILLICON_AFFECTION, 40, 1, 10, "SELF",
+			list<string>({ "SUMMON_Affection_SELF" }),
+			list<string>({ "MAGICAL","UNHOLY", "SUMMON", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 35, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				}),
+				list<string>({ "SUMMON", }), AFFECTION_WAV);
 
 
 		// ELECTROMANCY
@@ -5875,6 +6030,13 @@ public:
 				pair<string, PowerValue>("DURATION_Go On Without Me!", PowerValue("DURATION_Go On Without Me!", 2, 0, 15, true, list<string>({ "STRENGTH", "WayfaringBOOST"}))), }),
 				list<string>({ "ENCHANTSELF" }), GOONWITHOUTME_WAV);
 
+		skillDefinitions["Chant of Concentration"] = Skill("Chant of Concentration", "Chant of Concentration", "Wayfaring", SKILLICON_CHANTOFCONCENTRATION, 5, 0, 10, "SELF",
+			list<string>({ "APPLY_Chant of Concentration_ALLALLIES", }),
+			list<string>({ "PHYSICAL", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("DURATION_Chant of Concentration", PowerValue("DURATION_Chant of Concentration", 2, 0, 15, true, list<string>({ "STRENGTH", "WayfaringBOOST"}))), }),
+				list<string>({ "ENCHANTSELF" }), CHANTOFCONCENTRATION_WAV);
+
 		skillDefinitions["You're Revolting!"] = Skill("You're Revolting!", "You're Revolting!", "Wayfaring", SKILLICON_YOUREREVOLTING, 25, 0, 10, "SINGLEFOE",
 			list<string>({ "APPLY_OVERWHELMED_SINGLE", }),
 			list<string>({ "PHYSICAL", }),
@@ -6285,189 +6447,189 @@ public:
 
 		// HYDROMANCY
 		skillDefinitions["Healing Rain"] = Skill("Healing Rain", "Healing Rain", "Hydromancy", SKILLICON_HEALINGRAIN, 25, 1, 10, "SELF",
-			list<string>({ "APPLY_Healing Rain_WORLD", "LIFEHEAL_AOE_WATER"}),
-			list<string>({ "MAGICAL","WATER","ELEMENTAL"}),
+			list<string>({ "APPLY_Healing Rain_WORLD", "LIFEHEAL_AOE_COLD"}),
+			list<string>({ "MAGICAL","COLD","ELEMENTAL"}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Healing Rain", PowerValue("DURATION_Healing Rain", 10, 0, 10, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("POWER_Healing Rain", PowerValue("POWER_Healing Rain", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("LIFEHEAL_AOE_WATER", PowerValue("LIFEHEAL_AOE_WATER", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_Healing Rain", PowerValue("DURATION_Healing Rain", 10, 0, 10, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER_Healing Rain", PowerValue("POWER_Healing Rain", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("LIFEHEAL_AOE_COLD", PowerValue("LIFEHEAL_AOE_COLD", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "HEALALLY", "HEALSELF" }), BASALTBASTION_WAV);
 
 		skillDefinitions["Winter Blast"] = Skill("Winter Blast", "Winter Blast", "Hydromancy", SKILLICON_WINTERBLAST, 30, 1, 3, "SINGLEFOE",
 			list<string>({ "DAMAGE_SINGLE_COLD", "APPLY_FROZEN_SINGLE" }),
-			list<string>({ "MAGICAL","WATER","ELEMENTAL" }),
+			list<string>({ "MAGICAL","COLD","ELEMENTAL" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_COLD", PowerValue("DAMAGE_SINGLE_COLD", 50, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("DURATION_FROZEN", PowerValue("DURATION_FROZEN", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_COLD", PowerValue("DAMAGE_SINGLE_COLD", 50, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_FROZEN", PowerValue("DURATION_FROZEN", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), WINTERBLAST_WAV);
 
 		skillDefinitions["Vapour Blade"] = Skill("Vapour Blade", "Vapour Blade", "Hydromancy", SKILLICON_VAPOURBLADE, 30, 1, 4, "SINGLEFOE",
 			list<string>({ "DAMAGE_SINGLE_COLD", }),
-			list<string>({ "MAGICAL","WATER","ELEMENTAL" }),
+			list<string>({ "MAGICAL","COLD","ELEMENTAL" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_COLD", PowerValue("DAMAGE_SINGLE_COLD", 42, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_COLD", PowerValue("DAMAGE_SINGLE_COLD", 42, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), VAPOURBLADE_WAV);
 
 		skillDefinitions["Light from the Other Side"] = Skill("Light from the Other Side", "Light from the Other Side", "Hydromancy", SKILLICON_LFROMTHEOTHERS, 15, 0, 3, "SINGLEALLY",
 			list<string>({ "REMOVEBANE_SINGLE", "LIFEHEAL_SINGLE_COLD", "MANAHEAL_SELF_COLD"}),
-			list<string>({ "MAGICAL","WATER","ELEMENTAL", "ELITE"}),
+			list<string>({ "MAGICAL","COLD","ELEMENTAL", "ELITE"}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("LIFEHEAL_SINGLE_COLD", PowerValue("LIFEHEAL_SINGLE_COLD", 100, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("MANAHEAL_SELF_COLD", PowerValue("MANAHEAL_SELF_COLD", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("LIFEHEAL_SINGLE_COLD", PowerValue("LIFEHEAL_SINGLE_COLD", 100, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("MANAHEAL_SELF_COLD", PowerValue("MANAHEAL_SELF_COLD", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), LFROMTHEOTHERS_WAV);
 
 		skillDefinitions["Ice Storm"] = Skill("Ice Storm", "Ice Storm", "Hydromancy", SKILLICON_ICESTORM, 30, 2, 10, "SINGLEFOE",
 			list<string>({ "APPLY_Ice Storm_WORLD", "DAMAGE_ALLFOES_COLD", }),
-			list<string>({ "MAGICAL", "WATER","ELEMENTAL", "ELITE" }),
+			list<string>({ "MAGICAL", "COLD","ELEMENTAL", "ELITE" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Ice Storm", PowerValue("DURATION_Ice Storm", 10, 10, 10, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("POWER_Ice Storm", PowerValue("POWER_Ice Storm", 23, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("DAMAGE_ALLFOES_COLD", PowerValue("DAMAGE_ALLFOES_COLD", 23, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_Ice Storm", PowerValue("DURATION_Ice Storm", 10, 10, 10, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER_Ice Storm", PowerValue("POWER_Ice Storm", 23, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_ALLFOES_COLD", PowerValue("DAMAGE_ALLFOES_COLD", 23, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), ICESTORM_WAV);
 
 		skillDefinitions["Tsunami"] = Skill("Tsunami", "Tsunami", "Hydromancy", SKILLICON_TSUNAMI, 30, 2, 6, "SINGLEFOE",
 			list<string>({ "APPLY_Tsunami_WORLD", "DAMAGE_ALLFOES_COLD", }),
-			list<string>({ "MAGICAL", "WATER","ELEMENTAL", "ELITE" }),
+			list<string>({ "MAGICAL", "COLD","ELEMENTAL", "ELITE" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Tsunami", PowerValue("DURATION_Tsunami", 1, 1, 1, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("POWER_Tsunami", PowerValue("POWER_Tsunami", 60, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("DAMAGE_ALLFOES_COLD", PowerValue("DAMAGE_ALLFOES_COLD", 60, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_Tsunami", PowerValue("DURATION_Tsunami", 1, 1, 1, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER_Tsunami", PowerValue("POWER_Tsunami", 60, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_ALLFOES_COLD", PowerValue("DAMAGE_ALLFOES_COLD", 60, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), TSUNAMI_WAV);
 
 		skillDefinitions["Odyllic Cleansing"] = Skill("Odyllic Cleansing", "Odyllic Cleansing", "Hydromancy", SKILLICON_ODYLLICCLEANSING, 30, 0, 6, "SINGLEALLY",
 			list<string>({ "REMOVEBANEIF?ANYALLIEDSUMMONS_SINGLE", "LIFEHEAL_SINGLE_COLD", }),
-			list<string>({ "MAGICAL","WATER", "ELEMENTAL", "HEAL"}),
+			list<string>({ "MAGICAL","COLD", "ELEMENTAL", "HEAL"}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("LIFEHEAL_SINGLE_COLD", PowerValue("LIFEHEAL_SINGLE_COLD", 60, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("LIFEHEAL_SINGLE_COLD", PowerValue("LIFEHEAL_SINGLE_COLD", 60, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "HEALSELF", "HEALALLY", "CURE" }), ODYLLICCLEANSING_WAV);
 
 		skillDefinitions["Brine"] = Skill("Brine", "Brine", "Hydromancy", SKILLICON_BRINE, 30, 2, 6, "SINGLEFOE",
 			list<string>({ "DAMAGE_SPLASH_COLD", "APPLY_WET_ALLFOES"}),
-			list<string>({ "MAGICAL","WATER", "ELEMENTAL",}),
+			list<string>({ "MAGICAL","COLD", "ELEMENTAL",}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_COLD", PowerValue("DAMAGE_SINGLE_COLD", 60, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("DAMAGE_ALLFOES_COLD", PowerValue("DAMAGE_ALLFOES_COLD", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("DURATION_WET", PowerValue("DURATION_WET", 4, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_COLD", PowerValue("DAMAGE_SINGLE_COLD", 60, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_ALLFOES_COLD", PowerValue("DAMAGE_ALLFOES_COLD", 10, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_WET", PowerValue("DURATION_WET", 4, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE", }), BRINE_WAV);
 
 		skillDefinitions["Rainstorm"] = Skill("Rainstorm", "Rainstorm", "Hydromancy", SKILLICON_RAINSTORM, 5, 0, 0, "ALL",
 			list<string>({ "APPLY_Rainstorm_WORLD", "APPLY_WET_ALL" }),
-			list<string>({ "MAGICAL","WATER","ELEMENTAL" }),
+			list<string>({ "MAGICAL","COLD","ELEMENTAL" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Rainstorm", PowerValue("DURATION_Rainstorm", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
-				pair<string, PowerValue>("POWER_Rainstorm", PowerValue("POWER_Rainstorm", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
-				pair<string, PowerValue>("DURATION_WET", PowerValue("DURATION_WET", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
+				pair<string, PowerValue>("DURATION_Rainstorm", PowerValue("DURATION_Rainstorm", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
+				pair<string, PowerValue>("POWER_Rainstorm", PowerValue("POWER_Rainstorm", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
+				pair<string, PowerValue>("DURATION_WET", PowerValue("DURATION_WET", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
 				}),
 				list<string>({ "MAKEITRAIN", "WORLDEFFECT" }), RAINSTORM_WAV);
 
 		skillDefinitions["Snowblind"] = Skill("Snowblind", "Snowblind", "Hydromancy", SKILLICON_SNOWBLIND, 25, 0, 3, "SINGLEFOE",
 			list<string>({ "DAMAGE_SINGLE_COLD", "APPLY_BLIND_SINGLE" }),
-			list<string>({ "MAGICAL","WATER", "ELEMENTAL", }),
+			list<string>({ "MAGICAL","COLD", "ELEMENTAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_COLD", PowerValue("DAMAGE_SINGLE_COLD", 30, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("DURATION_BLIND", PowerValue("DURATION_BLIND", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_COLD", PowerValue("DAMAGE_SINGLE_COLD", 30, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_BLIND", PowerValue("DURATION_BLIND", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE", }), SNOWBLIND_WAV);
 
 		skillDefinitions["Ice Beam"] = Skill("Ice Beam", "Ice Beam", "Hydromancy", SKILLICON_ICEBEAM, 25, 1, 3, "SINGLEFOE",
 			list<string>({ "DAMAGE_SINGLE_COLD", "APPLY_FROZEN_SINGLE" }),
-			list<string>({ "MAGICAL","WATER", "ELEMENTAL", }),
+			list<string>({ "MAGICAL","COLD", "ELEMENTAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_COLD", PowerValue("DAMAGE_SINGLE_COLD", 60, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("DURATION_FROZEN", PowerValue("DURATION_FROZEN", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_COLD", PowerValue("DAMAGE_SINGLE_COLD", 60, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_FROZEN", PowerValue("DURATION_FROZEN", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE", }), ICEBEAM_WAV);
 
 		skillDefinitions["Borealis Blast"] = Skill("Borealis Blast", "Borealis Blast", "Hydromancy", SKILLICON_BOREALISBLAST, 25, 2, 6, "SINGLEFOE",
 			list<string>({ "DAMAGE_ALLFOES_COLD", "APPLY_FROZEN_ALLFOES" }),
-			list<string>({ "MAGICAL","WATER", "ELEMENTAL", }),
+			list<string>({ "MAGICAL","COLD", "ELEMENTAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_ALLFOES_COLD", PowerValue("DAMAGE_ALLFOES_COLD", 50, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("DURATION_FROZEN", PowerValue("DURATION_FROZEN", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_ALLFOES_COLD", PowerValue("DAMAGE_ALLFOES_COLD", 50, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_FROZEN", PowerValue("DURATION_FROZEN", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE", }), BOREALISBLAST_WAV);
 
 		skillDefinitions["Cryogenic Sleep"] = Skill("Cryogenic Sleep", "Cryogenic Sleep", "Hydromancy", SKILLICON_CRYOGENICSLEEP, 5, 0, 10, "SELF",
 			list<string>({ "APPLY_Cryogenic Sleep_SELF", }),
-			list<string>({ "MAGICAL","WATER", "ELEMENTAL", }),
+			list<string>({ "MAGICAL","COLD", "ELEMENTAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Cryogenic Sleep", PowerValue("DURATION_Cryogenic Sleep", 2, 2, 2, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("POWER_Cryogenic Sleep", PowerValue("POWER_Cryogenic Sleep", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_Cryogenic Sleep", PowerValue("DURATION_Cryogenic Sleep", 2, 2, 2, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER_Cryogenic Sleep", PowerValue("POWER_Cryogenic Sleep", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "BUFFSELF", }), CRYOGENICSLEEP_WAV);
 
 		skillDefinitions["Polar Prison"] = Skill("Polar Prison", "Polar Prison", "Hydromancy", SKILLICON_POLARPRISON, 5, 0, 1, "SINGLEFOE",
 			list<string>({ "APPLY_FROZEN_SINGLE", }),
-			list<string>({ "MAGICAL","WATER", "ELEMENTAL", "ELITE"}),
+			list<string>({ "MAGICAL","COLD", "ELEMENTAL", "ELITE"}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_FROZEN", PowerValue("DURATION_FROZEN", 7, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_FROZEN", PowerValue("DURATION_FROZEN", 7, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "CURSEFOE", }), POLARPRISON_WAV);
 
 		skillDefinitions["Nacreous Aura"] = Skill("Nacreous Aura", "Nacreous Aura", "Hydromancy", SKILLICON_NACREOUSAURA, 5, 0, 1, "SELF",
 			list<string>({ "APPLY_Nacreous Aura_SELF", }),
-			list<string>({ "MAGICAL","WATER", "ELEMENTAL", }),
+			list<string>({ "MAGICAL","COLD", "ELEMENTAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Nacreous Aura", PowerValue("DURATION_Nacreous Aura", 12, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("POWER_Nacreous Aura", PowerValue("POWER_Nacreous Aura", 8, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_Nacreous Aura", PowerValue("DURATION_Nacreous Aura", 12, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER_Nacreous Aura", PowerValue("POWER_Nacreous Aura", 8, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "BUFFSELF", }), NACREOUSAURA_WAV);
 
 		skillDefinitions["Sliprain"] = Skill("Sliprain", "Sliprain", "Hydromancy", SKILLICON_SLIPRAIN, 25,1, 7, "SINGLEFOE",
 			list<string>({ "APPLY_CRIPPLED_ALLFOES","APPLY_WET_ALLFOES", "DAMAGE_ALLFOES_COLD"}),
-			list<string>({ "MAGICAL","WATER", "ELEMENTAL", }),
+			list<string>({ "MAGICAL","COLD", "ELEMENTAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_CRIPPLED", PowerValue("DURATION_CRIPPLED", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("DURATION_WET", PowerValue("DURATION_WET", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("DAMAGE_ALLFOES_COLD", PowerValue("DAMAGE_ALLFOES_COLD", 30, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_CRIPPLED", PowerValue("DURATION_CRIPPLED", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_WET", PowerValue("DURATION_WET", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_ALLFOES_COLD", PowerValue("DAMAGE_ALLFOES_COLD", 30, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "DAMAGEFOE", }), SLIPRAIN_WAV);
 
 		skillDefinitions["Ice Age"] = Skill("Ice Age", "Ice Age", "Hydromancy", SKILLICON_ICEAGE, 5, 0, 0, "ALL",
 			list<string>({ "APPLY_Ice AgeW_WORLD", "APPLY_Ice Age_ALL" }), // Ice AgeW = world effect that applies Ice Age
-			list<string>({ "MAGICAL","WATER","ELEMENTAL", }),
+			list<string>({ "MAGICAL","COLD","ELEMENTAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Ice AgeW", PowerValue("DURATION_Ice AgeW", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
-				pair<string, PowerValue>("POWER_Ice AgeW", PowerValue("POWER_Ice AgeW", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
-				pair<string, PowerValue>("POWER_Ice Age", PowerValue("POWER_Ice Age", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
-				pair<string, PowerValue>("DURATION_Ice Age", PowerValue("DURATION_Ice Age", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
+				pair<string, PowerValue>("DURATION_Ice AgeW", PowerValue("DURATION_Ice AgeW", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
+				pair<string, PowerValue>("POWER_Ice AgeW", PowerValue("POWER_Ice AgeW", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
+				pair<string, PowerValue>("POWER_Ice Age", PowerValue("POWER_Ice Age", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
+				pair<string, PowerValue>("DURATION_Ice Age", PowerValue("DURATION_Ice Age", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST", "WEATHERBOOST"}))),
 				}),
 				list<string>({ "WORLDEFFECT" }), ICEAGE_WAV);
 
 		skillDefinitions["Polar Vortex"] = Skill("Polar Vortex", "Polar Vortex", "Hydromancy", SKILLICON_POLARVORTEX, 25, 1, 5, "SINGLEFOE",
 			list<string>({ "APPLY_Polar Vortex_SINGLE", }),
-			list<string>({ "MAGICAL","WATER", "ELEMENTAL", }),
+			list<string>({ "MAGICAL","COLD", "ELEMENTAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Polar Vortex", PowerValue("DURATION_Polar Vortex", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("POWER_Polar Vortex", PowerValue("POWER_Polar Vortex", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_Polar Vortex", PowerValue("DURATION_Polar Vortex", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER_Polar Vortex", PowerValue("POWER_Polar Vortex", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				// frozen duration
-				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("POWER1_Polar Vortex", PowerValue("POWER1_Polar Vortex", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER1", PowerValue("POWER1", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER1_Polar Vortex", PowerValue("POWER1_Polar Vortex", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "CURSEFOE", }), SNOWBLIND_WAV);
 
 		skillDefinitions["Mirror of Ice"] = Skill("Mirror of Ice", "Mirror of Ice", "Hydromancy", SKILLICON_MIRROROFICE, 5, 0, 1, "SELF",
 			list<string>({ "APPLY_Mirror of Ice_SINGLE" }),
-			list<string>({ "MAGICAL","WATER", "ELEMENTAL", "ELITE"}),
+			list<string>({ "MAGICAL","COLD", "ELEMENTAL", "ELITE"}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Mirror of Ice", PowerValue("DURATION_Mirror of Ice", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("POWER_Mirror of Ice", PowerValue("POWER_Mirror of Ice", 0, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_Mirror of Ice", PowerValue("DURATION_Mirror of Ice", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER_Mirror of Ice", PowerValue("POWER_Mirror of Ice", 0, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "ENCHANTSELF", }), MIRROROFICE_WAV);
 
 		skillDefinitions["Hail"] = Skill("Hail", "Hail", "Hydromancy", SKILLICON_HAIL, 20, 1, 3, "SINGLEFOE",
 			list<string>({ "DAMAGE_SINGLE_COLD",}),
-			list<string>({ "MAGICAL","WATER", "ELEMENTAL", }),
+			list<string>({ "MAGICAL","COLD", "ELEMENTAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_COLD", PowerValue("DAMAGE_SINGLE_COLD", 60, 0, 999, true, list<string>({ "INTELLIGENCE", "WATERBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_COLD", PowerValue("DAMAGE_SINGLE_COLD", 60, 0, 999, true, list<string>({ "INTELLIGENCE", "COLDBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE", }), ICESTORM_WAV);
 
@@ -6518,6 +6680,22 @@ public:
 			Combat::Effect("STRENGTH",1.1f,true,true),
 			Combat::Effect("ArmsBOOST",2.0f,true,false),
 			}), "EQUIPMENTBLUE", 500);
+		equipmentDefinitions["Koudelka's Umbrella"] = Equipment(*this, "Koudelka's Umbrella", "Weapon", CODEXPAGE_KOUDELKAUMBRELLA, List<Combat::Effect>({
+			Combat::Effect("PIETY",3.0f,true,true),
+			Combat::Effect("INTELLIGENCE",3.0f,true,true),
+			Combat::Effect("ELECTRICBOOST",2.0f,true,false),
+			Combat::Effect("ARMOURVSCOLD",5.0f,true,false),
+			}), "ELITESKILLYELLOW", 5000);
+		equipmentDefinitions["Adriana's Mirror"] = Equipment(*this, "Adriana's Mirror", "Weapon", CODEXPAGE_ADRIANAMIRROR, List<Combat::Effect>({
+			Combat::Effect("PIETY",10.0f,true,true),
+			Combat::Effect("ARMOURVSELEMENTS",10.0f,true,false),
+			}), "ELITESKILLYELLOW", 5000);
+		equipmentDefinitions["Sunspear Whip"] = Equipment(*this, "Sunspear Whip", "Weapon", CODEXPAGE_STACIASWORD, List<Combat::Effect>({
+			Combat::Effect("STRENGTH",10.0f,true,true),
+			Combat::Effect("ArmsBOOST",5.0f,true,false),
+			Combat::Effect("FIREBOOST",2.0f,true,false),
+			}), "ELITESKILLYELLOW", 5000);
+
 
 		// ARMOUR
 		equipmentDefinitions["Vatican Vestiments"] = Equipment(*this, "Vatican Vestiments", "Armour", CODEXPAGE_VESTIMENTS, List<Combat::Effect>({
@@ -6535,6 +6713,20 @@ public:
 		equipmentDefinitions["Ming Theatre Costume"] = Equipment(*this, "Ming Theatre Costume", "Armour", CODEXPAGE_MING, List<Combat::Effect>({
 			Combat::Effect("BLOODBOOST",1.0f,true,false),
 			}), "EQUIPMENTBLUE", 250);
+		equipmentDefinitions["Mourning Veil"] = Equipment(*this, "Mourning Veil", "Armour", CODEXPAGE_MOURNINGVEIL, List<Combat::Effect>({
+			Combat::Effect("PIETY",3.0f,true,true),
+			Combat::Effect("INTELLIGENCE",3.0f,true,true),
+			Combat::Effect("UNHOLYBOOST",7.0f,true,false),
+			}), "ELITESKILLYELLOW", 5000);
+		equipmentDefinitions["Snow Maiden's Spectacles"] = Equipment(*this, "Mourning Veil", "Armour", CODEXPAGE_MOURNINGVEIL, List<Combat::Effect>({
+			Combat::Effect("INTELLIGENCE",6.0f,true,true),
+			Combat::Effect("COLDBOOST",7.0f,true,false),
+			}), "ELITESKILLYELLOW", 5000);
+		equipmentDefinitions["Sunspear Armour"] = Equipment(*this, "Sunspear Armour", "Armour", CODEXPAGE_SUNSPEARARMOUR, List<Combat::Effect>({
+			Combat::Effect("ARMOURVSPHYSICAL",6.0f,true,false),
+			Combat::Effect("ARMOURVSFIRE",6.0f,true,false),
+			}), "ELITESKILLYELLOW", 5000);
+
 
 		// ACCESSORIES
 		equipmentDefinitions["Cross of St Jeanne-Marie"] = Equipment(*this, "Cross of St Jeanne-Marie", "Accessory", CODEXPAGE_CROSS1, List<Combat::Effect>({
@@ -6565,6 +6757,19 @@ public:
 			Combat::Effect("HOLYBOOST",1.3f,true,false),
 			Combat::Effect("UNHOLYBOOST",1.3f,true,false),
 			}), "ELITESKILLYELLOW", 9999);
+		equipmentDefinitions["Amethyst Pendant"] = Equipment(*this, "Amethyst Pendant", "Accessory", CODEXPAGE_AMETHYSTPENDANT, List<Combat::Effect>({
+			Combat::Effect("ELECTRICBOOST",5.0f,true,false),
+			}), "ELITESKILLYELLOW", 5000);
+		equipmentDefinitions["Snow Maiden's Brooch"] = Equipment(*this, "Snow Maiden's Brooch", "Armour", CODEXPAGE_SNOWMAIDENBROOCH, List<Combat::Effect>({
+			Combat::Effect("PIETY",4.0f,true,true),
+			Combat::Effect("ELEMENTALBOOST",5.0f,true,true),
+			Combat::Effect("COLDBOOST",7.0f,true,false),
+			}), "ELITESKILLYELLOW", 5000);
+		equipmentDefinitions["Sunspear Sash"] = Equipment(*this, "Sunspear Sash", "Armour", CODEXPAGE_SUNSPEARSASH, List<Combat::Effect>({
+			Combat::Effect("VITALITY",10.0f,true,true),
+			Combat::Effect("AGILITY",10.0f,true,true),
+			}), "ELITESKILLYELLOW", 5000);
+
 	}
 	void defineAllCombatants() {
 		//DEBUG
@@ -6608,7 +6813,7 @@ public:
 						//pair<string, string>("BLIND", "999"),
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
-						pair<string, string>("0", "Brilliant Spark"),
+						pair<string, string>("0", "DEFAULT_WAIT"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 				}));
@@ -6626,6 +6831,8 @@ public:
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
 						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Skewer"),
+						pair<string, string>("2", "Fine Strike"),
 						})),
 				}));
 
@@ -6641,6 +6848,54 @@ public:
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
 						pair<string, string>("0", "DEFAULT_LEECHSKILL"),
 						pair<string, string>("6", "DEFAULT_LEECHSKILL"),
+						})),
+				}));
+
+		definedCombatants["Bone Priest"] = Combatant("Bone Priest", "Bone Priest", {},
+			Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Bone Priest", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Bone Priest", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("UNDEAD", "1"),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("1", "Heal Wounds"),
+						pair<string, string>("2", "Thoughtful Prayer"),
+						pair<string, string>("3", "Laying of Hands"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+				}));
+
+		definedCombatants["Avatar of the Night"] = Combatant("Avatar of the Night", "Avatar of the Night", {},
+			Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Avatar of the Night", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Avatar of the Night", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("UNDEAD", "1"),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "Night Fracture"),
+						pair<string, string>("1", "Mug"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+				}));
+
+		definedCombatants["Affection"] = Combatant("Affection", "Affection", {},
+			Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Affection", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Affection", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("UNDEAD", "1"),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_AFFECTION"),
+						pair<string, string>("6", "DEFAULT_AFFECTION"),
 						})),
 				}));
 
@@ -6837,7 +7092,7 @@ public:
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
 						pair<string, string>("0", "DEFAULT_ATTACK"),
 						pair<string, string>("1", "Drain Life"),
-						pair<string, string>("5", "Animate Skeleton Warrior"),
+						pair<string, string>("5", "Skeleton Warrior"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 					}));
@@ -6891,6 +7146,99 @@ public:
 						pair<string, string>("0", "DEFAULT_ATTACK"),
 						pair<string, string>("1", "Doublestrike"),
 						pair<string, string>("5", "Shadow Spike"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+
+		// AFA as opponents
+		definedCombatants["Koudelka"] = Combatant("Kouelka", "Kouelka",
+			Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 15),
+				pair<string, int>("PIETY", 20),
+				pair<string, int>("VITALITY", 40),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Koudelka Bloodmire", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Koudelka Bloodmire", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Shock Value"),
+						pair<string, string>("2", "Electrocute"),
+						pair<string, string>("3", "Thunderbolt"),
+						pair<string, string>("4", "Blinding Flash"),
+						pair<string, string>("5", "Mind Fry"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+
+		definedCombatants["Adriana"] = Combatant("Adriana", "Adriana",
+			Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 15),
+				pair<string, int>("PIETY", 50),
+				pair<string, int>("VITALITY", 20),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Adriana Aragon", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Adriana Aragon", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Vapour Blade"),
+						pair<string, string>("2", "Ice Beam"),
+						pair<string, string>("3", "Snowblind"),
+						pair<string, string>("4", "Cryogenic Sleep"),
+						pair<string, string>("5", "Mirror of Ice"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+
+		definedCombatants["Stacia"] = Combatant("Stacia", "Stacia",
+			Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 10),
+				pair<string, int>("PIETY", 10),
+				pair<string, int>("STRENGTH", 30),
+				pair<string, int>("AGILITY", 10),
+				pair<string, int>("VITALITY", 60),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Stacia Silver", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Stacia Silver", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Rotation Blade"),
+						pair<string, string>("2", "Glass Sword"),
+						pair<string, string>("3", "Reckless Swing"),
+						pair<string, string>("4", "Ring of Ash"),
+						pair<string, string>("5", "Ensorcell"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+
+		definedCombatants["Tifa"] = Combatant("Tifa", "Tifa",
+			Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 10),
+				pair<string, int>("PIETY", 10),
+				pair<string, int>("STRENGTH", 20),
+				pair<string, int>("AGILITY", 50),
+				pair<string, int>("VITALITY", 50),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Tifa Kurosawa", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Tifa Kurosawa", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Black Mamba Strike"),
+						pair<string, string>("2", "Natural Stab"),
+						pair<string, string>("3", "Magehunter Strike"),
+						pair<string, string>("4", "Steal Enchantment"),
+						pair<string, string>("5", "Stalked by Shadows"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 					}));
@@ -6971,7 +7319,7 @@ public:
 			List<string>(list<string>({ "Pressure Front", })),
 			List<string>(list<string>({ "EVERYTURN", "ONAPPLY" })));
 
-		allEffectDefinitions["Healing Rain"] = EffectObject("Healing Rain", "NEUTRAL", SKILLICON_HEALINGRAIN, "LIFEHEAL_AOE_WATER", false,
+		allEffectDefinitions["Healing Rain"] = EffectObject("Healing Rain", "NEUTRAL", SKILLICON_HEALINGRAIN, "LIFEHEAL_AOE_COLD", false,
 			List<string>(list<string>({ "Healing Rain", })),
 			List<string>(list<string>({ "EVERYTURN", "ONAPPLY" })));
 
@@ -7307,7 +7655,7 @@ public:
 			List<string>(list<string>({ "Tsunami", })),
 			List<string>(list<string>({ "ONEND", })));
 
-		allEffectDefinitions["Cryogenic Sleep"] = EffectObject("Cryogenic Sleep", "BOON", SKILLICON_CRYOGENICSLEEP, "MANAHEAL_SELF_WATER", false,
+		allEffectDefinitions["Cryogenic Sleep"] = EffectObject("Cryogenic Sleep", "BOON", SKILLICON_CRYOGENICSLEEP, "MANAHEAL_SELF_COLD", false,
 			List<string>(list<string>({ "Cryogenic Sleep", })),
 			List<string>(list<string>({ "ONEND", })));
 
@@ -7371,10 +7719,30 @@ public:
 			List<string>(list<string>({ "Shroud of Intrigue", })),
 			List<string>(list<string>({ "ONUSINGSKILL" })));
 
+		allEffectDefinitions["Chant of Concentration"] = EffectObject("Chant of Concentration", "BOON", SKILLICON_CHANTOFCONCENTRATION, "Chant of Concentration", false,
+			List<string>(list<string>({ "Chant of Concentration", })),
+			List<string>(list<string>({ "PROTECTVSINTERRUPTION" })));
+
 		// sourced from equipment
 		allEffectDefinitions["ARMOURVSELECTRIC"] = EffectObject("ARMOURVSELECTRIC", "BOON", EFFECTICON_ARMOURVSELECTRIC, "ARMOURVSELECTRIC", true,
 			List<string>(list<string>({ "ARMOURVSELECTRIC", })),
 			List<string>(list<string>({ "ONTAKINGELECTRICDAMAGE"})));
+
+		allEffectDefinitions["ARMOURVSCOLD"] = EffectObject("ARMOURVSCOLD", "BOON", EFFECTICON_ARMOURVSCOLD, "ARMOURVSCOLD", true,
+			List<string>(list<string>({ "ARMOURVSCOLD", })),
+			List<string>(list<string>({ "ONTAKINGCOLDDAMAGE" })));
+
+		allEffectDefinitions["ARMOURVSFIRE"] = EffectObject("ARMOURVSCOLD", "BOON", EFFECTICON_ARMOURVSFIRE, "ARMOURVSFIRE", true,
+			List<string>(list<string>({ "ARMOURVSFIRE", })),
+			List<string>(list<string>({ "ONTAKINGFIREDAMAGE" })));
+
+		allEffectDefinitions["ARMOURVSEARTH"] = EffectObject("ARMOURVSEARTH", "BOON", EFFECTICON_ARMOURVSEARTH, "ARMOURVSEARTH", true,
+			List<string>(list<string>({ "ARMOURVSEARTH", })),
+			List<string>(list<string>({ "ONTAKINGEARTHDAMAGE" })));
+
+		allEffectDefinitions["ARMOURVSELEMENTS"] = EffectObject("ARMOURVSELEMENTS", "BOON", EFFECTICON_ARMOURVSELEMENTS, "ARMOURVSELEMENTS", true,
+			List<string>(list<string>({ "ARMOURVSELEMENTS", })),
+			List<string>(list<string>({ "ONTAKINGELECTRICDAMAGE", "ONTAKINGCOLDDAMAGE", "ONTAKINGFIREDAMAGE", "ONTAKINGEARTHDAMAGE" })));
 		
 
 		// neutral conditions
@@ -7441,6 +7809,10 @@ public:
 		allEffectDefinitions["UNDEAD"] = EffectObject("UNDEAD", "PERM", EFFECTICON_UNDEAD, "UNDEAD", true,
 			List<string>(list<string>({ "UNDEAD", })),
 			List<string>(list<string>({ "ONTAKINGHOLYDAMAGE", "ONBEINGHEALED" })));
+
+		allEffectDefinitions["SPIRIT"] = EffectObject("SPIRIT", "PERM", EFFECTICON_SPIRIT, "SPIRIT", true,
+			List<string>(list<string>({ "SPIRIT", })),
+			List<string>(list<string>({ "ONTAKINGDAMAGE",  })));
 
 		allEffectDefinitions["Fragile"] = EffectObject("Fragile", "PERM", EFFECTICON_UNDEAD, "Fragile", true,
 			List<string>(list<string>({ "Fragile", })),
@@ -7561,5 +7933,6 @@ public:
 	Map<string, EffectObject> allEffectDefinitions;
 	string language = "ENG";
 	Map<string, string> layerScaleLookup;
+	List<string> elements; // quick reference to 4 elements
 };
 Combat combat;

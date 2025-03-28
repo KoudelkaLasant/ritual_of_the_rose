@@ -2951,7 +2951,7 @@ return true;
 						pair<string, string>("y", "50"),
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
-						pair<string, string>("scale", "1.0"),
+						pair<string, string>("scale", "2.0"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"] - 1)),
 						pair<string, string>("uniqueID", "CODEXIMAGE"),
 						})).run(*&gameEngine);
@@ -4336,7 +4336,9 @@ return true;
 					}
 				}
 				Map<int, pair<float, float>> positions = Menu::getMerchantGridPositions();
-				for (int x = 0; x < toAdd.size(); x++) {
+				int currentScrollIndex = gameEngine.storedMenus["MERCHANT"].currentScrolls["DEFAULT"];
+				int maxItemButtons = positions.getKeys().size();
+				for (int x = currentScrollIndex; x < currentScrollIndex + maxItemButtons and x < toAdd.size(); x++) {
 					Combat::Equipment def = combat.equipmentDefinitions[toAdd.at(x)];
 					string itemID = toAdd.at(x);
 					Menu::Button current = Menu::smallButton(mode + "_" + toAdd.at(x), "Item Names_" + itemID, positions[x]);
@@ -5549,7 +5551,7 @@ return true;
 						layer = imageLookup.layerDefaults["COMBATTEAM2ALLIES"];
 					}
 					extras["SUMMONTHIS_LAYER"] = to_string(layer);
-					extras["SUMMONSEQUENCE"] = "Animate " + extras["SUMMONTHIS"];
+					extras["SUMMONSEQUENCE"] = extras["SUMMONTHIS"];
 					Graphics::Image * targetImage = graphics.accessImageViaUniqueID(target);
 					if (targetImage == NULL) {
 						Map<string, Map<string, pair<float, float>>> combatPositions = combat.getCombatantPositionLookup();
@@ -5915,7 +5917,7 @@ return true;
 				"Stone Curse", "Atrophy", "Blade of Blood", "Vampiric Strike", "Exile", "Brain Drain","Blood Gift","Curse from Beyond the Grave","Viper Eyes", "Hypoxia", "Beggar's Blessing", "Botched Procedure", "Cestodarian Siphon", "Conciliatory Prayer", "Thoughtful Prayer", "Apostle of Patience","Shield of a Goddess", "Ivory Sanctuary", "Papalcy", "Incessant Devotion", "Ambrosia", "Blessed Light","Gift of Knowledge", "Paraclete's Invitation", "Castigate Cruor", "Entomb Spirit","Exalted Smash", "Erase Evil", "Absolution", "Adjudicate", "Stalked by Vengeance", "Rotation Blade", "Trickblade", "Debilitating Smash", "Clobber", "Cleave Armour", "Knee Crack", "Bulldoze","Knight Vision", "On My Target!", "Glass Sword", "Hack", "Bramble Cloak", "Shield of the Messenger", "Smuggler's Gambit", "Magebane Strike","Skewer", "Dragon Smash", "Weaponsmithing", "Winter Blast", "Sanctum Shroud", "Lacrymactory", "Mourning Edge", "Exemplar's Posture", "Bewrayment", "Avenger's Prayer", "Proscribe", "Conversion", "Fading Justice","Suppress","I Shall Take Care of This!","Song of Angels", "Lord's Authority", "Bailiff's Blade", "Fight the Pain!", "Fencer's Flash", "You're Worthless!", "Vapour Blade", "Light from the Other Side", "You're Revolting!", "Night Fracture", "Mug","Charm Collapse","Stalked by Shadows","Psychic Pithing", "Mind Maze", "Blinded Eye", "Black Djinn's Breath", "Wastrel's Comeuppance", "Petrifying Touch", "Rude Awakening", "Time Walk", "Deathdancer's Strike", "Natural Stab", "Platinum Lotus Strike", "Summer Strike", "Ring of Ash", "Charge Bolt", "Shock Value", "Electrocute", "Ball Lightning", "Double-Edged Lightning", "Chain Lightning", "Blinding Flash", "Electric Loop","Mind Fry", "Valkyrie's Aura","Shadow Game", "Twilightning", "Storm Djinn's Grace", "Short Circuit", "Shocking Defeat", "Scowling Rift", "Fire Bolt", "Arcane Furnace", "Hellraiser's Haste", "Glittering Gaze", "Fireball", "Ensorcell", "Phoenix", "Stalked by Flames", "Delay Blast", "Delay Blast 2", "Exalted Explosion", "Starburst", "Odyllic Cleansing", "Brine", "Cryogenic Sleep", "Polar Prison", "Nacreous Aura", "Polar Vortex", "Mirror of Ice", "Earthen Shell", "Crown of Sands", "Crumble", "Crystalline Scythe", "Master of Wards", "Exalted Stab", "Backstab", "Black Mamba Strike", "Stormdragon Strike", "Paralytic Venom", "Blades of Punishment", "Spirit Shanks", "Brutalism", "Royal Slicers", "Parting Stab", "Shattered Moebius", "Magehunter Strike", "Death Chant", "Shroud of Intrigue", 
 				"BURNING", "BLEEDING", "DISEASED", "POISONED"});
 			List<string> defaultAnimateFullScreen = list<string>({"Light of Day", "Wishing Well", "Heatwave", "Pressure Front", "Prophesized Return", "Overrule", "Ice Age", "Global Warming", "Tempest", "Drought", "Rainstorm", "Healing Rain", "Excommunicative Assault", "Godly Repulsion","No One Said You Could Touch!", "Ice Storm", "Chaos Storm", "Underworld Dreams", "Rageflame", "Cataclysm","Thunderstorm", "Stormseeker", "Flame Wave", "Firespitter", "Vault of Destruction", "Tsunami", "Borealis Blast", "Sliprain", "Sandstorm", "Dust Torrent", "Rocky Soil", "Volcano", "Ward Against Magic", "Ward Against Weapons", "Ward Against Catastrophe", "Ward Against Cruelty", "Scatter Strike", });
-			List<string> defaultAnimateOnEveryTarget = list<string>({"Order of the Wasp", "Great Gospel", "Remedy Ward", "Angelic Observatory", "Iridescent Breath", "Healing Winds", "Heal Wounds All", "Go On Without Me!", "Time Vortex", "Nacreous Aura 2", "Mass Burial",});
+			List<string> defaultAnimateOnEveryTarget = list<string>({"Order of the Wasp", "Great Gospel", "Remedy Ward", "Angelic Observatory", "Iridescent Breath", "Healing Winds", "Heal Wounds All", "Go On Without Me!", "Time Vortex", "Nacreous Aura 2", "Mass Burial", "Chant of Concentration", "DEFAULT_AFFECTION", });
 
 			if (procedureName == "Don't Give Up!") {
 				procedureName = "Revitalise";
