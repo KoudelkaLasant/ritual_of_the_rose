@@ -9,8 +9,9 @@ public:
 	public:
 		Button() {
 			layer = imageLookup.layerDefaults["BUTTONS"];
+			scrollable = false;
 		}
-		Button(string _uniqueID, string _textID, string _buttonContent, string _imageID, List<int> _sources, int _audioClick, int _audioHover, pair<float, float> _position, bool _visible, bool _clickable, Map<string, string> _extras) {
+		Button(string _uniqueID, string _textID, string _buttonContent, string _imageID, List<int> _sources, int _audioClick, int _audioHover, pair<float, float> _position, bool _visible, bool _clickable, bool _scrollable, Map<string, string> _extras) {
 			uniqueID = _uniqueID;
 			textID = _textID;
 			imageID = _imageID;
@@ -22,6 +23,7 @@ public:
 			buttonContent = _buttonContent;
 			clickable = _clickable;
 			extras = _extras;
+			scrollable = _scrollable;
 			layer = imageLookup.layerDefaults["BUTTONS"];
 		}
 		string getSources() {
@@ -291,10 +293,10 @@ public:
 	}
 	static const Map<int, pair<float, float>> getMerchantGridPositions() {
 		Map<int, pair<float, float>> results;
-		int rowLength = 6;
+		int rowLength = 2;
 		int columnLength = 10;
-		pair<float, float> topLeftCorner = { 10,30 };
-		pair<float, float> gap = { 15,5 };
+		pair<float, float> topLeftCorner = { 30,30 };
+		pair<float, float> gap = { 25,5 };
 		int cell = 0;
 		for (int x = 0; x < columnLength; x++) {
 			for (int y = 0; y < rowLength; y++) {
@@ -313,7 +315,7 @@ public:
 	}
 	static const List<Button> getDefaultButtonsForMerchant() {
 		List<Button> result = List<Button>({
-			Menu::standardButton("MERCHANTTOEXPLORE", "GUI_MERCHANTTOEXPLORE", {12, 90}),
+			Menu::smallButton("MERCHANTTOEXPLORE", "GUI_MERCHANTTOEXPLORE", {12, 90}),
 			Menu::standardButton("MERCHANTBUY", "GUI_MERCHANTBUY", {25, 20}),
 			Menu::standardButton("MERCHANTSELL", "GUI_MERCHANTSELL", {50, 20}),
 			Menu::standardButton("MERCHANTBUYBACK", "GUI_MERCHANTBUYBACK", {75, 20}),
@@ -373,14 +375,13 @@ public:
 	}
 	static const List<Button> getCodexButtons(string currentBook, string currentPage) {
 		List<Button> results;
-		results.push_back(Menu::smallerButton("FROMCODEXTOPAUSE", "GUI_FROMCODEXTOPAUSEBUTTON", { 95, 96 }));
 		Map<string, List<string>> unlockedCodex = codex.getUnlockedCodex();
-		int startX = 5;
-		int xDistance = 10;
+		int startX = 12;
+		int xDistance = 15;
 		int startY = 96;
 		int yDistance = 5;
 		for (auto book : unlockedCodex.getKeys().internalList) {
-			Button bookButton = Menu::smallerButton("CODEXBOOK_" + book, "Codex Categories_" + book, { startX, startY });
+			Button bookButton = Menu::smallButton("CODEXBOOK_" + book, "Codex Categories_" + book, { startX, startY });
 			bookButton.audioHover = SILENCE_WAV;
 			bookButton.audioClick = PARCHMENT_1_WAV;
 			results.push_back(bookButton);
@@ -389,7 +390,8 @@ public:
 				List<string> sortedPages = unlockedCodex[book]; sortedPages.internalList.sort(); sortedPages.internalList.reverse();
 				for (auto page : sortedPages.internalList) {
 					currentY -= yDistance;
-					Button pageButton = Menu::smallerButton("CODEXPAGE_" + page, codex.nameSources[book] + "_" + page, { startX, currentY });
+					Button pageButton = Menu::smallButton("CODEXPAGE_" + page, codex.nameSources[book] + "_" + page, { startX, currentY });
+					pageButton.layer = 30;
 					pageButton.audioHover = SILENCE_WAV;
 					pageButton.audioClick = PARCHMENT_2_WAV;
 					results.push_back(pageButton);
@@ -397,6 +399,7 @@ public:
 			}
 			startX += xDistance;
 		}
+		results.push_back(Menu::smallButton("FROMCODEXTOPAUSE", "GUI_FROMCODEXTOPAUSEBUTTON", { startX, startY }));
 		return results;
 	}
 	static const Map<int, pair<float, float>> getEffectIconPositions(pair<float, float> anchor) {

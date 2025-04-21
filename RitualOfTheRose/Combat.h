@@ -47,6 +47,7 @@ public:
 		influenceLookups["ARMOURVSEARTH"] = 0.05;
 		influenceLookups["ARMOURVSFIRE"] = 0.05;
 		influenceLookups["ARMOURVSELEMENTS"] = 0.01;
+		influenceLookups["ARMOURVSPOISON"] = 0.05;
 
 		AttributesInOrder = { "VITALITY","PIETY","STRENGTH", "INTELLIGENCE", "AGILITY","LUCK" };
 		statsInOrder = { "LIFE","ENERGY","ENERGYREGEN", "SPEED" };
@@ -121,6 +122,14 @@ public:
 			{"PIETY", 9},
 			{"AGILITY", 0},
 			{"LUCK", 1}
+		};
+		defaultAttInvestments["Tifa Kurosawa"] = {
+			{"STRENGTH" , 2},
+			{"INTELLIGENCE" , 0},
+			{"VITALITY", 2},
+			{"PIETY", 0},
+			{"AGILITY", 8},
+			{"LUCK", 8}
 		};
 
 		defaultSkillTreeChoices["Angela Fleuret"] = {
@@ -206,6 +215,13 @@ public:
 			pair<string, string>("4", "Ring of Ash"),
 			pair<string, string>("5", "Ensorcell"),
 		};
+		defaultSkillChoices["Tifa Kurosawa"] = {
+			pair<string, string>("1", "Black Mamba Strike"),
+			pair<string, string>("2", "Natural Stab"),
+			pair<string, string>("3", "Magehunter Strike"),
+			pair<string, string>("4", "Steal Enchantment"),
+			pair<string, string>("5", "Stalked by Shadows"),
+		};
 
 
 		defaultEquipment["Angela Fleuret"] = {
@@ -252,6 +268,11 @@ public:
 			{"Weapon", "Sunspear Whip"},
 			{"Armour" , "Sunspear Armour"},
 			{"Accessory", "Sunspear Sash"}
+		};
+		defaultEquipment["Tifa Kurosawa"] = {
+			{"Weapon", "Jade Dragon Blades"},
+			{"Armour" , "Magekiller Robes"},
+			{"Accessory", "Vial of Dragon Venom"}
 		};
 
 
@@ -368,7 +389,7 @@ public:
 				result += L".\n";
 				return result;
 			}
-			return strings[language]["Unique Item Strings"][tag];
+			return strings[language]["Unique Item Strings"][tag] + L"\n";
 		}
 
 		float getPowerForCombat(Combat& combat) {
@@ -1294,6 +1315,7 @@ public:
 			CombatantAI() {}
 			List<string> getCurrentStatuses(Combat& combat, CombatantInstance* me) {
 				List<string> result;
+				result.addToBackIfNotAlreadyInList("ALWAYSDOTHIS");
 				result.addToBackIfNotAlreadyInList("DEALDAMAGE");
 				result.addToBackIfNotAlreadyInList("CURSEFOE");
 				result.addToBackIfNotAlreadyInList("STEALLIFEFORMASTER");
@@ -1469,6 +1491,7 @@ public:
 					pair<string, int>("WORLDEFFECT",250),
 					pair<string, int>("INTERRUPTFOE",100),
 					pair<string, int>("MANADAMAGE",100),
+					pair<string, int>("ALWAYSDOTHIS",1000),
 					});
 				for (auto strat : allStrategiesICouldFollow.internalList) {
 					if (strategyToPriorityMap.getKeys().contains(strat)) {
@@ -2279,7 +2302,9 @@ public:
 			// blocking an attack also blocks any other reports associated with the attack
 			List<CombatantInstance*> peopleWhoBlockedTheAttack;
 			for (auto& report : results.internalList) {
-				
+				if (report.combatantsAffected.front() == "WORLD") {
+					continue;
+				}
 				if (getMyFoes(*&combat).contains(combat.currentBattle->getThisCombatant(report.combatantsAffected.front()))) {
 					if (combat.currentBattle->doesTargetXHaveStatusY(report.combatantsAffected.front(), "Shroud of Intrigue")) {
 						// hostile skill being used on someone with Shroud
@@ -3008,6 +3033,10 @@ public:
 											report.vData[v] *= 0.5;
 										}
 									}
+									if (effect->e.logicName == "ARMOURVSPOISON" and report.sourceName == "POISONED") {
+										float power = (100.0 - effect->e.values["power"]) / 100;
+										report.vData["DAMAGE_SINGLE_NEUTRAL"] *= power;
+									}
 									if (v == "DAMAGE_SINGLE_ELECTRIC" and effect->e.triggers.contains("ONTAKINGELECTRICDAMAGE")) {
 										if (effect->e.logicName == "ARMOURVSELEMENTS") {
 											float power = (100.0 - effect->e.values["power"]) / 100;
@@ -3216,6 +3245,7 @@ public:
 					}
 					if (report.logic.find("APPLY_") != -1) {
 						// change duration
+
 						if (user == targets.front()) {// using on self
 							if (combat.skillDefinitions.hasKey(report.sourceName)) { // the effect is a skill
 								if (combat.currentBattle->doesTargetXHaveStatusY(user->c.uniqueCombatID, "Lord's Authority")) {
@@ -3234,6 +3264,10 @@ public:
 						List<string> effectData = split(report.logic, "_");
 						string effectName = effectData.at(1);
 						EffectObject theEffect = combat.allEffectDefinitions[effectName];
+						if (effectName == "POISONED" and combat.currentBattle->doesTargetXHaveStatusY(report.originalUser, "VENOMOUS")) {
+							report.vData["DURATION_POISONED"] *= 1.5;
+						}
+
 						bool isABane = theEffect.type == "BANE";
 						for (CombatantInstance* target : targets.internalList) {
 							string whoWillGetCondition = target->c.uniqueCombatID;
@@ -3658,6 +3692,11 @@ public:
 							for (auto effect : report.vData.getKeys().internalList) {
 								if (effect.find("LIFESTEAL") != -1) {
 									for (auto currentTarget : report.combatantsAffected.internalList) {
+										if (combat.currentBattle->getThisCombatant(currentTarget)->c.isDead() or combat.currentBattle->getThisCombatant(user)->c.isDead()) { 
+											report.sData["success"] = "0";
+											report.sData["failSilently"] = "1";
+											continue;
+										}
 										combat.currentBattle->getThisCombatant(currentTarget)->c.takeDamage(report.vData[effect]);
 										combat.currentBattle->getThisCombatant(user)->c.beHealed(report.vData[effect]);
 										combat.currentBattle->addCombatMessage("LIFESTEAL", List<pair<string, string>>({
@@ -4635,7 +4674,7 @@ public:
 
 		skillDefinitions["DEFAULT_AFFECTION"] = Skill("DEFAULT_AFFECTION", "DEFAULT_AFFECTION", "Default", SKILLICON_WAIT, 0, 0, 0, "SELF", { "MANAHEAL_ALLALLIES_UNHOLY" }, list<string>({ "UNHOLY" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("MANAHEAL_ALLALLIES_UNHOLY",PowerValue("MANAHEAL_ALLALLIES_UNHOLY",4,0,999,true,list<string>({"INTELLIGENCE"}))) }), list<string>({ "MANAHEAL" }), AFFECTIONHEAL_WAV);
+				pair<string, PowerValue>("MANAHEAL_ALLALLIES_UNHOLY",PowerValue("MANAHEAL_ALLALLIES_UNHOLY",4,0,999,true,list<string>({"INTELLIGENCE"}))) }), list<string>({ "ALWAYSDOTHIS" }), AFFECTIONHEAL_WAV);
 
 		// debug
 		skillDefinitions["Suicide"] = Skill("Suicide", "Suicide", "Debug", SKILLICON_WAIT, 0, 0, 0, "SELF", { "SUICIDE_SELF" }, list<string>({ "PHYSICAL","UNHOLY" }),
@@ -5181,6 +5220,35 @@ public:
 				}),
 				list<string>({ "SUMMON", }), AFFECTION_WAV);
 
+		skillDefinitions["Cursed Doll"] = Skill("Cursed Doll", "Cursed Doll", "Necromancy", SKILLICON_CURSEDDOLL, 30, 1, 5, "SELF",
+			list<string>({ "SUMMON_Cursed Doll_SELF" }),
+			list<string>({ "MAGICAL","UNHOLY", "SUMMON", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("PIETY", PowerValue("PIETY", 8, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				}),
+				list<string>({ "SUMMON", }), CURSEDDOLL_WAV);
+
+		skillDefinitions["Hanged Man"] = Skill("Hanged Man", "Hanged Man", "Necromancy", SKILLICON_HANGEDMAN, 50, 1, 5, "SELF",
+			list<string>({ "SUMMON_Hanged Man_SELF" }),
+			list<string>({ "MAGICAL","UNHOLY", "SUMMON", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 40, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("LUCK", PowerValue("LUCK", 12, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("AGILITY", PowerValue("AGILITY", 12, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("STRENGTH", PowerValue("STRENGTH", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				}),
+				list<string>({ "SUMMON", }), HANGEDMAN_WAV);
+
+		skillDefinitions["Minion"] = Skill("Minion", "Minion", "Necromancy", SKILLICON_MINION, 30, 1, 5, "SELF",
+			list<string>({ "SUMMON_Minion_SELF" }),
+			list<string>({ "MAGICAL","UNHOLY", "SUMMON", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 40, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("STRENGTH", PowerValue("STRENGTH", 8, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				}),
+				list<string>({ "SUMMON", }), MINION_WAV);
+
 
 		// ELECTROMANCY
 		skillDefinitions["Plasma Pulse"] = Skill("Plasma Pulse", "Plasma Pulse", "Electromancy", SKILLICON_PLASMAPULSE, 25, 1, 2, "SINGLEFOE",
@@ -5423,7 +5491,7 @@ public:
 				list<string>({ "DEALDAMAGE" }), NATURALSTAB_WAV);
 
 		skillDefinitions["Platinum Lotus Strike"] = Skill("Platinum Lotus Strike", "Platinum Lotus Strike", "Minor Arms", SKILLICON_PLATINUMLOTUSSTRIKE, 5, 0, 1, "SINGLEFOE",
-			list<string>({ "DAMAGE_SINGLE_PHYSICAL", "MANAHEAL_SELF_SHADOW"}),
+			list<string>({ "MANAHEAL_SELF_SHADOW", "DAMAGE_SINGLE_PHYSICAL"}),
 			list<string>({ "PHYSICAL","ATTACK", "ELITE",}),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 30, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
@@ -6695,6 +6763,11 @@ public:
 			Combat::Effect("ArmsBOOST",5.0f,true,false),
 			Combat::Effect("FIREBOOST",2.0f,true,false),
 			}), "ELITESKILLYELLOW", 5000);
+		equipmentDefinitions["Jade Dragon Blades"] = Equipment(*this, "Jade Dragon Blades", "Weapon", CODEXPAGE_JADEDRAGONBLADES, List<Combat::Effect>({
+			Combat::Effect("STRENGTH",10.0f,true,true),
+			Combat::Effect("AGILITY",10.0f,true,true),
+			Combat::Effect("VENOMOUS",1.0f,true,false),
+			}), "ELITESKILLYELLOW", 5000);
 
 
 		// ARMOUR
@@ -6702,7 +6775,7 @@ public:
 			Combat::Effect("HOLYBOOST",1.0f,true,false),
 			}), "EQUIPMENTBLUE", 250);
 		equipmentDefinitions["Martin's Cloak"] = Equipment(*this, "Martin's Cloak", "Armour", CODEXPAGE_CLOAK1, List<Combat::Effect>({
-			Combat::Effect("PHYSICALARMOUR",1.0f,true,false),
+			Combat::Effect("ARMOURVSPHYSICAL",1.0f,true,false),
 			}), "EQUIPMENTBLUE", 250);
 		equipmentDefinitions["Alhambran Tunic"] = Equipment(*this, "Alhambran Tunic", "Armour", CODEXPAGE_HAREM, List<Combat::Effect>({
 			Combat::Effect("SHADOWBOOST",1.0f,true,false),
@@ -6725,6 +6798,10 @@ public:
 		equipmentDefinitions["Sunspear Armour"] = Equipment(*this, "Sunspear Armour", "Armour", CODEXPAGE_SUNSPEARARMOUR, List<Combat::Effect>({
 			Combat::Effect("ARMOURVSPHYSICAL",6.0f,true,false),
 			Combat::Effect("ARMOURVSFIRE",6.0f,true,false),
+			}), "ELITESKILLYELLOW", 5000);
+		equipmentDefinitions["Magekiller Robes"] = Equipment(*this, "Magekiller Robes", "Armour", CODEXPAGE_MAGEKILLERROBES, List<Combat::Effect>({
+			Combat::Effect("ARMOURVSPHYSICAL",6.0f,true,false),
+			Combat::Effect("ARMOURVSPOISON",6.0f,true,false),
 			}), "ELITESKILLYELLOW", 5000);
 
 
@@ -6760,14 +6837,17 @@ public:
 		equipmentDefinitions["Amethyst Pendant"] = Equipment(*this, "Amethyst Pendant", "Accessory", CODEXPAGE_AMETHYSTPENDANT, List<Combat::Effect>({
 			Combat::Effect("ELECTRICBOOST",5.0f,true,false),
 			}), "ELITESKILLYELLOW", 5000);
-		equipmentDefinitions["Snow Maiden's Brooch"] = Equipment(*this, "Snow Maiden's Brooch", "Armour", CODEXPAGE_SNOWMAIDENBROOCH, List<Combat::Effect>({
+		equipmentDefinitions["Snow Maiden's Brooch"] = Equipment(*this, "Snow Maiden's Brooch", "Accessory", CODEXPAGE_SNOWMAIDENBROOCH, List<Combat::Effect>({
 			Combat::Effect("PIETY",4.0f,true,true),
 			Combat::Effect("ELEMENTALBOOST",5.0f,true,true),
 			Combat::Effect("COLDBOOST",7.0f,true,false),
 			}), "ELITESKILLYELLOW", 5000);
-		equipmentDefinitions["Sunspear Sash"] = Equipment(*this, "Sunspear Sash", "Armour", CODEXPAGE_SUNSPEARSASH, List<Combat::Effect>({
+		equipmentDefinitions["Sunspear Sash"] = Equipment(*this, "Sunspear Sash", "Accessory", CODEXPAGE_SUNSPEARSASH, List<Combat::Effect>({
 			Combat::Effect("VITALITY",10.0f,true,true),
 			Combat::Effect("AGILITY",10.0f,true,true),
+			}), "ELITESKILLYELLOW", 5000);
+		equipmentDefinitions["Vial of Dragon Venom"] = Equipment(*this, "Vial of Dragon Venom", "Accessory", CODEXPAGE_DRAGONVENOM, List<Combat::Effect>({
+			Combat::Effect("LUCK",20.0f,true,true),
 			}), "ELITESKILLYELLOW", 5000);
 
 	}
@@ -6891,11 +6971,58 @@ public:
 						pair<string, string>("Front", imageLookup.getSequenceAsString("Affection", "COMBAT_FRONT")),
 					})),
 					pair<string, Map<string, string>>("Effects", Map<string, string>({
-						pair<string, string>("UNDEAD", "1"),
+						pair<string, string>("SPIRIT", "1"),
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
 						pair<string, string>("0", "DEFAULT_AFFECTION"),
 						pair<string, string>("6", "DEFAULT_AFFECTION"),
+						})),
+				}));
+
+		definedCombatants["Cursed Doll"] = Combatant("Cursed Doll", "Cursed Doll", {},
+			Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Cursed Doll", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Cursed Doll", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "Curse from Beyond the Grave"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+				}));
+
+		definedCombatants["Hanged Man"] = Combatant("Hanged Man", "Hanged Man", {},
+			Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Hanged Man", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Hanged Man", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("SPIRIT", "1"),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Backstab"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+				}));
+
+		definedCombatants["Minion"] = Combatant("Minion", "Minion", {},
+			Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Minion", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Minion", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("UNDEAD", "1"),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Clobber"),
+						pair<string, string>("2", "Bulldoze"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 				}));
 
@@ -7031,7 +7158,7 @@ public:
 			Map<string, int>({
 				pair<string, int>("STRENGTH", 20),
 				pair<string, int>("INTELLIGENCE", 20),
-				pair<string, int>("VITALITY", 20),
+				pair<string, int>("VITALITY", 50),
 				pair<string, int>("PIETY", 20),
 				pair<string, int>("AGILITY", 20),
 				pair<string, int>("LUCK", 1),
@@ -7150,6 +7277,138 @@ public:
 						})),
 					}));
 
+		definedCombatants["AngelaMelting"] = Combatant("AngelaMelting", "AngelaMelting",
+			Map<string, int>({
+				pair<string, int>("STRENGTH", 0),
+				pair<string, int>("INTELLIGENCE", 20),
+				pair<string, int>("VITALITY", 30),
+				pair<string, int>("PIETY", 20),
+				pair<string, int>("AGILITY", 0),
+				pair<string, int>("LUCK", 20),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("AngelaMelting", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("AngelaMelting", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Exile"),
+						pair<string, string>("2", "Apostle of Patience"),
+						pair<string, string>("3", "Adjudicate"),
+						pair<string, string>("4", "Overrule"),
+						pair<string, string>("5", "Stalked by Vengeance"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+
+		definedCombatants["TianshunMotherMelting"] = Combatant("TianshunMotherMelting", "TianshunMotherMelting",
+			Map<string, int>({
+				pair<string, int>("STRENGTH", 0),
+				pair<string, int>("INTELLIGENCE", 20),
+				pair<string, int>("VITALITY", 40),
+				pair<string, int>("PIETY", 20),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("TianshunMotherMelting", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("TianshunMotherMelting", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Hanged Man"),
+						pair<string, string>("2", "Minion"),
+						pair<string, string>("3", "Vampiric Strike"),
+						pair<string, string>("4", "Blood Gift"),
+						pair<string, string>("5", "Order of the Wasp"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+
+		// allies of TianshunMother that are not summoned
+		definedCombatants["Cursed Doll Ally"] = Combatant("Cursed Doll Ally", "Cursed Doll Ally", Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 5),
+				pair<string, int>("PIETY", 5),
+			}),
+			Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Cursed Doll", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Cursed Doll", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Curse from Beyond the Grave"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+				}));
+		
+		definedCombatants["EnglishSoldierMelting"] = Combatant("EnglishSoldierMelting", "EnglishSoldierMelting",
+			Map<string, int>({
+				pair<string, int>("STRENGTH", 25),
+				pair<string, int>("VITALITY", 50),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("EnglishSoldierMelting", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("EnglishSoldierMelting", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Cleave Armour"),
+						pair<string, string>("2", "Fine Strike"),
+						pair<string, string>("3", "Trickblade"),
+						pair<string, string>("4", "Lord's Authority"),
+						pair<string, string>("5", "Knight Vision"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+
+		definedCombatants["EnvoyMelting"] = Combatant("EnvoyMelting", "EnvoyMelting",
+			Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 30),
+				pair<string, int>("PIETY", 50),
+				pair<string, int>("VITALITY", 30),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("EnvoyMelting", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("EnvoyMelting", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Global Warming"),
+						pair<string, string>("2", "Phoenix"),
+						pair<string, string>("3", "Heal Wounds"),
+						pair<string, string>("4", "Fireball"),
+						pair<string, string>("5", "Flame Wave"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+
+		definedCombatants["FernandoMelting"] = Combatant("FernandoMelting", "FernandoMelting",
+			Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 10),
+				pair<string, int>("PIETY", 10),
+				pair<string, int>("VITALITY", 20),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("FernandoMelting", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("FernandoMelting", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Rocky Soil"),
+						pair<string, string>("2", "Crumble"),
+						pair<string, string>("3", "Uneasy Earth"),
+						pair<string, string>("4", "Earthquake"),
+						pair<string, string>("5", "Time Walk"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+
 		// AFA as opponents
 		definedCombatants["Koudelka"] = Combatant("Kouelka", "Kouelka",
 			Map<string, int>({
@@ -7232,6 +7491,9 @@ public:
 						pair<string, string>("Back", imageLookup.getSequenceAsString("Tifa Kurosawa", "COMBAT_BACK")),
 						pair<string, string>("Front", imageLookup.getSequenceAsString("Tifa Kurosawa", "COMBAT_FRONT")),
 					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("VENOMOUS", "1"),
+					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
 						pair<string, string>("0", "DEFAULT_ATTACK"),
 						pair<string, string>("1", "Black Mamba Strike"),
@@ -7246,9 +7508,10 @@ public:
 	}
 	void defineAllTeams() {
 		// pair is leader -> team
+		
 		// DEBUG
 		definedTeams["DEBUG"] = { "DebugWoman", List<Combatant>({
-			definedCombatants["DebugWoman"], definedCombatants["SadBag"], }) };
+			definedCombatants["DebugWoman"], definedCombatants["DebugWoman"], }) };
 
 		definedTeams["DEBUG2"] = { "FakeRider", List<Combatant>({
 			definedCombatants["FakeRider"]}) };
@@ -7266,13 +7529,6 @@ public:
 		definedTeams["EVENT3"] = { "EnragedRider", List<Combatant>({
 			definedCombatants["EnragedRider"],}) };
 
-		definedTeams["EVENT4"] = { "EnragedMagician", List<Combatant>({
-				definedCombatants["EnragedMagician"],
-				definedCombatants["EnragedMagician"],
-				definedCombatants["EnragedMagician"],
-				definedCombatants["EnragedPriest"],
-			}) };
-
 		definedTeams["EVENT5"] = { "EnragedButcher", List<Combatant>({
 				definedCombatants["EnragedButcher"],
 				definedCombatants["EnragedNe'erDoWell"],
@@ -7280,11 +7536,64 @@ public:
 				definedCombatants["EnragedNoblewoman"],
 			}) };
 
+		definedTeams["FireSpigotLeft"] = { "EnragedMagician", List<Combatant>({
+				definedCombatants["EnragedMagician"],
+				definedCombatants["EnragedMagician"],
+				definedCombatants["EnragedMagician"],
+				definedCombatants["EnragedPriest"],
+			}) };
+
+		definedTeams["FireSpigotTopLeft"] = { "EnragedMagician", List<Combatant>({
+				definedCombatants["EnragedMagician"],
+				definedCombatants["EnragedButcher"],
+				definedCombatants["EnragedDeaconess"],
+				definedCombatants["EnragedPriest"],
+			}) };
+
+		definedTeams["FireSpigotTopRight"] = { "EnragedMagician", List<Combatant>({
+				definedCombatants["EnragedMagician"],
+				definedCombatants["EnragedNoblewoman"],
+				definedCombatants["EnragedVagrant"],
+				definedCombatants["EnragedButcher"],
+			}) };
+
 		definedTeams["SHADOWTEAM"] = { "DarkAngela", List<Combatant>({
 			definedCombatants["DarkAngela"], definedCombatants["DarkOlyver"], definedCombatants["DarkTianshun"], definedCombatants["DarkGihat"]}) };
 
 		definedTeams["SHADOWTEAM2"] = { "DarkTianshun", List<Combatant>({
 			definedCombatants["DarkHernando"],}) };
+
+		definedTeams["AngelaMelting"] = { "AngelaMelting", List<Combatant>({definedCombatants["AngelaMelting"]}) };
+		definedTeams["EnglishSoldierMelting"] = { "EnglishSoldierMelting", List<Combatant>({definedCombatants["EnglishSoldierMelting"]}) };
+		definedTeams["EnvoyMelting"] = { "EnvoyMelting", List<Combatant>({definedCombatants["EnvoyMelting"]}) };
+		definedTeams["FernandoMelting"] = { "FernandoMelting", List<Combatant>({definedCombatants["FernandoMelting"]}) };
+
+		definedTeams["TianshunMotherMelting"] = { "TianshunMotherMelting", List<Combatant>({
+			definedCombatants["Cursed Doll Ally"],
+			definedCombatants["TianshunMotherMelting"], 
+			definedCombatants["Cursed Doll Ally"],
+	})};
+
+		definedTeams["PlankFight1"] = { "EnragedButcher", List<Combatant>({
+				definedCombatants["EnragedButcher"],
+				definedCombatants["EnragedButcher"],
+				definedCombatants["EnragedButcher"],
+				definedCombatants["EnragedButcher"],
+			}) };
+
+		definedTeams["PlankFight2"] = { "EnragedButcher", List<Combatant>({
+				definedCombatants["EnragedNe'erDoWell"],
+				definedCombatants["EnragedButcher"],
+				definedCombatants["EnragedButcher"],
+				definedCombatants["EnragedPriest"],
+			}) };
+
+		definedTeams["PlankFight3"] = { "EnragedButcher", List<Combatant>({
+				definedCombatants["EnragedPriest"],
+				definedCombatants["EnragedNoblewoman"],
+				definedCombatants["EnragedVilomah"],
+				definedCombatants["EnragedPriest"],
+			}) };
 
 		// ENRAGED
 
@@ -7743,6 +8052,14 @@ public:
 		allEffectDefinitions["ARMOURVSELEMENTS"] = EffectObject("ARMOURVSELEMENTS", "BOON", EFFECTICON_ARMOURVSELEMENTS, "ARMOURVSELEMENTS", true,
 			List<string>(list<string>({ "ARMOURVSELEMENTS", })),
 			List<string>(list<string>({ "ONTAKINGELECTRICDAMAGE", "ONTAKINGCOLDDAMAGE", "ONTAKINGFIREDAMAGE", "ONTAKINGEARTHDAMAGE" })));
+
+		allEffectDefinitions["VENOMOUS"] = EffectObject("VENOMOUS", "BOON", EFFECTICON_VENOMOUS, "VENOMOUS", true,
+			List<string>(list<string>({ "VENOMOUS", })),
+			List<string>(list<string>({ "ONUSINGSKILL" })));
+
+		allEffectDefinitions["ARMOURVSPOISON"] = EffectObject("ARMOURVSPOISON", "BOON", EFFECTICON_ARMOURVSPOISON, "ARMOURVSPOISON", true,
+			List<string>(list<string>({ "ARMOURVSPOISON", })),
+			List<string>(list<string>({ "ONTAKINGDAMAGE" })));
 		
 
 		// neutral conditions

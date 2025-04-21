@@ -862,7 +862,7 @@ public:
     void drawTheseImagesByYOrder(List<Image *> images) {
         while (!images.empty()) {
             float max = 999;
-            Image* drawThisOne = NULL;
+            Image* drawThisOne = images.front();
             for (auto const& value : images.internalList) {
                 D2D1_RECT_F imagePosition = value->getPosition(*this);
                 if (value->positionAsPercentage.second < max) {
@@ -876,7 +876,7 @@ public:
         
     }
     void loadCursors() {
-        Map<string, int> cursorsToLoad = list <pair<string, int>>({ {"DEFAULT", CURSOR_DEFAULT}, {"SELECTED", CURSOR_SELECTED}, {"NONE", CURSOR_NONE}});
+        Map<string, int> cursorsToLoad = list <pair<string, int>>({ {"DEFAULT", CURSOR_DEFAULT}, {"SELECTED", CURSOR_SELECTED}, {"SCROLLABLE", CURSOR_SCROLLING} , {"NONE", CURSOR_NONE}});
         for (auto const& [key, value] :cursorsToLoad.internalMap) {
             HICON defaultCursor = LoadIcon(hinstance, MAKEINTRESOURCE(value));
             ICONINFO iconinfo;

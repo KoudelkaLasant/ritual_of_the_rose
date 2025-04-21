@@ -540,11 +540,15 @@ public:
 				}
 
 				message += hoverMessage + "\n" + clickMessage + "\n";
+				message += "Scroll Wheel Delta: ";
+				message += to_string(controller.currentScrollWheelDelta);
+				message += "\n";
 
 				theText->resetMessage(*&graphics, StringToWString(message));
 				if (controller.hasThisBeenPressed(27)) {
 					return true;
 				}
+
 				return false;
 			}
 			if (type == "DEBUGBEZIER") {
@@ -975,6 +979,9 @@ public:
 						exploreAnimationSpeeds["MOVE"] = 10;
 						Event("userInput", "DEBUGWALKING", { }).run(*&gameEngine);
 					}
+					if (Args.get("DEBUGUSERINPUT") == "1") {
+						Event("userInput", "DEBUGUSERINPUT", { }).run(*&gameEngine);
+					}
 					
 				}
 				int animationSpeed = 500;
@@ -1294,6 +1301,9 @@ public:
 			if (type == "DIALOGUE") {
 				string cutscene = data["cutscene"];
 				string speakerID = data["speaker"];
+				if (speakerID.find("$PLAYER2==") != -1) {
+					speakerID = SReplace(speakerID, "$PLAYER2==", "");
+				}
 				if (speakerID.find("$ASYNC$") != -1) {
 					speakerID = SReplace(speakerID, "$ASYNC$", "");
 					if (gameEngine.activeProcedure.eventList.at(1).name != "PostCutscene") {
@@ -1320,10 +1330,16 @@ public:
 					speakerID = SReplace(speakerID, "$DIRECT$", "");
 					displayName = "???";
 				}
-				if (speakerID == "PLAYER") {
-					speakerID = saveContainer.getCurrentMainCharacter();
-					displayName = saveContainer.getCurrentMainCharacter();
-					displayName = gameEngine.language + "_NPCNames_" + displayName;
+
+				if (speakerID == "PLAYER" or speakerID == "PLAYER2") {
+					if (speakerID == "PLAYER") {
+						speakerID = saveContainer.getCurrentMainCharacter();
+						displayName = gameEngine.language + "_NPCNames_" + speakerID;
+					}
+					if (speakerID == "PLAYER2") {
+						speakerID = saveContainer.getNamesOfTwoPeopleForScene().second;
+						displayName = gameEngine.language + "_NPCNames_" + speakerID;
+					}
 				}
 				else {
 					speakerID = SReplace(speakerID, "$DIRECT$", "");
@@ -1455,12 +1471,12 @@ public:
 				}
 				Menu menu = gameEngine.storedMenus[menuName];
 				List<Menu::Button> toLoad = menu.getButtonsToLoad();
-				for (int x = 0; x < toLoad.size(); x++) {
+				for (auto button : toLoad.internalList) {
 					Event("LoadThisButton", "LOADABUTTON", Map<string, string>({
 						pair<string, string>("uniqueID", menuName),
-						pair<string, string>("which", to_string(x)),
+						pair<string, string>("which", button.uniqueID),
 						pair<string, string>("layer", layer),
-						pair<string, string>("format", toLoad.at(x).extras["format"]),
+						pair<string, string>("format", button.extras["format"]),
 						})).run(*&gameEngine);
 				}
 				if (menu.data.hasKey("AUDIOMANAGEMENT")) {
@@ -1628,10 +1644,9 @@ public:
 				string menuName = data["uniqueID"];
 				Menu menu = gameEngine.storedMenus[menuName];
 				List<Menu::Button> toLoad = menu.getButtonsToLoad();
-				int which = stoi(data["which"]);
 				bool justLoadText = data["justLoadText"] == "1";
 				bool justLoadImage = data["justLoadImage"] == "1";
-				Menu::Button button = toLoad.at(which);
+				Menu::Button button = menu.buttons[data["which"]];
 				string layer = data["layer"];
 				if (button.extras.hasKey("layer")) {
 					layer = button.extras["layer"];
@@ -1962,10 +1977,10 @@ public:
 					if (gameEngine.stateFlags["PARTYEDITSELECTED"] != "") {
 						// someone else was selected so do teardown
 						List<Menu::Button> toHandle = gameEngine.storedMenus["EQUIPMENTMANAGEMENT"].buttons.getValues();
-						for (int x = 0; x < toHandle.size(); x++) {
+						for (auto button : toHandle.internalList) {
 							Event("TearDown", "TEARDOWNABUTTON", Map<string, string>({
-								pair<string, string>("imageID", toHandle.at(x).imageID),
-								pair<string, string>("textID",toHandle.at(x).textID),
+								pair<string, string>("imageID", button.imageID),
+								pair<string, string>("textID", button.textID),
 								})).run(*&gameEngine);
 						}
 						if (gameEngine.stateFlags["WEPTYPESELECTED"] == "") {
@@ -1977,13 +1992,12 @@ public:
 							})).run(*&gameEngine);
 
 						toHandle = gameEngine.storedMenus["EQUIPMENTMANAGEMENT"].buttons.getValues();
-						for (int x = 0; x < toHandle.size(); x++) {
-							Menu::Button button = toHandle.at(x);
+						for (auto button : toHandle.internalList) {
 							Event("LoadThisButton", "LOADABUTTON", Map<string, string>({
 								pair<string, string>("uniqueID", menuName),
-								pair<string, string>("which", to_string(x)),
+								pair<string, string>("which", button.uniqueID),
 								pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-								pair<string, string>("format", toHandle.at(x).extras["format"]),
+								pair<string, string>("format", button.extras["format"]),
 								})).run(*&gameEngine);
 						}
 					}
@@ -2182,8 +2196,34 @@ return true;
 							pair<string, string>("anchorStyle", clickable.extras["hoverAnchorStyle"]),
 							})).run(*&gameEngine);
 					}
+					if (clickable.scrollable and graphics.CurrentCursor == "DEFAULT") {
+						graphics.changeCursor("SCROLLABLE");
+					}
+					if (clickable.scrollable and CLOCK.hasEnoughTimePassed("SCROLLCLOCK", 5) and controller.currentScrollWheelDelta != 0) {
+						string whichScroll = clickable.extras["whichScroll"];
+						int limit = stoi(gameEngine.storedMenus[whichMenu].data["scrollingLimit_" + whichScroll]);
+						int current = gameEngine.storedMenus[whichMenu].currentScrolls[whichScroll];
+						int amount = -1;
+						if (controller.currentScrollWheelDelta > 0) {
+							amount = 1;
+						}
+						if (limit < 0) { limit = 0; }
+						int result = TChange(current, amount, 0, limit);
+						controller.currentScrollWheelDelta = 0;
+						gameEngine.storedMenus[whichMenu].currentScrolls[whichScroll] = result;
+						Event("Change Merch Buttons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
+						pair<string, string>("whichMerchant", data["whichMerchant"]),
+						pair<string, string>("reset", "1"),
+							})).run(*&gameEngine);
+					}
+					if (!clickable.scrollable and graphics.CurrentCursor == "SCROLLABLE") {
+						graphics.changeCursor("DEFAULT");
+					}
 				}
 				if (!anythingHovered) {
+					if (graphics.CurrentCursor == "SCROLLABLE") {
+						graphics.changeCursor("DEFAULT");
+					}
 					controller.latestMenuItemHovered = "";
 					for (auto text : popUpTexts.internalList) {
 						Event("RemoveHoverText", "TEARDOWNTEXT", Map<string, string>({ "uniqueID", text })).run(*&gameEngine);
@@ -2554,10 +2594,10 @@ return true;
 					string category = buttonLogic;
 					gameEngine.stateFlags["WEPTYPESELECTED"] = category;
 					List<Menu::Button> toHandle = gameEngine.storedMenus["EQUIPMENTMANAGEMENT"].buttons.getValues();
-					for (int x = 0; x < toHandle.size(); x++) {
+					for (auto button : toHandle.internalList) {
 						Event("TearDown", "TEARDOWNABUTTON", Map<string, string>({
-							pair<string, string>("imageID", toHandle.at(x).imageID),
-							pair<string, string>("textID",toHandle.at(x).textID),
+							pair<string, string>("imageID", button.imageID),
+							pair<string, string>("textID",button.textID),
 							})).run(*&gameEngine);
 					}
 					Event("AddButtons", "ADDEQUIPBUTTONSTOMENU", Map<string, string>({ 
@@ -2566,12 +2606,12 @@ return true;
 						})).run(*&gameEngine);
 					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "EQUIPMENTEDIT")).run(*&gameEngine);
 					toHandle = gameEngine.storedMenus["EQUIPMENTMANAGEMENT"].buttons.getValues();
-					for (int x = 0; x < toHandle.size(); x++) {
+					for (auto button : toHandle.internalList) {
 						Event("LoadThisButton", "LOADABUTTON", Map<string, string>({
 							pair<string, string>("uniqueID", "EQUIPMENTMANAGEMENT"),
-							pair<string, string>("which", to_string(x)),
+							pair<string, string>("which", button.uniqueID),
 							pair<string, string>("layer", gameEngine.storedMenus["EQUIPMENTMANAGEMENT"].data["layer"]),
-							pair<string, string>("format", toHandle.at(x).extras["format"]),
+							pair<string, string>("format", button.extras["format"]),
 							})).run(*&gameEngine);
 					}
 					gameEngine.activeProcedure = Procedure("MenuProcedure", List<Event>({
@@ -2615,12 +2655,13 @@ return true;
 				}
 				if (buttonLogic == "FROMEQUIPMANAGETOPARTYMANAGE") {
 					List<Menu::Button> toHandle = gameEngine.storedMenus["EQUIPMENTMANAGEMENT"].buttons.getValues();
-					for (int x = 0; x < toHandle.size(); x++) {
+					for (auto button : toHandle.internalList) {
 						Event("TearDown", "TEARDOWNABUTTON", Map<string, string>({
-							pair<string, string>("imageID", toHandle.at(x).imageID),
-							pair<string, string>("textID",toHandle.at(x).textID),
+							pair<string, string>("imageID", button.imageID),
+							pair<string, string>("textID",button.textID),
 							})).run(*&gameEngine);
 					}
+					graphics.tearDownSpecifiedText("explainEquipmentHover");
 					Event("AddButtons", "ADDEQUIPBUTTONSTOMENU", Map<string, string>({ 
 						pair<string, string>("category", "None"),
 						pair<string, string>("who", gameEngine.stateFlags["PARTYEDITSELECTED"]),
@@ -2637,10 +2678,10 @@ return true;
 					saveContainer.unequipThis(who, category);
 					saveContainer.equipThis(who, category, what);
 					List<Menu::Button> toHandle = gameEngine.storedMenus["EQUIPMENTMANAGEMENT"].buttons.getValues();
-					for (int x = 0; x < toHandle.size(); x++) {
+					for (auto button : toHandle.internalList) {
 						Event("TearDown", "TEARDOWNABUTTON", Map<string, string>({
-							pair<string, string>("imageID", toHandle.at(x).imageID),
-							pair<string, string>("textID",toHandle.at(x).textID),
+							pair<string, string>("imageID",button.imageID),
+							pair<string, string>("textID",button.textID),
 							})).run(*&gameEngine);
 					}
 					Event("AddButtons", "ADDEQUIPBUTTONSTOMENU", Map<string, string>({
@@ -2648,12 +2689,12 @@ return true;
 						pair<string, string>("who", who),
 						})).run(*&gameEngine);
 					toHandle = gameEngine.storedMenus["EQUIPMENTMANAGEMENT"].buttons.getValues();
-					for (int x = 0; x < toHandle.size(); x++) {
+					for (auto button : toHandle.internalList) {
 						Event("LoadThisButton", "LOADABUTTON", Map<string, string>({
 							pair<string, string>("uniqueID", "EQUIPMENTMANAGEMENT"),
-							pair<string, string>("which", to_string(x)),
+							pair<string, string>("which", button.uniqueID),
 							pair<string, string>("layer", gameEngine.storedMenus["EQUIPMENTMANAGEMENT"].data["layer"]),
-							pair<string, string>("format", toHandle.at(x).extras["format"]),
+							pair<string, string>("format", button.extras["format"]),
 							})).run(*&gameEngine);
 					}
 					graphics.accessTextViaUniqueID("EQUIPMENTEXPLAIN")->resetMessage(*&graphics, combat.loadPartyMemberAsCombatant(who).getEquipmentPrintout(gameEngine.language, *&combat));
@@ -2706,6 +2747,7 @@ return true;
 					return true;
 				}
 				if (buttonLogic == "MERCHANTBUY") {
+					gameEngine.storedMenus["MERCHANT"].currentScrolls.clear();
 					string whichMerchant = data["whichMerchant"];
 					gameEngine.storedMenus["MERCHANT"].data["MERCHANT"] = "Buy";
 					Event("Change Merch Buttons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
@@ -2713,9 +2755,11 @@ return true;
 						})).run(*&gameEngine);
 					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->resetMessage(*&graphics, Graphics::Text::commonTextReplacements(gameEngine.language, merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Buy")));
 					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter(*&graphics);
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->animationStyles.internalList = { "TYPEWRITER", "PARCHMENT" };
 					return true;
 				}
 				if (buttonLogic == "MERCHANTSELL") {
+					gameEngine.storedMenus["MERCHANT"].currentScrolls.clear();
 					string whichMerchant = data["whichMerchant"];
 					gameEngine.storedMenus["MERCHANT"].data["MERCHANT"] = "Sell";
 					Event("Change Merch Buttons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
@@ -2723,9 +2767,11 @@ return true;
 						})).run(*&gameEngine);
 					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->resetMessage(*&graphics, Graphics::Text::commonTextReplacements(gameEngine.language, merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Sell")));
 					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter(*&graphics);
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->animationStyles.internalList = { "TYPEWRITER", "PARCHMENT" };
 					return true;
 				}
 				if (buttonLogic == "MERCHANTBUYBACK") {
+					gameEngine.storedMenus["MERCHANT"].currentScrolls.clear();
 					string whichMerchant = data["whichMerchant"];
 					gameEngine.storedMenus["MERCHANT"].data["MERCHANT"] = "Buyback";
 					Event("Change Merch Buttons", "ADDMERCHANTITEMBUTTONS", Map<string, string>({
@@ -2733,6 +2779,7 @@ return true;
 						})).run(*&gameEngine);
 					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->resetMessage(*&graphics, Graphics::Text::commonTextReplacements(gameEngine.language, merchants.merchantDefinitions[whichMerchant].getCorrectDialogue(gameEngine.language, "Buyback")));
 					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->startTypewriter(*&graphics);
+					graphics.accessTextViaUniqueID("MERCHANTDIALOGUE_TEXT")->animationStyles.internalList = { "TYPEWRITER", "PARCHMENT" };
 					return true;
 				}
 				if (buttonLogic == "TradeConfirmNo") {
@@ -2951,7 +2998,7 @@ return true;
 						pair<string, string>("y", "50"),
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
-						pair<string, string>("scale", "2.0"),
+						pair<string, string>("scale", "1.5"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"] - 1)),
 						pair<string, string>("uniqueID", "CODEXIMAGE"),
 						})).run(*&gameEngine);
@@ -2980,7 +3027,7 @@ return true;
 						pair<string, string>("h", "50"),
 						pair<string, string>("colour", "DARKBROWN"),
 						pair<string, string>("shadowColour", "BLACK"),
-						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"] - 1)),
 						pair<string, string>("uniqueID", "CODEXTEXT"),
 						})).run(*&gameEngine);
 				}
@@ -3168,7 +3215,7 @@ return true;
 						pos.second += distance;
 						Event("LoadThisButton", "LOADABUTTON", Map<string, string>({
 						pair<string, string>("uniqueID", "TOME"),
-						pair<string, string>("which", to_string(gameEngine.storedMenus["TOME"].getIndexOfThisButton(buttonName))),
+						pair<string, string>("which", buttonName),
 						pair<string, string>("layer", "20"),
 						pair<string, string>("format", gameEngine.storedMenus["TOME"].buttons[buttonName].extras["format"]),
 							})).run(*&gameEngine);
@@ -3218,7 +3265,7 @@ return true;
 							}
 							Event("LoadThisButton", "LOADABUTTON", Map<string, string>({
 								pair<string, string>("uniqueID", "TOME"),
-								pair<string, string>("which", to_string(gameEngine.storedMenus["TOME"].getIndexOfThisButton(buttonName))),
+								pair<string, string>("which", buttonName),
 								pair<string, string>("layer", "20"),
 								pair<string, string>("format", gameEngine.storedMenus["TOME"].buttons[buttonName].extras["format"]),
 								pair<string, string>("colour", colour),
@@ -3253,7 +3300,7 @@ return true;
 
 					Event("LoadThisButton", "LOADABUTTON", Map<string, string>({
 								pair<string, string>("uniqueID", "TOME"),
-								pair<string, string>("which", to_string(gameEngine.storedMenus["TOME"].getIndexOfThisButton("TOMETEACH_X"))),
+								pair<string, string>("which", "TOMETEACH_X"),
 								pair<string, string>("layer", "20"),
 								pair<string, string>("format", gameEngine.storedMenus["TOME"].buttons["TOMETEACH_X"].extras["format"]), })).run(*&gameEngine);
 
@@ -3273,7 +3320,7 @@ return true;
 						pos.second += distance;
 						Event("LoadThisButton", "LOADABUTTON", Map<string, string>({
 								pair<string, string>("uniqueID", "TOME"),
-								pair<string, string>("which", to_string(gameEngine.storedMenus["TOME"].getIndexOfThisButton(buttonName))),
+								pair<string, string>("which", buttonName),
 								pair<string, string>("layer", "20"),
 								pair<string, string>("format", gameEngine.storedMenus["TOME"].buttons[buttonName].extras["format"]),
 							})).run(*&gameEngine);
@@ -3325,6 +3372,10 @@ return true;
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "TownTeleport", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return true;
 				}
+				if (buttonLogic == "DebugButton_TeleportToMerchant") {
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "MerchantTeleport", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					return true;
+				}
 				if (buttonLogic == "DebugButton_TeleportToEstateSecret") {
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "EstateBalconyTeleport", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return true;
@@ -3334,7 +3385,7 @@ return true;
 					return true;
 				}
 				if (buttonLogic == "DebugButton_TeleportToChapelLeft1") {
-					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "Chapel2LeftWing", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "Chapel2LeftWingTeleport", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return true;
 				}
 				if (buttonLogic == "DebugButton_RunCutscene") {
@@ -3366,6 +3417,11 @@ return true;
 					saveContainer.current.flags[flagName] = !saveContainer.current.flags[flagName];
 					return true;
 				}
+				if (buttonLogic == "DebugButton_Player2Cutscene") {
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "DebugPlayer2", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					return false;
+				}
+
 				if (buttonLogic.find("TOMETEACHTHESKILL_") != -1) {
 					List<string> data = split(buttonLogic, "_");
 					string theSkill = data.at(1);
@@ -4336,12 +4392,15 @@ return true;
 					}
 				}
 				Map<int, pair<float, float>> positions = Menu::getMerchantGridPositions();
-				int currentScrollIndex = gameEngine.storedMenus["MERCHANT"].currentScrolls["DEFAULT"];
+				int currentScrollIndex = gameEngine.storedMenus["MERCHANT"].currentScrolls[mode];
 				int maxItemButtons = positions.getKeys().size();
+				
+				gameEngine.storedMenus["MERCHANT"].data["scrollingLimit_" + mode] = to_string(toAdd.size() - maxItemButtons);
+				int counter = 0;
 				for (int x = currentScrollIndex; x < currentScrollIndex + maxItemButtons and x < toAdd.size(); x++) {
 					Combat::Equipment def = combat.equipmentDefinitions[toAdd.at(x)];
 					string itemID = toAdd.at(x);
-					Menu::Button current = Menu::smallButton(mode + "_" + toAdd.at(x), "Item Names_" + itemID, positions[x]);
+					Menu::Button current = Menu::smallButton(mode + "_" + toAdd.at(x), "Item Names_" + itemID, positions[counter]);
 					current.extras["getColourFromEquipment"] = "1";
 					current.extras["addPriceToEquipment"] = "1";
 					current.extras["itemName"] = itemID;
@@ -4353,21 +4412,30 @@ return true;
 					current.extras["hoverTextContentX"] = "50";
 					current.extras["hoverTextContentY"] = "26";
 					current.extras["hoverAnchorStyle"] = "CENTRE";
-					current.extras["hoverTextFormat"] = "Centaur_13",
+					current.extras["hoverTextFormat"] = "Centaur_13";
+					current.scrollable = true;
+					current.extras["whichScroll"] = mode;
 					result.push_back(current);
+					counter++;
 				}
 				string layer = to_string(imageLookup.layerDefaults["BUTTONS"]);
+				if (data["reset"] == "1") {
+					for (auto button : gameEngine.storedMenus["MERCHANT"].buttons.getKeys().internalList) {
+						if (button.find("_") != -1 and split(button, "_").at(0) == mode) {
+							gameEngine.storedMenus["MERCHANT"].removeThisButton(button);
+						}
+					}
+				}
 				gameEngine.storedMenus["MERCHANT"].buttonReplace(result);
-				for (int x = 0; x < result.size(); x++) {
-					if (result.at(x).uniqueID == "MERCHANTDIALOGUE") { continue; }
+				for (auto button : result.internalList) {
+					if (button.uniqueID == "MERCHANTDIALOGUE") { continue; }
 					Event("LoadThisButton", "LOADABUTTON", Map<string, string>({
 						pair<string, string>("uniqueID", "MERCHANT"),
-						pair<string, string>("which", to_string(x)),
+						pair<string, string>("which",button.uniqueID),
 						pair<string, string>("layer", layer),
-						pair<string, string>("format", result.at(x).extras["format"]),
+						pair<string, string>("format", button.extras["format"]),
 						})).run(*&gameEngine);
 				}
-				
 			}
 			if (type == "HANDLECHESTANIMATION") {
 				string imageName = data["imageID"];
@@ -4474,13 +4542,19 @@ return true;
 					graphics.accessImageViaUniqueID(character + "_Shadow")->resetSources(*&graphics, shadowSources);
 				}
 				float unitOfMovement = explorer.unitOfMovement / 2;
-				if (CLOCK.hasEnoughTimePassed("MOVEOBJECTSON", speed)) {
-					explorer.playerOnMap.position = explorer.moveLHSCloserToRHS(currentPosition, targetPosition, false, false, unitOfMovement);
-					if (CLOCK.hasEnoughTimePassed("PLAYERPLAYAUDIO", 500) and audioName != "NOAUDIO") {
-						Event("Audio", "PLAYSFX", Map<string, string>({
-										pair<string, string>("audio", audioName) })).run(*&gameEngine);
-					}
+				if (speed == 0) {
+					explorer.playerOnMap.position = targetPosition;
 					Event("UpdateMap", "MAPMOVE", {}).run(*&gameEngine);
+				}
+				else {
+					if (CLOCK.hasEnoughTimePassed("MOVEOBJECTSON", speed)) {
+						explorer.playerOnMap.position = explorer.moveLHSCloserToRHS(currentPosition, targetPosition, false, false, unitOfMovement);
+						if (CLOCK.hasEnoughTimePassed("PLAYERPLAYAUDIO", 500) and audioName != "NOAUDIO") {
+							Event("Audio", "PLAYSFX", Map<string, string>({
+											pair<string, string>("audio", audioName) })).run(*&gameEngine);
+						}
+						Event("UpdateMap", "MAPMOVE", {}).run(*&gameEngine);
+					}
 				}
 				if (currentPosition == targetPosition) {
 					int animationSpeed = explorer.getAnimationSpeeds()["STAND"];
@@ -4588,7 +4662,7 @@ return true;
 								}
 							}
 						}
-						if (CLOCK.hasEnoughTimePassed(objectName + "PLAYAUDIO", 200)) {
+						if (CLOCK.hasEnoughTimePassed(objectName + "PLAYAUDIO", 500)) {
 							string audioName = objectAudio[objectName];
 							if (audioName != "NOAUDIO") {
 								Event("Audio", "PLAYSFX", Map<string, string>({
@@ -4609,6 +4683,10 @@ return true;
 			if (type == "LOADOBJECT") {
 				string name = data["name"];
 				string animationSpeed = data["animationSpeed"];
+				if (data["sources_1"].find("PLAYER2") != -1) {
+					data["sources_1"] = SReplace(data["sources_1"], "PLAYER2", saveContainer.getNamesOfTwoPeopleForScene().second);
+				}
+
 				string sources = imageLookup.getSequenceAsString(data["sources_1"], data["sources_2"] + "_" + data["sources_3"]);
 				string layer = data["layer"];
 				string x = data["x"];
@@ -4667,6 +4745,17 @@ return true;
 				string direction = data["direction"];
 
 				Graphics::Image* image = NULL;
+
+				if (uniqueID.find("PLAYER2") != -1) {
+					if (uniqueID == "PLAYER2") {
+						image = graphics.accessPlayerImage();
+						character = SReplace(character, "PLAYER2", saveContainer.getNamesOfTwoPeopleForScene().second);
+					}
+					if (uniqueID == "Shadow PLAYER2") {
+						image = graphics.accessPlayerShadowImage();
+						character = SReplace(character, "PLAYER2", saveContainer.getNamesOfTwoPeopleForScene().second);
+					}
+				}
 				
 				if (uniqueID.find("PLAYER1") != -1) {
 					if (uniqueID == "PLAYER1") {
@@ -4824,8 +4913,6 @@ return true;
 				if (whichImage == "PLAYER1 Shadow") {
 					whichImage = shadowImage;
 				}
-
-
 
 				graphics.accessImageViaUniqueID(whichImage)->opacity = stof(opacity);
 				return true;
@@ -5763,6 +5850,9 @@ return true;
 				if (finished) {
 					string postCombat = combat.currentBattle->data["postBattle"];
 					if (combat.currentBattle->battleStatusCheck() == "PLAYERLOSE") {
+						if (combat.currentBattle->data.hasKey("SETFALSEIFLOSE")) {
+							saveContainer.current.flags[combat.currentBattle->data["SETFALSEIFLOSE"]] = false;
+						}
 						if (!saveContainer.current.flags["IntroFinished"]) {
 							if (saveContainer.current.flags["FailedTutorial"]) {
 								postCombat = "Tutorial";
@@ -5770,10 +5860,14 @@ return true;
 							else {
 								postCombat = "TownCutscene1";
 							}
-							
 						}
 						else {
 							postCombat = "TavernTeleport";
+						}
+					}
+					if (combat.currentBattle->battleStatusCheck() == "PLAYERWIN") {
+						if (combat.currentBattle->data.hasKey("SETTRUEIFWIN")) {
+							saveContainer.current.flags[combat.currentBattle->data["SETTRUEIFWIN"]] = true;
 						}
 					}
 					combat.tearDownBattle();
@@ -6043,6 +6137,13 @@ return true;
 				if (procedureName == "Nacreous Aura 2") {
 					extras["audioSource"] = "3502";
 				}
+				// all living allies regardless
+				if (procedureName == "Heal Wounds All") {
+					example.combatantsAffected.clear();
+					for (Combat::CombatantInstance* target : combat.currentBattle->getCurrentCombatant()->getMyAlliesThatAreAlive(*&combat).internalList) {
+						example.combatantsAffected.push_back(target->c.uniqueCombatID);
+					}
+				}
 				if (!started) {
 					for (auto who : example.combatantsAffected.internalList) {
 						pair<float, float> location = graphics.accessImageViaUniqueID(who)->positionAsPercentage;
@@ -6230,7 +6331,7 @@ return true;
 			if (List<string>({ "Snowblind", "Ice Beam", "Hail", "Jerod's Runestone"}).contains(procedureName)) {
 				int numberOfBubbles = 33;
 				int varSize = 33;
-				int speed = 40;
+				int speed = 1;
 				int audio = 3275;
 
 				if (procedureName == "Ice Beam") {
@@ -7009,6 +7110,7 @@ return true;
 				Menu::smallButton("DebugButton_ShowFPS", "GUI_SHOWFPS", {10,15}),
 				Menu::smallButton("DebugButton_FastMove", "GUI_FASTMOVE", {10,20}),
 				Menu::smallButton("DebugButton_Amnesia", "GUI_AMNESIA", {10,25}),
+				Menu::smallButton("DebugButton_UserInput", "GUI_DEBUGUSERINPUT", {10,30}),
 
 				Menu::smallButton("DebugButton_RunCutscene", "GUI_STARTCUTSCENE", {25,5}),
 
@@ -7021,12 +7123,16 @@ return true;
 				Menu::smallButton("DebugButton_TeleportToChapelCrackInWall", "GUI_TELEPORTTOESTATECRACKINWALL", {40,35}),
 				Menu::smallButton("DebugButton_TeleportToChapelLeft1", "GUI_TELEPORTTOCHAPELLEFT1", {40,40}),
 				Menu::smallButton("DebugButton_TeleportToChapelR2ByStairs", "GUI_TELEPORTTOCHAPELR2BYSTAIRS", {40,45}),
+				Menu::smallButton("DebugButton_TeleportToMerchant", "GUI_TELEPORTTOMERCHANT", {40,50}),
+				Menu::smallButton("DebugButton_Player2Cutscene", "GUI_DEBUGPLAYER2", {40,55}),
+				
 
 				Menu::smallButton("DebugButton_AddAllPlayable", "GUI_ADDALLPLAYABLE", {55,5}),
-
 				Menu::smallButton("DebugButton_ToggleFlag_IntroFinished", "GUI_IntroFinishedFlag", {70,5}),
 				Menu::smallButton("DebugButton_ToggleFlag_OudinDefeated", "GUI_OudinDefeatedFlag", {70,10}),
 				Menu::smallButton("DebugButton_VariousChapelR2Flags", "GUI_ChapelRightWing2Cutscenes", {70,15}),
+				Menu::smallButton("DebugButton_ToggleFlag_VisionLCutscene_TRIGGERED", "GUI_VisionLDone", {70,20}),
+
 				}), Map<string, string>({
 					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " DebugButton_BackToExplore"),
 				}))),
@@ -7082,7 +7188,7 @@ return true;
 				Menu::standardButton("FROMPARTYMANAGEMENTTOEQUIPMENT", "GUI_FROMPARTYMANAGEMENTTOEQUIPMENT", {12, 60}),
 				Menu::standardButton("FROMPARTYMANAGEMENTTOPARTYREFORM", "GUI_FROMPARTYTOREFORM", {12, 70}),
 				Menu::standardButton("PARTYMANAGEHELP", "GUI_PARTYMANAGEHELP", {12, 80}),
-				Menu::Button("equipmentToggle","GUI_NOTEXT","GUI_NOTEXT", "equipmentToggle",{SHOWEQUIPMENT},BUTTON_CLICK_WAV, BUTTON_HOVER_WAV,{25,60}, true,true, Map<string, string>({
+				Menu::Button("equipmentToggle","GUI_NOTEXT","GUI_NOTEXT", "equipmentToggle",{SHOWEQUIPMENT},BUTTON_CLICK_WAV, BUTTON_HOVER_WAV,{25,60}, true,true,false, Map<string, string>({
 					pair<string, string>("hasHoverText", "1"),
 					pair<string, string>("hoverTextName", "equipmentToggleText"),
 					pair<string, string>("hoverTextContent", "equipmentToggleText"),
@@ -7332,6 +7438,7 @@ return true;
 		}
 
 		string mainCharacter = saveContainer.getPossibleCutsceneParticipants().front();
+		string player2 = saveContainer.getNamesOfTwoPeopleForScene().second;
 		for (auto const sortedKey : sortedKeys.getKeys().internalList) {
 			List<string> keys = sortedKeys[sortedKey];
 			for (auto key : keys.internalList) {
@@ -7342,8 +7449,17 @@ return true;
 				for (int x = key.find(" ") + 1; x < key.size(); x++) {
 					speaker += key.at(x);
 				}
-				if (speaker.find("+") != -1) {
-					// add something where the line itself must change according to the player
+				if (speaker.find("$PLAYER2==") != -1) {
+					string whichPlayer2 = split(speaker, "==").at(1);
+					whichPlayer2 = SReplace(whichPlayer2, "$ASYNC$", "");
+					if (whichPlayer2 == player2) {
+						results.push_back(Event(thisLine, "DIALOGUE", { Map<string, string>(List<pair<string,string>>({
+							pair<string, string>({"cutscene", cutsceneName}),
+							pair<string, string>({"speaker", speaker}),
+					})) }));
+						acceptedLines.push_back(thisLine);
+						continue;
+					}
 				}
 				if (speaker.find("$DIRECT$") != -1) {
 					// use the speaker name directly
@@ -7627,7 +7743,7 @@ return true;
 					results.push_back(Event("ChangeImageLayer", "SETOBSTRUCTION", data));
 					continue;
 				}
-				if (speaker != "PLAYER" and speaker != mainCharacter and speaker != "PLAYER$ASYNC$" and speaker != "EMPTY$ASYNC$") {
+				if (speaker != "PLAYER" and speaker != mainCharacter and speaker != "PLAYER$ASYNC$" and speaker != "EMPTY$ASYNC$" and speaker != "PLAYER2") {
 					// Line belongs to a different playable character
 					continue;
 				}
