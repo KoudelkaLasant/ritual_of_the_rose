@@ -11,7 +11,7 @@ public:
 			layer = imageLookup.layerDefaults["BUTTONS"];
 			scrollable = false;
 		}
-		Button(string _uniqueID, string _textID, string _buttonContent, string _imageID, List<int> _sources, int _audioClick, int _audioHover, pair<float, float> _position, bool _visible, bool _clickable, bool _scrollable, Map<string, string> _extras) {
+		Button(string _uniqueID, string _textID, string _buttonContent, string _imageID, List<int> _sources, int _audioClick, int _audioHover, pair<float, float> _position, bool _visible, bool _clickable, bool _scrollable, bool _hoverable, Map<string, string> _extras) {
 			uniqueID = _uniqueID;
 			textID = _textID;
 			imageID = _imageID;
@@ -24,6 +24,7 @@ public:
 			clickable = _clickable;
 			extras = _extras;
 			scrollable = _scrollable;
+			hoverable = _hoverable;
 			layer = imageLookup.layerDefaults["BUTTONS"];
 		}
 		string getSources() {
@@ -44,6 +45,7 @@ public:
 		string anchorStyle = "CENTRE";
 		int audioClick;
 		int audioHover;
+		bool hoverable;
 		bool visible;
 		bool clickable;
 		bool scrollable;
@@ -359,6 +361,17 @@ public:
 		List<Button> result = List<Button>({
 			Menu::smallButton("SKILLTREETOME", "GUI_AVAILABLETOMES", {20, 10}),
 			Menu::smallButton("FROMTOMETOPAUSE", "GUI_FROMAUDIOTOPAUSEBUTTON", {85, 80}),
+			});
+		return result;
+	}
+	static const List<Button> getButtonsForSpigotPuzzle() {
+		List<Button> result = List<Button>({
+			Menu::smallButton("TURNSPIGOTLEVEL1", "GUI_TURNSPIGOTLEVEL1", {15, 80}),
+			Menu::smallButton("TURNSPIGOTLEVEL2", "GUI_TURNSPIGOTLEVEL2", {30, 80}),
+			Menu::smallButton("TURNSPIGOTLEVEL3", "GUI_TURNSPIGOTLEVEL3", {45, 80}),
+			Menu::smallButton("TURNSPIGOTLEVEL4", "GUI_TURNSPIGOTLEVEL4", {60, 80}),
+			Menu::smallButton("TURNSPIGOTLEVEL5", "GUI_TURNSPIGOTLEVEL5", {75, 80}),
+			Menu::smallButton("FROMSPIGOTTOEXPLORE", "GUI_RETURNTOEXPLORE", {90, 90}),
 			});
 		return result;
 	}

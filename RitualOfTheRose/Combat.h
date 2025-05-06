@@ -239,12 +239,12 @@ public:
 			{"Armour" , "Insulating Gloves"},
 			{"Accessory", "Theoricae Novae Planetarum"}
 		};
-		defaultEquipment["Gihat al-Din Jaqmaq"] = {
+		defaultEquipment["Hernando Pizarro"] = {
 			{"Weapon", "Suero's Blade"},
 			{"Armour" , "Martin's Cloak"},
 			{"Accessory", "Matteo Carreri's Locket"}
 		};
-		defaultEquipment["Hernando Pizarro"] = {
+		defaultEquipment["Gihat al-Din Jaqmaq"] = {
 			{"Weapon", "Blades of House JaqMaq"},
 			{"Armour" , "Alhambran Tunic"},
 			{"Accessory", "Mask of House JaqMaq"}
@@ -4676,6 +4676,10 @@ public:
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("MANAHEAL_ALLALLIES_UNHOLY",PowerValue("MANAHEAL_ALLALLIES_UNHOLY",4,0,999,true,list<string>({"INTELLIGENCE"}))) }), list<string>({ "ALWAYSDOTHIS" }), AFFECTIONHEAL_WAV);
 
+		skillDefinitions["DEFAULT_DISEASE"] = Skill("DEFAULT_DISEASE", "DEFAULT_DISEASE", "Default", SKILLICON_WAIT, 0, 0, 0, "SINGLEFOE", { "APPLY_DISEASED_SINGLE" }, list<string>({ "UNHOLY" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("APPLY_DISEASED_SINGLE",PowerValue("DURATION_DISEASED",5,0,999,true,list<string>({"INTELLIGENCE"}))) }), list<string>({ "ALWAYSDOTHIS" }), 1060);
+
 		// debug
 		skillDefinitions["Suicide"] = Skill("Suicide", "Suicide", "Debug", SKILLICON_WAIT, 0, 0, 0, "SELF", { "SUICIDE_SELF" }, list<string>({ "PHYSICAL","UNHOLY" }),
 			Map<string, PowerValue>({
@@ -5248,6 +5252,15 @@ public:
 				pair<string, PowerValue>("STRENGTH", PowerValue("STRENGTH", 8, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				}),
 				list<string>({ "SUMMON", }), MINION_WAV);
+
+		skillDefinitions["Failed Embryo"] = Skill("Failed Embryo", "Failed Embryo", "Necromancy", SKILLICON_FAILEDEMBRYO, 30, 1, 5, "SELF",
+			list<string>({ "SUMMON_Failed Embryo_SELF" }),
+			list<string>({ "MAGICAL","UNHOLY", "SUMMON", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 40, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("INTELLIGENCE", PowerValue("INTELLIGENCE", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				}),
+				list<string>({ "SUMMON", }), EMBRYO_WAV);
 
 
 		// ELECTROMANCY
@@ -7026,6 +7039,21 @@ public:
 						})),
 				}));
 
+		definedCombatants["Failed Embryo"] = Combatant("Failed Embryo", "Failed Embryo", {},
+			Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Failed Embryo", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Failed Embryo", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("UNDEAD", "1"),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_DISEASE"),
+						pair<string, string>("6", "DEFAULT_DISEASE"),
+						})),
+				}));
+
 		// ALLIES
 		definedCombatants["Father Michelet"] = Combatant("Father Michelet", "Father Michelet",
 			Map<string, int>({
@@ -7186,6 +7214,54 @@ public:
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 					}));
+		definedCombatants["ZombieEnragedF"] = Combatant("ZombieEnragedF", "ZombieEnragedF",
+			Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 10),
+				pair<string, int>("VITALITY", 10),
+				pair<string, int>("PIETY", 50),
+				}),
+			Map<string, Map<string, string>>({
+				pair<string, Map<string, string>>("Images", Map<string, string>({
+					pair<string, string>("Back", imageLookup.getSequenceAsString("ZombieEnragedF", "COMBAT_FRONT")),
+					pair<string, string>("Front", imageLookup.getSequenceAsString("ZombieEnragedF", "COMBAT_FRONT")),
+				})),
+				pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("UNDEAD", "1"),
+					})),
+				pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+					pair<string, string>("0", "DEFAULT_ATTACK"),
+					pair<string, string>("1", "Stone Curse"),
+					pair<string, string>("2", "Dust Torrent"),
+					pair<string, string>("3", "Mass Burial"),
+					pair<string, string>("4", "Revitalise"),
+					pair<string, string>("5", "Ward Against Catastrophe"),
+					pair<string, string>("6", "DEFAULT_WAIT"),
+					})),
+				}));
+		definedCombatants["ZombieEnragedM"] = Combatant("ZombieEnragedM", "ZombieEnragedM",
+			Map<string, int>({
+					pair<string, int>("STRENGTH", 10),
+					pair<string, int>("VITALITY", 10),
+					pair<string, int>("PIETY", 50),
+				}),
+			Map<string, Map<string, string>>({
+				pair<string, Map<string, string>>("Images", Map<string, string>({
+					pair<string, string>("Back", imageLookup.getSequenceAsString("ZombieEnragedM", "COMBAT_FRONT")),
+					pair<string, string>("Front", imageLookup.getSequenceAsString("ZombieEnragedM", "COMBAT_FRONT")),
+				})),
+				pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("UNDEAD", "1"),
+					})),
+				pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+					pair<string, string>("0", "DEFAULT_ATTACK"),
+					pair<string, string>("1", "Fine Strike"),
+					pair<string, string>("2", "Magebane Strike"),
+					pair<string, string>("3", "Skewer"),
+					pair<string, string>("4", "Rude Awakening"),
+					pair<string, string>("5", "Hack"),
+					pair<string, string>("6", "DEFAULT_WAIT"),
+					})),
+				}));
 
 	 // SHADOW
 		definedCombatants["DarkAngela"] = Combatant("DarkAngela", "DarkAngela",
@@ -7505,6 +7581,56 @@ public:
 						})),
 					}));
 
+		// Other Monsters
+		definedCombatants["BloodWall"] = Combatant("BloodWall", "BloodWall",
+			Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 30),
+				pair<string, int>("PIETY", 10),
+				pair<string, int>("VITALITY", 30),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("BloodWall", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("BloodWall", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("5", "Viper Eyes"),
+						pair<string, string>("1", "Life Drain"),
+						pair<string, string>("2", "Vampiric Strike"),
+						pair<string, string>("3", "Cestodarian Siphon"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+
+		definedCombatants["OUDIN"] = Combatant("OUDIN", "OUDIN",
+			Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 30),
+				pair<string, int>("PIETY", 50),
+				pair<string, int>("VITALITY", 50),
+				pair<string, int>("STRENGTH", 2),
+				pair<string, int>("AGILITY", 20),
+				pair<string, int>("LUCK", 20),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("OUDIN", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("OUDIN", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("UNDEAD", "1"),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Failed Embryo"),
+						pair<string, string>("2", "Skeleton Warrior"),
+						pair<string, string>("3", "Revitalise"),
+						pair<string, string>("4", "Vampiric Strike"),
+						pair<string, string>("5", "Time Walk"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+
 	}
 	void defineAllTeams() {
 		// pair is leader -> team
@@ -7593,6 +7719,16 @@ public:
 				definedCombatants["EnragedNoblewoman"],
 				definedCombatants["EnragedVilomah"],
 				definedCombatants["EnragedPriest"],
+			}) };
+
+		definedTeams["BloodWall"] = { "Blood Wall", List<Combatant>({
+				definedCombatants["BloodWall"],
+			}) };
+
+		definedTeams["OUDIN"] = { "OUDIN", List<Combatant>({
+				definedCombatants["ZombieEnragedF"],
+				definedCombatants["OUDIN"],
+				definedCombatants["ZombieEnragedM"],
 			}) };
 
 		// ENRAGED
@@ -8041,7 +8177,7 @@ public:
 			List<string>(list<string>({ "ARMOURVSCOLD", })),
 			List<string>(list<string>({ "ONTAKINGCOLDDAMAGE" })));
 
-		allEffectDefinitions["ARMOURVSFIRE"] = EffectObject("ARMOURVSCOLD", "BOON", EFFECTICON_ARMOURVSFIRE, "ARMOURVSFIRE", true,
+		allEffectDefinitions["ARMOURVSFIRE"] = EffectObject("ARMOURVSFIRE", "BOON", EFFECTICON_ARMOURVSFIRE, "ARMOURVSFIRE", true,
 			List<string>(list<string>({ "ARMOURVSFIRE", })),
 			List<string>(list<string>({ "ONTAKINGFIREDAMAGE" })));
 

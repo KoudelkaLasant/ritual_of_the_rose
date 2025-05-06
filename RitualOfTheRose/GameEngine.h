@@ -3187,6 +3187,65 @@ return true;
 					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("EXPLOREPAUSE");
 					return true;
 				}
+				if (buttonLogic == "FROMSPIGOTTOEXPLORE") {
+					Event("TearDownThisImage", "REMOVEIMAGES", pair<string, string>("toRemove", "SpigotPuzzle$SpigotOil$SpigotPuzzleAnimation")).run(*&gameEngine);
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "SPIGOTPUZZLE")).run(*&gameEngine);
+					explorer.puzzleContainer.resetSpigotPuzzle();
+					gameEngine.activeProcedure = Procedure("Explore", { Event("Explore","EXPLORE",{}) });
+					return true;
+				}
+				if (buttonLogic.find("TURNSPIGOTLEVEL") != -1) {
+					string whichLever = SReplace(buttonLogic, "TURNSPIGOTLEVEL", "");
+					explorer.puzzleContainer.runSpigotPuzzleLogic(whichLever);
+					Event("PlayHoverSound", "PLAYSFX", Map<string, string>({
+									pair<string,string>("audio",to_string(SPIGOTPUZZLE1_WAV)),
+									pair<string,string>("direct","1"),
+						})).run(*&gameEngine);
+					List<string> goingUp = List<string>({"1","3","4"});
+					List<string> goingDown = List<string>({"2","2","5"});
+					graphics.accessImageViaUniqueID("SpigotPuzzleAnimation")->animationStyles.internalList = {"SINGLE"};
+					if (goingUp.contains(whichLever)) {
+						graphics.accessImageViaUniqueID("SpigotPuzzleAnimation")->resetSources(*&graphics, imageLookup.animationFrames["SpigotPuzzle"]["ACTION_FRONT"]);
+						graphics.accessImageViaUniqueID("SpigotPuzzleAnimation")->frame = 0;
+						Event("PlayHoverSound", "PLAYSFX", Map<string, string>({
+									pair<string,string>("audio",to_string(MOREOIL_WAV)),
+									pair<string,string>("direct","1"),
+							})).run(*&gameEngine);
+					}
+					else {
+						graphics.accessImageViaUniqueID("SpigotPuzzleAnimation")->resetSources(*&graphics, imageLookup.animationFrames["SpigotPuzzle"]["REVERSE_FRONT"]);
+						graphics.accessImageViaUniqueID("SpigotPuzzleAnimation")->frame = 0;
+						Event("PlayHoverSound", "PLAYSFX", Map<string, string>({
+									pair<string,string>("audio",to_string(LESSOIL_WAV)),
+									pair<string,string>("direct","1"),
+							})).run(*&gameEngine);
+					}
+					List<int> sources = imageLookup.animationFrames["SpigotOil"]["ACTION_" + to_string(explorer.puzzleContainer.currentSpigotPuzzleValue)];
+					if (sources.empty()) {
+						throw exception("No sources for this image!");
+					}
+					graphics.accessImageViaUniqueID("SpigotOil")->resetSources(*&graphics, sources.internalList);
+					for (auto button : gameEngine.storedMenus["SPIGOTPUZZLE"].buttons.getKeys().internalList) {
+						if (button.find("TURNSPIGOTLEVEL") != -1) {
+							string thisLever = SReplace(button, "TURNSPIGOTLEVEL", "");
+							string status = explorer.puzzleContainer.spigotPuzzleLevers[thisLever];
+							wstring newButtonText = strings[gameEngine.language]["GUI"]["TURNLEVERBASE"] + StringToWString(thisLever) + L" ";
+							newButtonText += strings[gameEngine.language]["GUI"]["LEVER" + status];
+							graphics.accessTextViaUniqueID(button + "_TEXT")->resetMessage(*&graphics, newButtonText);
+						}
+					}
+					if (explorer.puzzleContainer.spigotPuzzleSolved()) {
+						Event("TearDownThisImage", "REMOVEIMAGES", pair<string, string>("toRemove", "SpigotPuzzle$SpigotOil$SpigotPuzzleAnimation")).run(*&gameEngine);
+						Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "SPIGOTPUZZLE")).run(*&gameEngine);
+						Event("SetFlag", "SETFLAGANDSAVE", Map<string, string>({
+								pair<string, string>({"uniqueID", "SpigotPuzzleDone"}),
+								pair<string, string>({"status", "1"}),
+							})).run(*&gameEngine);
+
+						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "SpigotActivated", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					}
+					return true;
+				}
 				if (buttonLogic == "SKILLTREETOME") {
 					for (auto buttonName : gameEngine.storedMenus["TOME"].buttons.getKeys().internalList) {
 						if (buttonName.find("TOMETEACH_") != -1) {
@@ -3388,6 +3447,23 @@ return true;
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "Chapel2LeftWingTeleport", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return true;
 				}
+				if (buttonLogic == "DebugButton_TeleportToSpigotPuzzle") {
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "TeleportToSpigotPuzzle", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					return true;
+				}
+				if (buttonLogic == "DebugButton_BloodWallDefeated") {
+					saveContainer.current.flags["BloodWallDestroyed"] = true;
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "PostBloodWall", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					return true;
+				}
+				if (buttonLogic == "DebugButton_OudinDefeated") {
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "OudinDefeated", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					return true;
+				}
+				if (buttonLogic == "DebugButton_DreamSequence1") {
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "TavernLetter$PLAYER", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					return true;
+				}
 				if (buttonLogic == "DebugButton_RunCutscene") {
 					Event("ResetMenu", "TEARDOWNMENU", Map<string, string>(List<pair<string, string>>({
 								pair<string, string>("uniqueID", "DEBUGMENU"),
@@ -3412,6 +3488,16 @@ return true;
 					}
 					return true;
 				}
+				if (buttonLogic == "DebugButton_VariousChapelL1Flags") {
+					List<string> toToggle = List<string>({ "FireSpigotLeftActivated", "FireSpigotTopLeftActivated", "SpigotPuzzleDone", "VisionLCutscene_TRIGGERED",
+						});
+					for (auto t : toToggle.internalList) {
+						Event("DoButton", "HANDLEBUTTON", Map<string, string>({
+							pair<string, string>("uniqueID", "DebugButton_ToggleFlag_" + t),
+							})).run(*&gameEngine);
+					}
+					return true;
+				}
 				if (buttonLogic.find("DebugButton_ToggleFlag_") != -1) {
 					string flagName = SReplace(buttonLogic, "DebugButton_ToggleFlag_", "");
 					saveContainer.current.flags[flagName] = !saveContainer.current.flags[flagName];
@@ -3420,6 +3506,17 @@ return true;
 				if (buttonLogic == "DebugButton_Player2Cutscene") {
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "DebugPlayer2", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return false;
+				}
+				if (buttonLogic == "DebugButton_ChapelFinished") {
+					List<string> toToggle = List<string>({ "HorsemanCutscene1_TRIGGERED", "IntroFinished", "OudinIntro_TRIGGERED", "OudinCutscenePlanks_TRIGGERED", "VisionRoom_TRIGGERED", "VisionRoom2_TRIGGERED", "OudinHostileTriggered", "SawOudinThroughGap",
+						"BloodWallIntro_TRIGGERED", "BloodWallIntro", "WaterPuzzleFinished","FireSpigotLeftActivated", "FireSpigotTopLeftActivated", "SpigotPuzzleDone", "VisionLCutscene_TRIGGERED", "BloodWallDestroyed", "OudinDefeated",
+						});
+					for (auto t : toToggle.internalList) {
+						Event("DoButton", "HANDLEBUTTON", Map<string, string>({
+							pair<string, string>("uniqueID", "DebugButton_ToggleFlag_" + t),
+							})).run(*&gameEngine);
+					}
+					return true;
 				}
 
 				if (buttonLogic.find("TOMETEACHTHESKILL_") != -1) {
@@ -4548,7 +4645,7 @@ return true;
 				}
 				else {
 					if (CLOCK.hasEnoughTimePassed("MOVEOBJECTSON", speed)) {
-						explorer.playerOnMap.position = explorer.moveLHSCloserToRHS(currentPosition, targetPosition, false, false, unitOfMovement);
+						explorer.playerOnMap.position = explorer.moveLHSCloserToRHSByValue(currentPosition, targetPosition, false, false, unitOfMovement, unitOfMovement);
 						if (CLOCK.hasEnoughTimePassed("PLAYERPLAYAUDIO", 500) and audioName != "NOAUDIO") {
 							Event("Audio", "PLAYSFX", Map<string, string>({
 											pair<string, string>("audio", audioName) })).run(*&gameEngine);
@@ -4649,11 +4746,11 @@ return true;
 						if (objectName == "PLAYER1") {
 							pair<float, float> current = explorer.playerOnMap.position;
 							pair<float, float> target = targetPositions["PLAYER1"];
-							explorer.playerOnMap.position = explorer.moveLHSCloserToRHS(current, target, (targetPositions[objectName].first == ignore), (targetPositions[objectName].second == ignore), unitOfMovement);
+							explorer.playerOnMap.position = explorer.moveLHSCloserToRHSByValue(current, target, (targetPositions[objectName].first == ignore), (targetPositions[objectName].second == ignore), unitOfMovement, unitOfMovement);
 						}
 						else {
 							if (explorer.currentMap.doesAnObjectWithThisNameExist(objectName)) {
-								currentPositions[objectName] = explorer.moveLHSCloserToRHS(currentPositions[objectName], targetPositions[objectName], (targetPositions[objectName].first == ignore), (targetPositions[objectName].second == ignore), unitOfMovement);
+								currentPositions[objectName] = explorer.moveLHSCloserToRHSByValue(currentPositions[objectName], targetPositions[objectName], (targetPositions[objectName].first == ignore), (targetPositions[objectName].second == ignore), unitOfMovement, unitOfMovement);
 								if (abs(currentPositions[objectName].first - targetPositions[objectName].first) < unitOfMovement) {
 									currentPositions[objectName].first = targetPositions[objectName].first;
 								}
@@ -5981,6 +6078,9 @@ return true;
 			if (extras["audioSource"] == "" and combat.skillDefinitions.hasKey(procedureName)) {
 				extras["audioSource"] = to_string(combat.skillDefinitions[procedureName].audioSource);
 			}
+			if (procedureName == "DEFAULT_DISEASE") {
+				procedureName = "DISEASED";
+			}
 
 			if (procedureName == "Suicide") {
 				return true;
@@ -6331,8 +6431,16 @@ return true;
 			if (List<string>({ "Snowblind", "Ice Beam", "Hail", "Jerod's Runestone"}).contains(procedureName)) {
 				int numberOfBubbles = 33;
 				int varSize = 33;
-				int speed = 1;
+				float speedAsPercentage = 0.03;
 				int audio = 3275;
+
+				pair<float, float> source = caster->positionAsPercentage;
+				pair<float, float> destination = target->positionAsPercentage;
+				if (source.first < destination.first) {destination.first += 7;}
+				if (source.first > destination.first) {destination.first -= 7;}
+				if (source.second < destination.second) {destination.second += 5;}
+				if (source.second > destination.second) {destination.second -= 5;}
+				source.second -= 15;
 
 				if (procedureName == "Ice Beam") {
 					audio = ICEBEAM_WAV;
@@ -6351,23 +6459,6 @@ return true;
 				}
 
 				if (!started) {
-					pair<float, float> source = caster->positionAsPercentage;
-					pair<float, float> destination = target->positionAsPercentage;
-					if (source.first < destination.first) {
-						destination.first += 7;
-					}
-					if (source.first > destination.first) {
-						destination.first -= 7;
-					}
-					if (source.second < destination.second) {
-						destination.second += 5;
-					}
-					if (source.second > destination.second) {
-						destination.second -= 5;
-					}
-
-					source.second -= 15;
-
 					straightPlots.clear();
 					for (int x = 0; x < numberOfBubbles; x++) {
 						pair<float, float> currentDestination = destination;
@@ -6419,7 +6510,7 @@ return true;
 						current->opacity = 0;
 					}
 					else {
-						current->positionAsPercentage = explorer.moveLHSCloserToRHS(current->positionAsPercentage, straightPlots[imageName], false, false, speed);
+						current->positionAsPercentage = explorer.moveLHSCloserToRHSAsPercentage(source, current->positionAsPercentage, straightPlots[imageName], false, false, speedAsPercentage);
 						allFinished = false;
 					}
 
@@ -7125,13 +7216,17 @@ return true;
 				Menu::smallButton("DebugButton_TeleportToChapelR2ByStairs", "GUI_TELEPORTTOCHAPELR2BYSTAIRS", {40,45}),
 				Menu::smallButton("DebugButton_TeleportToMerchant", "GUI_TELEPORTTOMERCHANT", {40,50}),
 				Menu::smallButton("DebugButton_Player2Cutscene", "GUI_DEBUGPLAYER2", {40,55}),
-				
+				Menu::smallButton("DebugButton_TeleportToSpigotPuzzle", "GUI_TELEPORTTOSPIGOTPUZZLE", {40,60}),
+				Menu::smallButton("DebugButton_BloodWallDefeated", "GUI_BLOODWALLDEFEATED", {40,65}),
+				Menu::smallButton("DebugButton_OudinDefeated", "GUI_OUDINDEFEATED", {40,70}),
+				Menu::smallButton("DebugButton_DreamSequence1", "GUI_DREAM1", {40,75}),
 
 				Menu::smallButton("DebugButton_AddAllPlayable", "GUI_ADDALLPLAYABLE", {55,5}),
 				Menu::smallButton("DebugButton_ToggleFlag_IntroFinished", "GUI_IntroFinishedFlag", {70,5}),
 				Menu::smallButton("DebugButton_ToggleFlag_OudinDefeated", "GUI_OudinDefeatedFlag", {70,10}),
 				Menu::smallButton("DebugButton_VariousChapelR2Flags", "GUI_ChapelRightWing2Cutscenes", {70,15}),
-				Menu::smallButton("DebugButton_ToggleFlag_VisionLCutscene_TRIGGERED", "GUI_VisionLDone", {70,20}),
+				Menu::smallButton("DebugButton_VariousChapelL1Flags", "GUI_ChapelLeftSpigotsDone", {70,20}),
+				Menu::smallButton("DebugButton_ChapelFinished", "GUI_ChapelFinished", {70,25}),
 
 				}), Map<string, string>({
 					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " DebugButton_BackToExplore"),
@@ -7188,7 +7283,7 @@ return true;
 				Menu::standardButton("FROMPARTYMANAGEMENTTOEQUIPMENT", "GUI_FROMPARTYMANAGEMENTTOEQUIPMENT", {12, 60}),
 				Menu::standardButton("FROMPARTYMANAGEMENTTOPARTYREFORM", "GUI_FROMPARTYTOREFORM", {12, 70}),
 				Menu::standardButton("PARTYMANAGEHELP", "GUI_PARTYMANAGEHELP", {12, 80}),
-				Menu::Button("equipmentToggle","GUI_NOTEXT","GUI_NOTEXT", "equipmentToggle",{SHOWEQUIPMENT},BUTTON_CLICK_WAV, BUTTON_HOVER_WAV,{25,60}, true,true,false, Map<string, string>({
+				Menu::Button("equipmentToggle","GUI_NOTEXT","GUI_NOTEXT", "equipmentToggle",{SHOWEQUIPMENT},BUTTON_CLICK_WAV, BUTTON_HOVER_WAV,{25,60}, true,true,false, true, Map<string, string>({
 					pair<string, string>("hasHoverText", "1"),
 					pair<string, string>("hoverTextName", "equipmentToggleText"),
 					pair<string, string>("hoverTextContent", "equipmentToggleText"),
@@ -7301,8 +7396,14 @@ return true;
 			"TOME", Menu("TOME", Menu::getDefaultMenuButtonsForTomes(), Map<string, string>({
 				pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " FROMTOMETOPAUSE"),
 			}))),
+			pair<string, Menu>(
+			"SPIGOTPUZZLE", Menu("SPIGOTPUZZLE", Menu::getButtonsForSpigotPuzzle(), Map<string, string>({
+				pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " FROMSPIGOTTOEXPLORE"),
+			}))),
+
 	});
 	Procedure makeDynamicCutsceneProcedure(string language, string cutsceneName, string player, string postProcedure) {
+		cutsceneName = SReplace(cutsceneName, "PLAYER", saveContainer.getPossibleCutsceneParticipants().front());
 		return Procedure("Cutscene", List<Event>(convertDynamicStringsToDialogue(language, cutsceneName, player) + 
 			List<Event>(Event("PostCutscene", "TEARDOWNDIALOGUE", {})) + List<Event>(Event("PostCutscene", postProcedure, {}))
 		));
@@ -7718,6 +7819,17 @@ return true;
 					data["uniqueID"] = parsedData.at(0);
 					data["status"] = parsedData.at(1);
 					results.push_back(Event("SetFlag", "SETFLAGANDSAVE", data));
+					continue;
+				}
+				if (speaker == "$OPENMENU$") {
+					string menuName = WStringToString(val);
+					results.push_back(Event("Wait", "LOADMENU", Map<string, string>({
+						pair<string, string>("uniqueID", menuName),
+						})));
+					results.push_back(Event("Wait", "HANDLEMENU", Map<string, string>({
+						pair<string, string>("uniqueID", menuName),
+						})));
+					acceptedLines.push_back(thisLine);
 					continue;
 				}
 
