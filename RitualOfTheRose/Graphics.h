@@ -174,12 +174,13 @@ public:
 	class Image : public Drawable {
 	public:
         Image() {}
-        Image(List<int> _sources, pair<float, float > position, string _anchorStyle, float _opacity, string _uniqueID) {
+        Image(List<int> _sources, pair<float, float > position, string _anchorStyle, float _opacity, string _uniqueID, string _sourceNameDebug) {
             sources = _sources;
             positionAsPercentage = position;
             anchorStyle = _anchorStyle;
             opacity = _opacity;
             unique_ID = _uniqueID;
+            sourceNameDebug = _sourceNameDebug;
             resetTextures();
         }
 		~Image() {}
@@ -466,6 +467,7 @@ public:
         int animationSpeed;
         string direction = "";
         string action = "STAND";
+        string sourceNameDebug = ""; // for debugging purposes
 	};
     class Text : public Drawable {
     public:

@@ -45,6 +45,8 @@ using json = nlohmann::json;
 #include <fstream>
 #include <wrl/client.h>
 using Microsoft::WRL::ComPtr;
+#include <iostream>
+#include <format>
 
 
 #ifndef HINST_THISCOMPONENT

@@ -22,13 +22,16 @@ public:
 				for (int x = 0; x < sources.size(); x++) {
 					intSources.push_back(stoi(sources.at(x)));
 				}
+				if (intSources.empty()) {
+					throw runtime_error("Can't have an image with no sources.");
+				}
 				pair<float, float> position = { stof(data["x"]), stof(data["y"]) };
 				string anchor = data["anchor"];
 				float opacity = stof(data["opacity"]);
 				int layer = stoi(data["layer"]);
 				string uniqueID = data["uniqueID"];
 				if (graphics.doesThisImageAlreadyExist(uniqueID)) { return true; }
-				Graphics::Image * image = graphics.addImage(new Graphics::Image(intSources, position, anchor, opacity, uniqueID), layer);
+				Graphics::Image * image = graphics.addImage(new Graphics::Image(intSources, position, anchor, opacity, uniqueID, data["sources"]), layer);
 				if (data.hasKey("yStretch")) {
 					image->yStretch = stof(data["yStretch"]);
 				}
@@ -1681,8 +1684,12 @@ public:
 					textOffsetY = stoi(button.extras["textOffsetY"]);
 					textOffsetX2 = stoi(button.extras["textOffsetX2"]);
 				}
+				string prefix = gameEngine.language + "_";
+				if (button.extras.hasKey("don'tAddLanguage")) {
+					prefix = "";
+				}
 				Event("LoadThisButtonText", "DRAWTEXT", Map<string, string>({
-					pair<string, string>("message",gameEngine.language + "_" + button.buttonContent),
+					pair<string, string>("message",prefix + button.buttonContent),
 					pair<string, string>("format", format),
 					pair<string, string>("anchorStyle", button.anchorStyle),
 					pair<string, string>("x", to_string(button.position.first + textOffsetX)),
@@ -3096,6 +3103,16 @@ return true;
 					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("NEWGAME");
 					return true;
 				}
+				if (buttonLogic == "LoadGame") {
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "MAINMENU")).run(*&gameEngine);
+					Event("Return", "TEARDOWNIMAGE", pair<string, string>("uniqueID", "Logo")).run(*&gameEngine);
+					Event("Return", "TEARDOWNTEXT", pair<string, string>("uniqueID", "credits")).run(*&gameEngine);
+					Event("Return", "TEARDOWNTEXT", pair<string, string>("uniqueID", "version")).run(*&gameEngine);
+					saveContainer.getAllLocalValidSaves();
+					gameEngine.storedMenus["LOADGAME"].buttonReplace( Menu::getLoadGameButtons());
+					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("LOADGAME");
+					return false;
+				}
 				if (buttonLogic == "NewGameToMain") {
 					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "NEWGAME")).run(*&gameEngine);
 					Event("Return", "TEARDOWNTEXT", pair<string, string>("uniqueID", "newGameCharacterDescription")).run(*&gameEngine);
@@ -3152,6 +3169,23 @@ return true;
 					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("MAINMENU");
 					return false;
 				}
+				if (buttonLogic.find("LoadThisSaveSlot_") != -1) {
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "MAINMENU")).run(*&gameEngine);
+					Event("Return", "TEARDOWNIMAGE", pair<string, string>("uniqueID", "Logo")).run(*&gameEngine);
+					Event("Return", "TEARDOWNTEXT", pair<string, string>("uniqueID", "credits")).run(*&gameEngine);
+					Event("Return", "TEARDOWNTEXT", pair<string, string>("uniqueID", "version")).run(*&gameEngine);
+					string whichSlot = split(buttonLogic, "_").at(1);
+					audio.fadeOutAndStopThis(MENU1_WAV, 3);
+					saveContainer.current = saveContainer.slots[stoi(whichSlot)];
+					if (!saveContainer.current.flags["IntroFinished"]) {
+						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "NewGameCutscene", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					}
+					else {
+						saveContainer.activeSaveSlot = stoi(whichSlot);
+						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "TavernTeleport", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					}
+					return false;
+				}
 				if (buttonLogic == "StartGame") {
 					Event("Load Image", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 						pair<string, string>("sources", "4286"),
@@ -3170,6 +3204,7 @@ return true;
 					audio.fadeOutAndStopThis(MENU1_WAV, 3);
 					Event("Play This Song", "PLAYTHISSONG", Map<string, string>(List<pair<string, string>>({ pair<string, string>("uniqueID", to_string(WINDOUTSIDE1_WAV)), }))).run(*&gameEngine);
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "NewGameCutscene", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					saveContainer.activeSaveSlot = saveContainer.getNextSaveSlot();
 					return false;
 				}
 				if (buttonLogic == "FROMPAUSETOTOME") {
@@ -3464,6 +3499,10 @@ return true;
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "TavernLetter$PLAYER", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return true;
 				}
+				if (buttonLogic == "DebugButton_TeleportToSpain") {
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "Teleport to Spain", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					return true;
+				}
 				if (buttonLogic == "DebugButton_RunCutscene") {
 					Event("ResetMenu", "TEARDOWNMENU", Map<string, string>(List<pair<string, string>>({
 								pair<string, string>("uniqueID", "DEBUGMENU"),
@@ -3516,6 +3555,11 @@ return true;
 							pair<string, string>("uniqueID", "DebugButton_ToggleFlag_" + t),
 							})).run(*&gameEngine);
 					}
+					return true;
+				}
+				if (buttonLogic == "DebugButton_RiderDefeatedCutscene") {
+					Event("DoButton", "HANDLEBUTTON", Map<string, string>({pair<string, string>("uniqueID", "DebugButton_ChapelFinished"),})).run(*&gameEngine);
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "MadRiderDefeated", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return true;
 				}
 
@@ -5887,7 +5931,7 @@ return true;
 				if (!CLOCK.hasEnoughTimePassedDoNotResetClock("EndOfCombat", 3000)) {
 					return false;
 				}
-
+				saveContainer.save();
 				bool resumeExploringSamePlace = combat.currentBattle->battleStatusCheck() == "PLAYERLOSE" or combat.currentBattle->data["postBattle"] == "RETURNTOEXPLORE";
 
 				if (!CLOCK.hasEnoughTimePassedDoNotResetClock("EndOfCombat",3000)) {
@@ -6078,6 +6122,9 @@ return true;
 			if (extras["audioSource"] == "" and combat.skillDefinitions.hasKey(procedureName)) {
 				extras["audioSource"] = to_string(combat.skillDefinitions[procedureName].audioSource);
 			}
+			if (procedureName == "SELFIMMOLATE") {
+				return true;
+			}
 			if (procedureName == "DEFAULT_DISEASE") {
 				procedureName = "DISEASED";
 			}
@@ -6165,7 +6212,7 @@ return true;
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
-						pair<string, string>("scale", "1.0"),
+						pair<string, string>("scale", "2.0"),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "SINGLE"),
 						pair<string, string>("animation_speed", "20"),
@@ -7195,6 +7242,10 @@ return true;
 						pair<string, string>("TYPEWRITERTEXT_1", "startMenu1"),
 					}))),
 		pair<string, Menu>(
+			"LOADGAME", Menu("LOADGAME", List<Menu::Button>({
+				}), Map<string, string>({
+					}))),
+		pair<string, Menu>(
 			"DEBUGMENU", Menu("DEBUGMENU", List<Menu::Button>({
 				Menu::smallButton("DebugButton_StartAFight", "GUI_STARTAFIGHT", {10,5}),
 				Menu::smallButton("DebugButton_BackToExplore", "GUI_BACKTOEXPLORE", {10,10}),
@@ -7220,6 +7271,8 @@ return true;
 				Menu::smallButton("DebugButton_BloodWallDefeated", "GUI_BLOODWALLDEFEATED", {40,65}),
 				Menu::smallButton("DebugButton_OudinDefeated", "GUI_OUDINDEFEATED", {40,70}),
 				Menu::smallButton("DebugButton_DreamSequence1", "GUI_DREAM1", {40,75}),
+				Menu::smallButton("DebugButton_TeleportToSpain", "GUI_TELEPORTTOSPAIN", {40,80}),
+				Menu::smallButton("DebugButton_RiderDefeatedCutscene", "GUI_RIDERDEFEATED", {40,85}),
 
 				Menu::smallButton("DebugButton_AddAllPlayable", "GUI_ADDALLPLAYABLE", {55,5}),
 				Menu::smallButton("DebugButton_ToggleFlag_IntroFinished", "GUI_IntroFinishedFlag", {70,5}),

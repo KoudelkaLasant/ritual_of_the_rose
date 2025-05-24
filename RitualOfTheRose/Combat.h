@@ -656,6 +656,9 @@ public:
 				if (subeffect == "DroughtW") {
 					result["APPLY_Drought_ALL"] = e.values["duration"];
 				}
+				if (subeffect == "SELFIMMOLATE") {
+					result["DURATION_BURNING"] = 999;
+				}
 			}
 			return result;
 		}
@@ -6838,6 +6841,7 @@ public:
 			Combat::Effect("INTELLIGENCE",5.0f,true,true),
 			Combat::Effect("FIREBOOST",1.5f,true,false),
 			Combat::Effect("SELFIMMOLATE",0.0f,true,true),
+			Combat::Effect("BURNING",0.0f,true,true),
 			}), "ELITESKILLYELLOW", 9999);
 		equipmentDefinitions["The Eyes of St Lucy"] = Equipment(*this, "The Eyes of St Lucy", "Accessory", CODEXPAGE_EYE1, List<Combat::Effect>({
 			Combat::Effect("HOLYBOOST",0.5f,true,false),
@@ -7918,7 +7922,7 @@ public:
 
 		allEffectDefinitions["Knight Vision"] = EffectObject("Knight Vision", "BOON", SKILLICON_KNIGHTVISION, "Knight Vision", false,
 			List<string>(list<string>({ "Knight Vision", })),
-			List<string>(list<string>({ "ONATTACKING", })));
+			List<string>(list<string>({ "ONDOINGPHYSICALATTACK", })));
 
 		allEffectDefinitions["On My Target!"] = EffectObject("On My Target!", "BANE", SKILLICON_ONMYTARGET, "On My Target!", false,
 			List<string>(list<string>({ "On My Target!", })),
@@ -7954,7 +7958,7 @@ public:
 
 		allEffectDefinitions["Exemplar's Posture"] = EffectObject("Exemplar's Posture", "BOON", SKILLICON_EXEMPLARSPOSTURE, "Exemplar's Posture", false,
 			List<string>(list<string>({ "Exemplar's Posture", })),
-			List<string>(list<string>({ "ONATTACKING", })));
+			List<string>(list<string>({ "ONDOINGPHYSICALATTACK", })));
 
 		allEffectDefinitions["Avenger's Prayer"] = EffectObject("Avenger's Prayer", "BOON", SKILLICON_AVENGERSPRAYER, "Avenger's Prayer", false,
 			List<string>(list<string>({ "Avenger's Prayer", })),
@@ -8050,7 +8054,7 @@ public:
 
 		allEffectDefinitions["Valkyrie's Aura"] = EffectObject("Valkyrie's Aura", "BOON", SKILLICON_VALKYRIESAURA, "Valkyrie's Aura", false,
 			List<string>(list<string>({ "Electric Loop", })),
-			List<string>(list<string>({ "ONATTACKING", })));
+			List<string>(list<string>({ "ONDOINGPHYSICALATTACK", })));
 
 		allEffectDefinitions["Shadow Game"] = EffectObject("Shadow Game", "BANE", SKILLICON_SHADOWGAME, "Shadow Game", false,
 			List<string>(list<string>({ "Shadow Game", })),
@@ -8196,6 +8200,10 @@ public:
 		allEffectDefinitions["ARMOURVSPOISON"] = EffectObject("ARMOURVSPOISON", "BOON", EFFECTICON_ARMOURVSPOISON, "ARMOURVSPOISON", true,
 			List<string>(list<string>({ "ARMOURVSPOISON", })),
 			List<string>(list<string>({ "ONTAKINGDAMAGE" })));
+
+		allEffectDefinitions["SELFIMMOLATE"] = EffectObject("SELFIMMOLATE", "NEUTRAL", SKILLICON_HELLRAISERHASTE, "APPLY_BURNING_SELF", false,
+			List<string>(list<string>({ "SELFIMMOLATE", })),
+			List<string>(list<string>({ "EVERYTURN", })));
 		
 
 		// neutral conditions

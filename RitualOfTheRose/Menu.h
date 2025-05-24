@@ -375,6 +375,24 @@ public:
 			});
 		return result;
 	}
+	static const List<Button> getLoadGameButtons() {
+		List<Button> results;
+		int y = 15;
+		int yGap = 10;
+		for (auto slot : saveContainer.slots.getKeys().internalList) {
+			Button current = Menu::smallButton("LoadThisSaveSlot_" + to_string(slot), "", { 50,y});
+			current.extras["direct"] = "1";
+			current.extras["don'tAddLanguage"] = "1";
+			string partyLeader = saveContainer.slots[slot].party.front();
+			string fileTime = saveContainer.getTimeThisSaveFileWasLastUpdated(slot);
+			current.buttonContent = partyLeader + " " + fileTime;
+			results.push_back(current);
+			y += yGap;
+		}
+
+		results.push_back(Menu::standardButton("LoadGameToMain", "GUI_CANCEL", { 20,93 }));
+		return results;
+	}
 	void editExistingButton(string language, string buttonName, Button replacement) {
 		graphics.accessTextViaUniqueID(buttonName + "_TEXT")->resetMessage(*&graphics, strings[language]["GUI"][SReplace(replacement.buttonContent, "GUI_", "")]);
 		graphics.accessTextViaUniqueID(buttonName + "_TEXT")->unique_ID = replacement.textID;

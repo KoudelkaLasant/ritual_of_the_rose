@@ -874,6 +874,25 @@ public:
 	void load(filesystem::path filepath) {
 		current = SaveFile(filepath);
 	}
+	void getAllLocalValidSaves() {
+		slots.clear();
+		List<filesystem::path> result;
+		for (const auto& file : filesystem::directory_iterator(filesystem::current_path())) {
+			List<string> errors;
+			if (file.is_directory()) { continue; }
+			string current = WStringToString(file.path().c_str());
+			string fileName = split(current, "\\").back();
+			if (fileName.find("slot_") == -1) { continue; }
+			try {
+				int slot = stoi(split(fileName, "_").back());
+				if (slot < 1) { continue; }
+				slots[slot] = SaveFile(file);
+			}
+			catch (...) {
+				errors.push_back("Failed to Load " + fileName);
+			}
+		}
+	}
 	bool loadedSomething() {
 		return (current.loaded);
 	}
@@ -1061,7 +1080,25 @@ public:
 	void loseMoney(int amount) {
 		current.money = TChange(current.money, amount * -1, 0, goldLimit);
 	}
-
+	string getTimeThisSaveFileWasLastUpdated(int slot) {
+		if (!slots.hasKey(slot)) { throw exception("No slot with that index."); }
+		string fileName = "slot_" + to_string(slot);
+		filesystem::path filepath = filesystem::current_path() / fileName;
+		filesystem::file_time_type ftime = filesystem::last_write_time(filepath);
+		string asString = std::format("{}", ftime);
+		string year = split(asString, "-").at(0);
+		string month = split(asString, "-").at(1);
+		string day = split(split(asString, " ").at(0), "-").at(2);
+		return year + "/" + month + "/" + day;
+		return asString;
+	}
+	int getNextSaveSlot() {
+		int result = 1;
+		if (!slots.getKeys().empty()) {
+			result = slots.getKeys().back() + 1;
+		}
+		return result;
+	}
 	void addToCharacterList(string who) {
 		List<string> currentParty = getAllCharacterNames();
 		if (currentParty.contains(who)) { return; }
@@ -1288,6 +1325,10 @@ public:
 		animationFrames["TAVERN1_UPSTAIRSDAY"]["STAND_FRONT"].internalList = { TAVERNUPSTAIRSDAY };
 
 		animationFrames["VATICAN"]["STAND_FRONT"].internalList = { VATICAN };
+		animationFrames["TianshunHouse"]["STAND_FRONT"].internalList = { TIANSHUNHOUSE };
+
+		animationFrames["ViennaUniversity"]["STAND_FRONT"].internalList = { VIENNAUNIVERSITY1 };
+		animationFrames["ViennaUniversity2"]["STAND_FRONT"].internalList = { VIENNAUNIVERSITY2 };
 			
 		animationFrames["SKELESUMMON"]["SUMMON_FRONT"].internalList = { SKELESUMMON_1,SKELESUMMON_2,SKELESUMMON_3,SKELESUMMON_4,SKELESUMMON_5,SKELESUMMON_6,SKELESUMMON_7,SKELESUMMON_8,SKELESUMMON_9,SKELESUMMON_10,SKELESUMMON_11,SKELESUMMON_12,SKELESUMMON_13,SKELESUMMON_14,SKELESUMMON_15,SKELESUMMON_16,SKELESUMMON_17,SKELESUMMON_18,SKELESUMMON_19,SKELESUMMON_20,SKELESUMMON_21,SKELESUMMON_22,SKELESUMMON_23,SKELESUMMON_24,SKELESUMMON_25,SKELESUMMON_26,SKELESUMMON_27,SKELESUMMON_28,SKELESUMMON_29,SKELESUMMON_30,SKELESUMMON_31,SKELESUMMON_32,SKELESUMMON_33,SKELESUMMON_34,SKELESUMMON_35,SKELESUMMON_36,SKELESUMMON_37,SKELESUMMON_38,SKELESUMMON_39,SKELESUMMON_40,SKELESUMMON_41,SKELESUMMON_42,SKELESUMMON_43,SKELESUMMON_44,SKELESUMMON_45,SKELESUMMON_46,SKELESUMMON_47,SKELESUMMON_48, };
 
@@ -1373,6 +1414,8 @@ public:
 		animationFrames["Tianshun Song"]["WALK_LEFT"].internalList = { TIANSHUN_WALK_LEFT_1, TIANSHUN_WALK_LEFT_2, TIANSHUN_WALK_LEFT_3, TIANSHUN_WALK_LEFT_2, };
 		animationFrames["Tianshun Song"]["WALK_RIGHT"].internalList = { TIANSHUN_WALK_RIGHT_1, TIANSHUN_WALK_RIGHT_2, TIANSHUN_WALK_RIGHT_3, TIANSHUN_WALK_RIGHT_2 };
 		animationFrames["Tianshun Song"]["TAVERN_WAIT"].internalList = { TIANSHUN_TAVERN_WAIT_1, TIANSHUN_TAVERN_WAIT_2, };
+		animationFrames["Tianshun Song"]["WRITING_FRONT"].internalList = { TIANSHUNWRITING1 };
+		animationFrames["Tianshun Song"]["SLEEPING_FRONT"].internalList = { TIANSHUNSLEEPING1 };
 
 		animationFrames["Tianshun Song"]["MAPACTIONFIGHT_RIGHT"].internalList = { TIANSHUN_MAPACTIONFIGHT_R1, TIANSHUN_MAPACTIONFIGHT_R2, TIANSHUN_MAPACTIONFIGHT_R3 };
 		animationFrames["Tianshun Song"]["MAPACTIONFIGHT_FRONT"].internalList = { TIANSHUN_MAPACTIONFIGHT_F1, TIANSHUN_MAPACTIONFIGHT_F2, TIANSHUN_MAPACTIONFIGHT_F3 };
@@ -1381,7 +1424,6 @@ public:
 		animationFrames["Shadow Tianshun Song"]["MAPACTIONFIGHT_RIGHT"].internalList = { TIANSHUN_MAPACTIONFIGHT_SHADOW_R1, TIANSHUN_MAPACTIONFIGHT_SHADOW_R2, TIANSHUN_MAPACTIONFIGHT_SHADOW_R3 };
 		animationFrames["Shadow Tianshun Song"]["MAPACTIONFIGHT_FRONT"].internalList = { TIANSHUN_MAPACTIONFIGHT_SHADOW_F1, TIANSHUN_MAPACTIONFIGHT_SHADOW_F2, TIANSHUN_MAPACTIONFIGHT_SHADOW_F3 };
 		animationFrames["Shadow Tianshun Song"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { TIANSHUN_MAPACTIONFIGHT_SHADOW_F3, TIANSHUN_MAPACTIONFIGHT_SHADOW_F2, TIANSHUN_MAPACTIONFIGHT_SHADOW_F1 };
-
 		animationFrames["Shadow Tianshun Song"]["STAND_FRONT"].internalList = { SHADOW_TIANSHUN_STAND_FRONT_1, SHADOW_TIANSHUN_STAND_FRONT_2 };
 		animationFrames["Shadow Tianshun Song"]["STAND_BACK"].internalList = { SHADOW_TIANSHUN_STAND_BACK_1, SHADOW_TIANSHUN_STAND_BACK_2 };
 		animationFrames["Shadow Tianshun Song"]["STAND_LEFT"].internalList = { SHADOW_TIANSHUN_STAND_LEFT_1, SHADOW_TIANSHUN_STAND_LEFT_2 };
@@ -1390,6 +1432,9 @@ public:
 		animationFrames["Shadow Tianshun Song"]["WALK_FRONT"].internalList = { SHADOW_TIANSHUN_WALK_FRONT_1, SHADOW_TIANSHUN_WALK_FRONT_2, SHADOW_TIANSHUN_WALK_FRONT_3, SHADOW_TIANSHUN_WALK_FRONT_2, };
 		animationFrames["Shadow Tianshun Song"]["WALK_LEFT"].internalList = { SHADOW_TIANSHUN_WALK_LEFT_1, SHADOW_TIANSHUN_WALK_LEFT_2, SHADOW_TIANSHUN_WALK_LEFT_3, SHADOW_TIANSHUN_WALK_LEFT_2, };
 		animationFrames["Shadow Tianshun Song"]["WALK_RIGHT"].internalList = { SHADOW_TIANSHUN_WALK_RIGHT_1, SHADOW_TIANSHUN_WALK_RIGHT_2, SHADOW_TIANSHUN_WALK_RIGHT_3, SHADOW_TIANSHUN_WALK_RIGHT_2 };
+		animationFrames["Shadow Tianshun Song"]["WRITING_FRONT"].internalList = { EMPTYOBJECT };
+		animationFrames["Shadow Tianshun Song"]["SLEEPING_FRONT"].internalList = { EMPTYOBJECT };
+
 		animationFrames["Olyver Sumner"]["SPEAKER"].internalList = { OLYVER_SPEAKER };
 		animationFrames["Olyver Sumner"]["CARD"].internalList = { CARD_OLYVER };
 		animationFrames["Olyver Sumner"]["CARD_SELECTED"].internalList = { CARD_OLYVER_SELECTED };
@@ -1405,6 +1450,8 @@ public:
 		animationFrames["Olyver Sumner"]["MAPACTIONFIGHT_FRONT"].internalList = { OLYVER_MAPACTIONFIGHT_F1, OLYVER_MAPACTIONFIGHT_F2, OLYVER_MAPACTIONFIGHT_F3 };
 		animationFrames["Olyver Sumner"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { OLYVER_MAPACTIONFIGHT_F3, OLYVER_MAPACTIONFIGHT_F2, OLYVER_MAPACTIONFIGHT_F1 };
 		animationFrames["Olyver Sumner"]["TAVERN_WAIT"].internalList = { OLYVER_TAVERN_WAIT_1, OLYVER_TAVERN_WAIT_2, };
+		animationFrames["Olyver Sumner"]["WRITING_FRONT"].internalList = { OLYVERWRITING1 };
+		animationFrames["Olyver Sumner"]["SLEEPING_FRONT"].internalList = { OLYVERSLEEPING1 };
 
 		animationFrames["Shadow Olyver Sumner"]["MAPACTIONFIGHT_RIGHT"].internalList = { OLYVER_MAPACTIONFIGHT_SHADOW_R1, OLYVER_MAPACTIONFIGHT_SHADOW_R2, OLYVER_MAPACTIONFIGHT_SHADOW_R3 };
 		animationFrames["Shadow Olyver Sumner"]["MAPACTIONFIGHT_FRONT"].internalList = { OLYVER_MAPACTIONFIGHT_SHADOW_F1, OLYVER_MAPACTIONFIGHT_SHADOW_F2, OLYVER_MAPACTIONFIGHT_SHADOW_F3 };
@@ -1417,6 +1464,9 @@ public:
 		animationFrames["Shadow Olyver Sumner"]["WALK_FRONT"].internalList = { SHADOW_OLYVER_WALK_FRONT_1, SHADOW_OLYVER_WALK_FRONT_2, SHADOW_OLYVER_WALK_FRONT_3, SHADOW_OLYVER_WALK_FRONT_2, };
 		animationFrames["Shadow Olyver Sumner"]["WALK_LEFT"].internalList = { SHADOW_OLYVER_WALK_LEFT_1, SHADOW_OLYVER_WALK_LEFT_2, SHADOW_OLYVER_WALK_LEFT_3, SHADOW_OLYVER_WALK_LEFT_2, };
 		animationFrames["Shadow Olyver Sumner"]["WALK_RIGHT"].internalList = { SHADOW_OLYVER_WALK_RIGHT_1, SHADOW_OLYVER_WALK_RIGHT_2, SHADOW_OLYVER_WALK_RIGHT_3, SHADOW_OLYVER_WALK_RIGHT_2 };
+		animationFrames["Shadow Olyver Sumner"]["WRITING_FRONT"].internalList = { EMPTYOBJECT };
+		animationFrames["Shadow Olyver Sumner"]["SLEEPING_FRONT"].internalList = { EMPTYOBJECT };
+
 		animationFrames["Hernando Pizarro"]["SPEAKER"].internalList = { HERNANDO_SPEAKER };
 		animationFrames["Hernando Pizarro"]["CARD"].internalList = { CARD_HERNANDO };
 		animationFrames["Hernando Pizarro"]["CARD_SELECTED"].internalList = { CARD_HERNANDO_SELECTED };
@@ -1432,6 +1482,8 @@ public:
 		animationFrames["Hernando Pizarro"]["MAPACTIONFIGHT_FRONT"].internalList = { HERNANDO_MAPACTIONFIGHT_F1, HERNANDO_MAPACTIONFIGHT_F2, HERNANDO_MAPACTIONFIGHT_F3 };
 		animationFrames["Hernando Pizarro"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { HERNANDO_MAPACTIONFIGHT_F3, HERNANDO_MAPACTIONFIGHT_F2, HERNANDO_MAPACTIONFIGHT_F1 };
 		animationFrames["Hernando Pizarro"]["TAVERN_WAIT"].internalList = { HERNANDO_TAVERN_WAIT_1, HERNANDO_TAVERN_WAIT_2, };
+		animationFrames["Hernando Pizarro"]["WRITING_FRONT"].internalList = { HERNANDOWRITING1 };
+		animationFrames["Hernando Pizarro"]["SLEEPING_FRONT"].internalList = { HERNANDOSLEEPING1 };
 
 		animationFrames["Hernando Pizarro"]["MAPACTIONATTACK2_BACK"].internalList = { HERNANDO_MAPATTACK2_1, HERNANDO_MAPATTACK2_2,HERNANDO_MAPATTACK2_3, HERNANDO_MAPATTACK2_4,HERNANDO_MAPATTACK2_5,HERNANDO_MAPATTACK2_6,HERNANDO_MAPATTACK2_7,HERNANDO_MAPATTACK2_8,HERNANDO_MAPATTACK2_9,HERNANDO_MAPATTACK2_10,HERNANDO_MAPATTACK2_11,HERNANDO_MAPATTACK2_12,HERNANDO_MAPATTACK2_13,HERNANDO_MAPATTACK2_14,HERNANDO_MAPATTACK2_15,HERNANDO_MAPATTACK2_16, };
 
@@ -1454,6 +1506,9 @@ public:
 		animationFrames["Shadow Hernando Pizarro"]["WALK_FRONT"].internalList = { SHADOW_HERNANDO_WALK_FRONT_1, SHADOW_HERNANDO_WALK_FRONT_2, SHADOW_HERNANDO_WALK_FRONT_3, SHADOW_HERNANDO_WALK_FRONT_2, };
 		animationFrames["Shadow Hernando Pizarro"]["WALK_LEFT"].internalList = { SHADOW_HERNANDO_WALK_LEFT_1, SHADOW_HERNANDO_WALK_LEFT_2, SHADOW_HERNANDO_WALK_LEFT_3, SHADOW_HERNANDO_WALK_LEFT_2, };
 		animationFrames["Shadow Hernando Pizarro"]["WALK_RIGHT"].internalList = { SHADOW_HERNANDO_WALK_RIGHT_1, SHADOW_HERNANDO_WALK_RIGHT_2, SHADOW_HERNANDO_WALK_RIGHT_3, SHADOW_HERNANDO_WALK_RIGHT_2 };
+		animationFrames["Shadow Hernando Pizarro"]["WRITING_FRONT"].internalList = { EMPTYOBJECT };
+		animationFrames["Shadow Hernando Pizarro"]["SLEEPING_FRONT"].internalList = { EMPTYOBJECT };
+
 		animationFrames["Gihat al-Din Jaqmaq"]["SPEAKER"].internalList = { GIHAT_SPEAKER };
 		animationFrames["Gihat al-Din Jaqmaq"]["CARD"].internalList = { CARD_GIHAT };
 		animationFrames["Gihat al-Din Jaqmaq"]["CARD_SELECTED"].internalList = { CARD_GIHAT_SELECTED };
@@ -1476,14 +1531,14 @@ public:
 		animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFIGHTUNDO_FRONT"].internalList.reverse();
 		animationFrames["Gihat al-Din Jaqmaq"]["TAVERN_WAIT"].internalList = { GIHAT_TAVERN_WAIT_1, GIHAT_TAVERN_WAIT_2, };
 		animationFrames["Gihat al-Din Jaqmaq"]["TAVERN_WAIT2"].internalList = { GIHAT_TAVERN_WAIT_3, GIHAT_TAVERN_WAIT_4, };
+		animationFrames["Gihat al-Din Jaqmaq"]["WRITING_FRONT"].internalList = { GIHATWRITING1 };
+		animationFrames["Gihat al-Din Jaqmaq"]["SLEEPING_FRONT"].internalList = { GIHATSLEEPING1 };
 
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFADE_RIGHT"].internalList = { GIHAT_MAPACTIONFIGHT_SHADOW_R3 };
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_RIGHT"].internalList = { SHADOW_GIHAT_STAND_RIGHT_1, SHADOW_GIHAT_STAND_RIGHT_2, GIHAT_MAPACTIONFIGHT_SHADOW_R1, GIHAT_MAPACTIONFIGHT_SHADOW_R2, GIHAT_MAPACTIONFIGHT_SHADOW_R3 };
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_FRONT"].internalList = { SHADOW_GIHAT_STAND_FRONT_1, SHADOW_GIHAT_STAND_FRONT_2, GIHAT_MAPACTIONFIGHT_SHADOW_F1, GIHAT_MAPACTIONFIGHT_SHADOW_F2, GIHAT_MAPACTIONFIGHT_SHADOW_F3 };
-
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { GIHAT_MAPACTIONFIGHT_SHADOW_F3 };
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFIGHTUNDO_FRONT"].internalList.reverse();
-
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_FRONT"].internalList = { SHADOW_GIHAT_STAND_FRONT_1, SHADOW_GIHAT_STAND_FRONT_2 };
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_BACK"].internalList = { SHADOW_GIHAT_STAND_BACK_1, SHADOW_GIHAT_STAND_BACK_2 };
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_LEFT"].internalList = { SHADOW_GIHAT_STAND_LEFT_1, SHADOW_GIHAT_STAND_LEFT_2 };
@@ -1492,6 +1547,8 @@ public:
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_FRONT"].internalList = { SHADOW_GIHAT_WALK_FRONT_1, SHADOW_GIHAT_WALK_FRONT_2, SHADOW_GIHAT_WALK_FRONT_3, SHADOW_GIHAT_WALK_FRONT_2, };
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_LEFT"].internalList = { SHADOW_GIHAT_WALK_LEFT_1, SHADOW_GIHAT_WALK_LEFT_2, SHADOW_GIHAT_WALK_LEFT_3, SHADOW_GIHAT_WALK_LEFT_2, };
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_RIGHT"].internalList = { SHADOW_GIHAT_WALK_RIGHT_1, SHADOW_GIHAT_WALK_RIGHT_2, SHADOW_GIHAT_WALK_RIGHT_3, SHADOW_GIHAT_WALK_RIGHT_2 };
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WRITING_FRONT"].internalList = { EMPTYOBJECT };
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["SLEEPING_FRONT"].internalList = { EMPTYOBJECT };
 
 		animationFrames["Father Michelet"]["STAND_FRONT"].internalList = { PRIESTMICHELET_STAND_F1, PRIESTMICHELET_STAND_F2 };
 		animationFrames["Father Michelet"]["STAND_RIGHT"].internalList = { PRIESTMICHELET_STAND_R1, PRIESTMICHELET_STAND_R2 };
@@ -1600,6 +1657,7 @@ public:
 		animationFrames["Shadow EnragedVilomah"]["WALK_FRONT"].internalList = { ENRAGEDVILOMAH_3, ENRAGEDVILOMAH_4, ENRAGEDVILOMAH_5, ENRAGEDVILOMAH_4 };
 
 		animationFrames["EnragedMagician"]["STAND_FRONT"].internalList = { ENRAGEDMAGICIAN_6, ENRAGEDMAGICIAN_7 };
+		animationFrames["EnragedMagician"]["STAND_BACK"].internalList = { MAGICIAN_B1, MAGICIAN_B2 };
 		animationFrames["Shadow EnragedMagician"]["STAND_FRONT"].internalList = { ENRAGEDMAGICIAN_1, ENRAGEDMAGICIAN_2, };
 		animationFrames["EnragedMagician"]["WALK_FRONT"].internalList = { ENRAGEDMAGICIAN_8, ENRAGEDMAGICIAN_9, ENRAGEDMAGICIAN_10, ENRAGEDMAGICIAN_9 };
 		animationFrames["Shadow EnragedMagician"]["WALK_FRONT"].internalList = { ENRAGEDMAGICIAN_3, ENRAGEDMAGICIAN_4, ENRAGEDMAGICIAN_5, ENRAGEDMAGICIAN_4 };
@@ -1826,6 +1884,62 @@ public:
 		animationFrames["EnvoyMeltingFace"]["SPEAKER"].internalList = { ENVOYMELTINGFACE };
 		animationFrames["FernandoMeltingFace"]["SPEAKER"].internalList = {FERNANDOMELTINGFACE };
 
+		animationFrames["Shadow MongolianSoldier"]["STAND_BACK"].internalList = { MONGOLIANSOLDIER_1,MONGOLIANSOLDIER_2 };
+		animationFrames["Shadow MongolianSoldier"]["STAND_FRONT"].internalList = { MONGOLIANSOLDIER_3,MONGOLIANSOLDIER_4 };
+		animationFrames["Shadow MongolianSoldier"]["STAND_LEFT"].internalList = { MONGOLIANSOLDIER_5,MONGOLIANSOLDIER_6 };
+		animationFrames["Shadow MongolianSoldier"]["STAND_RIGHT"].internalList = { MONGOLIANSOLDIER_7,MONGOLIANSOLDIER_8 };
+		animationFrames["Shadow MongolianSoldier"]["WALK_BACK"].internalList = { MONGOLIANSOLDIER_9,MONGOLIANSOLDIER_10,MONGOLIANSOLDIER_11,MONGOLIANSOLDIER_10 };
+		animationFrames["Shadow MongolianSoldier"]["WALK_FRONT"].internalList = { MONGOLIANSOLDIER_12,MONGOLIANSOLDIER_13,MONGOLIANSOLDIER_14,MONGOLIANSOLDIER_13 };
+		animationFrames["Shadow MongolianSoldier"]["WALK_LEFT"].internalList = { MONGOLIANSOLDIER_15,MONGOLIANSOLDIER_16,MONGOLIANSOLDIER_17,MONGOLIANSOLDIER_16 };
+		animationFrames["Shadow MongolianSoldier"]["WALK_RIGHT"].internalList = { MONGOLIANSOLDIER_18,MONGOLIANSOLDIER_19,MONGOLIANSOLDIER_20,MONGOLIANSOLDIER_19 };
+		animationFrames["MongolianSoldier"]["STAND_BACK"].internalList = { MONGOLIANSOLDIER_22,MONGOLIANSOLDIER_23 };
+		animationFrames["MongolianSoldier"]["STAND_FRONT"].internalList = { MONGOLIANSOLDIER_24,MONGOLIANSOLDIER_25 };
+		animationFrames["MongolianSoldier"]["STAND_LEFT"].internalList = { MONGOLIANSOLDIER_26,MONGOLIANSOLDIER_27 };
+		animationFrames["MongolianSoldier"]["STAND_RIGHT"].internalList = { MONGOLIANSOLDIER_28,MONGOLIANSOLDIER_29 };
+		animationFrames["MongolianSoldier"]["WALK_BACK"].internalList = { MONGOLIANSOLDIER_30,MONGOLIANSOLDIER_31,MONGOLIANSOLDIER_32,MONGOLIANSOLDIER_31 };
+		animationFrames["MongolianSoldier"]["WALK_FRONT"].internalList = { MONGOLIANSOLDIER_33,MONGOLIANSOLDIER_34,MONGOLIANSOLDIER_35,MONGOLIANSOLDIER_34 };
+		animationFrames["MongolianSoldier"]["WALK_LEFT"].internalList = { MONGOLIANSOLDIER_36,MONGOLIANSOLDIER_37,MONGOLIANSOLDIER_38,MONGOLIANSOLDIER_37 };
+		animationFrames["MongolianSoldier"]["WALK_RIGHT"].internalList = { MONGOLIANSOLDIER_39,MONGOLIANSOLDIER_40,MONGOLIANSOLDIER_41,MONGOLIANSOLDIER_40 };
+		animationFrames["MongolianSoldier"]["SPEAKER"].internalList = { MONGOLIANSOLDIER_21 };
+
+		animationFrames["Peuerbach"]["STAND_FRONT"].internalList = { PEUERBACH_1 ,PEUERBACH_2 };
+		animationFrames["Peuerbach"]["SPEAKER"].internalList = { PEUERBACH_SPEAKER };
+
+		animationFrames["Shadow PalaceVisitor"]["STAND_BACK"].internalList = { ENVOY_1,ENVOY_2 };
+		animationFrames["Shadow PalaceVisitor"]["STAND_FRONT"].internalList = { ENVOY_3,ENVOY_4 };
+		animationFrames["Shadow PalaceVisitor"]["STAND_LEFT"].internalList = { ENVOY_5,ENVOY_6 };
+		animationFrames["Shadow PalaceVisitor"]["STAND_RIGHT"].internalList = { ENVOY_7,ENVOY_8 };
+		animationFrames["Shadow PalaceVisitor"]["WALK_BACK"].internalList = { ENVOY_9,ENVOY_10,ENVOY_11,ENVOY_10 };
+		animationFrames["Shadow PalaceVisitor"]["WALK_FRONT"].internalList = { ENVOY_12,ENVOY_13,ENVOY_14,ENVOY_13 };
+		animationFrames["Shadow PalaceVisitor"]["WALK_LEFT"].internalList = { ENVOY_15,ENVOY_16,ENVOY_17,ENVOY_16 };
+		animationFrames["Shadow PalaceVisitor"]["WALK_RIGHT"].internalList = { ENVOY_18,ENVOY_19,ENVOY_20,ENVOY_19 };
+		animationFrames["PalaceVisitor"]["STAND_BACK"].internalList = { PALACEVISITOR_22,PALACEVISITOR_23 };
+		animationFrames["PalaceVisitor"]["STAND_FRONT"].internalList = { PALACEVISITOR_24,PALACEVISITOR_25 };
+		animationFrames["PalaceVisitor"]["STAND_LEFT"].internalList = { PALACEVISITOR_26,PALACEVISITOR_27 };
+		animationFrames["PalaceVisitor"]["STAND_RIGHT"].internalList = { PALACEVISITOR_28,PALACEVISITOR_29 };
+		animationFrames["PalaceVisitor"]["WALK_BACK"].internalList = { PALACEVISITOR_30,PALACEVISITOR_31,PALACEVISITOR_32,PALACEVISITOR_31 };
+		animationFrames["PalaceVisitor"]["WALK_FRONT"].internalList = { PALACEVISITOR_33,PALACEVISITOR_34,PALACEVISITOR_35,PALACEVISITOR_34 };
+		animationFrames["PalaceVisitor"]["WALK_LEFT"].internalList = { PALACEVISITOR_36,PALACEVISITOR_37,PALACEVISITOR_38,PALACEVISITOR_37 };
+		animationFrames["PalaceVisitor"]["WALK_RIGHT"].internalList = { PALACEVISITOR_39,PALACEVISITOR_40,PALACEVISITOR_41,PALACEVISITOR_40 };
+		animationFrames["PalaceVisitor"]["SPEAKER"].internalList = { PALACEVISITOR_21 };
+
+		animationFrames["Shadow Fatma"]["STAND_BACK"].internalList = { FATMA_1,FATMA_2 };
+		animationFrames["Shadow Fatma"]["STAND_FRONT"].internalList = { FATMA_3,FATMA_4 };
+		animationFrames["Shadow Fatma"]["STAND_LEFT"].internalList = { FATMA_5,FATMA_6 };
+		animationFrames["Shadow Fatma"]["STAND_RIGHT"].internalList = { FATMA_7,FATMA_8 };
+		animationFrames["Shadow Fatma"]["WALK_BACK"].internalList = { FATMA_9,FATMA_10,FATMA_11,FATMA_10 };
+		animationFrames["Shadow Fatma"]["WALK_FRONT"].internalList = { FATMA_12,FATMA_13,FATMA_14,FATMA_13 };
+		animationFrames["Shadow Fatma"]["WALK_LEFT"].internalList = { FATMA_15,FATMA_16,FATMA_17,FATMA_16 };
+		animationFrames["Shadow Fatma"]["WALK_RIGHT"].internalList = { FATMA_18,FATMA_19,FATMA_20,FATMA_19 };
+		animationFrames["Fatma"]["STAND_BACK"].internalList = { FATMA_22,FATMA_23 };
+		animationFrames["Fatma"]["STAND_FRONT"].internalList = { FATMA_24,FATMA_25 };
+		animationFrames["Fatma"]["STAND_LEFT"].internalList = { FATMA_26,FATMA_27 };
+		animationFrames["Fatma"]["STAND_RIGHT"].internalList = { FATMA_28,FATMA_29 };
+		animationFrames["Fatma"]["WALK_BACK"].internalList = { FATMA_30,FATMA_31,FATMA_32,FATMA_31 };
+		animationFrames["Fatma"]["WALK_FRONT"].internalList = { FATMA_33,FATMA_34,FATMA_35,FATMA_34 };
+		animationFrames["Fatma"]["WALK_LEFT"].internalList = { FATMA_36,FATMA_37,FATMA_38,FATMA_37 };
+		animationFrames["Fatma"]["WALK_RIGHT"].internalList = { FATMA_39,FATMA_40,FATMA_41,FATMA_40 };
+		animationFrames["Fatma"]["SPEAKER"].internalList = { FATMA_21 };
 	}
 	void defineSkills() {
 		animationFrames["Default Attack"]["ACTION_FRONT"] = { DEFAULTATTACK_1,DEFAULTATTACK_2,DEFAULTATTACK_3,DEFAULTATTACK_4,DEFAULTATTACK_5,DEFAULTATTACK_6,DEFAULTATTACK_7,DEFAULTATTACK_8,DEFAULTATTACK_9,DEFAULTATTACK_10,DEFAULTATTACK_11,DEFAULTATTACK_12, };
@@ -1901,6 +2015,10 @@ public:
 		animationFrames["Cursed Doll"]["ACTION_BACK"].internalList = { CURSEDDOLLBACK_1,CURSEDDOLLBACK_2,CURSEDDOLLBACK_3,CURSEDDOLLBACK_4,CURSEDDOLLBACK_5,CURSEDDOLLBACK_6,CURSEDDOLLBACK_7,CURSEDDOLLBACK_8,CURSEDDOLLBACK_9,CURSEDDOLLBACK_10,CURSEDDOLLBACK_11,CURSEDDOLLBACK_12,CURSEDDOLLBACK_13,CURSEDDOLLBACK_14,CURSEDDOLLBACK_15,CURSEDDOLLBACK_16,CURSEDDOLLBACK_17,CURSEDDOLLBACK_18,CURSEDDOLLBACK_19,CURSEDDOLLBACK_20,CURSEDDOLLBACK_21,CURSEDDOLLBACK_22,CURSEDDOLLBACK_23,CURSEDDOLLBACK_24,CURSEDDOLLBACK_25,CURSEDDOLLBACK_26,CURSEDDOLLBACK_27,CURSEDDOLLBACK_28,CURSEDDOLLBACK_29,CURSEDDOLLBACK_30,CURSEDDOLLBACK_31,CURSEDDOLLBACK_32,CURSEDDOLLBACK_33,CURSEDDOLLBACK_34, };
 
 		animationFrames["Cursed Doll"]["ACTION_FRONT"].internalList = { CURSEDDOLLFRONT_1,CURSEDDOLLFRONT_2,CURSEDDOLLFRONT_3,CURSEDDOLLFRONT_4,CURSEDDOLLFRONT_5,CURSEDDOLLFRONT_6,CURSEDDOLLFRONT_7,CURSEDDOLLFRONT_8,CURSEDDOLLFRONT_9,CURSEDDOLLFRONT_10,CURSEDDOLLFRONT_11,CURSEDDOLLFRONT_12,CURSEDDOLLFRONT_13,CURSEDDOLLFRONT_14,CURSEDDOLLFRONT_15,CURSEDDOLLFRONT_16,CURSEDDOLLFRONT_17,CURSEDDOLLFRONT_18,CURSEDDOLLFRONT_19,CURSEDDOLLFRONT_20,CURSEDDOLLFRONT_21,CURSEDDOLLFRONT_22,CURSEDDOLLFRONT_23,CURSEDDOLLFRONT_24,CURSEDDOLLFRONT_25,CURSEDDOLLFRONT_26,CURSEDDOLLFRONT_27,CURSEDDOLLFRONT_28,CURSEDDOLLFRONT_29,CURSEDDOLLFRONT_30,CURSEDDOLLFRONT_31,CURSEDDOLLFRONT_32,CURSEDDOLLFRONT_33,CURSEDDOLLFRONT_34, };
+
+		animationFrames["Hanged Man"]["ACTION_BACK"].internalList = { HANGEDMANBACK_1,HANGEDMANBACK_2,HANGEDMANBACK_3,HANGEDMANBACK_4,HANGEDMANBACK_5,HANGEDMANBACK_6,HANGEDMANBACK_7,HANGEDMANBACK_8,HANGEDMANBACK_9,HANGEDMANBACK_10,HANGEDMANBACK_11,HANGEDMANBACK_12,HANGEDMANBACK_13,HANGEDMANBACK_14,HANGEDMANBACK_15,HANGEDMANBACK_16,HANGEDMANBACK_17,HANGEDMANBACK_18,HANGEDMANBACK_19,HANGEDMANBACK_20,HANGEDMANBACK_21,HANGEDMANBACK_22,HANGEDMANBACK_23,HANGEDMANBACK_24,HANGEDMANBACK_25,HANGEDMANBACK_26,HANGEDMANBACK_27,HANGEDMANBACK_28,HANGEDMANBACK_29,HANGEDMANBACK_30,HANGEDMANBACK_31,HANGEDMANBACK_32,HANGEDMANBACK_33,HANGEDMANBACK_34, };
+
+		animationFrames["Hanged Man"]["ACTION_FRONT"].internalList = { HANGEDMANFRONT_1,HANGEDMANFRONT_2,HANGEDMANFRONT_3,HANGEDMANFRONT_4,HANGEDMANFRONT_5,HANGEDMANFRONT_6,HANGEDMANFRONT_7,HANGEDMANFRONT_8,HANGEDMANFRONT_9,HANGEDMANFRONT_10,HANGEDMANFRONT_11,HANGEDMANFRONT_12,HANGEDMANFRONT_13,HANGEDMANFRONT_14,HANGEDMANFRONT_15,HANGEDMANFRONT_16,HANGEDMANFRONT_17,HANGEDMANFRONT_18,HANGEDMANFRONT_19,HANGEDMANFRONT_20,HANGEDMANFRONT_21,HANGEDMANFRONT_22,HANGEDMANFRONT_23,HANGEDMANFRONT_24,HANGEDMANFRONT_25,HANGEDMANFRONT_26,HANGEDMANFRONT_27,HANGEDMANFRONT_28,HANGEDMANFRONT_29,HANGEDMANFRONT_30,HANGEDMANFRONT_31,HANGEDMANFRONT_32,HANGEDMANFRONT_33,HANGEDMANFRONT_34, };
 
 		animationFrames["Minion"]["ACTION_BACK"].internalList = { MINIONBACK_1,MINIONBACK_2,MINIONBACK_3,MINIONBACK_4,MINIONBACK_5,MINIONBACK_6,MINIONBACK_7,MINIONBACK_8,MINIONBACK_9,MINIONBACK_10,MINIONBACK_11,MINIONBACK_12,MINIONBACK_13,MINIONBACK_14,MINIONBACK_15,MINIONBACK_16,MINIONBACK_17,MINIONBACK_18,MINIONBACK_19,MINIONBACK_20,MINIONBACK_21,MINIONBACK_22,MINIONBACK_23,MINIONBACK_24,MINIONBACK_25,MINIONBACK_26,MINIONBACK_27,MINIONBACK_28,MINIONBACK_29,MINIONBACK_30,MINIONBACK_31,MINIONBACK_32,MINIONBACK_33,MINIONBACK_34, };
 
@@ -2689,6 +2807,18 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 		animationFrames["Shadow Cardinal"]["SHADOW_THREE"].internalList = { PRIESTSHADOW_3 };
 		animationFrames["Shadow Cardinal"]["SHADOW_FOUR"].internalList = { PRIESTSHADOW_4 };
 		animationFrames["Shadow Cardinal"]["SHADOW_FIVE"].internalList = { PRIESTSHADOW_5 };
+
+		animationFrames["SPAINTAVERN1"]["STAND_FRONT"].internalList = { SPAINTAVERN1 };
+		animationFrames["TAVERNBED"]["STAND_FRONT"].internalList = { TAVERNBED };
+
+		animationFrames["TAVERNMAN"]["STAND_FRONT"].internalList = { TAVERNMAN_F1, TAVERNMAN_F2};
+		animationFrames["TAVERNMAN"]["STAND_RIGHT"].internalList = { TAVERNMAN_R1, TAVERNMAN_R2 };
+		animationFrames["TAVERNMAN"]["STAND_BACK"].internalList = { TAVERNMAN_B1, TAVERNMAN_B1 };
+		animationFrames["TAVERNWOMAN"]["STAND_FRONT"].internalList = { TAVERNWOMAN_F1, TAVERNWOMAN_F2 };
+		animationFrames["TAVERNWOMAN"]["STAND_RIGHT"].internalList = { TAVERNWOMAN_R1, TAVERNWOMAN_R2 };
+
+		animationFrames["CairoPalace"]["STAND_FRONT"].internalList = { CAIROPALACE };
+		animationFrames["CairoPalaceTop"]["STAND_FRONT"].internalList = { CAIROPALACETOP };
 	}
 		
 	string getSequenceAsString(string character, string action) {
@@ -2779,6 +2909,10 @@ public:
 		merchantDefinitions["BSMITHF"] = Merchant("BSMITHF", Map<string, list<string>>({
 			pair<string, list<string>>("NoFlags",{"Tome of Life Drain", "Tome of Heal Wounds"}),
 			}));
+		merchantDefinitions["IsobellaMerchant"] = Merchant("Isobella", Map<string, list<string>>({
+			pair<string, list<string>>("NoFlags",{"Tome of Life Drain", "Tome of Heal Wounds"}),
+			pair<string, list<string>>("OudinDefeated",{"Tome of Life Drain", "Tome of Heal Wounds"}),
+			}));
 
 	}
 
@@ -2802,23 +2936,40 @@ public:
 			}
 		}
 		if (cutsceneName == "TavernTianshun1") {
-			if (flags["IntroFinished"]) {}
+			if (flags["IntroFinished"]) {
+				cutsceneName = "TavernTianshun2";
+			}
+			if (flags["OudinDefeated"]) {
+				cutsceneName = "TavernTianshun3";
+			}
 			cutsceneName += "+" + player1;
 		}
 		if (cutsceneName == "TavernOlyver1") {
 			if (flags["IntroFinished"]) {}
+			if (flags["OudinDefeated"]) {
+				cutsceneName = "TavernOlyver3";
+			}
 			cutsceneName += "+" + player1;
 		}
 		if (cutsceneName == "TavernHernando1") {
 			if (flags["IntroFinished"]) {}
+			if (flags["OudinDefeated"]) {
+				cutsceneName = "TavernHernando3";
+			}
 			cutsceneName += "+" + player1;
 		}
 		if (cutsceneName == "TavernGihat1") {
 			if (flags["IntroFinished"]) {}
+			if (flags["OudinDefeated"]) {
+				cutsceneName = "TavernGihat3";
+			}
 			cutsceneName += "+" + player1;
 		}
 		if (cutsceneName == "TavernAngela1") {
 			if (flags["IntroFinished"]) {}
+			if (flags["OudinDefeated"]) {
+				cutsceneName = "TavernAngela3";
+			}
 			cutsceneName += "+" + player1;
 		}
 		if (cutsceneName == "TavernMichelet1") {
@@ -2904,14 +3055,17 @@ public:
 		}
 		if (cutsceneName == "Isobella") {
 			cutsceneName = "Isobella0";
-			if (flags["OudinDefeated"]) {
+			if (flags["OudinDefeated"] and !flags["WilliamQuestStarted"]) {
 				cutsceneName = "Isobella1";
 			}
-			if (!flags["WilliamQuestStarted"]) {
+			if (flags["OudinDefeated"] and flags["WilliamDefeated"]) {
 				cutsceneName = "Isobella2";
 			}
 			if (flags["WilliamDefeated"]) {
 				cutsceneName = "Isobella3";
+			}
+			if (flags["LookingForMichelet"]) {
+				cutsceneName = "Isobella4";
 			}
 		}
 		if (cutsceneName == "FireSpigotLeft") {
@@ -2946,6 +3100,26 @@ public:
 		if (cutsceneName == "EnterTheChapelNave") {
 			if (!flags["OudinDefeated"]) {
 				cutsceneName = "OudinFight";
+			}
+		}
+		if (cutsceneName == "TownGuards1") {
+			if (flags["OudinDefeated"]) {
+				cutsceneName = "TownGuards1OudinDefeated";
+			}
+		}
+		if (cutsceneName == "BeggarF") {
+			if (flags["OudinDefeated"]) {
+				cutsceneName = "BeggarFOudinDefeated";
+			}
+		}
+		if (cutsceneName == "OldWoman1") {
+			if (flags["OudinDefeated"]) {
+				cutsceneName = "OldWoman1OudinDefeated";
+			}
+		}
+		if (cutsceneName == "GraveDigger") {
+			if (flags["OudinDefeated"]) {
+				cutsceneName = "GraveDiggerOudinDefeated";
 			}
 		}
 		return cutsceneName;
