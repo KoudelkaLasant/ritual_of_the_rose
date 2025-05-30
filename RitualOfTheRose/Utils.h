@@ -1094,6 +1094,7 @@ public:
 	}
 	int getNextSaveSlot() {
 		int result = 1;
+		getAllLocalValidSaves();
 		if (!slots.getKeys().empty()) {
 			result = slots.getKeys().back() + 1;
 		}
@@ -2892,26 +2893,26 @@ public:
 	};
 	MerchantContainer() {
 		merchantDefinitions["OldBookMan"] = Merchant("OldBookMan", Map<string, list<string>>({
-			pair<string, list<string>>("NoFlags",{"Tome of Life Drain", "Tome of Heal Wounds"}),
+			pair<string, list<string>>("NoFlags",{"Tome of Life Drain", "Tome of Heal Wounds", "Tome of Fine Strike", "Tome of Heal Wounds","Tome of Rainstorm","Tome of Life Drain" }),
 			}));
 		merchantDefinitions["MerchantNPC1"] = Merchant("MerchantNPC1", Map<string, list<string>>({
-			pair<string, list<string>>("NoFlags",{"Tome of Life Drain", "Tome of Heal Wounds"}),
+			pair<string, list<string>>("NoFlags",{"Tome of Glass Sword", "Tome of Exalted Stab", "Tome of Bramble Cloak", "Tome of Trickblade"}),
 			}));
 		merchantDefinitions["MerchantNPC2"] = Merchant("MerchantNPC2", Map<string, list<string>>({
-			pair<string, list<string>>("NoFlags",{"Tome of Life Drain", "Tome of Heal Wounds"}),
+			pair<string, list<string>>("NoFlags",{"Tome of Charge Bolt", "Tome of Fire Bolt", "Tome of Crumble", "Tome of Sliprain"}),
 			}));
 		merchantDefinitions["MerchantNPC3"] = Merchant("MerchantNPC3", Map<string, list<string>>({
-			pair<string, list<string>>("NoFlags",{"Tome of Life Drain", "Tome of Heal Wounds"}),
+			pair<string, list<string>>("NoFlags",{"Tome of Blinded Eye", "Tome of Blood Gift", "Tome of Minion", "Tome of Exile"}),
 			}));
 		merchantDefinitions["BSMITHM"] = Merchant("BSMITHM", Map<string, list<string>>({
-			pair<string, list<string>>("NoFlags",{"Tome of Life Drain", "Tome of Heal Wounds"}),
+			pair<string, list<string>>("NoFlags",{"Richemont's Sword", "Dunois's Sword", "Guesclin's Sword", "de Stoute's Sword", "Bavarian Blade", }),
 			}));
 		merchantDefinitions["BSMITHF"] = Merchant("BSMITHF", Map<string, list<string>>({
-			pair<string, list<string>>("NoFlags",{"Tome of Life Drain", "Tome of Heal Wounds"}),
+			pair<string, list<string>>("NoFlags",{"Stewart's Armour", "Woodstock's Armour", "Gaunt's Armour", "Lancaster's Armour"}),
 			}));
 		merchantDefinitions["IsobellaMerchant"] = Merchant("Isobella", Map<string, list<string>>({
-			pair<string, list<string>>("NoFlags",{"Tome of Life Drain", "Tome of Heal Wounds"}),
-			pair<string, list<string>>("OudinDefeated",{"Tome of Life Drain", "Tome of Heal Wounds"}),
+			pair<string, list<string>>("NoFlags",{"Dido's Compass", "Promethean Icon", "Sif's Charm", "Carving of Enlil"}),
+			pair<string, list<string>>("OudinDefeated",{"Dido's Compass", "Promethean Icon", "Sif's Charm", "Carving of Enlil"}),
 			}));
 
 	}
@@ -2922,6 +2923,9 @@ MerchantContainer merchants;
 
 class FlagDependentCutsceneNameFinder {
 public:
+	FlagDependentCutsceneNameFinder() {
+		duplicateCutscenes();
+	}
 	static string getNameOfCutsceneDependingOnFlags(string cutsceneName) {
 		Map<string, bool> flags; flags.internalMap = saveContainer.current.flags;
 		string player1 = saveContainer.getPossibleCutsceneParticipants().front();
@@ -2936,7 +2940,7 @@ public:
 			}
 		}
 		if (cutsceneName == "TavernTianshun1") {
-			if (flags["IntroFinished"]) {
+			if (flags["ChapelRightCorridor+PAIR_TRIGGERED"]) {
 				cutsceneName = "TavernTianshun2";
 			}
 			if (flags["OudinDefeated"]) {
@@ -2945,28 +2949,36 @@ public:
 			cutsceneName += "+" + player1;
 		}
 		if (cutsceneName == "TavernOlyver1") {
-			if (flags["IntroFinished"]) {}
+			if (flags["ChapelRightCorridor+PAIR_TRIGGERED"]) {
+				cutsceneName = "TavernOlyver2";
+			}
 			if (flags["OudinDefeated"]) {
 				cutsceneName = "TavernOlyver3";
 			}
 			cutsceneName += "+" + player1;
 		}
 		if (cutsceneName == "TavernHernando1") {
-			if (flags["IntroFinished"]) {}
+			if (flags["ChapelRightCorridor+PAIR_TRIGGERED"]) {
+				cutsceneName = "TavernHernando2";
+			}
 			if (flags["OudinDefeated"]) {
 				cutsceneName = "TavernHernando3";
 			}
 			cutsceneName += "+" + player1;
 		}
 		if (cutsceneName == "TavernGihat1") {
-			if (flags["IntroFinished"]) {}
+			if (flags["ChapelRightCorridor+PAIR_TRIGGERED"]) {
+				cutsceneName = "TavernGihat2";
+			}
 			if (flags["OudinDefeated"]) {
 				cutsceneName = "TavernGihat3";
 			}
 			cutsceneName += "+" + player1;
 		}
 		if (cutsceneName == "TavernAngela1") {
-			if (flags["IntroFinished"]) {}
+			if (flags["ChapelRightCorridor+PAIR_TRIGGERED"]) {
+				cutsceneName = "TavernAngela2";
+			}
 			if (flags["OudinDefeated"]) {
 				cutsceneName = "TavernAngela3";
 			}
@@ -3124,5 +3136,28 @@ public:
 		}
 		return cutsceneName;
 	}
-	
+	static void duplicateCutscenes() {
+		// make copies of some cutscenes as needed
+		List<string> mainCharacters = saveContainer.getAllStartingCharacters();
+		Map<string, string> charactersToPlayers;
+		Map<string, string> playersToCharacters;
+		for (auto const& character : mainCharacters.internalList) {
+			charactersToPlayers[character] = (split(character, " ").at(0));
+			playersToCharacters[split(character, " ").at(0)] = character;
+		}
+		List<string> mainPlayers = playersToCharacters.getKeys();
+		for (auto const& [language, content] : strings) {
+			for (auto player : mainPlayers.internalList) {
+				for (auto character : mainCharacters.internalList) {
+					if (player == charactersToPlayers[character]) { continue; }
+					for (auto const& which : { "2","3" }) {
+						if (strings[language]["Tavern" + player + which + "+" + character] == map<string, wstring>({})) {
+							strings[language]["Tavern" + player + which + "+" + character] = strings[language]["Tavern" + charactersToPlayers[character] + which + "+" + playersToCharacters[player]];
+						}
+					}
+				}
+			}
+		} 
+	}
 };
+FlagDependentCutsceneNameFinder CutsceneFinder;

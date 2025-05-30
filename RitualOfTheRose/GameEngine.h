@@ -2157,6 +2157,7 @@ return true;
 						pair<string, string>("menuName", data["uniqueID"]), 
 						pair<string, string>("whichMerchant", data["whichMerchant"]),
 						pair<string, string>("objectID", data["objectID"]),
+						pair<string, string>("contents", data["contents"]),
 						})).run(*&gameEngine);
 					return false;
 				}
@@ -2274,6 +2275,7 @@ return true;
 								pair<string, string>("menuName", data["uniqueID"]),
 								pair<string, string>("whichMerchant", data["whichMerchant"]),
 								pair<string, string>("objectID", data["objectID"]),
+								pair<string, string>("contents", data["contents"]),
 								})).run(*&gameEngine);
 						}
 					}
@@ -2844,12 +2846,14 @@ return true;
 					gameEngine.activeProcedure = Procedure("Explore", { Event("Explore","EXPLORE",{}) });
 					string objectName = data["objectID"];
 					string flagName = data["objectID"] + "_OPENED";
+					string item = data["contents"];
 					saveContainer.current.flags[flagName] = true;
 					Explorer::mapObject & obj = explorer.getThisMapObject(objectName);
 					obj.canInteract = false;
 					Event("UpdateMap", "EXPLORE", Map<string, string>({
 						pair <string,string>("force","1"),
 						})).run(*&gameEngine);
+					saveContainer.increaseItemInventoryCount(item);
 					saveContainer.save();
 					return true;
 				}
@@ -3103,6 +3107,30 @@ return true;
 					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("NEWGAME");
 					return true;
 				}
+				if (buttonLogic == "Credits") {
+					Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("message","$LANGUAGE$_GUI_CREDITSMESSAGE"),
+						pair<string, string>("animateExisting","0"),
+						pair<string, string>("format", "Centaur_25"),
+						pair<string, string>("anchorStyle", "TOPLEFT"),
+						pair<string, string>("x", "10"),
+						pair<string, string>("y", "10"),
+						pair<string, string>("w", "70"),
+						pair<string, string>("h", "700"),
+						pair<string, string>("colour", "ELITESKILLYELLOW"),
+						pair<string, string>("shadowColour", "DARKBROWN"),
+						pair<string, string>("layer", "4"),
+						pair<string, string>("uniqueID", "CreditsText"),
+						pair<string, string>("animated", "TRUE"),
+						}))).run(*&gameEngine);
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "MAINMENU")).run(*&gameEngine);
+					Event("Return", "TEARDOWNIMAGE", pair<string, string>("uniqueID", "Logo")).run(*&gameEngine);
+					Event("Return", "TEARDOWNTEXT", pair<string, string>("uniqueID", "credits")).run(*&gameEngine);
+					Event("Return", "TEARDOWNTEXT", pair<string, string>("uniqueID", "version")).run(*&gameEngine);
+					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("CREDITS");
+				}
+
+
 				if (buttonLogic == "LoadGame") {
 					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "MAINMENU")).run(*&gameEngine);
 					Event("Return", "TEARDOWNIMAGE", pair<string, string>("uniqueID", "Logo")).run(*&gameEngine);
@@ -3118,57 +3146,15 @@ return true;
 					Event("Return", "TEARDOWNTEXT", pair<string, string>("uniqueID", "newGameCharacterDescription")).run(*&gameEngine);
 					Event("Return", "TEARDOWNTEXT", pair<string, string>("uniqueID", "startMenu2")).run(*&gameEngine);
 					Event("Return", "TEARDOWNTEXT", pair<string, string>("uniqueID", "startMenu1")).run(*&gameEngine);
-					Event("Load Image", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
-						pair<string, string>("sources", imageLookup.getSequenceAsString("LOGO","ACTION_1")),
-						pair<string, string>("x", "50"),
-						pair<string, string>("y", "30"),
-						pair<string, string>("anchor", "CENTRE"),
-						pair<string, string>("opacity", "0.0"),
-						pair<string, string>("layer", "2"),
-						pair<string, string>("styles", "FADEIN$LOOP"),
-						pair<string, string>("uniqueID", "Logo"),
-						pair<string, string>("animated", "1"),
-						pair<string, string>("animation_speed", "120"),
-						}))).run(*&gameEngine);
-					Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
-								pair<string, string>("message","$LANGUAGE$_GUI_VERSION"),
-								pair<string, string>("animateExisting","0"),
-								pair<string, string>("format", "Centaur_25"),
-								pair<string, string>("anchorStyle", "TOPLEFT"),
-								pair<string, string>("x", "2"),
-								pair<string, string>("y", "95"),
-								pair<string, string>("w", "100"),
-								pair<string, string>("h", "10"),
-								pair<string, string>("colour", "ELITESKILLYELLOW"),
-								pair<string, string>("shadowColour", "DARKBROWN"),
-								pair<string, string>("layer", "4"),
-								pair<string, string>("uniqueID", "version"),
-								pair<string, string>("animated", "TRUE"),
-								pair<string, string>("styles", "TYPEWRITER"),
-								pair<string, string>("typewriterSpeed", "25"),
-								pair<string, string>("nowait", "1"),
-						}))).run(*&gameEngine);
-					Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
-										pair<string, string>("message","$LANGUAGE$_GUI_CREDIT"),
-										pair<string, string>("animateExisting","0"),
-										pair<string, string>("format", "Centaur_25"),
-										pair<string, string>("anchorStyle", "TOPLEFT"),
-										pair<string, string>("x", "85"),
-										pair<string, string>("y", "95"),
-										pair<string, string>("w", "100"),
-										pair<string, string>("h", "10"),
-										pair<string, string>("colour", "ELITESKILLYELLOW"),
-										pair<string, string>("shadowColour", "DARKBROWN"),
-										pair<string, string>("layer", "4"),
-										pair<string, string>("uniqueID", "credits"),
-										pair<string, string>("animated", "TRUE"),
-										pair<string, string>("styles", "TYPEWRITER"),
-										pair<string, string>("typewriterSpeed", "25"),
-										pair<string, string>("nowait", "1"),
-						}))).run(*&gameEngine);
-					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("MAINMENU");
+					Event("Return", "LOADBOOTMENU", {}).run(*&gameEngine);
 					return false;
 				}
+				if (buttonLogic == "CreditsToMain") {
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "CREDITS")).run(*&gameEngine);
+					Event("Return", "TEARDOWNTEXT", pair<string, string>("uniqueID", "CreditsText")).run(*&gameEngine);
+					Event("Return", "LOADBOOTMENU", {}).run(*&gameEngine);
+				}
+
 				if (buttonLogic.find("LoadThisSaveSlot_") != -1) {
 					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "MAINMENU")).run(*&gameEngine);
 					Event("Return", "TEARDOWNIMAGE", pair<string, string>("uniqueID", "Logo")).run(*&gameEngine);
@@ -3177,14 +3163,18 @@ return true;
 					string whichSlot = split(buttonLogic, "_").at(1);
 					audio.fadeOutAndStopThis(MENU1_WAV, 3);
 					saveContainer.current = saveContainer.slots[stoi(whichSlot)];
+					saveContainer.activeSaveSlot = stoi(whichSlot);
 					if (!saveContainer.current.flags["IntroFinished"]) {
 						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "NewGameCutscene", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					}
 					else {
-						saveContainer.activeSaveSlot = stoi(whichSlot);
 						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "TavernTeleport", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					}
 					return false;
+				}
+				if (buttonLogic == "LoadGameToMain") {
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "LOADGAME")).run(*&gameEngine);
+					Event("Return", "LOADBOOTMENU", {}).run(*&gameEngine);
 				}
 				if (buttonLogic == "StartGame") {
 					Event("Load Image", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
@@ -3547,7 +3537,7 @@ return true;
 					return false;
 				}
 				if (buttonLogic == "DebugButton_ChapelFinished") {
-					List<string> toToggle = List<string>({ "HorsemanCutscene1_TRIGGERED", "IntroFinished", "OudinIntro_TRIGGERED", "OudinCutscenePlanks_TRIGGERED", "VisionRoom_TRIGGERED", "VisionRoom2_TRIGGERED", "OudinHostileTriggered", "SawOudinThroughGap",
+					List<string> toToggle = List<string>({ "HorsemanCutscene1_TRIGGERED", "IntroFinished", "OudinIntro_TRIGGERED", "ChapelRightCorridor+PAIR_TRIGGERED", "OudinCutscenePlanks_TRIGGERED", "VisionRoom_TRIGGERED", "VisionRoom2_TRIGGERED", "OudinHostileTriggered", "SawOudinThroughGap",
 						"BloodWallIntro_TRIGGERED", "BloodWallIntro", "WaterPuzzleFinished","FireSpigotLeftActivated", "FireSpigotTopLeftActivated", "SpigotPuzzleDone", "VisionLCutscene_TRIGGERED", "BloodWallDestroyed", "OudinDefeated",
 						});
 					for (auto t : toToggle.internalList) {
@@ -3610,6 +3600,58 @@ return true;
 				}
 				return true;
 }
+			if (type == "LOADBOOTMENU") {
+				Event("Load Image", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
+						pair<string, string>("sources", imageLookup.getSequenceAsString("LOGO","ACTION_1")),
+						pair<string, string>("x", "50"),
+						pair<string, string>("y", "30"),
+						pair<string, string>("anchor", "CENTRE"),
+						pair<string, string>("opacity", "0.0"),
+						pair<string, string>("layer", "2"),
+						pair<string, string>("styles", "FADEIN$LOOP"),
+						pair<string, string>("uniqueID", "Logo"),
+						pair<string, string>("animated", "1"),
+						pair<string, string>("animation_speed", "120"),
+					}))).run(*&gameEngine);
+				Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
+							pair<string, string>("message","$LANGUAGE$_GUI_VERSION"),
+							pair<string, string>("animateExisting","0"),
+							pair<string, string>("format", "Centaur_25"),
+							pair<string, string>("anchorStyle", "TOPLEFT"),
+							pair<string, string>("x", "88"),
+							pair<string, string>("y", "95"),
+							pair<string, string>("w", "100"),
+							pair<string, string>("h", "10"),
+							pair<string, string>("colour", "ELITESKILLYELLOW"),
+							pair<string, string>("shadowColour", "DARKBROWN"),
+							pair<string, string>("layer", "4"),
+							pair<string, string>("uniqueID", "version"),
+							pair<string, string>("animated", "TRUE"),
+							pair<string, string>("styles", "TYPEWRITER"),
+							pair<string, string>("typewriterSpeed", "25"),
+							pair<string, string>("nowait", "1"),
+					}))).run(*&gameEngine);
+				Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
+									pair<string, string>("message","$LANGUAGE$_GUI_CREDIT"),
+									pair<string, string>("animateExisting","0"),
+									pair<string, string>("format", "Centaur_25"),
+									pair<string, string>("anchorStyle", "TOPLEFT"),
+									pair<string, string>("x", "2"),
+									pair<string, string>("y", "95"),
+									pair<string, string>("w", "100"),
+									pair<string, string>("h", "10"),
+									pair<string, string>("colour", "ELITESKILLYELLOW"),
+									pair<string, string>("shadowColour", "DARKBROWN"),
+									pair<string, string>("layer", "4"),
+									pair<string, string>("uniqueID", "credits"),
+									pair<string, string>("animated", "TRUE"),
+									pair<string, string>("styles", "TYPEWRITER"),
+									pair<string, string>("typewriterSpeed", "25"),
+									pair<string, string>("nowait", "1"),
+					}))).run(*&gameEngine);
+				gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("MAINMENU");
+				return false;
+			}
 			if (type == "LOADSKILLBARHERE") {
 				bool drawFullSkillbar = data["full"] == "1"; // draw background and default skills
 				string who = data["who"];
@@ -7046,7 +7088,7 @@ return true;
 				pair<string, string>("animateExisting","0"),
 				pair<string, string>("format", "Centaur_25"),
 				pair<string, string>("anchorStyle", "TOPLEFT"),
-				pair<string, string>("x", "2"),
+				pair<string, string>("x", "88"),
 				pair<string, string>("y", "95"),
 				pair<string, string>("w", "100"),
 				pair<string, string>("h", "10"),
@@ -7064,7 +7106,7 @@ return true;
 				pair<string, string>("animateExisting","0"),
 				pair<string, string>("format", "Centaur_25"),
 				pair<string, string>("anchorStyle", "TOPLEFT"),
-				pair<string, string>("x", "85"),
+				pair<string, string>("x", "2"),
 				pair<string, string>("y", "95"),
 				pair<string, string>("w", "100"),
 				pair<string, string>("h", "10"),
@@ -7228,6 +7270,7 @@ return true;
 		pair<string, Menu>(
 			"MAINMENU", Menu("MAINMENU", List<Menu::Button>({
 				Menu::standardButton("NewGame", "GUI_NEWGAME", {30,75}),
+				Menu::smallButton("Credits", "GUI_CREDITS", {50,97}),
 				Menu::standardButton("LoadGame", "GUI_LOADGAME", {70,75}),
 				}), {})),
 		pair<string, Menu>(
@@ -7240,6 +7283,13 @@ return true;
 						pair<string, string>("CHARACTERTOEDITOFFSETY", "35"),
 						pair<string, string>("CHARACTERTOEDITSCALE", "0.8"),
 						pair<string, string>("TYPEWRITERTEXT_1", "startMenu1"),
+						pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " NewGameToMain"),
+					}))),
+		pair<string, Menu>(
+			"CREDITS", Menu("CREDITS", List<Menu::Button>({
+				Menu::standardButton("CreditsToMain", "GUI_RETURN", {80,93}),
+				}), Map<string, string>({
+					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " CreditsToMain"),
 					}))),
 		pair<string, Menu>(
 			"LOADGAME", Menu("LOADGAME", List<Menu::Button>({
@@ -7538,6 +7588,7 @@ return true;
 		events.push_back(Event("HandleMenu", "HANDLEMENU", Map<string, string>({
 			pair<string, string>("uniqueID", "YOUFOUNDANITEM"),
 			pair<string, string>("objectID", data["imageID"]),
+			pair<string, string>("contents", data["contents"]),
 			})));
 		return Procedure("HandleChest", events);
 	}

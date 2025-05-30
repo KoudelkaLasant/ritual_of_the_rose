@@ -29,8 +29,8 @@ public:
 		influenceLookups["WAYFARINGBOOST"] = 0.06;
 		influenceLookups["WEATHERBOOST"] = 0.06;
 		influenceLookups["BLOODBOOST"] = 0.06;
-		influenceLookups["Minor ArmsBOOST"] = 0.06;
-		influenceLookups["ArmsBOOST"] = 0.06;
+		influenceLookups["MINORARMSBOOST"] = 0.06;
+		influenceLookups["ARMSBOOST"] = 0.06;
 
 		// skillValueBoosts
 		Map<string, wstring> types; types.internalMap = strings["ENG"]["Type Names"];
@@ -353,6 +353,9 @@ public:
 			wstring result;
 			if (tag.find("BOOST") != -1) {
 				result = strings[language]["Item Effect Strings"]["XBOOST"];
+				if (influence < 0) {
+					result = strings[language]["Item Effect Strings"]["XDRAIN"];
+				}
 				string typeName = SReplace(tag, "BOOST", "");
 				wstring typeNameLower = strings[language]["Type Names"][typeName];
 				result = WSReplace(result, L"$REPLACE1$", typeNameLower);
@@ -363,6 +366,9 @@ public:
 			}
 			if (tag.find("PLUS") != -1) {
 				result = strings[language]["Item Effect Strings"]["ATTUPP"];
+				if (influence < 0) {
+					result = strings[language]["Item Effect Strings"]["ATTDOWN"];
+				}
 				string typeName = SReplace(tag, "PLUS", "");
 				wstring typeNameLower = strings[language]["Other Stat Names"][typeName];
 				result = WSReplace(result, L"$REPLACE1$", typeNameLower);
@@ -382,6 +388,9 @@ public:
 			}
 			if (combat.AttributesInOrder.contains(tag)) {
 				result = strings[language]["Item Effect Strings"]["ATTUPP"];
+				if (influence < 0) {
+					result = strings[language]["Item Effect Strings"]["ATTDOWN"];
+				}
 				wstring typeAsWS = strings[language]["Attribute Names"][tag];
 
 				result = WSReplace(result, L"$REPLACE1$", typeAsWS);
@@ -1084,8 +1093,8 @@ public:
 			if (combat.currentBattle != NULL) {
 				for (EffectObjectInstance* effect : combat.currentBattle->getAllEffectsOnXInTimeOrderOldestFirst(uniqueCombatID).internalList) {
 					if (effect->e.logicName == "Weaponsmithing") {
-						percentInfluences["ArmsBOOST"] = TChange(percentInfluences["ArmsBOOST"], effect->e.values["power"], 0, 9999);
-						percentInfluences["Minor ArmsBOOST"] = TChange(percentInfluences["Minor ArmsBOOST"], effect->e.values["power"], 0, 9999);
+						percentInfluences["ARMSBOOST"] = TChange(percentInfluences["ARMSBOOST"], effect->e.values["power"], 0, 9999);
+						percentInfluences["MINORARMSBOOST"] = TChange(percentInfluences["MINORARMSBOOST"], effect->e.values["power"], 0, 9999);
 					}
 					if (effect->e.logicName == "Brutalism") {
 						percentInfluences["STRENGTH"] = TChange(percentInfluences["STRENGTH"], effect->e.values["power"], 0, 9999);
@@ -5479,22 +5488,22 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", "DAMAGE_SINGLE_PHYSICAL" }),
 			list<string>({ "PHYSICAL","ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 11, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))), }),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 11, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))), }),
 				list<string>({ "DEALDAMAGE" }), DOUBLESTRIKE_1_WAV);
 
 		skillDefinitions["Serrated Strike"] = Skill("Serrated Strike", "Serrated Strike", "Minor Arms", SKILLICON_SERRATEDSTRIKE, 15, 0, 2, "SINGLEFOE",
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", "APPLY_BLEEDING_SINGLE" }),
 			list<string>({ "PHYSICAL","ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 12, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
-				pair<string, PowerValue>("DURATION_BLEEDING", PowerValue("DURATION_BLEEDING", 3, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))), }),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 12, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
+				pair<string, PowerValue>("DURATION_BLEEDING", PowerValue("DURATION_BLEEDING", 3, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))), }),
 				list<string>({ "DEALDAMAGE" }), SERRATEDSTRIKE_WAV);
 
 		skillDefinitions["Deathdancer's Strike"] = Skill("Deathdancer's Strike", "Deathdancer's Strike", "Minor Arms", SKILLICON_DEATHDANCERSSTRIKE, 10, 0, 1, "SINGLEFOE",
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", }),
 			list<string>({ "PHYSICAL","ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 12, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 12, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), DEATHDANCERSTRIKE_WAV);
 
@@ -5502,7 +5511,7 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", }),
 			list<string>({ "PHYSICAL","ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 5, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 5, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), NATURALSTAB_WAV);
 
@@ -5510,8 +5519,8 @@ public:
 			list<string>({ "MANAHEAL_SELF_SHADOW", "DAMAGE_SINGLE_PHYSICAL"}),
 			list<string>({ "PHYSICAL","ATTACK", "ELITE",}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 30, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
-				pair<string, PowerValue>("MANAHEAL_SELF_SHADOW", PowerValue("MANAHEAL_SELF_SHADOW", 15, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST", "SHADOWBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 30, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
+				pair<string, PowerValue>("MANAHEAL_SELF_SHADOW", PowerValue("MANAHEAL_SELF_SHADOW", 15, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST", "SHADOWBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), PLATINUMLOTUSSTRIKE_WAV);
 
@@ -5519,7 +5528,7 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", }),
 			list<string>({ "PHYSICAL","ATTACK", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 22, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 22, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), EXALTEDSTAB_WAV);
 
@@ -5527,8 +5536,8 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", }),
 			list<string>({ "PHYSICAL","ATTACK", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 12, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
-				pair<string, PowerValue>("BONUS", PowerValue("BONUS", 45, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 12, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
+				pair<string, PowerValue>("BONUS", PowerValue("BONUS", 45, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), BACKSTAB_WAV);
 
@@ -5536,8 +5545,8 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", "APPLY_POISONED_SINGLE"}),
 			list<string>({ "PHYSICAL","ATTACK", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 14, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
-				pair<string, PowerValue>("DURATION_POISONED", PowerValue("DURATION_POISONED", 3, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 14, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
+				pair<string, PowerValue>("DURATION_POISONED", PowerValue("DURATION_POISONED", 3, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), BLACKMAMBASTRIKE_WAV);
 
@@ -5545,8 +5554,8 @@ public:
 			list<string>({ "DAMAGE_SINGLE_ELECTRIC", "INTERRUPT_SINGLE_ELECTRIC", "APPLY_STATIC_SINGLE" }),
 			list<string>({ "PHYSICAL","ATTACK", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_ELECTRIC", PowerValue("DAMAGE_SINGLE_ELECTRIC", 14, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
-				pair<string, PowerValue>("DURATION_STATIC", PowerValue("DURATION_STATIC", 5, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_ELECTRIC", PowerValue("DAMAGE_SINGLE_ELECTRIC", 14, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
+				pair<string, PowerValue>("DURATION_STATIC", PowerValue("DURATION_STATIC", 5, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), STORMDRAGONSTRIKE_WAV);
 
@@ -5554,8 +5563,8 @@ public:
 			list<string>({ "DAMAGE_SPLASH_PHYSICAL",}),
 			list<string>({ "PHYSICAL","ATTACK", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 25, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
-				pair<string, PowerValue>("DAMAGE_ALLFOES_PHYSICAL", PowerValue("DAMAGE_ALLFOES_PHYSICAL", 12, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 25, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_ALLFOES_PHYSICAL", PowerValue("DAMAGE_ALLFOES_PHYSICAL", 12, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), SCATTERSTRIKE_WAV);
 
@@ -5563,8 +5572,8 @@ public:
 			list<string>({ "APPLY_Paralytic Venom_SINGLE" }),
 			list<string>({ "PHYSICAL", "ELITE"}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Paralytic Venom", PowerValue("DURATION_Paralytic Venom", 6, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
-				pair<string, PowerValue>("POWER_Paralytic Venom", PowerValue("POWER_Paralytic Venom", 5, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
+				pair<string, PowerValue>("DURATION_Paralytic Venom", PowerValue("DURATION_Paralytic Venom", 6, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
+				pair<string, PowerValue>("POWER_Paralytic Venom", PowerValue("POWER_Paralytic Venom", 5, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
 				}),
 				list<string>({ "ENCHANTSELF" }), PARALYTICVENOM_WAV);
 
@@ -5572,22 +5581,22 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", "DAMAGE_SINGLE_PHYSICAL" }),
 			list<string>({ "PHYSICAL","ATTACK", "ELITE",}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 22, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))), }),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 22, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))), }),
 				list<string>({ "DEALDAMAGE" }), BLADESOFPUNISHMENT_WAV);
 
 		skillDefinitions["Spirit Shanks"] = Skill("Spirit Shanks", "Spirit Shanks", "Minor Arms", SKILLICON_SPIRITSHANKS, 15, 0, 5, "SINGLEFOE",
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", "DAMAGE_SINGLE_PHYSICAL", "REMOVEBOON_SINGLE_PHYSICAL", "REMOVEBOON_SINGLE_PHYSICAL"}),
 			list<string>({ "PHYSICAL","ATTACK", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 12, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))), }),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 12, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))), }),
 				list<string>({ "DEALDAMAGE" }), SPIRITSHANKS_WAV);
 
 		skillDefinitions["Brutalism"] = Skill("Brutalism", "Brutalism", "Minor Arms", SKILLICON_BRUTALISM, 5, 0, 10, "SELF",
 			list<string>({ "APPLY_Brutalism_SINGLE" }),
 			list<string>({ "PHYSICAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Brutalism", PowerValue("DURATION_Brutalism", 7, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
-				pair<string, PowerValue>("POWER_Brutalism", PowerValue("POWER_Brutalism", 6, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
+				pair<string, PowerValue>("DURATION_Brutalism", PowerValue("DURATION_Brutalism", 7, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
+				pair<string, PowerValue>("POWER_Brutalism", PowerValue("POWER_Brutalism", 6, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
 				}),
 				list<string>({ "ENCHANTSELF" }), BRUTALISM_WAV);
 
@@ -5595,39 +5604,39 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", "DAMAGE_SINGLE_PHYSICAL", "INTERRUPT_SINGLE_PHYSICAL"}),
 			list<string>({ "PHYSICAL","ATTACK", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 12, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))), }),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 12, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))), }),
 				list<string>({ "DEALDAMAGE" }), ROYALSLICERS_WAV);
 
 		skillDefinitions["Parting Stab"] = Skill("Parting Stab", "Parting Stab", "Minor Arms", SKILLICON_PARTINGSTAB, 15, 0, 8, "SINGLEFOE",
 			list<string>({ "APPLY_Parting Stab_SELF", "DAMAGE_SINGLE_PHYSICAL", }),
 			list<string>({ "PHYSICAL","ATTACK", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 30, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
-				pair<string, PowerValue>("DURATION_Parting Stab", PowerValue("DURATION_Parting Stab", 1, 1, 1, true, list<string>({ "STRENGTH", "Minor ArmsBOOST" }))),
-				pair<string, PowerValue>("POWER_Parting Stab", PowerValue("POWER_Parting Stab", 30, 1, 1, true, list<string>({ "STRENGTH", "Minor ArmsBOOST" }))), }),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 30, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
+				pair<string, PowerValue>("DURATION_Parting Stab", PowerValue("DURATION_Parting Stab", 1, 1, 1, true, list<string>({ "STRENGTH", "MINORARMSBOOST" }))),
+				pair<string, PowerValue>("POWER_Parting Stab", PowerValue("POWER_Parting Stab", 30, 1, 1, true, list<string>({ "STRENGTH", "MINORARMSBOOST" }))), }),
 				list<string>({ "DEALDAMAGE" }), PARTINGSTAB_WAV);
 
 		skillDefinitions["Magehunter Strike"] = Skill("Magehunter Strike", "Magehunter Strike", "Minor Arms", SKILLICON_MAGEHUNTERSTRIKE, 25, 0, 8, "FOECASTINGASPELL",
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", "INTERRUPT_SINGLE_PHYSICAL", "APPLY_CONCUSSED_SINGLE"}),
 			list<string>({ "PHYSICAL","ATTACK", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 30, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
-				pair<string, PowerValue>("DURATION_CONCUSSED", PowerValue("DURATION_CONCUSSED", 1, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST" }))), }),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 30, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
+				pair<string, PowerValue>("DURATION_CONCUSSED", PowerValue("DURATION_CONCUSSED", 1, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST" }))), }),
 				list<string>({ "DEALDAMAGE" }), MAGEHUNTERSTRIKE_WAV);
 
 		skillDefinitions["Shattered Moebius"] = Skill("Shattered Moebius", "Shattered Moebius", "Minor Arms", SKILLICON_SHATTEREDMOEBIUS, 5, 0, 10, "SELF",
 			list<string>({ "APPLY_Shattered Moebius_SELF", }),
 			list<string>({ "PHYSICAL","ATTACK", "ELITE", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Shattered Moebius", PowerValue("DURATION_Shattered", 3, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST" }))), }),
+				pair<string, PowerValue>("DURATION_Shattered Moebius", PowerValue("DURATION_Shattered", 3, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST" }))), }),
 				list<string>({ "DEALDAMAGE" }), SHATTEREDMOEBIUS_WAV);
 
 		skillDefinitions["Paralytic Venom"] = Skill("Paralytic Venom", "Paralytic Venom", "Minor Arms", SKILLICON_PARALYTICVENOM, 10, 0, 10, "SELF",
 			list<string>({ "APPLY_Paralytic Venom_SINGLE" }),
 			list<string>({ "PHYSICAL", "ELITE" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Paralytic Venom", PowerValue("DURATION_Paralytic Venom", 6, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
-				pair<string, PowerValue>("POWER_Paralytic Venom", PowerValue("POWER_Paralytic Venom", 5, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
+				pair<string, PowerValue>("DURATION_Paralytic Venom", PowerValue("DURATION_Paralytic Venom", 6, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
+				pair<string, PowerValue>("POWER_Paralytic Venom", PowerValue("POWER_Paralytic Venom", 5, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
 				}),
 				list<string>({ "ENCHANTSELF" }), PARALYTICVENOM_WAV);
 
@@ -5635,8 +5644,8 @@ public:
 			list<string>({ "APPLY_Death Chant_SELF" }),
 			list<string>({ "PHYSICAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Death Chant", PowerValue("DURATION_Death Chant", 6, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
-				pair<string, PowerValue>("POWER_Death Chant", PowerValue("POWER_Death Chant", 15, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
+				pair<string, PowerValue>("DURATION_Death Chant", PowerValue("DURATION_Death Chant", 6, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
+				pair<string, PowerValue>("POWER_Death Chant", PowerValue("POWER_Death Chant", 15, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
 				}),
 				list<string>({ "ENCHANTSELF" }), DEATHCHANT_WAV);
 
@@ -5644,8 +5653,8 @@ public:
 			list<string>({ "APPLY_Shroud of Intrigue_SELF" }),
 			list<string>({ "PHYSICAL", "ELITE", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Shroud of Intrigue", PowerValue("DURATION_Shroud of Intrigue", 2, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
-				pair<string, PowerValue>("POWER_Shroud of Intrigue", PowerValue("POWER_Shroud of Intrigue", 33, 0, 999, true, list<string>({ "STRENGTH", "Minor ArmsBOOST"}))),
+				pair<string, PowerValue>("DURATION_Shroud of Intrigue", PowerValue("DURATION_Shroud of Intrigue", 2, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
+				pair<string, PowerValue>("POWER_Shroud of Intrigue", PowerValue("POWER_Shroud of Intrigue", 33, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
 				}),
 				list<string>({ "ENCHANTSELF" }), SHROUDOFINTRIGUE_WAV);
 
@@ -5819,8 +5828,8 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", }),
 			list<string>({ "PHYSICAL", "ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("CRITICALBOOST", PowerValue("CRITICALBOOST", 40, 0, 100, true, list<string>({ "STRENGTH", "1H Weapon MasteryBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("CRITICALBOOST", PowerValue("CRITICALBOOST", 40, 0, 100, true, list<string>({ "STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), -1);
 
@@ -5828,8 +5837,8 @@ public:
 			list<string>({ "DAMAGE_ALLFOES_PHYSICAL",}),
 			list<string>({ "PHYSICAL","ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("RECHARGE",PowerValue("RECHARGE",5,2,999,false,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("RECHARGE",PowerValue("RECHARGE",5,2,999,false,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), ROTATIONBLADE_WAV);
 
@@ -5837,8 +5846,8 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL","APPLY_WEAKENED_SINGLE"}),
 			list<string>({ "PHYSICAL","ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",20,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("DURATION_WEAKENED", PowerValue("DURATION_WEAKENED", 5, 0, 15, true, list<string>({ "STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",20,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("DURATION_WEAKENED", PowerValue("DURATION_WEAKENED", 5, 0, 15, true, list<string>({ "STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), DEBILITATINGSMASH_WAV);
 
@@ -5846,8 +5855,8 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL","APPLY_CONCUSSED_SINGLE","INTERRUPT_SINGLE_PHYSICAL"}),
 			list<string>({ "PHYSICAL","ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",12,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("DURATION_CONCUSSED", PowerValue("DURATION_CONCUSSED", 1, 0, 15, true, list<string>({ "STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",12,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("DURATION_CONCUSSED", PowerValue("DURATION_CONCUSSED", 1, 0, 15, true, list<string>({ "STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), CLOBBER_WAV);
 
@@ -5855,9 +5864,9 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL","APPLY_Cleave Armour_SINGLE",}),
 			list<string>({ "PHYSICAL","ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("DURATION_Cleave Armour", PowerValue("DURATION_Cleave Armour", 5, 0, 15, true, list<string>({ "STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("POWER_Cleave Armour", PowerValue("POWER_Cleave Armour", 10, 0, 99, true, list<string>({ "STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("DURATION_Cleave Armour", PowerValue("DURATION_Cleave Armour", 5, 0, 15, true, list<string>({ "STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("POWER_Cleave Armour", PowerValue("POWER_Cleave Armour", 10, 0, 99, true, list<string>({ "STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), CLEAVEARMOUR_WAV);
 
@@ -5865,8 +5874,8 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL","APPLY_CRIPPLED_SINGLE", }),
 			list<string>({ "PHYSICAL","ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",12,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("DURATION_CRIPPLED", PowerValue("DURATION_CRIPPLED", 5, 0, 15, true, list<string>({ "STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",12,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("DURATION_CRIPPLED", PowerValue("DURATION_CRIPPLED", 5, 0, 15, true, list<string>({ "STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), CLEAVEARMOUR_WAV);
 
@@ -5874,7 +5883,7 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", }),
 			list<string>({ "PHYSICAL","ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",35,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",35,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), BULLDOZE_WAV);
 
@@ -5882,8 +5891,8 @@ public:
 			list<string>({ "APPLY_On My Target!_SINGLE", }),
 			list<string>({ "PHYSICAL","ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_On My Target!",PowerValue("DURATION_On My Target!",5,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("POWER_On My Target!",PowerValue("POWER_On My Target!",10,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DURATION_On My Target!",PowerValue("DURATION_On My Target!",5,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("POWER_On My Target!",PowerValue("POWER_On My Target!",10,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), ONMYTARGET_WAV);
 
@@ -5891,8 +5900,8 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL","APPLY_BLEEDING_SINGLE"}),
 			list<string>({ "PHYSICAL","ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",12,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("DURATION_BLEEDING",PowerValue("DURATION_BLEEDING",5,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",12,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("DURATION_BLEEDING",PowerValue("DURATION_BLEEDING",5,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), CLEAVEARMOUR_WAV);
 
@@ -5900,7 +5909,7 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL","INTERRUPT_SINGLE_PHYSICAL" }),
 			list<string>({ "PHYSICAL", "ATTACK", "ELITE", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",11,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",11,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), HACK_WAV);
 
@@ -5908,8 +5917,8 @@ public:
 			list<string>({ "DAMAGE_ALLFOES_PHYSICAL","APPLY_Reckless Swing_SELF" }),
 			list<string>({ "PHYSICAL","ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("DURATION_Reckless Swing",PowerValue("DURATION_Reckless",3,3,3,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("DURATION_Reckless Swing",PowerValue("DURATION_Reckless",3,3,3,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), RECKLESSSWING_WAV);
 
@@ -5917,7 +5926,7 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", }),
 			list<string>({ "PHYSICAL","ATTACK", "ELITE" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",25,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",25,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), SMUGGLERSGAMBIT_WAV);
 
@@ -5925,8 +5934,8 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", }),
 			list<string>({ "PHYSICAL", "ATTACK", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("BONUS",PowerValue("BONUS",7,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("BONUS",PowerValue("BONUS",7,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), MAGEBANESTRIKE_WAV);
 
@@ -5934,9 +5943,9 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", }),
 			list<string>({ "PHYSICAL", "ATTACK", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("LOWER",PowerValue("LOWER",5,0,998,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("UPPER",PowerValue("UPPER",40,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("LOWER",PowerValue("LOWER",5,0,998,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("UPPER",PowerValue("UPPER",40,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), HACK_WAV);
 
@@ -5944,8 +5953,8 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL","APPLY_BLEEDING_SINGLE" }),
 			list<string>({ "PHYSICAL", "ATTACK", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("DURATION_BLEEDING",PowerValue("DURATION_BLEEDING",8,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("DURATION_BLEEDING",PowerValue("DURATION_BLEEDING",8,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), SERRATEDSTRIKE_WAV);
 
@@ -5953,8 +5962,8 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL","APPLY_OVERWHELMED_SINGLE" }),
 			list<string>({ "PHYSICAL","ATTACK", "ELITE",}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",20,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("DURATION_OVERWHELMED",PowerValue("DURATION_OVERWHELMED",3,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",20,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("DURATION_OVERWHELMED",PowerValue("DURATION_OVERWHELMED",3,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), DRAGONSMASH_WAV);
 
@@ -5962,8 +5971,8 @@ public:
 			list<string>({ "APPLY_Weaponsmithing_SELF",}),
 			list<string>({ "PHYSICAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Weaponsmithing",PowerValue("DURATION_Weaponsmithing",10,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("POWER_Weaponsmithing",PowerValue("POWER_Weaponsmithing",5,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DURATION_Weaponsmithing",PowerValue("DURATION_Weaponsmithing",10,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("POWER_Weaponsmithing",PowerValue("POWER_Weaponsmithing",5,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), WEAPONSMITHING_WAV);
 
@@ -5971,8 +5980,8 @@ public:
 			list<string>({ "DAMAGE_ALLFOES_PHYSICAL",}),
 			list<string>({ "PHYSICAL","ATTACK", "ELITE"}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
-				pair<string, PowerValue>("bonus",PowerValue("bonus",50,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",10,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
+				pair<string, PowerValue>("bonus",PowerValue("bonus",50,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), EXCOMMUNICATIVEASSAULT_WAV);
 
@@ -5980,7 +5989,7 @@ public:
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", }),
 			list<string>({ "PHYSICAL", "ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",20,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL",PowerValue("DAMAGE_SINGLE_PHYSICAL",20,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), MOURNINGEDGE_WAV);
 
@@ -5988,7 +5997,7 @@ public:
 			list<string>({ "APPLY_Exemplar's Posture_SELF", }),
 			list<string>({ "PHYSICAL" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Exemplar's Posture",PowerValue("DURATION_Exemplar's Posture",5,0,999,true,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("DURATION_Exemplar's Posture",PowerValue("DURATION_Exemplar's Posture",5,0,999,true,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), WEAPONSMITHING_WAV);
 
@@ -6012,7 +6021,7 @@ public:
 			list<string>({ "PHYSICAL", "ELITE"}),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("RESURRECT_SINGLE_PHYSICAL", PowerValue("RESURRECT_SINGLE_PHYSICAL", 10, 0, 100, true, list<string>({ "STRENGTH", "WayfaringBOOST"}))),
-				pair<string, PowerValue>("RECHARGE",PowerValue("RECHARGE",12,5,12,false,list<string>({"STRENGTH", "ArmsBOOST"}))),
+				pair<string, PowerValue>("RECHARGE",PowerValue("RECHARGE",12,5,12,false,list<string>({"STRENGTH", "ARMSBOOST"}))),
 				}),
 				list<string>({ "RESURRECT" }), REVITALISE_WAV);
 
@@ -6722,10 +6731,10 @@ public:
 		// TOMES
 		for (auto skill : skillDefinitions.getValues().internalList) {
 			string colour = "EQUIPMENTBLUE";
-			int price = 100;
+			int price = 50;
 			if (skill.isElite()) {
 				colour = "ELITESKILLYELLOW";
-				price = 1000;
+				price = 500;
 			}
 			string tomeOf = WStringToString(strings["ENG"]["Unique Item Strings"]["TOMEOF"]);
 			equipmentDefinitions["Tome of " + skill.uniqueID] = Equipment(*this, "Tome of " + skill.uniqueID, "Tome", UNIMPLEMENTED_IMAGE, {}, colour, price);
@@ -6740,132 +6749,275 @@ public:
 		// WEAPONS
 		equipmentDefinitions["Withered Secespita"] = Equipment(*this, "Withered Secespita", "Weapon", CODEXPAGE_SECESPITA, List<Combat::Effect>({
 			Combat::Effect("PIETY",1.0f,true,true),
-			}), "EQUIPMENTBLUE", 250);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Suero's Blade"] = Equipment(*this, "Suero's Blade", "Weapon", CODEXPAGE_SWORD1, List<Combat::Effect>({
 			Combat::Effect("STRENGTH",1.0f,true,true),
-			}), "EQUIPMENTBLUE", 250);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Blades of House JaqMaq"] = Equipment(*this, "Blades of House JaqMaq", "Weapon", CODEXPAGE_SCIMITARS, List<Combat::Effect>({
 			Combat::Effect("AGILITY",1.0f,true,true),
-			}), "EQUIPMENTBLUE", 250);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Tibetan Tie Bian"] = Equipment(*this, "Tibetan Tie Bian", "Weapon", CODEXPAGE_TIEBAN1, List<Combat::Effect>({
 			Combat::Effect("ENERGYREGENPLUS",5.0f,true,true),
-			}), "EQUIPMENTBLUE", 250);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Roger Bacon's Quill"] = Equipment(*this, "Roger Bacon's Quill", "Weapon", CODEXPAGE_QUILL, List<Combat::Effect>({
 			Combat::Effect("INTELLIGENCE",1.0f,true,true),
-			}), "EQUIPMENTBLUE", 250);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Licinia Eucharis' Wand"] = Equipment(*this, "Licinia Eucharis' Wand", "Weapon", CODEXPAGE_WAND1, List<Combat::Effect>({
 			Combat::Effect("PIETY",1.1f,true,true),
-			}), "EQUIPMENTBLUE", 280);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["William's Left-Hand Sword"] = Equipment(*this, "William's Left-Hand Sword", "Weapon", CODEXPAGE_SWORD2, List<Combat::Effect>({
 			Combat::Effect("STRENGTH",1.1f,true,true),
 			Combat::Effect("BLOODBOOST",2.0f,true,false),
-			}), "EQUIPMENTBLUE", 500);
+			}), "EQUIPMENTBLUE", 100);
 		equipmentDefinitions["William's Right-Hand Sword"] = Equipment(*this, "William's Right-Hand Sword", "Weapon", CODEXPAGE_SWORD2, List<Combat::Effect>({
 			Combat::Effect("STRENGTH",1.1f,true,true),
-			Combat::Effect("ArmsBOOST",2.0f,true,false),
+			Combat::Effect("ARMSBOOST",2.0f,true,false),
 			}), "EQUIPMENTBLUE", 500);
 		equipmentDefinitions["Koudelka's Umbrella"] = Equipment(*this, "Koudelka's Umbrella", "Weapon", CODEXPAGE_KOUDELKAUMBRELLA, List<Combat::Effect>({
 			Combat::Effect("PIETY",3.0f,true,true),
 			Combat::Effect("INTELLIGENCE",3.0f,true,true),
 			Combat::Effect("ELECTRICBOOST",2.0f,true,false),
 			Combat::Effect("ARMOURVSCOLD",5.0f,true,false),
-			}), "ELITESKILLYELLOW", 5000);
+			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Adriana's Mirror"] = Equipment(*this, "Adriana's Mirror", "Weapon", CODEXPAGE_ADRIANAMIRROR, List<Combat::Effect>({
 			Combat::Effect("PIETY",10.0f,true,true),
 			Combat::Effect("ARMOURVSELEMENTS",10.0f,true,false),
-			}), "ELITESKILLYELLOW", 5000);
+			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Sunspear Whip"] = Equipment(*this, "Sunspear Whip", "Weapon", CODEXPAGE_STACIASWORD, List<Combat::Effect>({
 			Combat::Effect("STRENGTH",10.0f,true,true),
-			Combat::Effect("ArmsBOOST",5.0f,true,false),
+			Combat::Effect("ARMSBOOST",5.0f,true,false),
 			Combat::Effect("FIREBOOST",2.0f,true,false),
-			}), "ELITESKILLYELLOW", 5000);
+			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Jade Dragon Blades"] = Equipment(*this, "Jade Dragon Blades", "Weapon", CODEXPAGE_JADEDRAGONBLADES, List<Combat::Effect>({
 			Combat::Effect("STRENGTH",10.0f,true,true),
 			Combat::Effect("AGILITY",10.0f,true,true),
 			Combat::Effect("VENOMOUS",1.0f,true,false),
-			}), "ELITESKILLYELLOW", 5000);
+			}), "ELITESKILLYELLOW", 500);
+		equipmentDefinitions["Dido's Dousing Rod"] = Equipment(*this, "Dido's Dousing Rods", "Weapon", CODEXPAGE_TIEBAN1, List<Combat::Effect>({
+			Combat::Effect("COLDBOOST",1.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Promethean Spear"] = Equipment(*this, "Promethean Spear", "Weapon", CODEXPAGE_SPEAR, List<Combat::Effect>({
+			Combat::Effect("FIREBOOST",1.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Sif's Hammer"] = Equipment(*this, "Sif's Hammer", "Weapon", CODEXPAGE_HAMMER, List<Combat::Effect>({
+			Combat::Effect("EARTHBOOST",1.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Enlil's Sickle"] = Equipment(*this, "Enlil's Sickle", "Weapon", CODEXPAGE_SICKLE, List<Combat::Effect>({
+			Combat::Effect("ELECTRICBOOST",1.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Iyarri's Bow"] = Equipment(*this, "Iyarri's Bow", "Weapon", CODEXPAGE_BOW, List<Combat::Effect>({
+			Combat::Effect("BLOODBOOST",1.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Djall's Blade"] = Equipment(*this, "Djall's Blade", "Weapon", CODEXPAGE_SWORD1, List<Combat::Effect>({
+			Combat::Effect("STRENGTH",0.5f,true,true),
+			Combat::Effect("UNHOLYBOOST",0.5f,true,true),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Richemont's Sword"] = Equipment(*this, "Richemont Sword", "Weapon", CODEXPAGE_SECESPITA, List<Combat::Effect>({
+			Combat::Effect("ARMSBOOST",1.0f,true,true),
+			Combat::Effect("MINORARMSBOOST",1.0f,true,true),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Dunois's Sword"] = Equipment(*this, "Dunois Sword", "Weapon", CODEXPAGE_SWORD1, List<Combat::Effect>({
+			Combat::Effect("ARMSBOOST",0.5f,true,true),
+			Combat::Effect("VITALITY",0.5f,true,true),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Guesclin's Sword"] = Equipment(*this, "Guesclin Sword", "Weapon", CODEXPAGE_SWORD2, List<Combat::Effect>({
+			Combat::Effect("ARMSBOOST",0.5f,true,true),
+			Combat::Effect("AGILITY",0.5f,true,true),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["de Stoute's Sword"] = Equipment(*this, "Guesclin Sword", "Weapon", CODEXPAGE_SWORD1, List<Combat::Effect>({
+			Combat::Effect("ARMSBOOST",0.5f,true,true),
+			Combat::Effect("LUCK",0.5f,true,true),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Bavarian Blade"] = Equipment(*this, "Bavarian Blade", "Weapon", CODEXPAGE_SWORD2, List<Combat::Effect>({
+			Combat::Effect("ARMSBOOST",0.5f,true,true),
+			Combat::Effect("PIETY",0.5f,true,true),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Glyndwr's Spear"] = Equipment(*this, "Glyndwr's Spear", "Weapon", CODEXPAGE_SPEAR, List<Combat::Effect>({
+			Combat::Effect("ARMSBOOST",1.0f,true,false),
+			Combat::Effect("WAYFARINGBOOST",1.0f,true,true),
+			}), "EQUIPMENTBLUE", 25);
 
 
 		// ARMOUR
 		equipmentDefinitions["Vatican Vestiments"] = Equipment(*this, "Vatican Vestiments", "Armour", CODEXPAGE_VESTIMENTS, List<Combat::Effect>({
 			Combat::Effect("HOLYBOOST",1.0f,true,false),
-			}), "EQUIPMENTBLUE", 250);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Martin's Cloak"] = Equipment(*this, "Martin's Cloak", "Armour", CODEXPAGE_CLOAK1, List<Combat::Effect>({
 			Combat::Effect("ARMOURVSPHYSICAL",1.0f,true,false),
-			}), "EQUIPMENTBLUE", 250);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Alhambran Tunic"] = Equipment(*this, "Alhambran Tunic", "Armour", CODEXPAGE_HAREM, List<Combat::Effect>({
 			Combat::Effect("SHADOWBOOST",1.0f,true,false),
-			}), "EQUIPMENTBLUE", 250);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Insulating Gloves"] = Equipment(*this, "Insulating Gloves", "Armour", CODEXPAGE_GLOVES1, List<Combat::Effect>({
 			Combat::Effect("ARMOURVSELECTRIC",5.0f,true,false),
 			}), "EQUIPMENTBLUE", 250);
 		equipmentDefinitions["Ming Theatre Costume"] = Equipment(*this, "Ming Theatre Costume", "Armour", CODEXPAGE_MING, List<Combat::Effect>({
 			Combat::Effect("BLOODBOOST",1.0f,true,false),
-			}), "EQUIPMENTBLUE", 250);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Mourning Veil"] = Equipment(*this, "Mourning Veil", "Armour", CODEXPAGE_MOURNINGVEIL, List<Combat::Effect>({
 			Combat::Effect("PIETY",3.0f,true,true),
 			Combat::Effect("INTELLIGENCE",3.0f,true,true),
 			Combat::Effect("UNHOLYBOOST",7.0f,true,false),
-			}), "ELITESKILLYELLOW", 5000);
+			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Snow Maiden's Spectacles"] = Equipment(*this, "Mourning Veil", "Armour", CODEXPAGE_MOURNINGVEIL, List<Combat::Effect>({
 			Combat::Effect("INTELLIGENCE",6.0f,true,true),
 			Combat::Effect("COLDBOOST",7.0f,true,false),
-			}), "ELITESKILLYELLOW", 5000);
+			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Sunspear Armour"] = Equipment(*this, "Sunspear Armour", "Armour", CODEXPAGE_SUNSPEARARMOUR, List<Combat::Effect>({
 			Combat::Effect("ARMOURVSPHYSICAL",6.0f,true,false),
 			Combat::Effect("ARMOURVSFIRE",6.0f,true,false),
-			}), "ELITESKILLYELLOW", 5000);
+			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Magekiller Robes"] = Equipment(*this, "Magekiller Robes", "Armour", CODEXPAGE_MAGEKILLERROBES, List<Combat::Effect>({
 			Combat::Effect("ARMOURVSPHYSICAL",6.0f,true,false),
 			Combat::Effect("ARMOURVSPOISON",6.0f,true,false),
-			}), "ELITESKILLYELLOW", 5000);
-
+			}), "ELITESKILLYELLOW", 500);
+		equipmentDefinitions["Dido's Robes"] = Equipment(*this, "Dido's Robes", "Armour", CODEXPAGE_FEMALEROBES1, List<Combat::Effect>({
+			Combat::Effect("WATERBOOST",1.0f,true,false),
+			Combat::Effect("ARMOURVSCOLD",5.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Promethean Cloak"] = Equipment(*this, "Promethean Cloak", "Armour", CODEXPAGE_MALEROBES1, List<Combat::Effect>({
+			Combat::Effect("FIREBOOST",1.0f,true,false),
+			Combat::Effect("ARMOURVSFIRE",5.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Cthonic Leg Wrappings"] = Equipment(*this, "Cthonic Leg Wrappings", "Armour", CODEXPAGE_BANDAGES, List<Combat::Effect>({
+			Combat::Effect("AGILITY",-2.0f,true,true),
+			Combat::Effect("SHADOWBOOST",3.0f,true,false),
+			}), "ELITESKILLYELLOW", 25);
+		equipmentDefinitions["Supportive Boots"] = Equipment(*this, "Supportive Boots", "Accessory", CODEXPAGE_SHOE, List<Combat::Effect>({
+			Combat::Effect("AGILITY",2.0f,true,false),
+			Combat::Effect("SPEED",2.0f,true,true),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Sif's Shoes"] = Equipment(*this, "Sif's Shoes", "Armour", CODEXPAGE_SHOE, List<Combat::Effect>({
+			Combat::Effect("EARTHBOOST",1.0f,true,false),
+			Combat::Effect("ARMOURVSEARTH",5.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Enlil's Cloak"] = Equipment(*this, "Enlil's Cloak", "Armour", CODEXPAGE_MALEROBES1, List<Combat::Effect>({
+			Combat::Effect("ELECTRICBOOST",1.0f,true,false),
+			Combat::Effect("ARMOURVSELECTRIC",5.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Iyarri's Gloves"] = Equipment(*this, "Iyarri's Gloves", "Armour", CODEXPAGE_GLOVES2, List<Combat::Effect>({
+			Combat::Effect("BLOODBOOST",1.0f,true,false),
+			Combat::Effect("ARMOURVSPHYSICAL",1.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Djall's Gloves"] = Equipment(*this, "Djall's Gloves", "Armour", CODEXPAGE_GLOVES2, List<Combat::Effect>({
+			Combat::Effect("UNHOLYBOOST",1.5f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Valois Dress"] = Equipment(*this, "Valois Dress", "Armour", CODEXPAGE_FEMALEGOWN, List<Combat::Effect>({
+			Combat::Effect("SHADOWBOOST",1.5f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Stewart's Armour"] = Equipment(*this, "Stewart's Armour", "Armour", CODEXPAGE_MALEARMOUR, List<Combat::Effect>({
+			Combat::Effect("ARMOURVSPHYSICAL",1.0f,true,false),
+			Combat::Effect("STRENGTH",1.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Woodstock's Armour"] = Equipment(*this, "Woodstock's Armour", "Armour", CODEXPAGE_MALEARMOUR2, List<Combat::Effect>({
+			Combat::Effect("ARMOURVSPHYSICAL",1.0f,true,false),
+			Combat::Effect("VITALITY",1.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Gaunt's Armour"] = Equipment(*this, "Gaunt's Armour", "Armour", CODEXPAGE_MALEARMOUR2, List<Combat::Effect>({
+			Combat::Effect("ARMOURVSPHYSICAL",1.0f,true,false),
+			Combat::Effect("AGILITY",1.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Lancaster's Armour"] = Equipment(*this, "Lancaster's Armour", "Armour", CODEXPAGE_MALEARMOUR, List<Combat::Effect>({
+			Combat::Effect("ARMOURVSPHYSICAL",2.5f,true,false),
+			Combat::Effect("LUCK",-1.0f,true,true),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Burgandy's Dress"] = Equipment(*this, "Burgandy's Dress", "Armour", CODEXPAGE_FEMALEGOWN, List<Combat::Effect>({
+			Combat::Effect("SHADOWBOOST",1.0f,true,false),
+			Combat::Effect("UNHOLYBOOST",1.0f,true,false),
+			Combat::Effect("PIETY",1.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Luxembourg's Wedding Dress"] = Equipment(*this, "Luxembourg's Wedding Dress", "Armour", CODEXPAGE_FEMALEGOWN, List<Combat::Effect>({
+			Combat::Effect("HOLYBOOST",1.0f,true,false),
+			Combat::Effect("PIETY",3.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Saint-Pol's Robes"] = Equipment(*this, "Enlil's Cloak", "Armour", CODEXPAGE_MALEROBES1, List<Combat::Effect>({
+			Combat::Effect("INTELLIGENCE",3.0f,true,false),
+			Combat::Effect("PIETY",3.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Chaworth's Gown"] = Equipment(*this, "Chaworth's Gown", "Armour", CODEXPAGE_FEMALEGOWN, List<Combat::Effect>({
+			Combat::Effect("LUCK",8.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Bateau's Cloak"] = Equipment(*this, "Bateau's Cloak", "Armour", CODEXPAGE_MALEROBES1, List<Combat::Effect>({
+			Combat::Effect("UNHOLYBOOST",4.0f,true,false),
+			}), "EQUIPMENTBLUE", 100);
 
 		// ACCESSORIES
 		equipmentDefinitions["Cross of St Jeanne-Marie"] = Equipment(*this, "Cross of St Jeanne-Marie", "Accessory", CODEXPAGE_CROSS1, List<Combat::Effect>({
 			Combat::Effect("PIETY",1.0f,true,true),
-			}), "EQUIPMENTBLUE", 250);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Matteo Carreri's Locket"] = Equipment(*this, "Matteo Carreri's Locket", "Accessory", CODEXPAGE_LOCKET1, List<Combat::Effect>({
 			Combat::Effect("WAYFARINGBOOST",1.0f,true,false),
-			}), "EQUIPMENTBLUE", 250);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Theoricae Novae Planetarum"] = Equipment(*this, "Theoricae Novae Planetarum", "Accessory", CODEXPAGE_BOOK1, List<Combat::Effect>({
 			Combat::Effect("INTELLIGENCE",1.0f,true,true),
-			}), "EQUIPMENTBLUE", 250);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Lunyu Page Fragment"] = Equipment(*this, "Lunyu Page Fragment", "Accessory", CODEXPAGE_BOOK2, List<Combat::Effect>({
 			Combat::Effect("UNHOLYBOOST",1.0f,true,false),
-			}), "EQUIPMENTBLUE", 250);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Mask of House JaqMaq"] = Equipment(*this, "Mask of House JaqMaq", "Accessory", CODEXPAGE_MASK1, List<Combat::Effect>({
 			Combat::Effect("AGILITY",1.0f,true,true),
-			}), "EQUIPMENTBLUE", 250);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Joan of Arc's Necklace"] = Equipment(*this, "Joan of Arc's Necklace", "Accessory", CODEXPAGE_NECKLACE1, List<Combat::Effect>({
 			Combat::Effect("INTELLIGENCE",5.0f,true,true),
 			Combat::Effect("FIREBOOST",1.5f,true,false),
 			Combat::Effect("SELFIMMOLATE",0.0f,true,true),
 			Combat::Effect("BURNING",0.0f,true,true),
-			}), "ELITESKILLYELLOW", 9999);
+			}), "ELITESKILLYELLOW", 1000);
 		equipmentDefinitions["The Eyes of St Lucy"] = Equipment(*this, "The Eyes of St Lucy", "Accessory", CODEXPAGE_EYE1, List<Combat::Effect>({
 			Combat::Effect("HOLYBOOST",0.5f,true,false),
 			Combat::Effect("PIETY",1.0f,true,true),
-			}), "EQUIPMENTBLUE", 150);
+			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["al-Hajar al-Aswad"] = Equipment(*this, "al-Hajar al-Aswad", "Accessory", CODEXPAGE_ROCK1, List<Combat::Effect>({
 			Combat::Effect("HOLYBOOST",1.3f,true,false),
 			Combat::Effect("UNHOLYBOOST",1.3f,true,false),
-			}), "ELITESKILLYELLOW", 9999);
+			}), "ELITESKILLYELLOW", 250);
 		equipmentDefinitions["Amethyst Pendant"] = Equipment(*this, "Amethyst Pendant", "Accessory", CODEXPAGE_AMETHYSTPENDANT, List<Combat::Effect>({
 			Combat::Effect("ELECTRICBOOST",5.0f,true,false),
-			}), "ELITESKILLYELLOW", 5000);
+			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Snow Maiden's Brooch"] = Equipment(*this, "Snow Maiden's Brooch", "Accessory", CODEXPAGE_SNOWMAIDENBROOCH, List<Combat::Effect>({
 			Combat::Effect("PIETY",4.0f,true,true),
 			Combat::Effect("ELEMENTALBOOST",5.0f,true,true),
 			Combat::Effect("COLDBOOST",7.0f,true,false),
-			}), "ELITESKILLYELLOW", 5000);
+			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Sunspear Sash"] = Equipment(*this, "Sunspear Sash", "Accessory", CODEXPAGE_SUNSPEARSASH, List<Combat::Effect>({
 			Combat::Effect("VITALITY",10.0f,true,true),
 			Combat::Effect("AGILITY",10.0f,true,true),
-			}), "ELITESKILLYELLOW", 5000);
+			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Vial of Dragon Venom"] = Equipment(*this, "Vial of Dragon Venom", "Accessory", CODEXPAGE_DRAGONVENOM, List<Combat::Effect>({
 			Combat::Effect("LUCK",20.0f,true,true),
-			}), "ELITESKILLYELLOW", 5000);
+			}), "ELITESKILLYELLOW", 500);
+		equipmentDefinitions["Dido's Compass"] = Equipment(*this, "Dido's Compass", "Accessory", CODEXPAGE_LOCKET1, List<Combat::Effect>({
+			Combat::Effect("INTELLIGENCE",1.0f,true,true),
+			Combat::Effect("COLDBOOST",1.5f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Artemisia Fragment"] = Equipment(*this, "Artemisia Fragment", "Accessory", CODEXPAGE_LOCKET1, List<Combat::Effect>({
+			Combat::Effect("STRENGTH",2.0f,true,true),
+			Combat::Effect("COLDBOOST",1.5f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Promethean Icon"] = Equipment(*this, "Promethean Icon", "Accessory", CODEXPAGE_GREEKIMAGE1, List<Combat::Effect>({
+			Combat::Effect("FIREBOOST",2.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Sif's Charm"] = Equipment(*this, "Sif's Charm", "Accessory", CODEXPAGE_LOCKET1, List<Combat::Effect>({
+			Combat::Effect("VITALITY",2.0f,true,true),
+			Combat::Effect("EARTHBOOST",1.5f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Carving of Enlil"] = Equipment(*this, "Carving of Enlil", "Accessory", CODEXPAGE_CARVING, List<Combat::Effect>({
+			Combat::Effect("LUCK",2.0f,true,true),
+			Combat::Effect("ELECTRICBOOST",1.5f,true,false),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Carving of a Heptad"] = Equipment(*this, "Carving of a Heptad", "Accessory", CODEXPAGE_DARKICON, List<Combat::Effect>({
+			Combat::Effect("LUCK",-1.0f,true,true),
+			Combat::Effect("BLOODBOOST",4.0f,true,false),
+			}), "EQUIPMENTBLUE", 150);
+		equipmentDefinitions["Offering to Djall"] = Equipment(*this, "Offering to Djall", "Accessory", CODEXPAGE_EVILICON, List<Combat::Effect>({
+			Combat::Effect("FIREBOOST",1.5f,true,false),
+			Combat::Effect("UNHOLYBOOST",1.5f,true,false),
+			Combat::Effect("VITALITY",-2.0f,true,true),
+			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Token to Al-Quam"] = Equipment(*this, "Sif's Charm", "Accessory", CODEXPAGE_ROCK1, List<Combat::Effect>({
+			Combat::Effect("LUCK",2.0f,true,true),
+			Combat::Effect("SHADOWBOOST",1.5f,true,false),
+			}), "EQUIPMENTBLUE", 25);
 
 	}
 	void defineAllCombatants() {
