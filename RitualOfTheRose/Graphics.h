@@ -674,6 +674,7 @@ public:
             replacements[L"$KIND$"] = strings[language]["Terms Per Character"][ saveContainer.getCurrentMainCharacter() + "_Kind"];
             replacements[L"$POLITE$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_Polite"];
             replacements[L"$RUDE$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_Rude"];
+            replacements[L"$RUDE2$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_Rude2"];
             replacements[L"$GENDER$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_Gender"];
             replacements[L"$GENDERUPPER$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_GenderUpper"];
             replacements[L"$POLITETITLE$"] = strings[language]["Terms Per Character"][saveContainer.getCurrentMainCharacter() + "_PoliteTitle"];

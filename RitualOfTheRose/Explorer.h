@@ -2267,6 +2267,7 @@ mapFloor::triangle({{81.475830078125,28.819304704666138}, {84.30764675140381,29.
 											pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
 											}) });
 		maps["ChapelRight1"] = mapInstance("ChapelRight1", CHAPELRIGHT_1, { 70,15 /*2.5 42 */}, puzzleContainer.getWaterPuzzle1({50,35}) + List<mapObject>({
+			mapObject::getOnetimeTrigger("ChapelRightCombat1",List<mapFloor::triangle>({mapFloor::triangle({{17.264457046985626,35.898980498313904}, {8.666598796844482,38.150060176849365}, {17.264457046985626,38.150396943092346}}),mapFloor::triangle({{17.264457046985626,35.898980498313904}, {8.666598796844482,35.89668869972229}, {8.666598796844482,38.150060176849365}}),}), ""),
 			mapObject::getOnetimeTrigger("ChapelRightCorridor+PAIR",List<mapFloor::triangle>({mapFloor::triangle({{43.884652853012085,83.46079587936401}, {15.895740687847137,91.99681282043457}, {43.884652853012085,91.99681878089905}}),mapFloor::triangle({{43.884652853012085,83.46079587936401}, {15.895740687847137,83.46079587936401}, {15.895740687847137,91.99681282043457}}),}), ""),
 			mapObject("RightWingStatue", true, false, false, "","0",0,0,"","","CENTRE",{56, 7}, false, List<mapFloor::triangle>({{mapFloor::triangle({{58.94955396652222,9.21408161520958}, {54.66281771659851,6.213817372918129}, {54.66281771659851,9.21408161520958}}),mapFloor::triangle({{58.94955396652222,9.21408161520958}, {58.94955396652222,6.213817372918129}, {54.66281771659851,6.213817372918129}}),}}), Map<string, string>({
 																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Inspect Statue"}),
@@ -2380,14 +2381,21 @@ mapFloor::triangle({{81.475830078125,28.819304704666138}, {84.30764675140381,29.
 					pair<string, string>({"GoingUp","1"}),
 					pair<string, string>({"image","ChapelRight1Layer2"}),
 					pair<string, string>({"obstruction", "GoingUpObstruction"}),
-					pair<string, string>({"audioSwap", "ChapelFloorStoneOrWood=WOODCREAKY=CHAPELSTEP"}),
+					pair<string, string>({"audioSwap", "ChapelFloorStoneOrWood=FLOORBOARD=CHAPELSTEP"}),
 				})),
 			mapObject("GoingUp2", false, false, false, "","0",0,0,"1.0","1.0","CENTRE",{0, 0}, false, List<mapFloor::triangle>({mapFloor::triangle({{9.455583989620209,21.232357621192932}, {6.599082797765732,22.694189846515656}, {9.455583989620209,22.694189846515656}}),mapFloor::triangle({{31.092330813407898,13.46537321805954}, {28.89198064804077,15.055710077285767}, {31.092330813407898,15.055710077285767}}),mapFloor::triangle({{9.455583989620209,21.232357621192932}, {6.599082797765732,21.232357621192932}, {6.599082797765732,22.694189846515656}}),
 	mapFloor::triangle({{31.092330813407898,13.46537321805954}, {28.89198064804077,13.46537321805954}, {28.89198064804077,15.055710077285767}}),}), List<pair<string,string>>({
 					pair<string, string>({"GoingUp","2"}),
 					pair<string, string>({"image","ChapelRight1Layer2"}),
 					pair<string, string>({"obstruction", "GoingUpObstruction"}),
-					pair<string, string>({"audioSwap", "ChapelFloorStoneOrWood=WOODCREAKY=CHAPELSTEP"}),
+					pair<string, string>({"audioSwap", "ChapelFloorStoneOrWood=FLOORBOARD=CHAPELSTEP"}),
+				})),
+				mapObject("GoingUp3", false, false, false, "", "0", 0, 0, "1.0", "1.0", "CENTRE", { 0, 0 }, false, List<mapFloor::triangle>({ mapFloor::triangle({{26.97160542011261,14.698177576065063}, {9.669355303049088,12.008462101221085}, {9.669355303049088,14.698177576065063}}),mapFloor::triangle({{26.97160542011261,24.639728665351868}, {9.669354557991028,21.95001244544983}, {9.669354557991028,24.639728665351868}}),mapFloor::triangle({{26.97160542011261,14.698177576065063}, {26.97160542011261,12.008462101221085}, {9.669355303049088,12.008462101221085}}),
+mapFloor::triangle({{26.97160542011261,24.639728665351868}, {26.97160542011261,21.95001244544983}, {9.669354557991028,21.95001244544983}}), }), List<pair<string, string>>({
+					pair<string, string>({"GoingUp","3"}),
+					pair<string, string>({"image","ChapelRight1Layer2"}),
+					pair<string, string>({"obstruction", "GoingUpObstruction"}),
+					pair<string, string>({"audioSwap", "ChapelFloorStoneOrWood=FLOORBOARD=CHAPELSTEP"}),
 				})),
 			mapObject("ChapelRight1Top", false, true, false, imageLookup.getSequenceAsString("ChapelRight1Top","STAND_FRONT"),"0",0,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","2.0","CENTRE",{50, 50}, false, {}, {}),
 			mapObject("ChapelRight1Layer2", false, true, false, imageLookup.getSequenceAsString("ChapelRight1Layer2","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"] + 1,"1.0","2.0","CENTRE",{50, 50}, false, {}, {}),
@@ -2577,7 +2585,7 @@ mapFloor::triangle({{20.822320878505707,18.975870311260223}, {19.996678829193115
 																					pair<string, string>("format","LightText_20"), }))
 			}),
 			List<mapFloor>({
-			mapFloor("ChapelFloorWood", List<mapFloor::triangle>({mapFloor::triangle({{86.97203993797302,93.82975697517395}, {69.99981999397278,99.92440342903137}, {86.97203993797302,99.92440938949585}}),mapFloor::triangle({{86.97203993797302,93.82975697517395}, {69.99981999397278,93.82975697517395}, {69.99981999397278,99.92440342903137}}),}),true,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "FLOORBOARD"})})),
+			mapFloor("ChapelFloorWood", List<mapFloor::triangle>({mapFloor::triangle({{86.97203993797302,93.82975697517395}, {69.99981999397278,99.92440342903137}, {86.97203993797302,99.92440938949585}}),mapFloor::triangle({{86.97203993797302,93.82975697517395}, {69.99981999397278,93.82975697517395}, {69.99981999397278,99.92440342903137}}),}),true,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "WOOD"})})),
 			mapFloor("ChapelFloorStone", List<mapFloor::triangle>({mapFloor::triangle({{9.692805260419846,39.87107276916504}, {-0.004105020343558863,44.31262910366058}, {9.692805260419846,44.31394934654236}}),mapFloor::triangle({{16.238251328468323,39.875590801239014}, {9.692805260419846,44.31394934654236}, {16.238251328468323,44.314610958099365}}),mapFloor::triangle({{18.46397966146469,39.88010883331299}, {16.238251328468323,44.314610958099365}, {18.46397966146469,44.31527256965637}}),
 mapFloor::triangle({{9.692806005477905,32.09443390369415}, {16.238251328468323,24.322311580181122}, {9.692806005477905,24.317793548107147}}),mapFloor::triangle({{9.692805260419846,39.87107276916504}, {16.238251328468323,32.09895193576813}, {9.692806005477905,32.09443390369415}}),mapFloor::triangle({{6.530769914388657,24.317793548107147}, {-0.004104524850845337,32.09443390369415}, {6.530769914388657,32.09443390369415}}),
 mapFloor::triangle({{9.692806005477905,24.317793548107147}, {6.530769914388657,32.09443390369415}, {9.692806005477905,32.09443390369415}}),mapFloor::triangle({{6.530769914388657,24.317793548107147}, {-0.004104286199435592,18.86223554611206}, {-0.004104524850845337,24.317793548107147}}),mapFloor::triangle({{9.692806005477905,24.317793548107147}, {16.238251328468323,19.806402921676636}, {9.692806005477905,19.80188488960266}}),
@@ -2675,7 +2683,7 @@ mapFloor::triangle({{9.269341826438904,19.803854823112488}, {6.873767077922821,1
 			mapObject::getOnetimeTrigger("VisionRoom",List<mapFloor::triangle>({mapFloor::triangle({{43.5202956199646,53.51046323776245}, {45.869457721710205,45.00362575054169}, {43.5202956199646,45.00361382961273}}),mapFloor::triangle({{43.5202956199646,53.51046323776245}, {45.869457721710205,53.51046323776245}, {45.869457721710205,45.00362575054169}}),}), ""),
 			mapObject::getOnetimeTrigger("OudinCutscenePlanks",List<mapFloor::triangle>({mapFloor::triangle({{80.12887835502625,5.909644067287445}, {81.0120165348053,8.167190104722977}, {80.12887835502625,8.167190104722977}}),mapFloor::triangle({{80.12887835502625,5.909644067287445}, {81.0120165348053,5.909644067287445}, {81.0120165348053,8.167190104722977}}),}), ""),
 			mapObject::getOnetimeTrigger("PlankFight1",List<mapFloor::triangle>({mapFloor::triangle({{68.70834827423096,15.179626643657684}, {70.48789858818054,7.950266450643539}, {70.64704298973083,15.186618268489838}}),mapFloor::triangle({{68.70834827423096,15.179626643657684}, {68.51587891578674,8.026860654354095}, {70.48789858818054,7.950266450643539}}),}), ""),
-			mapObject::getOnetimeTrigger("PlankFight2",List<mapFloor::triangle>({mapFloor::triangle({{65.02983570098877,18.457326292991638}, {59.11948084831238,19.491136074066162}, {59.19397473335266,18.127799034118652}}),mapFloor::triangle({{65.02983570098877,18.457326292991638}, {64.95534181594849,19.820663332939148}, {59.11948084831238,19.491136074066162}}),}), ""),
+			mapObject::getOnetimeTrigger("PlankFight2",List<mapFloor::triangle>({mapFloor::triangle({{65.02983570098877,17.92571097612381}, {59.11948084831238,18.959520757198334}, {59.19397473335266,17.596183717250824}}),mapFloor::triangle({{65.02983570098877,17.92571097612381}, {64.95534181594849,19.28904801607132}, {59.11948084831238,18.959520757198334}}),}), ""),
 			mapObject::getOnetimeTrigger("PlankFight3",List<mapFloor::triangle>({mapFloor::triangle({{41.65359437465668,9.228577464818954}, {47.48260676860809,7.8788042068481445}, {40.40452539920807,7.878804951906204}}),mapFloor::triangle({{41.65359437465668,9.228577464818954}, {51.104170083999634,9.228577464818954}, {47.48260676860809,7.8788042068481445}}),}), ""),
 			mapObject("VISIONITEM$PLAYER1$", true, true, false, imageLookup.getSequenceAsString("VISIONITEM$PLAYER1$", "STAND_FRONT"),"0",1,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{47.3, 43.3}, false, List<mapFloor::triangle>({mapFloor::triangle({{44.496023654937744,45.985448360443115}, {50.037455558776855,44.25798058509827}, {44.496023654937744,44.25798058509827}}),mapFloor::triangle({{44.496023654937744,45.985448360443115}, {50.037455558776855,45.985448360443115}, {50.037455558776855,44.25798058509827}}),}), Map<string, string>({
 																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Check Altar"}),
@@ -2901,7 +2909,7 @@ mapFloor::triangle({{89.7495448589325,3.1144849956035614}, {88.66528868675232,3.
 					mapObject::getTreasureChest("DungeonChest1", { 55,82 }, "NORMAL3_FRONT", "Artemisia Fragment"),
 					mapObject::getTreasureChest("DungeonChest2", { 67,96.5 }, "NORMAL2_FRONT", "Tome of Clobber"),
 					mapObject::getTreasureChest("DungeonChest3", { 73,85 }, "NORMAL3_FRONT", "Saint-Pol's Robes"),
-					mapObject::getTreasureChest("DungeonChest3", { 55,70.25, }, "NORMAL2_FRONT", "Luxembourg's Wedding Dress"),
+					mapObject::getTreasureChest("DungeonChest4", { 55,70.25, }, "NORMAL2_FRONT", "Luxembourg's Wedding Dress"),
 					mapObject("WaterTank", true, false, false, "","",0,0,"","","CENTRE",{17.5, 85}, false, List<mapFloor::triangle>({mapFloor::triangle({{17.487728595733643,86.07631921768188}, {17.24386066198349,84.02194380760193}, {18.598751723766327,84.96009707450867}}),mapFloor::triangle({{17.487728595733643,86.07631921768188}, {16.04340970516205,84.98351573944092}, {17.24386066198349,84.02194380760193}}),}), Map<string, string>({
 										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_WaterTank1"}),
 										pair<string, string>({"copy","WaterTank"}),
@@ -3040,7 +3048,7 @@ mapFloor::triangle({{61.344319581985474,71.6862440109253}, {60.33329367637634,71
 							pair<string, string>({ "LoadingScreenImage",to_string(LOADINGSCREEN_1) }),
 						}));
 		maps["ChapelLeft1"] = mapInstance("ChapelLeft1", CHAPELLEFT1, { 97,54 }, List<mapObject>({
-			mapObject("BrazierFire", false, true, false, imageLookup.getSequenceAsString("BrazierFire","ON_FRONT"),"1",90,15,"1.0","1","CENTRE",{46.4, 56.8}, false, {}, Map<string, string>({
+			mapObject("BrazierFire", false, true, false, imageLookup.getSequenceAsString("BrazierFire","ON_FRONT"),"1",90,15,"1.0","1.3","CENTRE",{46.3, 56.5}, false, {}, Map<string, string>({
 					pair<string, string>("don'tLoadIfNot", "BrazierActivated"),
 				})),
 			mapObject("FireLeftOFF", false, true, false, imageLookup.getSequenceAsString("ChapelLeftFire","OFF_FRONT"),"1",90,0,"1.0","3.3","CENTRE",{8, 46}, false, {}, Map<string, string>({
@@ -3230,7 +3238,7 @@ mapFloor::triangle({{37.002360820770264,88.67153525352478}, {38.30409049987793,8
 			mapFloor("Wooden", List<mapFloor::triangle>({mapFloor::triangle({{15.886299312114716,96.34596705436707}, {0.8225799538195133,98.39903116226196}, {15.886299312114716,99.97643232345581}}),mapFloor::triangle({{6.422234326601028,94.76856589317322}, {0.9637381881475449,98.39903116226196}, {6.422234326601028,98.39903116226196}}),mapFloor::triangle({{6.422234326601028,94.76856589317322}, {0.9637385606765747,86.13182306289673}, {0.9637381881475449,94.76856589317322}}),
 mapFloor::triangle({{2.6299305260181427,85.79351902008057}, {12.333574891090393,88.10955286026001}, {2.3198202252388,87.97622919082642}}),mapFloor::triangle({{3.471720963716507,85.31798720359802}, {12.333574891090393,85.92684268951416}, {2.6299305260181427,85.79351902008057}}),mapFloor::triangle({{15.886299312114716,96.34596705436707}, {0.8225799538195133,94.76856589317322}, {0.8225799538195133,98.39903116226196}}),
 mapFloor::triangle({{6.422234326601028,94.76856589317322}, {0.9637381881475449,94.76856589317322}, {0.9637381881475449,98.39903116226196}}),mapFloor::triangle({{6.422234326601028,94.76856589317322}, {6.422235071659088,86.13182306289673}, {0.9637385606765747,86.13182306289673}}),mapFloor::triangle({{2.6299305260181427,85.79351902008057}, {12.333574891090393,85.92684268951416}, {12.333574891090393,88.10955286026001}}),
-mapFloor::triangle({{3.471720963716507,85.31798720359802}, {12.333574891090393,85.45131087303162}, {12.333574891090393,85.92684268951416}}),}),true,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "WOOD"})})),
+mapFloor::triangle({{3.471720963716507,85.31798720359802}, {12.333574891090393,85.45131087303162}, {12.333574891090393,85.92684268951416}}),}),true,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "FLOORBOARD"})})),
 			mapFloor("StoneOutside", List<mapFloor::triangle>({mapFloor::triangle({{12.168928235769272,87.29502558708191}, {15.5882328748703,86.13399267196655}, {12.168928235769272,86.13399267196655}}),mapFloor::triangle({{12.168928235769272,87.29502558708191}, {15.5882328748703,87.29502558708191}, {15.5882328748703,86.13399267196655}}),}),true,Map<string, string>({pair<string, string>({"audio", "1"}), pair<string, string>({"audio source", "STONE"})})),
 			}), {}, { 5000,5000 }, Map<string, string>({
 					pair<string,string>({"song1",to_string(CHAPEL_WAV_1) + " " + "MusicVolume"}),

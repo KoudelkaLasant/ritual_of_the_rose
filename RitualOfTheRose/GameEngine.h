@@ -199,7 +199,10 @@ public:
 						if (data.hasKey("don'tLoadIf")) {
 							string flagName = data["don'tLoadIf"];
 							bool status = saveContainer.current.flags[flagName];
-							needToLoad = !status;
+							if (data.hasKey("don'tLoadIfNot") and needToLoad == false) {}
+							else {
+								needToLoad = !status;
+							}
 						}
 						if (!needToLoad) {
 							x.visible = false;
@@ -1153,6 +1156,7 @@ public:
 						if (walkable.data.hasKey("GoingUp")) {
 							bool needToChangeAudio = false;
 							bool up = false;
+
 							if (walkable.data["GoingUp"] == "1" and gameEngine.stateFlags["GoingUp"] == "") { // first step to going up
 								gameEngine.stateFlags["GoingUp"] = "1";
 							}
@@ -1166,7 +1170,7 @@ public:
 								needToChangeAudio = true;
 								up = true;
 							}
-							if (walkable.data["GoingUp"] == "1" and gameEngine.stateFlags["GoingUp"] == "2") { // going down
+							if ((walkable.data["GoingUp"] == "3") or walkable.data["GoingUp"] == "1" and gameEngine.stateFlags["GoingUp"] == "2") { // going down
 								gameEngine.stateFlags["GoingUp"] = "";
 								string imageName = walkable.data["image"];
 								string obstructionName = walkable.data["obstruction"];
@@ -1262,6 +1266,7 @@ public:
 					gameEngine.activeProcedure = gameEngine.makeAreaTransitionProcedure(currentMap, targetMap, futurePlayerPosition, futurePlayerDirection, walkableDataToMoveOn);
 				}
 				if (stopExploringOpenChest) {
+					Event("TearDownPopUpText", "TEARDOWNTEXT", Map<string, string>(pair<string, string>{"uniqueID", explorer.mapPopupTextID})).run(*&gameEngine);
 					gameEngine.activeProcedure = gameEngine.makeOpenChestProcedure(chestData);
 				}
 				if (controller.haveOneOfTheseBeenPressed(VK_ESCAPE) and CLOCK.hasEnoughTimePassed("MENUINPUTDELAY", 100) and not controller.menuItemCooldown) {
@@ -3203,6 +3208,7 @@ return true;
 					return true;
 				}
 				if (buttonLogic == "FROMTOMETOPAUSE") {
+					Event("TearDownPopUpText", "TEARDOWNTEXT", Map<string, string>(pair<string, string>{"uniqueID", "learnedASkill"})).run(*&gameEngine);
 					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "TOME")).run(*&gameEngine);
 					for (auto buttonName : gameEngine.storedMenus["TOME"].buttons.getKeys().internalList) {
 						gameEngine.storedMenus["TOME"].removeThisButton(buttonName);
@@ -3272,6 +3278,7 @@ return true;
 					return true;
 				}
 				if (buttonLogic == "SKILLTREETOME") {
+					Event("TearDownPopUpText", "TEARDOWNTEXT", Map<string, string>(pair<string, string>{"uniqueID", "learnedASkill"})).run(*&gameEngine);
 					for (auto buttonName : gameEngine.storedMenus["TOME"].buttons.getKeys().internalList) {
 						if (buttonName.find("TOMETEACH_") != -1) {
 							gameEngine.storedMenus["TOME"].removeThisButton(buttonName);
@@ -3307,6 +3314,7 @@ return true;
 					return true;
 				}
 				if (buttonLogic == "CANCELSKILLTREECHOICETOME") {
+					Event("TearDownPopUpText", "TEARDOWNTEXT", Map<string, string>(pair<string, string>{"uniqueID", "learnedASkill"})).run(*&gameEngine);
 					Event("Reload", "TEARDOWNSKILLEXPLAIN", {}).run(*&gameEngine);
 					for (auto buttonName : gameEngine.storedMenus["TOME"].buttons.getKeys().internalList) {
 						if (buttonName.find("TOMETEACH_") != -1 or buttonName.find("TOMETREE_") != -1 or buttonName.find("TOMETEACHTHESKILL_") != -1) {
@@ -3318,6 +3326,7 @@ return true;
 					return true;
 				}
 				if (buttonLogic.find("TOMETREE_") != -1) {
+					Event("TearDownPopUpText", "TEARDOWNTEXT", Map<string, string>(pair<string, string>{"uniqueID", "learnedASkill"})).run(*&gameEngine);
 					gameEngine.storedMenus["TOME"].editExistingButton(gameEngine.language, "CANCELSKILLTREECHOICETOME", gameEngine.storedMenus["TOME"].buttons["SKILLTREETOME"]);
 					for (auto buttonName : gameEngine.storedMenus["TOME"].buttons.getKeys().internalList) {
 						if (buttonName.find("TOMETREE_") != -1) {
@@ -3344,7 +3353,7 @@ return true;
 							gameEngine.storedMenus["TOME"].buttons[buttonName].extras["colour"] = colour;
 							pos.second += distance;
 							if (pos.second > 90) {
-								pos.first += 10;
+								pos.first += 20;
 								pos.second = 15;
 							}
 							Event("LoadThisButton", "LOADABUTTON", Map<string, string>({
@@ -3359,6 +3368,7 @@ return true;
 					return true;
 				}
 				if (buttonLogic.find("TOMETEACH_") != -1) {
+					Event("TearDownPopUpText", "TEARDOWNTEXT", Map<string, string>(pair<string, string>{"uniqueID", "learnedASkill"})).run(*&gameEngine);
 					for (auto buttonName : gameEngine.storedMenus["TOME"].buttons.getKeys().internalList) {
 						if (buttonName.find("TOMETEACHTHESKILL_") != -1 or buttonName == "TOMETEACH_X") {
 							gameEngine.storedMenus["TOME"].removeThisButton(buttonName);
@@ -3508,7 +3518,7 @@ return true;
 				}
 				if (buttonLogic == "DebugButton_VariousChapelR2Flags") {
 					List<string> toToggle = List<string>({"OudinIntro_TRIGGERED", "OudinCutscenePlanks_TRIGGERED", "VisionRoom_TRIGGERED", "VisionRoom2_TRIGGERED", "OudinHostileTriggered", "SawOudinThroughGap",
-						"BloodWallIntro_TRIGGERED", "BloodWallIntro", "WaterPuzzleFinished",
+						"BloodWallIntro_TRIGGERED", "WaterPuzzleFinished", "ChapelRightCombat1_TRIGGERED",
 						});
 					for (auto t : toToggle.internalList) {
 						Event("DoButton", "HANDLEBUTTON", Map<string, string>({
@@ -3550,6 +3560,17 @@ return true;
 				if (buttonLogic == "DebugButton_RiderDefeatedCutscene") {
 					Event("DoButton", "HANDLEBUTTON", Map<string, string>({pair<string, string>("uniqueID", "DebugButton_ChapelFinished"),})).run(*&gameEngine);
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "MadRiderDefeated", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					return true;
+				}
+				if (buttonLogic == "DebugButton_BloodWallIntro") {
+					List<string> toToggle = List<string>({ "OudinIntro_TRIGGERED", "OudinCutscenePlanks_TRIGGERED", "VisionRoom_TRIGGERED", "VisionRoom2_TRIGGERED", "OudinHostileTriggered", "SawOudinThroughGap",});
+					for (auto t : toToggle.internalList) {
+						Event("DoButton", "HANDLEBUTTON", Map<string, string>({
+							pair<string, string>("uniqueID", "DebugButton_ToggleFlag_" + t),
+							})).run(*&gameEngine);
+					}
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "DEBUGMENU")).run(*&gameEngine);
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "BloodWallIntro", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return true;
 				}
 
@@ -3942,6 +3963,7 @@ return true;
 							})).run(*&gameEngine);
 						return true;
 					}
+					if (graphics.accessImageViaUniqueID(skillExplainID) != NULL and graphics.accessImageViaUniqueID(skillExplainID)->sources.front() == toDraw.imageSource) {}
 					else {
 						Combat::Skill toDraw = combat.skillDefinitions[whichSkill];
 						Graphics::Image* theImage = graphics.accessImageViaUniqueID(skillExplainID);
@@ -3949,118 +3971,118 @@ return true;
 						if (theImage->sources.front() != toDraw.imageSource) {
 							theImage->resetSources(*&graphics, { toDraw.imageSource });
 							theBorder->resetSources(*&graphics, { toDraw.getBorderSource() });
-						}
-						Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+							Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
 							pair<string, string>("uniqueID","skillExplainText_skillTreeName"),
-							})).run(*&gameEngine);
-						Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
-							pair<string, string>("uniqueID","skillExplainText"),
-							})).run(*&gameEngine);
-						Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
-							pair<string, string>("uniqueID","skillExplainText_Name"),
-							})).run(*&gameEngine);
-						Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
-							pair<string, string>("uniqueID","skillExplainText_Cost"),
-							})).run(*&gameEngine);
-						Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
-							pair<string, string>("uniqueID","skillExplainText_Activation"),
-							})).run(*&gameEngine);
-						Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
-							pair<string, string>("uniqueID","skillExplainText_Recharge"),
-							})).run(*&gameEngine);
-						Event("DrawText", "DRAWTEXT", Map<string, string>({
-							pair<string, string>("message",who),
-							pair<string, string>("skill",whichSkill),
-							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-							pair<string, string>("format", "HighTowerText_20"),
-							pair<string, string>("anchorStyle", "TOPLEFT"),
-							pair<string, string>("x", desc["description"].first),
-							pair<string, string>("y", desc["description"].second),
-							pair<string, string>("w", to_string(textWidth)),
-							pair<string, string>("h", "60"),
-							pair<string, string>("colour", textColour),
-							pair<string, string>("shadowColour", "DARKBROWN"),
-							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-							pair<string, string>("uniqueID", "skillExplainText"),
-							pair<string, string>("direct", "1"),
-							pair<string, string>("getStringFromCombatant", "skillprintout"),
-							})).run(*&gameEngine);
-						Event("DrawText", "DRAWTEXT", Map<string, string>({
-							pair<string, string>("message",gameEngine.language + "_Skill Tree Names_" + toDraw.skillTree),
-							pair<string, string>("format", "HighTowerText_20"),
-							pair<string, string>("anchorStyle", "TOPLEFT"),
-							pair<string, string>("x", desc["skillTree"].first),
-							pair<string, string>("y", desc["skillTree"].second),
-							pair<string, string>("w", to_string(textWidth)),
-							pair<string, string>("h", "60"),
-							pair<string, string>("colour", textColour),
-							pair<string, string>("shadowColour", "DARKBROWN"),
-							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-							pair<string, string>("uniqueID", "skillExplainText_skillTreeName"),
-							pair<string, string>("getStringFromCombatant", "skillTreeName"),
-							})).run(*&gameEngine);
-						Event("DrawText", "DRAWTEXT", Map<string, string>({
-							pair<string, string>("message",who),
-							pair<string, string>("skill",whichSkill),
-							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-							pair<string, string>("format", "HighTowerText_20"),
-							pair<string, string>("anchorStyle", "TOPLEFT"),
-							pair<string, string>("x", desc["name"].first),
-							pair<string, string>("y", desc["name"].second),
-							pair<string, string>("w", to_string(textWidth)),
-							pair<string, string>("h", "60"),
-							pair<string, string>("colour", textColour),
-							pair<string, string>("shadowColour", "DARKBROWN"),
-							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-							pair<string, string>("uniqueID", "skillExplainText_Name"),
-							pair<string, string>("getStringFromCombatant", "skillName"),
-							pair<string, string>("direct", "1"),
-							})).run(*&gameEngine);
-						Event("DrawText", "DRAWTEXT", Map<string, string>({
-							pair<string, string>("message",to_string(cost)),
-							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-							pair<string, string>("format", "HighTowerText_20"),
-							pair<string, string>("anchorStyle", "TOPLEFT"),
-							pair<string, string>("x", desc["cost"].first),
-							pair<string, string>("y", desc["cost"].second),
-							pair<string, string>("w", to_string(textWidth)),
-							pair<string, string>("h", "60"),
-							pair<string, string>("colour", textColour),
-							pair<string, string>("shadowColour", "DARKBROWN"),
-							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-							pair<string, string>("uniqueID", "skillExplainText_Cost"),
-							pair<string, string>("direct", "1"),
-							})).run(*&gameEngine);
-						Event("DrawText", "DRAWTEXT", Map<string, string>({
-							pair<string, string>("message",to_string(activation)),
-							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-							pair<string, string>("format", "HighTowerText_20"),
-							pair<string, string>("anchorStyle", "TOPLEFT"),
-							pair<string, string>("x", desc["activation"].first),
-							pair<string, string>("y", desc["activation"].second),
-							pair<string, string>("w", to_string(textWidth)),
-							pair<string, string>("h", "60"),
-							pair<string, string>("colour", textColour),
-							pair<string, string>("shadowColour", "DARKBROWN"),
-							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-							pair<string, string>("uniqueID", "skillExplainText_Activation"),
-							pair<string, string>("direct", "1"),
-							})).run(*&gameEngine);
-						Event("DrawText", "DRAWTEXT", Map<string, string>({
-							pair<string, string>("message",to_string(recharge)),
-							pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
-							pair<string, string>("format", "HighTowerText_20"),
-							pair<string, string>("anchorStyle", "TOPLEFT"),
-							pair<string, string>("x", desc["recharge"].first),
-							pair<string, string>("y", desc["recharge"].second),
-							pair<string, string>("w", to_string(textWidth)),
-							pair<string, string>("h", "60"),
-							pair<string, string>("colour", textColour),
-							pair<string, string>("shadowColour", "DARKBROWN"),
-							pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
-							pair<string, string>("uniqueID", "skillExplainText_Recharge"),
-							pair<string, string>("direct", "1"),
-							})).run(*&gameEngine);
+								})).run(*&gameEngine);
+							Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+								pair<string, string>("uniqueID","skillExplainText"),
+								})).run(*&gameEngine);
+							Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+								pair<string, string>("uniqueID","skillExplainText_Name"),
+								})).run(*&gameEngine);
+							Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+								pair<string, string>("uniqueID","skillExplainText_Cost"),
+								})).run(*&gameEngine);
+							Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+								pair<string, string>("uniqueID","skillExplainText_Activation"),
+								})).run(*&gameEngine);
+							Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
+								pair<string, string>("uniqueID","skillExplainText_Recharge"),
+								})).run(*&gameEngine);
+							Event("DrawText", "DRAWTEXT", Map<string, string>({
+								pair<string, string>("message",who),
+								pair<string, string>("skill",whichSkill),
+								pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
+								pair<string, string>("format", "HighTowerText_20"),
+								pair<string, string>("anchorStyle", "TOPLEFT"),
+								pair<string, string>("x", desc["description"].first),
+								pair<string, string>("y", desc["description"].second),
+								pair<string, string>("w", to_string(textWidth)),
+								pair<string, string>("h", "60"),
+								pair<string, string>("colour", textColour),
+								pair<string, string>("shadowColour", "DARKBROWN"),
+								pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+								pair<string, string>("uniqueID", "skillExplainText"),
+								pair<string, string>("direct", "1"),
+								pair<string, string>("getStringFromCombatant", "skillprintout"),
+								})).run(*&gameEngine);
+							Event("DrawText", "DRAWTEXT", Map<string, string>({
+								pair<string, string>("message",gameEngine.language + "_Skill Tree Names_" + toDraw.skillTree),
+								pair<string, string>("format", "HighTowerText_20"),
+								pair<string, string>("anchorStyle", "TOPLEFT"),
+								pair<string, string>("x", desc["skillTree"].first),
+								pair<string, string>("y", desc["skillTree"].second),
+								pair<string, string>("w", to_string(textWidth)),
+								pair<string, string>("h", "60"),
+								pair<string, string>("colour", textColour),
+								pair<string, string>("shadowColour", "DARKBROWN"),
+								pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+								pair<string, string>("uniqueID", "skillExplainText_skillTreeName"),
+								pair<string, string>("getStringFromCombatant", "skillTreeName"),
+								})).run(*&gameEngine);
+							Event("DrawText", "DRAWTEXT", Map<string, string>({
+								pair<string, string>("message",who),
+								pair<string, string>("skill",whichSkill),
+								pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
+								pair<string, string>("format", "HighTowerText_20"),
+								pair<string, string>("anchorStyle", "TOPLEFT"),
+								pair<string, string>("x", desc["name"].first),
+								pair<string, string>("y", desc["name"].second),
+								pair<string, string>("w", to_string(textWidth)),
+								pair<string, string>("h", "60"),
+								pair<string, string>("colour", textColour),
+								pair<string, string>("shadowColour", "DARKBROWN"),
+								pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+								pair<string, string>("uniqueID", "skillExplainText_Name"),
+								pair<string, string>("getStringFromCombatant", "skillName"),
+								pair<string, string>("direct", "1"),
+								})).run(*&gameEngine);
+							Event("DrawText", "DRAWTEXT", Map<string, string>({
+								pair<string, string>("message",to_string(cost)),
+								pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
+								pair<string, string>("format", "HighTowerText_20"),
+								pair<string, string>("anchorStyle", "TOPLEFT"),
+								pair<string, string>("x", desc["cost"].first),
+								pair<string, string>("y", desc["cost"].second),
+								pair<string, string>("w", to_string(textWidth)),
+								pair<string, string>("h", "60"),
+								pair<string, string>("colour", textColour),
+								pair<string, string>("shadowColour", "DARKBROWN"),
+								pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+								pair<string, string>("uniqueID", "skillExplainText_Cost"),
+								pair<string, string>("direct", "1"),
+								})).run(*&gameEngine);
+							Event("DrawText", "DRAWTEXT", Map<string, string>({
+								pair<string, string>("message",to_string(activation)),
+								pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
+								pair<string, string>("format", "HighTowerText_20"),
+								pair<string, string>("anchorStyle", "TOPLEFT"),
+								pair<string, string>("x", desc["activation"].first),
+								pair<string, string>("y", desc["activation"].second),
+								pair<string, string>("w", to_string(textWidth)),
+								pair<string, string>("h", "60"),
+								pair<string, string>("colour", textColour),
+								pair<string, string>("shadowColour", "DARKBROWN"),
+								pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+								pair<string, string>("uniqueID", "skillExplainText_Activation"),
+								pair<string, string>("direct", "1"),
+								})).run(*&gameEngine);
+							Event("DrawText", "DRAWTEXT", Map<string, string>({
+								pair<string, string>("message",to_string(recharge)),
+								pair<string, string>("influences",gameEngine.stateFlags["includeEquipmentInStatView"]),
+								pair<string, string>("format", "HighTowerText_20"),
+								pair<string, string>("anchorStyle", "TOPLEFT"),
+								pair<string, string>("x", desc["recharge"].first),
+								pair<string, string>("y", desc["recharge"].second),
+								pair<string, string>("w", to_string(textWidth)),
+								pair<string, string>("h", "60"),
+								pair<string, string>("colour", textColour),
+								pair<string, string>("shadowColour", "DARKBROWN"),
+								pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
+								pair<string, string>("uniqueID", "skillExplainText_Recharge"),
+								pair<string, string>("direct", "1"),
+								})).run(*&gameEngine);
+						}
 					}
 				}	
 				if (isMouseHoveredOverAnySkill and namingStyle == "COMBAT") {
@@ -6196,11 +6218,11 @@ return true;
 			}
 
 
-			List<string> defaultAnimateOnTarget = list<string>({"Revitalise","Strength of Reason", "Laying of Hands", "Heal Wounds", "Serrated Strike", "Shadow Spike", "Brilliant Spark", "Stone Strike", 
+			List<string> defaultAnimateOnTarget = list<string>({"Revitalise","Strength of Reason", "Laying of Hands", "Heal Wounds", "Serrated Strike", "Brilliant Spark", "Stone Strike", 
 				"Stone Curse", "Atrophy", "Blade of Blood", "Vampiric Strike", "Exile", "Brain Drain","Blood Gift","Curse from Beyond the Grave","Viper Eyes", "Hypoxia", "Beggar's Blessing", "Botched Procedure", "Cestodarian Siphon", "Conciliatory Prayer", "Thoughtful Prayer", "Apostle of Patience","Shield of a Goddess", "Ivory Sanctuary", "Papalcy", "Incessant Devotion", "Ambrosia", "Blessed Light","Gift of Knowledge", "Paraclete's Invitation", "Castigate Cruor", "Entomb Spirit","Exalted Smash", "Erase Evil", "Absolution", "Adjudicate", "Stalked by Vengeance", "Rotation Blade", "Trickblade", "Debilitating Smash", "Clobber", "Cleave Armour", "Knee Crack", "Bulldoze","Knight Vision", "On My Target!", "Glass Sword", "Hack", "Bramble Cloak", "Shield of the Messenger", "Smuggler's Gambit", "Magebane Strike","Skewer", "Dragon Smash", "Weaponsmithing", "Winter Blast", "Sanctum Shroud", "Lacrymactory", "Mourning Edge", "Exemplar's Posture", "Bewrayment", "Avenger's Prayer", "Proscribe", "Conversion", "Fading Justice","Suppress","I Shall Take Care of This!","Song of Angels", "Lord's Authority", "Bailiff's Blade", "Fight the Pain!", "Fencer's Flash", "You're Worthless!", "Vapour Blade", "Light from the Other Side", "You're Revolting!", "Night Fracture", "Mug","Charm Collapse","Stalked by Shadows","Psychic Pithing", "Mind Maze", "Blinded Eye", "Black Djinn's Breath", "Wastrel's Comeuppance", "Petrifying Touch", "Rude Awakening", "Time Walk", "Deathdancer's Strike", "Natural Stab", "Platinum Lotus Strike", "Summer Strike", "Ring of Ash", "Charge Bolt", "Shock Value", "Electrocute", "Ball Lightning", "Double-Edged Lightning", "Chain Lightning", "Blinding Flash", "Electric Loop","Mind Fry", "Valkyrie's Aura","Shadow Game", "Twilightning", "Storm Djinn's Grace", "Short Circuit", "Shocking Defeat", "Scowling Rift", "Fire Bolt", "Arcane Furnace", "Hellraiser's Haste", "Glittering Gaze", "Fireball", "Ensorcell", "Phoenix", "Stalked by Flames", "Delay Blast", "Delay Blast 2", "Exalted Explosion", "Starburst", "Odyllic Cleansing", "Brine", "Cryogenic Sleep", "Polar Prison", "Nacreous Aura", "Polar Vortex", "Mirror of Ice", "Earthen Shell", "Crown of Sands", "Crumble", "Crystalline Scythe", "Master of Wards", "Exalted Stab", "Backstab", "Black Mamba Strike", "Stormdragon Strike", "Paralytic Venom", "Blades of Punishment", "Spirit Shanks", "Brutalism", "Royal Slicers", "Parting Stab", "Shattered Moebius", "Magehunter Strike", "Death Chant", "Shroud of Intrigue", 
 				"BURNING", "BLEEDING", "DISEASED", "POISONED"});
 			List<string> defaultAnimateFullScreen = list<string>({"Light of Day", "Wishing Well", "Heatwave", "Pressure Front", "Prophesized Return", "Overrule", "Ice Age", "Global Warming", "Tempest", "Drought", "Rainstorm", "Healing Rain", "Excommunicative Assault", "Godly Repulsion","No One Said You Could Touch!", "Ice Storm", "Chaos Storm", "Underworld Dreams", "Rageflame", "Cataclysm","Thunderstorm", "Stormseeker", "Flame Wave", "Firespitter", "Vault of Destruction", "Tsunami", "Borealis Blast", "Sliprain", "Sandstorm", "Dust Torrent", "Rocky Soil", "Volcano", "Ward Against Magic", "Ward Against Weapons", "Ward Against Catastrophe", "Ward Against Cruelty", "Scatter Strike", });
-			List<string> defaultAnimateOnEveryTarget = list<string>({"Order of the Wasp", "Great Gospel", "Remedy Ward", "Angelic Observatory", "Iridescent Breath", "Healing Winds", "Heal Wounds All", "Go On Without Me!", "Time Vortex", "Nacreous Aura 2", "Mass Burial", "Chant of Concentration", "DEFAULT_AFFECTION", });
+			List<string> defaultAnimateOnEveryTarget = list<string>({"Order of the Wasp", "Great Gospel", "Remedy Ward", "Angelic Observatory", "Iridescent Breath", "Healing Winds", "Heal Wounds All", "Go On Without Me!", "Time Vortex", "Nacreous Aura 2", "Mass Burial", "Chant of Concentration", "DEFAULT_AFFECTION","Shadow Spike" });
 
 			if (procedureName == "Don't Give Up!") {
 				procedureName = "Revitalise";
@@ -6317,7 +6339,7 @@ return true;
 			if (defaultAnimateOnEveryTarget.contains(procedureName)) {
 				Combat::CombatEvent example = combat.currentBattle->currentEventStackObject.getCurrentForAnimation();
 				// all foes regardless
-				if (procedureName == "Time Vortex" or procedureName == "Mass Burial") {
+				if (procedureName == "Time Vortex" or procedureName == "Mass Burial" or procedureName == "Shadow Spike") {
 					example.combatantsAffected.clear();
 					for (Combat::CombatantInstance* target : combat.currentBattle->getCurrentCombatant()->getMyFoesThatAreAlive(*&combat).internalList) {
 						example.combatantsAffected.push_back(target->c.uniqueCombatID);
@@ -6827,6 +6849,7 @@ return true;
 				Graphics::Image* theImage2 = graphics.accessImageViaUniqueID("PlasmaPulse2");
 				Graphics::Image* theImage3 = graphics.accessImageViaUniqueID("PlasmaPulse3");
 				Graphics::Image* theImage4 = graphics.accessImageViaUniqueID("PlasmaPulse4");
+				int layer = graphics.whichLayerIsThisImageOn(caster);
 				if (theImage != NULL and theImage->hasThisFinishedAnimating()) {
 					graphics.tearDownSpecifiedImage("PlasmaPulse1");
 					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
@@ -6847,7 +6870,7 @@ return true;
 						pair<string, string>("y", to_string(casterLocation.second - 15)),
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
-						pair<string, string>("layer", "1"),
+						pair<string, string>("layer", to_string(layer-1)),
 						pair<string, string>("scale", "1.0"),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "LOOP"),
@@ -7323,6 +7346,7 @@ return true;
 				Menu::smallButton("DebugButton_DreamSequence1", "GUI_DREAM1", {40,75}),
 				Menu::smallButton("DebugButton_TeleportToSpain", "GUI_TELEPORTTOSPAIN", {40,80}),
 				Menu::smallButton("DebugButton_RiderDefeatedCutscene", "GUI_RIDERDEFEATED", {40,85}),
+				Menu::smallButton("DebugButton_BloodWallIntro", "GUI_BLOODWALLINTRO", {40,90}),
 
 				Menu::smallButton("DebugButton_AddAllPlayable", "GUI_ADDALLPLAYABLE", {55,5}),
 				Menu::smallButton("DebugButton_ToggleFlag_IntroFinished", "GUI_IntroFinishedFlag", {70,5}),

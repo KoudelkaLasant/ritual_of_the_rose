@@ -2515,13 +2515,13 @@ public:
 					for (auto key : report.vData.getKeys().internalList) {
 						if (combat.currentBattle->doesTargetXHaveStatusY(report.originalUser, "Stalked by Vengeance")) {
 							EffectObjectInstance* effect = combat.currentBattle->getThisEffect(report.originalUser, "Stalked by Vengeance");
-							if (combat.skillDefinitions.hasKey(report.sourceName) and combat.skillDefinitions[report.sourceName].skillTypeTags.contains("MAGICAL")) {
+							if (combat.skillDefinitions.hasKey(report.sourceName)) {
 								if (report.logic.find("DAMAGE_") != -1 and key.find("DAMAGE") != -1 and key.find("_HOLY_") == -1) {
 										Map<string, string> subSData;
 										Map<string, int> subVData;
 										int powerAsPercentage = effect->e.values["power"];
 										int damageBeingDealt = report.vData[key];
-										float resultPower = (user->c.combatStats["LIFE"] * powerAsPercentage) / 100;
+										float resultPower = damageBeingDealt * powerAsPercentage / 100;
 										subVData["DAMAGE_SINGLE_HOLY"] = resultPower;
 										subSData["success"] = "1";
 										subSData["audioSource"] = to_string(STALKEDBYVENGEANCE_WAV);
@@ -2953,12 +2953,12 @@ public:
 											}
 										}
 									}
-									if (effect->e.logicName == "Conversion" and v.find("HOLY") != -1) {
+									if (effect->e.logicName == "Conversion" and v.find("FIRE") != -1) {
 										float modifier = effect->e.values["power"];
 										float originalDamage = report.vData[v];
 										float newDamage = (originalDamage / 100.0) * modifier;
 										int newDmg = round(newDamage);
-										report.vData["DAMAGE_FIRE_SINGLE"] += newDmg;
+										report.vData["DAMAGE_HOLY_SINGLE"] += newDmg;
 									}
 								}
 								if (effect->e.target == "WORLD") {
@@ -4954,8 +4954,8 @@ public:
 			list<string>({ "APPLY_Stalked by Vengeance_SINGLE" }),
 			list<string>({ "MAGICAL","HOLY", "ELITE",}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DURATION_Stalked by Vengeance", PowerValue("DURATION_Stalked by Vengeance", 5, 0, 99, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))),
-				pair<string, PowerValue>("POWER_Stalked by Vengeance", PowerValue("POWER_Stalked by Vengeance", 33, 0, 99, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))),
+				pair<string, PowerValue>("DURATION_Stalked by Vengeance", PowerValue("DURATION_Stalked by Vengeance", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))),
+				pair<string, PowerValue>("POWER_Stalked by Vengeance", PowerValue("POWER_Stalked by Vengeance", 80, 0, 999, true, list<string>({ "INTELLIGENCE", "HOLYBOOST"}))),
 				}),
 				list<string>({ "CURSEFOE",}), STALKEDBYVENGEANCE_WAV);
 
@@ -5445,7 +5445,7 @@ public:
 				list<string>({ "DEALDAMAGE" }), CHAINLIGHTNING_WAV);
 
 		skillDefinitions["Energy Bolt"] = Skill("Energy Bolt", "Energy Bolt", "Electromancy", SKILLICON_ENERGYBOLT, 30, 0, 1, "SINGLEFOE",
-			list<string>({ "DAMAGE_SINGLE_ELECTRIC", "MANAHEAL_SELF_ELECTRIC" }),
+			list<string>({ "MANAHEAL_SELF_ELECTRIC", "DAMAGE_SINGLE_ELECTRIC", }),
 			list<string>({ "MAGICAL","ELECTRIC", "ELEMENTAL", }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DAMAGE_SINGLE_ELECTRIC", PowerValue("DAMAGE_SINGLE_ELECTRIC", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "ELECTRICBOOST", "ELEMENTALBOOST"}))),
@@ -5613,7 +5613,7 @@ public:
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 30, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
 				pair<string, PowerValue>("DURATION_Parting Stab", PowerValue("DURATION_Parting Stab", 1, 1, 1, true, list<string>({ "STRENGTH", "MINORARMSBOOST" }))),
-				pair<string, PowerValue>("POWER_Parting Stab", PowerValue("POWER_Parting Stab", 30, 1, 1, true, list<string>({ "STRENGTH", "MINORARMSBOOST" }))), }),
+				pair<string, PowerValue>("POWER_Parting Stab", PowerValue("POWER_Parting Stab", 30, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST" }))), }),
 				list<string>({ "DEALDAMAGE" }), PARTINGSTAB_WAV);
 
 		skillDefinitions["Magehunter Strike"] = Skill("Magehunter Strike", "Magehunter Strike", "Minor Arms", SKILLICON_MAGEHUNTERSTRIKE, 25, 0, 8, "FOECASTINGASPELL",
@@ -6498,7 +6498,7 @@ public:
 			list<string>({ "MAGICAL", "EARTH", "ELEMENTAL", "WARD"}),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("POWER_Ward Against Magic", PowerValue("POWER_Ward Against Magic", 8, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("DURATION_Ward Against Magic", PowerValue("DURATION_Ward Against Magic", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_Ward Against Magic", PowerValue("DURATION_Ward Against Magic", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "ENCHANTSELF", }), WARDAGAINSTMAGIC_WAV);
 
@@ -6506,8 +6506,8 @@ public:
 			list<string>({ "APPLY_Ward Against Weapons_ALLALLIES", }),
 			list<string>({ "MAGICAL", "EARTH", "ELEMENTAL", "WARD"}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("POWER_Ward Against Weapons", PowerValue("POWER_Ward Against Weapons", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
-				pair<string, PowerValue>("DURATION_Ward Against Weapons", PowerValue("DURATION_Ward Against Weapons", 5, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("POWER_Ward Against Weapons", PowerValue("POWER_Ward Against Weapons", 4, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DURATION_Ward Against Weapons", PowerValue("DURATION_Ward Against Weapons", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "ENCHANTSELF", }), WARDAGAINSTWEAPONS_WAV);
 
@@ -6520,7 +6520,7 @@ public:
 				}),
 				list<string>({ "ENCHANTSELF", }), WARDAGAINSTCATASTROPHE_WAV);
 
-		skillDefinitions["Ward Against Cruelty"] = Skill("Ward Against Cruelty", "Ward Against Cruelty", "Terramancy", SKILLICON_WARDAGAINSTCRUELTY, 15, 0, 10, "SELF",
+		skillDefinitions["Ward Against Cruelty"] = Skill("Ward Against Cruelty", "Ward Against Cruelty", "Terramancy", SKILLICON_WARDAGAINSTCRUELTY, 30, 0, 10, "SELF",
 			list<string>({ "APPLY_Ward Against Cruelty_ALLALLIES",}),
 			list<string>({ "MAGICAL", "EARTH", "ELEMENTAL","WARD"  }),
 			Map<string, PowerValue>({
@@ -6824,9 +6824,9 @@ public:
 			Combat::Effect("ARMSBOOST",0.5f,true,true),
 			Combat::Effect("AGILITY",0.5f,true,true),
 			}), "EQUIPMENTBLUE", 25);
-		equipmentDefinitions["de Stoute's Sword"] = Equipment(*this, "Guesclin Sword", "Weapon", CODEXPAGE_SWORD1, List<Combat::Effect>({
+		equipmentDefinitions["de Stoute's Sword"] = Equipment(*this, "de Stoute's Sword", "Weapon", CODEXPAGE_SWORD1, List<Combat::Effect>({
 			Combat::Effect("ARMSBOOST",0.5f,true,true),
-			Combat::Effect("LUCK",0.5f,true,true),
+			Combat::Effect("LUCK",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Bavarian Blade"] = Equipment(*this, "Bavarian Blade", "Weapon", CODEXPAGE_SWORD2, List<Combat::Effect>({
 			Combat::Effect("ARMSBOOST",0.5f,true,true),
@@ -7062,7 +7062,7 @@ public:
 						//pair<string, string>("BLIND", "999"),
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
-						pair<string, string>("0", "DEFAULT_WAIT"),
+						pair<string, string>("0", "DEFAULT_ATTACK"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 				}));
@@ -7336,6 +7336,48 @@ public:
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
 						pair<string, string>("1", "DEFAULT_ATTACK"),
 						pair<string, string>("2", "Bulldoze"),
+						})),
+					}));
+		definedCombatants["EnragedDoctor"] = Combatant("EnragedDoctor", "EnragedDoctor",
+			Map<string, int>({
+				pair<string, int>("PIETY", 3),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("EnragedDoctor", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("EnragedDoctor", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("1", "DEFAULT_ATTACK"),
+						pair<string, string>("2", "Remedy Ward"),
+						})),
+					}));
+		definedCombatants["EnragedGuard"] = Combatant("EnragedGuard", "EnragedGuard",
+			Map<string, int>({
+				//pair<string, int>("STRENGTH", 3),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("EnragedGuard", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("EnragedGuard", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("1", "DEFAULT_ATTACK"),
+						pair<string, string>("2", "Hack"),
+						})),
+					}));
+		definedCombatants["EnragedNobleman"] = Combatant("EnragedNobleman", "EnragedNobleman",
+			Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 3),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("EnragedNobleman", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("EnragedNobleman", "COMBAT_FRONT")),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("1", "DEFAULT_ATTACK"),
+						pair<string, string>("2", "Energy Bolt"),
 						})),
 					}));
 		definedCombatants["EnragedRider"] = Combatant("EnragedRider", "EnragedRider",
@@ -7881,6 +7923,13 @@ public:
 				definedCombatants["BloodWall"],
 			}) };
 
+		definedTeams["CHAPELRIGHTFIGHT1"] = { "EnragedDoctor", List<Combatant>({
+				definedCombatants["EnragedGuard"],
+				definedCombatants["EnragedDoctor"],
+				definedCombatants["EnragedDeaconess"],
+				definedCombatants["EnragedNobleman"],
+			}) };
+
 		definedTeams["OUDIN"] = { "OUDIN", List<Combatant>({
 				definedCombatants["ZombieEnragedF"],
 				definedCombatants["OUDIN"],
@@ -8120,7 +8169,7 @@ public:
 			List<string>(list<string>({ "Proscribe", })),
 			List<string>(list<string>({ "ONTAKINGDAMAGE", })));
 
-		allEffectDefinitions["Conversion"] = EffectObject("Conversion", "BOON", SKILLICON_PROSCRIBE, "Conversion", false,
+		allEffectDefinitions["Conversion"] = EffectObject("Conversion", "BOON", SKILLICON_CONVERSION, "Conversion", false,
 			List<string>(list<string>({ "Conversion", })),
 			List<string>(list<string>({ "ONDEALINGDAMAGE", })));
 
@@ -8437,6 +8486,7 @@ public:
 		saveContainer.current.attributeInvestments = defaultAttInvestments.internalMap;
 		saveContainer.current.equippedSkillTrees = defaultSkillTreeChoices.internalMap;
 		saveContainer.current.equippedItems = defaultEquipment.internalMap;
+		saveContainer.current.money = 10;
 		List<string> allStartingCharacters = saveContainer.getAllPlayableCharacters();
 		// add all to allCharacters then remove them when game actually starts
 		saveContainer.current.allCharacters = allStartingCharacters.internalList;
