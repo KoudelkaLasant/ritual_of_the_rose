@@ -197,6 +197,15 @@ public:
 		}
 		return result;
 	}
+	static Button ClickableTextBox(string baseID, string buttonMessage, string size, pair<float, float> position) {
+		Button result = Menu::TextBox(baseID, buttonMessage, size, position);
+		result.clickable = true;
+		result.sources = { BUTTON1_DEFAULT, BUTTON1_HOVERED, BUTTON1_PRESSED };
+		result.audioClick = BUTTON_CLICK_WAV;
+		result.audioHover = BUTTON_HOVER_WAV;
+		result.extras["format"] = "Centaur_17";
+		return result;
+	}
 	static Button MerchantTalkingBox(string baseID) {
 		Button result = Menu::TextBox(baseID, "", "", { 0,0 });
 		result.sources = List<int>({ TEXT_BOX_NARROW });

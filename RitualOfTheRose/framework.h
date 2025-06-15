@@ -47,9 +47,19 @@ using json = nlohmann::json;
 using Microsoft::WRL::ComPtr;
 #include <iostream>
 #include <format>
+#include "ROTR_STRINGS.h"
 
 
 #ifndef HINST_THISCOMPONENT
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
 #endif
+
+typedef map<string, map<string, map<string, wstring>>>(__stdcall * f_funci)();
+filesystem::path path = filesystem::current_path() / "ROTR_Strings.dll";
+wstring pathToDLL = path.c_str();
+
+HINSTANCE hGetProcIDDLL = LoadLibrary(pathToDLL.c_str());
+f_funci getStrings_call = (f_funci)GetProcAddress(hGetProcIDDLL, "getStrings");
+
+map<string, map<string, map<string, wstring>>> strings = getStrings_call();

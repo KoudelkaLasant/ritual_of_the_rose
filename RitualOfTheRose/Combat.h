@@ -5,13 +5,16 @@
 class Combat {
 public:
 	Combat() {
-		influenceLookups["STRENGTH"] = 0.03;
+		influenceLookups["STRENGTH"] = 0.05;
 		influenceLookups["INTELLIGENCE"] = 0.03;
 		influenceLookups["VITALITY"] = 0.1;
 		influenceLookups["PIETY"] = 0.2;
 		influenceLookups["LUCK"] = 0.1;
 		influenceLookups["SPEED"] = 0.1;
 		influenceLookups["AGILITY"] = 0.15;
+
+		influenceLookups["ENERGYREGENPLUS"] = 1;
+
 		// skill tags are used by more than 2 skill trees so give lower bonus
 		influenceLookups["ELEMENTALBOOST"] = 0.04;
 
@@ -359,7 +362,7 @@ public:
 				string typeName = SReplace(tag, "BOOST", "");
 				wstring typeNameLower = strings[language]["Type Names"][typeName];
 				result = WSReplace(result, L"$REPLACE1$", typeNameLower);
-				int powerAsPercentage = combat.influenceLookups[tag] * (100 * influence);
+				int powerAsPercentage = round(combat.influenceLookups[tag] * (100 * influence));
 				result = WSReplace(result, L"$REPLACE2$", to_wstring(powerAsPercentage));
 				result += L"%.\n";
 				return result;
@@ -1077,14 +1080,14 @@ public:
 							percentInfluences[effect.tag + "_ATT"] += effect.influence;
 						}
 						else {
-							flatInfluences[effect.tag + "_EQUIP" + to_string(slot)] = round(effect.influence);
+							flatInfluences[effect.tag + "_EQUIP" + to_string(slot)] = combat.influenceLookups[effect.tag] * effect.influence;
 						}
 					}
 					else {
 						if (intData.getKeys().contains(effect.tag)) {
 							percentInfluences[effect.tag + "_ATT"] *= effect.influence;
 						}
-						percentInfluences[effect.tag + "_EQUIP" + to_string(slot)] = effect.influence;
+						percentInfluences[effect.tag + "_EQUIP" + to_string(slot)] = combat.influenceLookups[effect.tag] * effect.influence * 100;
 					}
 				}
 				slot++;
@@ -1741,6 +1744,9 @@ public:
 			}
 			return results;
 		}
+		string whoSummonedMe() {
+			return c.data["EXTRAS"]["WHOSUMMONEDME"];
+		}
 
 		int getARandomCastableSkillByIndex(Combat& combat, string target, string category) {
 			Map<int, Skill> possibleSkills = combat.currentBattle->getThisCombatant(target)->c.combatSkills;
@@ -1765,7 +1771,7 @@ public:
 			}
 			if (validTargets.empty()) {
 				// stop casting
-				combat.currentBattle->addCombatMessage("FAILED_NO_TARGETS", List<pair<string, string>>({
+				combat.currentBattle->addCombatMessage(*&combat, "FAILED_NO_TARGETS", List<pair<string, string>>({
 					pair<string, string>("language", language),
 					pair<string, string>("name", c.uniqueID),
 					pair<string, string>("skill", c.getSkillBeingCast().uniqueID),
@@ -2283,14 +2289,14 @@ public:
 				}
 			}
 			if (toCast.uniqueID == "DEFAULT_WAIT") {
-				combat.currentBattle->addCombatMessage("WAIT", List<pair<string, string>>({
+				combat.currentBattle->addCombatMessage(*&combat, "WAIT", List<pair<string, string>>({
 					pair<string, string>("language", language),
 					pair<string, string>("name", c.uniqueID),
 					}), 0);
 				results.push_back(CombatEvent("DEFAULT_WAIT", "SKILL", toCast.uniqueID, c.uniqueCombatID, { c.uniqueCombatID }, skillSData, {}));
 			}
 			else {
-				combat.currentBattle->addCombatMessage("DIRECT", pair<string, string>("message", skillSData["message"]), 0);
+				combat.currentBattle->addCombatMessage(*&combat, "DIRECT", pair<string, string>("message", skillSData["message"]), 0);
 			}
 			if (combat.currentBattle->doesTargetXHaveStatusY(c.uniqueCombatID, "Papalcy")) {
 				int papalcyPower = combat.currentBattle->getThisEffect(c.uniqueCombatID, "Papalcy")->e.values["power"];
@@ -2719,13 +2725,13 @@ public:
 									int power = report.vData["DISABLEPOWER"];
 									actor->c.combatSkills[indexBeingCast].timeToRecharge += power;
 								}
-								combat.currentBattle->addCombatMessage("INTERRUPTED", interruptedData, 0);
+								combat.currentBattle->addCombatMessage(*&combat, "INTERRUPTED", interruptedData, 0);
 								}
 							}
 						}
 					}
 
-					if (report.logic.find("LIFEHEAL_SINGLE") != -1) {
+					if (report.logic.find("LIFEHEAL_SINGLE") != -1 or report.logic.find("LIFEHEAL_AOE") != -1) {
 						if (report.sourceName == "Fight the Pain!") {
 							int basePower = combat.currentBattle->getThisEffect(report.combatantsAffected.front(), "Fight the Pain!")->e.values["power"];
 							report.vData["LIFEHEAL_SINGLE_HOLY"] = basePower * combat.currentBattle->getAllEffectsOnXThatAreThisType(report.combatantsAffected.front(), "BANE").size();
@@ -3562,7 +3568,7 @@ public:
 									}
 								}
 								if (report.sourceName == "DISEASED2") {
-									combat.currentBattle->addCombatMessage("DISEASE", List<pair<string, string>>({
+									combat.currentBattle->addCombatMessage(*&combat, "DISEASE", List<pair<string, string>>({
 												pair<string, string>("name",combat.currentBattle->getThisCombatant(user)->c.uniqueID),
 												pair<string, string>("language",language),
 												pair<string, string>("target",combat.currentBattle->all[currentTarget]->c.uniqueID),
@@ -3596,7 +3602,7 @@ public:
 										List<EffectObjectInstance*> boons = combat.currentBattle->getAllEffectsOnXThatAreThisType(currentTarget, "BOON");
 										if (report.sourceName == "Healing Winds" and boons.empty()) { continue; }
 										combat.currentBattle->getThisCombatant(currentTarget)->c.beHealed(report.vData[effect]);
-										combat.currentBattle->addCombatMessage("LIFEHEAL", List<pair<string, string>>({
+										combat.currentBattle->addCombatMessage(*&combat, "LIFEHEAL", List<pair<string, string>>({
 												pair<string, string>("name",combat.currentBattle->getThisCombatant(user)->c.uniqueID),
 												pair<string, string>("language",language),
 												pair<string, string>("type",type),
@@ -3627,7 +3633,7 @@ public:
 									}
 									for (auto currentTarget : report.combatantsAffected.internalList) {
 										combat.currentBattle->getThisCombatant(currentTarget)->c.gainEnergy(report.vData[effect]);
-										combat.currentBattle->addCombatMessage("MANAHEAL", List<pair<string, string>>({
+										combat.currentBattle->addCombatMessage(*&combat, "MANAHEAL", List<pair<string, string>>({
 												pair<string, string>("name",combat.currentBattle->getThisCombatant(user)->c.uniqueID),
 												pair<string, string>("language",language),
 												pair<string, string>("type",type),
@@ -3650,7 +3656,7 @@ public:
 								failData["name"] = combat.currentBattle->getThisCombatant(user)->c.uniqueID;
 								failData["language"] = language;
 								failData["summon"] = toSummon.uniqueID;
-								combat.currentBattle->addCombatMessage("FAILEDSUMMONNOSPACE", failData, 0);
+								combat.currentBattle->addCombatMessage(*&combat, "FAILEDSUMMONNOSPACE", failData, 0);
 								combat.currentBattle->getThisCombatant(user)->c.currentTarget = user;
 								report.sourceName = "FAILEDSKILL"; // don't animate anything
 							}
@@ -3688,7 +3694,7 @@ public:
 									string type = split(effect, "_").at(2);
 									for (auto currentTarget : report.combatantsAffected.internalList) {
 										combat.currentBattle->getThisCombatant(currentTarget)->c.takeDamage(report.vData[effect]);
-										combat.currentBattle->addCombatMessage("DAMAGE", List<pair<string, string>>({
+										combat.currentBattle->addCombatMessage(*&combat, "DAMAGE", List<pair<string, string>>({
 												pair<string, string>("name",combat.currentBattle->getThisCombatant(user)->c.uniqueID),
 												pair<string, string>("language",language),
 												pair<string, string>("type",type),
@@ -3711,7 +3717,7 @@ public:
 										}
 										combat.currentBattle->getThisCombatant(currentTarget)->c.takeDamage(report.vData[effect]);
 										combat.currentBattle->getThisCombatant(user)->c.beHealed(report.vData[effect]);
-										combat.currentBattle->addCombatMessage("LIFESTEAL", List<pair<string, string>>({
+										combat.currentBattle->addCombatMessage(*&combat, "LIFESTEAL", List<pair<string, string>>({
 												pair<string, string>("name",combat.currentBattle->getThisCombatant(user)->c.uniqueID),
 												pair<string, string>("language",language),
 												pair<string, string>("damage",to_string(report.vData[effect])),
@@ -3729,7 +3735,7 @@ public:
 									for (auto currentTarget : report.combatantsAffected.internalList) {
 										combat.currentBattle->getThisCombatant(currentTarget)->c.takeManaDamage(report.vData[effect]);
 										combat.currentBattle->getThisCombatant(user)->c.gainEnergy(report.vData[effect]);
-										combat.currentBattle->addCombatMessage("ENERGYSTEAL", List<pair<string, string>>({
+										combat.currentBattle->addCombatMessage(*&combat, "ENERGYSTEAL", List<pair<string, string>>({
 												pair<string, string>("name",combat.currentBattle->getThisCombatant(user)->c.uniqueID),
 												pair<string, string>("language",language),
 												pair<string, string>("damage",to_string(report.vData[effect])),
@@ -3747,7 +3753,7 @@ public:
 									for (auto currentTarget : report.combatantsAffected.internalList) {
 										if (currentTarget == "WORLD") { continue; }
 										combat.currentBattle->getThisCombatant(currentTarget)->c.takeManaDamage(report.vData[effect]);
-										combat.currentBattle->addCombatMessage("MANABURN", List<pair<string, string>>({
+										combat.currentBattle->addCombatMessage(*&combat, "MANABURN", List<pair<string, string>>({
 												pair<string, string>("name",combat.currentBattle->getThisCombatant(user)->c.uniqueID),
 												pair<string, string>("language",language),
 												pair<string, string>("damage",to_string(report.vData[effect])),
@@ -3783,7 +3789,7 @@ public:
 								combat.currentBattle->getThisCombatant(currentTarget)->c.beHealed(lifeGain);
 								combat.currentBattle->getThisCombatant(currentTarget)->c.combatStats["CURRENTENERGY"] = 0;
 								combat.currentBattle->getThisCombatant(currentTarget)->c.gainEnergy(manaGain);
-								combat.currentBattle->addCombatMessage("RESURRECT", List<pair<string, string>>({
+								combat.currentBattle->addCombatMessage(*&combat, "RESURRECT", List<pair<string, string>>({
 										pair<string, string>("name",combat.currentBattle->getThisCombatant(user)->c.uniqueID),
 										pair<string, string>("language",language),
 										pair<string, string>("type",type),
@@ -3836,7 +3842,7 @@ public:
 						failData["failReason"] = report.sData["failReason"];
 						bool failSilently = report.sData["failSilently"] == "1";
 						if (!failedSkillExecutions.contains(report.sourceName) and !failSilently) {
-							combat.currentBattle->addCombatMessage("FAILEDSKILL", failData, 0);
+							combat.currentBattle->addCombatMessage(*&combat, "FAILEDSKILL", failData, 0);
 						}
 						if (report.sourceName == "Smuggler's Gambit") {
 							combat.currentBattle->getThisCombatant(report.originalUser)->c.getSkillByName("Smuggler's Gambit").timeToRecharge = 3;
@@ -3912,7 +3918,7 @@ public:
 			for (CombatantInstance* actor : all.getValues().internalList) {
 				loadAnyPreExistingEffectsForThisCombatant(*&combat, actor);
 			}
-			addCombatMessage("COMBATSTART", data, 0);
+			addCombatMessage(*&combat, "COMBATSTART", data, 0);
 			for (auto key : _data.getKeys().internalList) {
 				if (key.find("LOOT") != -1) {
 					string item = SReplace(key, "LOOT$", "");
@@ -3937,25 +3943,34 @@ public:
 			List<Graphics::Image*> results;
 			results.push_back(graphics.accessImageViaUniqueID("BattleBackground"));
 			for (CombatantInstance* actor : getAllCombatants().internalList) {
-				string uniqueIDBase = actor->c.uniqueCombatID;
-				string barback_life = uniqueIDBase + "_BARBACKLIFE";
-				string barback_mana = uniqueIDBase + "_BARBACKMANA";
-				string life = uniqueIDBase + "_LIFE";
-				string mana = uniqueIDBase + "_MANA";
-				for (auto imageName : { uniqueIDBase , barback_life, barback_mana, life, mana }) {
-					results.push_back(graphics.accessImageViaUniqueID(imageName));
-				}
-				List <Combat::EffectObjectInstance*> effectObjectInstances = combat.currentBattle->getAllEffectsOnXInTimeOrderOldestFirst(uniqueIDBase);
-				for (Combat::EffectObjectInstance* effect : effectObjectInstances.internalList) {
-					string imageName = uniqueIDBase + "$" + effect->e.uniqueID + "$COMBATEFFECT";
-					string borderName = uniqueIDBase + "$" + effect->e.uniqueID + "$COMBATBORDER";
-					if (graphics.accessImageViaUniqueID(imageName) != NULL) {
-						results.push_back(graphics.accessImageViaUniqueID(imageName));
-						results.push_back(graphics.accessImageViaUniqueID(borderName));
-					}
+				List<Graphics::Image*> current = getAllImagesAssociatedWithThisActor(*&combat, actor);
+				for (Graphics::Image* image : current.internalList) {
+					results.push_back(image);
 				}
 			}
 			return results;
+		}
+		List<Graphics::Image*> getAllImagesAssociatedWithThisActor(Combat& combat, CombatantInstance* actor) {
+			List<Graphics::Image*> results;
+			string uniqueIDBase = actor->c.uniqueCombatID;
+			string barback_life = uniqueIDBase + "_BARBACKLIFE";
+			string barback_mana = uniqueIDBase + "_BARBACKMANA";
+			string life = uniqueIDBase + "_LIFE";
+			string mana = uniqueIDBase + "_MANA";
+			for (auto imageName : { uniqueIDBase , barback_life, barback_mana, life, mana }) {
+				results.push_back(graphics.accessImageViaUniqueID(imageName));
+			}
+			List <Combat::EffectObjectInstance*> effectObjectInstances = combat.currentBattle->getAllEffectsOnXInTimeOrderOldestFirst(uniqueIDBase);
+			for (Combat::EffectObjectInstance* effect : effectObjectInstances.internalList) {
+				string imageName = uniqueIDBase + "$" + effect->e.uniqueID + "$COMBATEFFECT";
+				string borderName = uniqueIDBase + "$" + effect->e.uniqueID + "$COMBATBORDER";
+				if (graphics.accessImageViaUniqueID(imageName) != NULL) {
+					results.push_back(graphics.accessImageViaUniqueID(imageName));
+					results.push_back(graphics.accessImageViaUniqueID(borderName));
+				}
+			}
+			return results;
+
 		}
 		void loadAnyPreExistingEffectsForThisCombatant(Combat& combat, CombatantInstance* actor) {
 			// combatant is sourced from internal combatant list
@@ -3994,6 +4009,39 @@ public:
 				party2allies.push_back(actor);
 			}
 			loadAnyPreExistingEffectsForThisCombatant(*&combat, actor);
+		}
+		void removeNewCombatantDuringBattle(Combat& combat, CombatantInstance* actor) {
+			string who = actor->c.uniqueCombatID;
+			assignAnyEffectOwnershipToSummonerIfSummonIsRemoved(who);
+			List<Graphics::Image*> toDelete = getAllImagesAssociatedWithThisActor(*&combat, actor);
+			for (Graphics::Image* image : toDelete.internalList) {
+				graphics.tearDownSpecifiedImage(image->unique_ID);
+			}
+			for (auto name : allEffectsInPlay[who].getKeys().internalList) {
+				delete allEffectsInPlay[who][name];
+				allEffectsInPlay[who][name] = NULL;
+				allEffectsInPlay[who].internalMap.erase(name);
+				allEffectsInPlay.internalMap.erase(name);
+			}
+			if (actor->team == "TEAM1_ALLIES") {
+				party1allies.forcibleRemove(actor);
+			}
+			else {
+				party2allies.forcibleRemove(actor);
+			}
+			delete all[actor->c.uniqueCombatID];
+			all.internalMap.erase(who);
+		}
+		void assignAnyEffectOwnershipToSummonerIfSummonIsRemoved(string whoDied) {
+			// if a summoned creature dies and gets removed from the battle effects they created may try to look for them but find NULL and crash (e.g. diseased) so make the owner the summoner
+			string summoner = getThisCombatant(whoDied)->whoSummonedMe();
+			for (auto who : allEffectsInPlay.getKeys().internalList) {
+				for (auto name : allEffectsInPlay[who].getKeys().internalList) {
+					if (allEffectsInPlay[who][name]->e.owner == whoDied) {
+						allEffectsInPlay[who][name]->e.owner = summoner;
+					}
+				}
+			}
 		}
 		List<string> decideTurnOrder() {
 			/*
@@ -4092,7 +4140,7 @@ public:
 		bool areTherePreTurnEffectsToRun() {
 			return currentEventStackObject.ongoingReport.size() > 0;
 		}
-		void addCombatMessage(string type, Map<string, string> combatMessageData, int verbosity) {
+		void addCombatMessage(Combat & combat, string type, Map<string, string> combatMessageData, int verbosity) {
 			// for top bar
 			string language = combatMessageData["language"];
 			wstring message = L"";
@@ -4198,6 +4246,14 @@ public:
 				if (!rewardForWinning.getKeys().empty()) {
 					message += strings[language]["GUI"]["BATTLEREWARD"];
 					for (auto item : rewardForWinning.getKeys().internalList) {
+						if (item == "GOLD") {
+							saveContainer.gainMoney(rewardForWinning[item]);
+						}
+						else {
+							for (int x = 0; x < rewardForWinning[item]; x++) {
+								saveContainer.increaseItemInventoryCount(item, combat.equipmentDefinitions[item].category);
+							}
+						}
 						wstring itemName = L"";
 						if (item == "GOLD" and rewardForWinning[item] == 1) {
 							itemName = strings[language]["Unique Item Strings"]["GOLD_1"];
@@ -4250,13 +4306,13 @@ public:
 			}
 			combatMessages.push_front({ verbosity, message });
 		}
-		void announceCombatantTurn(string language) {
+		void announceCombatantTurn(Combat & combat, string language) {
 			string who = currentRound.whoseTurnIsIt();
 			if (who == "WORLD") { return; }
 			Map<string, string> data;
 			data["language"] = language;
 			data["name"] = all[who]->c.uniqueID;
-			addCombatMessage("PLAYERTURN", data, 0);
+			addCombatMessage(*&combat, "PLAYERTURN", data, 0);
 			if (!playerIsInControl() and all[who]->c.currentlyCasting) {
 				string skillType = "PHYSICAL";
 				string skillName = all[who]->c.getSkillBeingCast().uniqueID;
@@ -4265,7 +4321,7 @@ public:
 				}
 				data["skillType"] = "MAGICAL";
 				data["skill"] = skillName;
-				addCombatMessage("STILLCASTING", data, 0);
+				addCombatMessage(*&combat, "STILLCASTING", data, 0);
 			}
 		}
 		bool playerIsInControl() {
@@ -4696,6 +4752,15 @@ public:
 		skillDefinitions["Suicide"] = Skill("Suicide", "Suicide", "Debug", SKILLICON_WAIT, 0, 0, 0, "SELF", { "SUICIDE_SELF" }, list<string>({ "PHYSICAL","UNHOLY" }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("SUICIDE",PowerValue("STEALLIFEFORMASTER",0,0,0,true,list<string>({}))) }), list<string>({}), 5819);
+
+		skillDefinitions["SadBag"] = Skill("SadBag", "SadBag", "Debug", SKILLICON_WAIT, 1, 0, 0, "SELF",
+			list<string>({ "SUMMON_SadBag_SELF" }),
+			list<string>({ "MAGICAL","UNHOLY", "SUMMON" }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 1, 0, 1, true, list<string>({}))),
+				}),
+				list<string>({ "SUMMON", }), 7064);
+
 
 		// CLEROMANCY
 		skillDefinitions["Heal Wounds"] = Skill("Heal Wounds", "Heal Wounds", "Cleromancy", SKILLICON_HEALWOUNDS, 10, 1, 1, "SINGLEALLY",
@@ -5194,7 +5259,7 @@ public:
 			list<string>({ "SUMMON_Skeleton Warrior_SELF" }),
 			list<string>({ "MAGICAL","UNHOLY", "ELITE", "SUMMON" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 100, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 50, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				pair<string, PowerValue>("STRENGTH", PowerValue("STRENGTH", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				}),
 				list<string>({ "SUMMON", }), 5686);
@@ -5203,7 +5268,7 @@ public:
 			list<string>({ "SUMMON_Mound of Leeches_SELF" }),
 			list<string>({ "MAGICAL","UNHOLY", "SUMMON" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 35, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				pair<string, PowerValue>("INTELLIGENCE", PowerValue("INTELLIGENCE", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				}),
 				list<string>({ "SUMMON", }), 7064);
@@ -5212,7 +5277,7 @@ public:
 			list<string>({ "SUMMON_Bone Priest_SELF" }),
 			list<string>({ "MAGICAL","UNHOLY", "SUMMON", "ELITE", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 66, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 50, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				pair<string, PowerValue>("PIETY", PowerValue("PIETY", 12, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				pair<string, PowerValue>("INTELLIGENCE", PowerValue("INTELLIGENCE", 12, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				}),
@@ -5222,7 +5287,7 @@ public:
 			list<string>({ "SUMMON_Avatar of the Night_SELF" }),
 			list<string>({ "MAGICAL","UNHOLY", "SUMMON", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 35, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				pair<string, PowerValue>("PIETY", PowerValue("PIETY", 8, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				pair<string, PowerValue>("INTELLIGENCE", PowerValue("INTELLIGENCE", 8, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				}),
@@ -5232,7 +5297,7 @@ public:
 			list<string>({ "SUMMON_Affection_SELF" }),
 			list<string>({ "MAGICAL","UNHOLY", "SUMMON", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 35, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				}),
 				list<string>({ "SUMMON", }), AFFECTION_WAV);
 
@@ -5240,7 +5305,7 @@ public:
 			list<string>({ "SUMMON_Cursed Doll_SELF" }),
 			list<string>({ "MAGICAL","UNHOLY", "SUMMON", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 15, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				pair<string, PowerValue>("PIETY", PowerValue("PIETY", 8, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				}),
 				list<string>({ "SUMMON", }), CURSEDDOLL_WAV);
@@ -5249,7 +5314,7 @@ public:
 			list<string>({ "SUMMON_Hanged Man_SELF" }),
 			list<string>({ "MAGICAL","UNHOLY", "SUMMON", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 40, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				pair<string, PowerValue>("LUCK", PowerValue("LUCK", 12, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				pair<string, PowerValue>("AGILITY", PowerValue("AGILITY", 12, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				pair<string, PowerValue>("STRENGTH", PowerValue("STRENGTH", 3, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
@@ -5260,7 +5325,7 @@ public:
 			list<string>({ "SUMMON_Minion_SELF" }),
 			list<string>({ "MAGICAL","UNHOLY", "SUMMON", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 40, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				pair<string, PowerValue>("STRENGTH", PowerValue("STRENGTH", 8, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				}),
 				list<string>({ "SUMMON", }), MINION_WAV);
@@ -5269,10 +5334,20 @@ public:
 			list<string>({ "SUMMON_Failed Embryo_SELF" }),
 			list<string>({ "MAGICAL","UNHOLY", "SUMMON", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 40, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				pair<string, PowerValue>("INTELLIGENCE", PowerValue("INTELLIGENCE", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
 				}),
 				list<string>({ "SUMMON", }), EMBRYO_WAV);
+
+		skillDefinitions["Fleshmender"] = Skill("Fleshmender", "Fleshmender", "Necromancy", SKILLICON_FLESHMENDER, 30, 1, 5, "SELF",
+			list<string>({ "SUMMON_Fleshmender_SELF" }),
+			list<string>({ "MAGICAL","UNHOLY", "SUMMON", }),
+			Map<string, PowerValue>({
+				pair<string, PowerValue>("LIFE", PowerValue("LIFE", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("INTELLIGENCE", PowerValue("INTELLIGENCE", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				pair<string, PowerValue>("PIETY", PowerValue("PIETY", 2, 0, 999, true, list<string>({ "INTELLIGENCE", "UNHOLYBOOST"}))),
+				}),
+				list<string>({ "SUMMON", }), FLESHMENDER_WAV);
 
 
 		// ELECTROMANCY
@@ -5537,7 +5612,7 @@ public:
 			list<string>({ "PHYSICAL","ATTACK", }),
 			Map<string, PowerValue>({
 				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 12, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
-				pair<string, PowerValue>("BONUS", PowerValue("BONUS", 45, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
+				pair<string, PowerValue>("BONUS", PowerValue("BONUS", 40, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), BACKSTAB_WAV);
 
@@ -6757,111 +6832,111 @@ public:
 			Combat::Effect("AGILITY",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Tibetan Tie Bian"] = Equipment(*this, "Tibetan Tie Bian", "Weapon", CODEXPAGE_TIEBAN1, List<Combat::Effect>({
-			Combat::Effect("ENERGYREGENPLUS",5.0f,true,true),
+			Combat::Effect("ENERGYREGENPLUS",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Roger Bacon's Quill"] = Equipment(*this, "Roger Bacon's Quill", "Weapon", CODEXPAGE_QUILL, List<Combat::Effect>({
 			Combat::Effect("INTELLIGENCE",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Licinia Eucharis' Wand"] = Equipment(*this, "Licinia Eucharis' Wand", "Weapon", CODEXPAGE_WAND1, List<Combat::Effect>({
-			Combat::Effect("PIETY",1.1f,true,true),
+			Combat::Effect("PIETY",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["William's Left-Hand Sword"] = Equipment(*this, "William's Left-Hand Sword", "Weapon", CODEXPAGE_SWORD2, List<Combat::Effect>({
-			Combat::Effect("STRENGTH",1.1f,true,true),
-			Combat::Effect("BLOODBOOST",2.0f,true,false),
+			Combat::Effect("STRENGTH",2.0f,true,true),
+			Combat::Effect("BLOODBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 100);
 		equipmentDefinitions["William's Right-Hand Sword"] = Equipment(*this, "William's Right-Hand Sword", "Weapon", CODEXPAGE_SWORD2, List<Combat::Effect>({
-			Combat::Effect("STRENGTH",1.1f,true,true),
-			Combat::Effect("ARMSBOOST",2.0f,true,false),
+			Combat::Effect("STRENGTH",2.0f,true,true),
+			Combat::Effect("ARMSBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 500);
 		equipmentDefinitions["Koudelka's Umbrella"] = Equipment(*this, "Koudelka's Umbrella", "Weapon", CODEXPAGE_KOUDELKAUMBRELLA, List<Combat::Effect>({
 			Combat::Effect("PIETY",3.0f,true,true),
 			Combat::Effect("INTELLIGENCE",3.0f,true,true),
-			Combat::Effect("ELECTRICBOOST",2.0f,true,false),
+			Combat::Effect("ELECTRICBOOST",1.0f,true,false),
 			Combat::Effect("ARMOURVSCOLD",5.0f,true,false),
 			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Adriana's Mirror"] = Equipment(*this, "Adriana's Mirror", "Weapon", CODEXPAGE_ADRIANAMIRROR, List<Combat::Effect>({
-			Combat::Effect("PIETY",10.0f,true,true),
+			Combat::Effect("PIETY",5.0f,true,true),
 			Combat::Effect("ARMOURVSELEMENTS",10.0f,true,false),
 			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Sunspear Whip"] = Equipment(*this, "Sunspear Whip", "Weapon", CODEXPAGE_STACIASWORD, List<Combat::Effect>({
 			Combat::Effect("STRENGTH",10.0f,true,true),
-			Combat::Effect("ARMSBOOST",5.0f,true,false),
-			Combat::Effect("FIREBOOST",2.0f,true,false),
+			Combat::Effect("ARMSBOOST",1.0f,true,false),
+			Combat::Effect("FIREBOOST",1.0f,true,false),
 			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Jade Dragon Blades"] = Equipment(*this, "Jade Dragon Blades", "Weapon", CODEXPAGE_JADEDRAGONBLADES, List<Combat::Effect>({
 			Combat::Effect("STRENGTH",10.0f,true,true),
 			Combat::Effect("AGILITY",10.0f,true,true),
 			Combat::Effect("VENOMOUS",1.0f,true,false),
 			}), "ELITESKILLYELLOW", 500);
-		equipmentDefinitions["Dido's Dousing Rod"] = Equipment(*this, "Dido's Dousing Rods", "Weapon", CODEXPAGE_TIEBAN1, List<Combat::Effect>({
-			Combat::Effect("COLDBOOST",1.0f,true,false),
+		equipmentDefinitions["Dido's Dousing Rod"] = Equipment(*this, "Dido's Dousing Rod", "Weapon", CODEXPAGE_TIEBAN1, List<Combat::Effect>({
+			Combat::Effect("COLDBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Promethean Spear"] = Equipment(*this, "Promethean Spear", "Weapon", CODEXPAGE_SPEAR, List<Combat::Effect>({
-			Combat::Effect("FIREBOOST",1.0f,true,false),
+			Combat::Effect("FIREBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Sif's Hammer"] = Equipment(*this, "Sif's Hammer", "Weapon", CODEXPAGE_HAMMER, List<Combat::Effect>({
-			Combat::Effect("EARTHBOOST",1.0f,true,false),
+			Combat::Effect("EARTHBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Enlil's Sickle"] = Equipment(*this, "Enlil's Sickle", "Weapon", CODEXPAGE_SICKLE, List<Combat::Effect>({
-			Combat::Effect("ELECTRICBOOST",1.0f,true,false),
+			Combat::Effect("ELECTRICBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Iyarri's Bow"] = Equipment(*this, "Iyarri's Bow", "Weapon", CODEXPAGE_BOW, List<Combat::Effect>({
-			Combat::Effect("BLOODBOOST",1.0f,true,false),
+			Combat::Effect("BLOODBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Djall's Blade"] = Equipment(*this, "Djall's Blade", "Weapon", CODEXPAGE_SWORD1, List<Combat::Effect>({
-			Combat::Effect("STRENGTH",0.5f,true,true),
-			Combat::Effect("UNHOLYBOOST",0.5f,true,true),
+			Combat::Effect("STRENGTH",1.0f,true,true),
+			Combat::Effect("UNHOLYBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
-		equipmentDefinitions["Richemont's Sword"] = Equipment(*this, "Richemont Sword", "Weapon", CODEXPAGE_SECESPITA, List<Combat::Effect>({
-			Combat::Effect("ARMSBOOST",1.0f,true,true),
-			Combat::Effect("MINORARMSBOOST",1.0f,true,true),
+		equipmentDefinitions["Richemont's Sword"] = Equipment(*this, "Richemont's Sword", "Weapon", CODEXPAGE_SECESPITA, List<Combat::Effect>({
+			Combat::Effect("ARMSBOOST",0.333f,true,false),
+			Combat::Effect("MINORARMSBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
-		equipmentDefinitions["Dunois's Sword"] = Equipment(*this, "Dunois Sword", "Weapon", CODEXPAGE_SWORD1, List<Combat::Effect>({
-			Combat::Effect("ARMSBOOST",0.5f,true,true),
-			Combat::Effect("VITALITY",0.5f,true,true),
+		equipmentDefinitions["Dunois's Sword"] = Equipment(*this, "Dunois's Sword", "Weapon", CODEXPAGE_SWORD1, List<Combat::Effect>({
+			Combat::Effect("ARMSBOOST",0.333f,true,false),
+			Combat::Effect("VITALITY",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
-		equipmentDefinitions["Guesclin's Sword"] = Equipment(*this, "Guesclin Sword", "Weapon", CODEXPAGE_SWORD2, List<Combat::Effect>({
-			Combat::Effect("ARMSBOOST",0.5f,true,true),
-			Combat::Effect("AGILITY",0.5f,true,true),
+		equipmentDefinitions["Guesclin's Sword"] = Equipment(*this, "Guesclin's Sword", "Weapon", CODEXPAGE_SWORD2, List<Combat::Effect>({
+			Combat::Effect("ARMSBOOST",0.333f,true,false),
+			Combat::Effect("AGILITY",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["de Stoute's Sword"] = Equipment(*this, "de Stoute's Sword", "Weapon", CODEXPAGE_SWORD1, List<Combat::Effect>({
-			Combat::Effect("ARMSBOOST",0.5f,true,true),
+			Combat::Effect("ARMSBOOST",0.333f,true,false),
 			Combat::Effect("LUCK",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Bavarian Blade"] = Equipment(*this, "Bavarian Blade", "Weapon", CODEXPAGE_SWORD2, List<Combat::Effect>({
-			Combat::Effect("ARMSBOOST",0.5f,true,true),
-			Combat::Effect("PIETY",0.5f,true,true),
+			Combat::Effect("ARMSBOOST",0.333f,true,false),
+			Combat::Effect("PIETY",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Glyndwr's Spear"] = Equipment(*this, "Glyndwr's Spear", "Weapon", CODEXPAGE_SPEAR, List<Combat::Effect>({
-			Combat::Effect("ARMSBOOST",1.0f,true,false),
-			Combat::Effect("WAYFARINGBOOST",1.0f,true,true),
+			Combat::Effect("ARMSBOOST",0.333f,true,false),
+			Combat::Effect("WAYFARINGBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 
 
 		// ARMOUR
 		equipmentDefinitions["Vatican Vestiments"] = Equipment(*this, "Vatican Vestiments", "Armour", CODEXPAGE_VESTIMENTS, List<Combat::Effect>({
-			Combat::Effect("HOLYBOOST",1.0f,true,false),
+			Combat::Effect("HOLYBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Martin's Cloak"] = Equipment(*this, "Martin's Cloak", "Armour", CODEXPAGE_CLOAK1, List<Combat::Effect>({
 			Combat::Effect("ARMOURVSPHYSICAL",1.0f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Alhambran Tunic"] = Equipment(*this, "Alhambran Tunic", "Armour", CODEXPAGE_HAREM, List<Combat::Effect>({
-			Combat::Effect("SHADOWBOOST",1.0f,true,false),
+			Combat::Effect("SHADOWBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Insulating Gloves"] = Equipment(*this, "Insulating Gloves", "Armour", CODEXPAGE_GLOVES1, List<Combat::Effect>({
 			Combat::Effect("ARMOURVSELECTRIC",5.0f,true,false),
 			}), "EQUIPMENTBLUE", 250);
 		equipmentDefinitions["Ming Theatre Costume"] = Equipment(*this, "Ming Theatre Costume", "Armour", CODEXPAGE_MING, List<Combat::Effect>({
-			Combat::Effect("BLOODBOOST",1.0f,true,false),
+			Combat::Effect("BLOODBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Mourning Veil"] = Equipment(*this, "Mourning Veil", "Armour", CODEXPAGE_MOURNINGVEIL, List<Combat::Effect>({
 			Combat::Effect("PIETY",3.0f,true,true),
 			Combat::Effect("INTELLIGENCE",3.0f,true,true),
-			Combat::Effect("UNHOLYBOOST",7.0f,true,false),
+			Combat::Effect("UNHOLYBOOST",1.0f,true,false),
 			}), "ELITESKILLYELLOW", 500);
-		equipmentDefinitions["Snow Maiden's Spectacles"] = Equipment(*this, "Mourning Veil", "Armour", CODEXPAGE_MOURNINGVEIL, List<Combat::Effect>({
+		equipmentDefinitions["Snow Maiden's Spectacles"] = Equipment(*this, "Snow Maiden's Spectacles", "Armour", CODEXPAGE_MOURNINGVEIL, List<Combat::Effect>({
 			Combat::Effect("INTELLIGENCE",6.0f,true,true),
-			Combat::Effect("COLDBOOST",7.0f,true,false),
+			Combat::Effect("COLDBOOST",1.0f,true,false),
 			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Sunspear Armour"] = Equipment(*this, "Sunspear Armour", "Armour", CODEXPAGE_SUNSPEARARMOUR, List<Combat::Effect>({
 			Combat::Effect("ARMOURVSPHYSICAL",6.0f,true,false),
@@ -6872,23 +6947,22 @@ public:
 			Combat::Effect("ARMOURVSPOISON",6.0f,true,false),
 			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Dido's Robes"] = Equipment(*this, "Dido's Robes", "Armour", CODEXPAGE_FEMALEROBES1, List<Combat::Effect>({
-			Combat::Effect("WATERBOOST",1.0f,true,false),
-			Combat::Effect("ARMOURVSCOLD",5.0f,true,false),
+			Combat::Effect("COLDBOOST",1.0f,true,false),
+			Combat::Effect("ARMOURVSCOLD",1.0f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Promethean Cloak"] = Equipment(*this, "Promethean Cloak", "Armour", CODEXPAGE_MALEROBES1, List<Combat::Effect>({
-			Combat::Effect("FIREBOOST",1.0f,true,false),
+			Combat::Effect("FIREBOOST",0.333f,true,false),
 			Combat::Effect("ARMOURVSFIRE",5.0f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Cthonic Leg Wrappings"] = Equipment(*this, "Cthonic Leg Wrappings", "Armour", CODEXPAGE_BANDAGES, List<Combat::Effect>({
 			Combat::Effect("AGILITY",-2.0f,true,true),
-			Combat::Effect("SHADOWBOOST",3.0f,true,false),
+			Combat::Effect("SHADOWBOOST",1.0f,true,false),
 			}), "ELITESKILLYELLOW", 25);
 		equipmentDefinitions["Supportive Boots"] = Equipment(*this, "Supportive Boots", "Accessory", CODEXPAGE_SHOE, List<Combat::Effect>({
-			Combat::Effect("AGILITY",2.0f,true,false),
-			Combat::Effect("SPEED",2.0f,true,true),
+			Combat::Effect("AGILITY",5.0f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Sif's Shoes"] = Equipment(*this, "Sif's Shoes", "Armour", CODEXPAGE_SHOE, List<Combat::Effect>({
-			Combat::Effect("EARTHBOOST",1.0f,true,false),
+			Combat::Effect("EARTHBOOST",0.333f,true,false),
 			Combat::Effect("ARMOURVSEARTH",5.0f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Enlil's Cloak"] = Equipment(*this, "Enlil's Cloak", "Armour", CODEXPAGE_MALEROBES1, List<Combat::Effect>({
@@ -6896,49 +6970,49 @@ public:
 			Combat::Effect("ARMOURVSELECTRIC",5.0f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Iyarri's Gloves"] = Equipment(*this, "Iyarri's Gloves", "Armour", CODEXPAGE_GLOVES2, List<Combat::Effect>({
-			Combat::Effect("BLOODBOOST",1.0f,true,false),
+			Combat::Effect("BLOODBOOST",0.333f,true,false),
 			Combat::Effect("ARMOURVSPHYSICAL",1.0f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Djall's Gloves"] = Equipment(*this, "Djall's Gloves", "Armour", CODEXPAGE_GLOVES2, List<Combat::Effect>({
-			Combat::Effect("UNHOLYBOOST",1.5f,true,false),
+			Combat::Effect("UNHOLYBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Valois Dress"] = Equipment(*this, "Valois Dress", "Armour", CODEXPAGE_FEMALEGOWN, List<Combat::Effect>({
-			Combat::Effect("SHADOWBOOST",1.5f,true,false),
+			Combat::Effect("SHADOWBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Stewart's Armour"] = Equipment(*this, "Stewart's Armour", "Armour", CODEXPAGE_MALEARMOUR, List<Combat::Effect>({
 			Combat::Effect("ARMOURVSPHYSICAL",1.0f,true,false),
-			Combat::Effect("STRENGTH",1.0f,true,false),
+			Combat::Effect("STRENGTH",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Woodstock's Armour"] = Equipment(*this, "Woodstock's Armour", "Armour", CODEXPAGE_MALEARMOUR2, List<Combat::Effect>({
 			Combat::Effect("ARMOURVSPHYSICAL",1.0f,true,false),
-			Combat::Effect("VITALITY",1.0f,true,false),
+			Combat::Effect("VITALITY",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Gaunt's Armour"] = Equipment(*this, "Gaunt's Armour", "Armour", CODEXPAGE_MALEARMOUR2, List<Combat::Effect>({
 			Combat::Effect("ARMOURVSPHYSICAL",1.0f,true,false),
-			Combat::Effect("AGILITY",1.0f,true,false),
+			Combat::Effect("AGILITY",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Lancaster's Armour"] = Equipment(*this, "Lancaster's Armour", "Armour", CODEXPAGE_MALEARMOUR, List<Combat::Effect>({
 			Combat::Effect("ARMOURVSPHYSICAL",2.5f,true,false),
 			Combat::Effect("LUCK",-1.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Burgandy's Dress"] = Equipment(*this, "Burgandy's Dress", "Armour", CODEXPAGE_FEMALEGOWN, List<Combat::Effect>({
-			Combat::Effect("SHADOWBOOST",1.0f,true,false),
-			Combat::Effect("UNHOLYBOOST",1.0f,true,false),
-			Combat::Effect("PIETY",1.0f,true,false),
+			Combat::Effect("SHADOWBOOST",0.333f,true,false),
+			Combat::Effect("UNHOLYBOOST",0.333f,true,false),
+			Combat::Effect("PIETY",1.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Luxembourg's Wedding Dress"] = Equipment(*this, "Luxembourg's Wedding Dress", "Armour", CODEXPAGE_FEMALEGOWN, List<Combat::Effect>({
 			Combat::Effect("HOLYBOOST",1.0f,true,false),
-			Combat::Effect("PIETY",3.0f,true,false),
+			Combat::Effect("PIETY",3.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
-		equipmentDefinitions["Saint-Pol's Robes"] = Equipment(*this, "Enlil's Cloak", "Armour", CODEXPAGE_MALEROBES1, List<Combat::Effect>({
-			Combat::Effect("INTELLIGENCE",3.0f,true,false),
-			Combat::Effect("PIETY",3.0f,true,false),
+		equipmentDefinitions["Saint-Pol's Robes"] = Equipment(*this, "Saint-Pol's Robes", "Armour", CODEXPAGE_MALEROBES1, List<Combat::Effect>({
+			Combat::Effect("INTELLIGENCE",3.0f,true,true),
+			Combat::Effect("PIETY",3.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Chaworth's Gown"] = Equipment(*this, "Chaworth's Gown", "Armour", CODEXPAGE_FEMALEGOWN, List<Combat::Effect>({
-			Combat::Effect("LUCK",8.0f,true,false),
+			Combat::Effect("LUCK",4.0f,true,true),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Bateau's Cloak"] = Equipment(*this, "Bateau's Cloak", "Armour", CODEXPAGE_MALEROBES1, List<Combat::Effect>({
-			Combat::Effect("UNHOLYBOOST",4.0f,true,false),
+			Combat::Effect("UNHOLYBOOST",1.0f,true,false),
 			}), "EQUIPMENTBLUE", 100);
 
 		// ACCESSORIES
@@ -6972,12 +7046,11 @@ public:
 			Combat::Effect("UNHOLYBOOST",1.3f,true,false),
 			}), "ELITESKILLYELLOW", 250);
 		equipmentDefinitions["Amethyst Pendant"] = Equipment(*this, "Amethyst Pendant", "Accessory", CODEXPAGE_AMETHYSTPENDANT, List<Combat::Effect>({
-			Combat::Effect("ELECTRICBOOST",5.0f,true,false),
+			Combat::Effect("ELECTRICBOOST",1.0f,true,false),
 			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Snow Maiden's Brooch"] = Equipment(*this, "Snow Maiden's Brooch", "Accessory", CODEXPAGE_SNOWMAIDENBROOCH, List<Combat::Effect>({
 			Combat::Effect("PIETY",4.0f,true,true),
-			Combat::Effect("ELEMENTALBOOST",5.0f,true,true),
-			Combat::Effect("COLDBOOST",7.0f,true,false),
+			Combat::Effect("COLDBOOST",1.0f,true,false),
 			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Sunspear Sash"] = Equipment(*this, "Sunspear Sash", "Accessory", CODEXPAGE_SUNSPEARSASH, List<Combat::Effect>({
 			Combat::Effect("VITALITY",10.0f,true,true),
@@ -6992,18 +7065,18 @@ public:
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Artemisia Fragment"] = Equipment(*this, "Artemisia Fragment", "Accessory", CODEXPAGE_LOCKET1, List<Combat::Effect>({
 			Combat::Effect("STRENGTH",2.0f,true,true),
-			Combat::Effect("COLDBOOST",1.5f,true,false),
+			Combat::Effect("COLDBOOST",0.333,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Promethean Icon"] = Equipment(*this, "Promethean Icon", "Accessory", CODEXPAGE_GREEKIMAGE1, List<Combat::Effect>({
 			Combat::Effect("FIREBOOST",2.0f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Sif's Charm"] = Equipment(*this, "Sif's Charm", "Accessory", CODEXPAGE_LOCKET1, List<Combat::Effect>({
 			Combat::Effect("VITALITY",2.0f,true,true),
-			Combat::Effect("EARTHBOOST",1.5f,true,false),
+			Combat::Effect("EARTHBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Carving of Enlil"] = Equipment(*this, "Carving of Enlil", "Accessory", CODEXPAGE_CARVING, List<Combat::Effect>({
 			Combat::Effect("LUCK",2.0f,true,true),
-			Combat::Effect("ELECTRICBOOST",1.5f,true,false),
+			Combat::Effect("ELECTRICBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Carving of a Heptad"] = Equipment(*this, "Carving of a Heptad", "Accessory", CODEXPAGE_DARKICON, List<Combat::Effect>({
 			Combat::Effect("LUCK",-1.0f,true,true),
@@ -7035,7 +7108,7 @@ public:
 				}));
 
 		definedCombatants["SadBag"] = Combatant("SadBag", "SadBag", Map<string, int>({
-				pair<string, int>("PIETY", 100),
+				pair<string, int>("PIETY", 0),
 			}),
 			Map<string, Map<string, string>>({
 					pair<string, Map<string, string>>("Images", Map<string, string>({
@@ -7046,7 +7119,7 @@ public:
 						pair<string, string>("Fragile", "1"),
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
-						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("0", "DEFAULT_WAIT"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 				}));
@@ -7062,7 +7135,7 @@ public:
 						//pair<string, string>("BLIND", "999"),
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
-						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("0", "DEFAULT_WAIT"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 				}));
@@ -7081,7 +7154,6 @@ public:
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
 						pair<string, string>("0", "DEFAULT_ATTACK"),
 						pair<string, string>("1", "Skewer"),
-						pair<string, string>("2", "Fine Strike"),
 						})),
 				}));
 
@@ -7207,6 +7279,21 @@ public:
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
 						pair<string, string>("0", "DEFAULT_DISEASE"),
 						pair<string, string>("6", "DEFAULT_DISEASE"),
+						})),
+				}));
+
+		definedCombatants["Fleshmender"] = Combatant("Fleshmender", "Fleshmender", {},
+			Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Fleshmender", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Fleshmender", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("SPIRIT", "1"),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "Heal Wounds"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 				}));
 
@@ -7382,12 +7469,11 @@ public:
 					}));
 		definedCombatants["EnragedRider"] = Combatant("EnragedRider", "EnragedRider",
 			Map<string, int>({
-				pair<string, int>("STRENGTH", 20),
-				pair<string, int>("INTELLIGENCE", 20),
-				pair<string, int>("VITALITY", 50),
-				pair<string, int>("PIETY", 20),
+				pair<string, int>("STRENGTH", 10),
+				pair<string, int>("INTELLIGENCE", 10),
+				pair<string, int>("VITALITY", 60),
+				pair<string, int>("PIETY", 5),
 				pair<string, int>("AGILITY", 20),
-				pair<string, int>("LUCK", 1),
 				}),
 				Map<string, Map<string, string>>({
 					pair<string, Map<string, string>>("Images", Map<string, string>({
@@ -7396,7 +7482,8 @@ public:
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
 						pair<string, string>("1", "Blade of Blood"),
-						pair<string, string>("2", "Rotation Blade"),
+						pair<string, string>("2", "Order of the Wasp"),
+						pair<string, string>("3", "Rotation Blade"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 					}));
@@ -7803,10 +7890,9 @@ public:
 
 		definedCombatants["OUDIN"] = Combatant("OUDIN", "OUDIN",
 			Map<string, int>({
-				pair<string, int>("INTELLIGENCE", 30),
-				pair<string, int>("PIETY", 50),
+				pair<string, int>("INTELLIGENCE", 10),
+				pair<string, int>("PIETY", 30),
 				pair<string, int>("VITALITY", 50),
-				pair<string, int>("STRENGTH", 2),
 				pair<string, int>("AGILITY", 20),
 				pair<string, int>("LUCK", 20),
 				}),
@@ -8370,8 +8456,8 @@ public:
 			List<string>(list<string>({ "ONUSINGSKILL" })));
 
 		allEffectDefinitions["Chant of Concentration"] = EffectObject("Chant of Concentration", "BOON", SKILLICON_CHANTOFCONCENTRATION, "Chant of Concentration", false,
-			List<string>(list<string>({ "Chant of Concentration", })),
-			List<string>(list<string>({ "PROTECTVSINTERRUPTION" })));
+			List<string>(list<string>({ "PROTECTVSINTERRUPTION", })),
+			List<string>(list<string>({ "ONBEINGINTERRUPTED", })));
 
 		// sourced from equipment
 		allEffectDefinitions["ARMOURVSELECTRIC"] = EffectObject("ARMOURVSELECTRIC", "BOON", EFFECTICON_ARMOURVSELECTRIC, "ARMOURVSELECTRIC", true,

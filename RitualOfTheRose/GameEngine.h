@@ -289,7 +289,7 @@ public:
 					pair<string, string>("y", "50"),
 					pair<string, string>("anchor", "BOTTOMMIDDLE"),
 					pair<string, string>("opacity", "0.5"),
-					pair<string, string>("layer", to_string(imageLookup.layerDefaults["PLAYER"])),
+					pair<string, string>("layer", to_string(imageLookup.layerDefaults["PLAYER"] - 1)),
 					pair<string, string>("animated", "1"),
 					pair<string, string>("animation_speed", "500"),
 					pair<string, string>("styles", "LOOP"),
@@ -978,9 +978,7 @@ public:
 						gameEngine.activeProcedure.eventList.push_front(Event("Debug Combat", "DEBUGCOMBAT", {}));
 						return false;
 					}
-					if (controller.hasThisBeenPressed(VK_F3)) {
-						gameEngine.activeProcedure.eventList.push_front(Event("Debug", "DEBUGSTRAIGHT", {}));
-					}
+					if (controller.hasThisBeenPressed(VK_F3)) {}
 					if (Args.get("SPEEDCHEAT") == "1") {
 						exploreAnimationSpeeds["MOVE"] = 10;
 						Event("userInput", "DEBUGWALKING", { }).run(*&gameEngine);
@@ -1170,7 +1168,7 @@ public:
 								needToChangeAudio = true;
 								up = true;
 							}
-							if ((walkable.data["GoingUp"] == "3") or walkable.data["GoingUp"] == "1" and gameEngine.stateFlags["GoingUp"] == "2") { // going down
+							if ((walkable.data["GoingUp"] == "3" and gameEngine.stateFlags["GoingUp"] != "") or (walkable.data["GoingUp"] == "1" and gameEngine.stateFlags["GoingUp"] == "2")) { // going down
 								gameEngine.stateFlags["GoingUp"] = "";
 								string imageName = walkable.data["image"];
 								string obstructionName = walkable.data["obstruction"];
@@ -1958,6 +1956,7 @@ public:
 						Event("Teardown", "TEARDOWNIMAGE", Map<string, string>({ pair<string, string>("uniqueID", toTeardown) })).run(*&gameEngine);
 						Event("Teardown", "TEARDOWNIMAGE", Map<string, string>({ pair<string, string>("uniqueID", toTearDown2) })).run(*&gameEngine);
 					}
+					controller.resetMouseClickPosition();
 				}
 				
 				if (needToDraw and menuName == "NEWGAME") {
@@ -2549,8 +2548,7 @@ return true;
 					return true;
 				}
 				if (buttonLogic == "PARTYMANAGEHELP") {
-					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "PARTYMANAGEMENT")).run(*&gameEngine);
-					saveContainer.save();
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "EXPLOREPAUSE")).run(*&gameEngine);
 					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("HELPMENU");
 					Event("LoadCodexImage", "LOADIMAGE", Map<string, string>({
 						pair<string, string>("sources", "130"),
@@ -2565,17 +2563,21 @@ return true;
 					Event("DrawText", "DRAWTEXT", Map<string, string>({
 						pair<string, string>("message","$LANGUAGE$_GUI_HELP1"),
 						pair<string, string>("direct", "0"),
-						pair<string, string>("format", "HighTowerText_50"),
+						pair<string, string>("format", "HighTowerText_15"),
 						pair<string, string>("anchorStyle", "TOPLEFT"),
-						pair<string, string>("x", "30"),
-						pair<string, string>("y", "10"),
-						pair<string, string>("w", "70"),
+						pair<string, string>("x", "35"),
+						pair<string, string>("y", "8"),
+						pair<string, string>("w", "55"),
 						pair<string, string>("h", "90"),
 						pair<string, string>("colour", "WHITE"),
 						pair<string, string>("shadowColour", "DARKBROWN"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"])),
 						pair<string, string>("uniqueID", "HELPTEXT"),
 						})).run(*&gameEngine);
+					return true;
+				}
+				if (buttonLogic.find("HELPBUTTON") != -1) {
+					graphics.accessTextViaUniqueID("HELPTEXT")->resetMessage(*&graphics, strings[gameEngine.language]["GUI"][buttonLogic + "ANSWER"]);
 					return true;
 				}
 				if (buttonLogic == "SKILLTREE1") {
@@ -2819,11 +2821,11 @@ return true;
 							pair<string, string>("direct", "1"),
 						})).run(*&gameEngine);
 					if (mode == "Buy") {
-						saveContainer.increaseItemInventoryCount(item);
+						saveContainer.increaseItemInventoryCount(item, combat.equipmentDefinitions[item].category);
 						saveContainer.loseMoney(price);
 					}
 					if (mode == "Buyback") {
-						saveContainer.increaseItemInventoryCount(item);
+						saveContainer.increaseItemInventoryCount(item, combat.equipmentDefinitions[item].category);
 						saveContainer.loseMoney(price);
 						saveContainer.reduceSoldItemCount(item);
 					}
@@ -2858,7 +2860,7 @@ return true;
 					Event("UpdateMap", "EXPLORE", Map<string, string>({
 						pair <string,string>("force","1"),
 						})).run(*&gameEngine);
-					saveContainer.increaseItemInventoryCount(item);
+					saveContainer.increaseItemInventoryCount(item, combat.equipmentDefinitions[item].category);
 					saveContainer.save();
 					return true;
 				}
@@ -2934,7 +2936,7 @@ return true;
 						if (actor->c.getSkillBeingCast().skillTypeTags.contains("PHYSICAL")) {
 							type = "PHYSICAL";
 						}
-						combat.currentBattle->addCombatMessage("STARTCASTING", List<pair<string, string>>({
+						combat.currentBattle->addCombatMessage(*&combat, "STARTCASTING", List<pair<string, string>>({
 							pair<string, string>("language", gameEngine.language),
 							pair<string, string>("name", actor->c.uniqueID),
 							pair<string, string>("skill", actor->c.getSkillBeingCast().uniqueID),
@@ -3064,7 +3066,7 @@ return true;
 						pair<string, string>("format", "HighTowerText_50"),
 						pair<string, string>("anchorStyle", "TOPLEFT"),
 						pair<string, string>("x", "10"),
-						pair<string, string>("y", "2"),
+						pair<string, string>("y", "4"),
 						pair<string, string>("w", "100"),
 						pair<string, string>("h", "10"),
 						pair<string, string>("colour", "ELITESKILLYELLOW"),
@@ -3200,10 +3202,12 @@ return true;
 					Event("Play This Song", "PLAYTHISSONG", Map<string, string>(List<pair<string, string>>({ pair<string, string>("uniqueID", to_string(WINDOUTSIDE1_WAV)), }))).run(*&gameEngine);
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "NewGameCutscene", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					saveContainer.activeSaveSlot = saveContainer.getNextSaveSlot();
+					saveContainer.unlockThisCodexPage("people", gameEngine.stateFlags["PARTYEDITSELECTED"]);
 					return false;
 				}
 				if (buttonLogic == "FROMPAUSETOTOME") {
-					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "EXPLOREPAUSE")).run(*&gameEngine);
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "PARTYMANAGEMENT")).run(*&gameEngine);
+					saveContainer.save();
 					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("TOME");
 					return true;
 				}
@@ -3215,7 +3219,7 @@ return true;
 					}
 					gameEngine.storedMenus["TOME"].buttonReplace(Menu::getDefaultMenuButtonsForTomes());
 					Event("Reload", "TEARDOWNSKILLEXPLAIN", {}).run(*&gameEngine);
-					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("EXPLOREPAUSE");
+					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("PARTYMANAGEMENT");
 					return true;
 				}
 				if (buttonLogic == "FROMSPIGOTTOEXPLORE") {
@@ -3314,7 +3318,6 @@ return true;
 					return true;
 				}
 				if (buttonLogic == "CANCELSKILLTREECHOICETOME") {
-					Event("TearDownPopUpText", "TEARDOWNTEXT", Map<string, string>(pair<string, string>{"uniqueID", "learnedASkill"})).run(*&gameEngine);
 					Event("Reload", "TEARDOWNSKILLEXPLAIN", {}).run(*&gameEngine);
 					for (auto buttonName : gameEngine.storedMenus["TOME"].buttons.getKeys().internalList) {
 						if (buttonName.find("TOMETEACH_") != -1 or buttonName.find("TOMETREE_") != -1 or buttonName.find("TOMETEACHTHESKILL_") != -1) {
@@ -3518,7 +3521,7 @@ return true;
 				}
 				if (buttonLogic == "DebugButton_VariousChapelR2Flags") {
 					List<string> toToggle = List<string>({"OudinIntro_TRIGGERED", "OudinCutscenePlanks_TRIGGERED", "VisionRoom_TRIGGERED", "VisionRoom2_TRIGGERED", "OudinHostileTriggered", "SawOudinThroughGap",
-						"BloodWallIntro_TRIGGERED", "WaterPuzzleFinished", "ChapelRightCombat1_TRIGGERED",
+						"BloodWallIntro_TRIGGERED", "WaterPuzzleFinished", "ChapelRightCombat1_TRIGGERED","ChapelRightCorridor+PAIR_TRIGGERED",
 						});
 					for (auto t : toToggle.internalList) {
 						Event("DoButton", "HANDLEBUTTON", Map<string, string>({
@@ -3573,6 +3576,18 @@ return true;
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "BloodWallIntro", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return true;
 				}
+				if (buttonLogic == "DebugButton_WaterRoomDebug") {
+					List<string> toToggle = List<string>({ "WaterPuzzleActivated", });
+					for (auto t : toToggle.internalList) {
+						Event("DoButton", "HANDLEBUTTON", Map<string, string>({
+							pair<string, string>("uniqueID", "DebugButton_ToggleFlag_" + t),
+							})).run(*&gameEngine);
+					}
+					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "DEBUGMENU")).run(*&gameEngine);
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "WaterRoomDebug", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					return true;
+				}
+
 
 				if (buttonLogic.find("TOMETEACHTHESKILL_") != -1) {
 					List<string> data = split(buttonLogic, "_");
@@ -3600,7 +3615,7 @@ return true;
 						pair<string, string>("format", "HighTowerText_20"),
 						pair<string, string>("anchorStyle", "TOPLEFT"),
 						pair<string, string>("x", "50"),
-						pair<string, string>("y", "70"),
+						pair<string, string>("y", "20"),
 						pair<string, string>("w", "70"),
 						pair<string, string>("h", "50"),
 						pair<string, string>("colour", "WHITE"),
@@ -3609,10 +3624,14 @@ return true;
 						pair<string, string>("uniqueID", "learnedASkill"),
 						pair<string, string>("direct", "0"),
 						})).run(*&gameEngine);
+
+					Event("Autoselect", "HANDLEBUTTON", Map<string, string>({
+							pair<string, string>("uniqueID", "CANCELSKILLTREECHOICETOME"),
+						})).run(*&gameEngine);
 				}
 				if (buttonLogic == "HelpMenu_BackToPartyManage") {
 					Event("Return", "TEARDOWNMENU", pair<string, string>("uniqueID", "HELPMENU")).run(*&gameEngine);
-					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("PARTYMANAGEMENT");
+					gameEngine.activeProcedure = gameEngine.makeLoadMenuProcedure("EXPLOREPAUSE");
 					Event("TearDownThisSkillIcon", "TEARDOWNIMAGE", pair<string, string>("uniqueID", "HELPIMAGE")).run(*&gameEngine);
 					Event("TearDownText", "TEARDOWNTEXT", Map<string, string>({
 							pair<string, string>("uniqueID","HELPTEXT"),
@@ -5616,7 +5635,7 @@ return true;
 				string combatStatus = combat.currentBattle->tick(*&combat);
 				// add something to make battle finish if won or lost
 				if (combatStatus == "PLAYERWIN") {
-					combat.currentBattle->addCombatMessage("VICTORY", List<pair<string, string>>({
+					combat.currentBattle->addCombatMessage(*&combat, "VICTORY", List<pair<string, string>>({
 							pair<string, string>("language", gameEngine.language),
 						}), 0);
 					gameEngine.activeProcedure.eventList.clear();
@@ -5626,7 +5645,7 @@ return true;
 					return false;
 				}
 				if (combatStatus == "INPROGRESS") {
-					combat.currentBattle->announceCombatantTurn(gameEngine.language);
+					combat.currentBattle->announceCombatantTurn(*&combat, gameEngine.language);
 					graphics.tearDownSpecifiedText("combatText");
 					graphics.tearDownSpecifiedImage("whoseTurn");
 					bool isPlayerInControl = combat.currentBattle->playerIsInControl();
@@ -5698,6 +5717,9 @@ return true;
 								if (effect->e.infinite) { continue; }
 								combat.currentBattle->removeAnEffect(actor->c.uniqueCombatID, effect->e.uniqueID);
 							}						
+							if (actor->wasISummoned()) {
+								combat.currentBattle->removeNewCombatantDuringBattle(*&combat, actor);
+							}
 							return false;
 						}
 						if (actor == NULL) {
@@ -5729,7 +5751,7 @@ return true;
 					return true;
 				}
 				if (combatStatus == "PLAYERLOSE") {
-					combat.currentBattle->addCombatMessage("DEFEAT", List<pair<string, string>>({
+					combat.currentBattle->addCombatMessage(*&combat, "DEFEAT", List<pair<string, string>>({
 							pair<string, string>("language", gameEngine.language),
 						}), 0);
 					gameEngine.activeProcedure.eventList.clear();
@@ -5783,6 +5805,9 @@ return true;
 						}
 					}
 					int howFar = graphics.accessTextViaUniqueID("combatText")->howFarAlong();
+					if (graphics.accessTextViaUniqueID("combatText")->fullMessage == L"") {
+						return true; // tried to use impossible skill such as summoning immediately with no spaces
+					}
 					if (howFar < 100) {
 						CLOCK.startClock("Combat Wait");
 						return false;
@@ -5874,7 +5899,7 @@ return true;
 				}
 				combat.currentBattle->currentEventStackObject.animationTick();
 				for (Combat::CombatantInstance* actor : combat.currentBattle->getAllCombatants().internalList) {
-					// if they're dead make them transparent
+					// if they're dead make them transparent. If they were summoned remove them from combat
 					if (actor->c.isDead()) {
 						Graphics::Image* image = graphics.accessImageViaUniqueID(actor->c.uniqueCombatID);
 						if (!image->animationStyles.contains("FADEOUT") and CLOCK.hasEnoughTimePassed("PlayingTheDyingSound", 100)) {
@@ -6305,11 +6330,17 @@ return true;
 				return false;
 			}
 			if (defaultAnimateFullScreen.contains(procedureName)) {
+				string fullScreenY = "50";
+				// some of them look too low down when used by the players against the enemy
+				List<string> makeTheseHigher = List<string>({"Excommunicative Assault", "Rotation Blade", "Reckless Swing", "Scatter Strike"});
+				if (makeTheseHigher.contains(procedureName)) {
+					fullScreenY = "30";
+				}
 				if (!started) {
 					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 						pair<string, string>("sources", imageLookup.getSequenceAsString(procedureName, "ACTION_1")),
 						pair<string, string>("x", "50"),
-						pair<string, string>("y", "50"),
+						pair<string, string>("y", fullScreenY),
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", opacity),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
@@ -7354,12 +7385,18 @@ return true;
 				Menu::smallButton("DebugButton_VariousChapelR2Flags", "GUI_ChapelRightWing2Cutscenes", {70,15}),
 				Menu::smallButton("DebugButton_VariousChapelL1Flags", "GUI_ChapelLeftSpigotsDone", {70,20}),
 				Menu::smallButton("DebugButton_ChapelFinished", "GUI_ChapelFinished", {70,25}),
+				Menu::smallButton("DebugButton_WaterRoomDebug", "GUI_WaterRoomDebug", {70,30}),
 
 				}), Map<string, string>({
 					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " DebugButton_BackToExplore"),
 				}))),
 		pair<string, Menu>(
 			"HELPMENU", Menu("HELPMENU", List<Menu::Button>({
+				Menu::ClickableTextBox("HELPBUTTONCOMBATBASICS", "GUI_HELPBUTTONCOMBATBASICS", "VERY_SMALL", {20,20}),
+				Menu::ClickableTextBox("HELPBUTTONPARTYMANAGEMENTBASICS", "GUI_HELPBUTTONPARTYMANAGEMENTBASICS", "VERY_SMALL", {20,30}),
+				Menu::ClickableTextBox("HELPBUTTONEXPLOREBASICS", "GUI_HELPBUTTONEXPLOREBASICS", "VERY_SMALL", {20,40}),
+				Menu::ClickableTextBox("HELPBUTTONEXPLOREMOREBASICS", "GUI_HELPBUTTONEXPLOREMOREBASICS", "VERY_SMALL", {20,50}),
+				Menu::ClickableTextBox("HELPBUTTONBUILDBASICS", "GUI_HELPBUTTONBUILDBASICS", "VERY_SMALL", {20,60}),
 				Menu::smallButton("HelpMenu_BackToPartyManage", "GUI_RETURN", {10,90}),
 			}),Map<string, string>({
 					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " HelpMenu_BackToPartyManage"),
@@ -7368,7 +7405,7 @@ return true;
 			"EXPLOREPAUSE", Menu("EXPLOREPAUSE", List<Menu::Button>({
 				Menu::standardButton("RETURNTOEXPLORE", "GUI_RESUMEEXPLOREBUTTON", {35, 14}),
 				Menu::standardButton("PARTYMANAGEMENT", "GUI_MANAGEPARTYBUTTON", {35, 25}),
-				Menu::standardButton("FROMPAUSETOTOME", "GUI_FROMPAUSETOTOME", {35, 36}),
+				Menu::standardButton("PARTYMANAGEHELP", "GUI_PARTYMANAGEHELP", {35, 36}),
 				Menu::standardButton("GOTOCODEXBUTTON", "GUI_GOTOCODEXBUTTON", {35, 47}),
 				Menu::standardButton("AUDIOSETTINGS", "GUI_AUDIOOPTIONS", {65, 14}),
 				Menu::standardButton("QUITTOMAIN", "GUI_QUITTOMAINBUTTON", {65, 25}),
@@ -7394,7 +7431,7 @@ return true;
 				Menu::standardButton("QUITMAINNO", "GUI_CANCELBUTTON", {50, 45}),
 				Menu::standardButton("QUITMAINYES", "GUI_QUITTOMAINBUTTON", {50, 60}),
 				}),Map<string, string>({
-					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " QUITNO")}))),
+					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " QUITMAINNO")}))),
 		pair<string, Menu>(
 			"PARTYREFORM", Menu("PARTYREFORM", List<Menu::Button>({
 				Menu::TextBox("TEXTBOX1", "GUI_PARTYLABEL", "VERY_SMALL", {40, 10}),
@@ -7409,7 +7446,7 @@ return true;
 				Menu::standardButton("FROMPARTYMANAGEMENTTOSKILLMANAGE", "GUI_FROMPARTYMANAGEMENTTOSKILLMANAGE", {12, 49.8}),
 				Menu::standardButton("FROMPARTYMANAGEMENTTOEQUIPMENT", "GUI_FROMPARTYMANAGEMENTTOEQUIPMENT", {12, 60}),
 				Menu::standardButton("FROMPARTYMANAGEMENTTOPARTYREFORM", "GUI_FROMPARTYTOREFORM", {12, 70}),
-				Menu::standardButton("PARTYMANAGEHELP", "GUI_PARTYMANAGEHELP", {12, 80}),
+				Menu::standardButton("FROMPAUSETOTOME", "GUI_FROMPAUSETOTOME", {12, 80}),
 				Menu::Button("equipmentToggle","GUI_NOTEXT","GUI_NOTEXT", "equipmentToggle",{SHOWEQUIPMENT},BUTTON_CLICK_WAV, BUTTON_HOVER_WAV,{25,60}, true,true,false, true, Map<string, string>({
 					pair<string, string>("hasHoverText", "1"),
 					pair<string, string>("hoverTextName", "equipmentToggleText"),

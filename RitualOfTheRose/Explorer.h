@@ -2199,6 +2199,8 @@ mapFloor::triangle({{49.995625019073486,44.096729159355164}, {49.995625019073486
 												pair<string, string>("shadowColour", "BLACK"),
 												pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
 												pair<string, string>({"format","LightText_20"}),})),
+											mapObject::getTreasureChest("NaveChest1", { 65,17 }, "ELITE1_FRONT", "Tome of Hanged Man"),
+											mapObject::getTreasureChest("NaveChest1", { 36.6,17 }, "ELITE1_FRONT", "Tome of Mass Burial"),
 												}), List<mapFloor>({
 										mapFloor("ChapelFloor", List<mapFloor::triangle>({mapFloor::triangle({{49.05902445316315,82.12100863456726}, {45.61507701873779,84.49022173881531}, {49.05902445316315,84.49022173881531}}),mapFloor::triangle({{43.81645321846008,81.9620132446289}, {45.61507701873779,84.49022173881531}, {45.61507701873779,81.56251907348633}}),mapFloor::triangle({{49.05902445316315,67.48740673065186}, {45.61507701873779,66.72072410583496}, {45.61507701873779,67.48740673065186}}),
 mapFloor::triangle({{45.61507701873779,81.56251907348633}, {49.05902445316315,78.22794914245605}, {45.61507701873779,78.22794914245605}}),mapFloor::triangle({{49.05902445316315,78.22794914245605}, {45.61507701873779,76.37494802474976}, {45.61507701873779,78.22794914245605}}),mapFloor::triangle({{32.23850727081299,66.72072410583496}, {31.368547677993774,75.08246898651123}, {32.23850727081299,75.08246898651123}}),
@@ -2355,6 +2357,8 @@ mapFloor::triangle({{81.475830078125,28.819304704666138}, {84.30764675140381,29.
 				mapObject::getTreasureChest("ChapelRight1Chest8", {73,93},"NORMAL2_FRONT","Tome of Healing Rain"),
 				mapObject::getTreasureChest("ChapelRight1Chest9", {78.5,93},"NORMAL2_FRONT","Tome of Revitalise"),
 				mapObject::getTreasureChest("ChapelRight1Chest10", {84,93},"NORMAL2_FRONT","Tome of Thoughtful Prayer"),
+				// chests in empty room
+				mapObject::getTreasureChest("ChapelRight1Chest11", {86,55},"NORMAL3_FRONT","Tome of Mound of Leeches"),
 			mapObject("Lamp1", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{8, 39}, false, {}, {}),
 			mapObject("Lamp2", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{17, 39}, false, {}, {}),
 			mapObject("Lamp3", false, true, false, imageLookup.getSequenceAsString("ChapelFloorLamp1","STAND_FRONT"),"1",90,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{6, 23}, false, {}, {}),
@@ -2401,7 +2405,7 @@ mapFloor::triangle({{26.97160542011261,24.639728665351868}, {26.97160542011261,2
 			mapObject("ChapelRight1Layer2", false, true, false, imageLookup.getSequenceAsString("ChapelRight1Layer2","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"] + 1,"1.0","2.0","CENTRE",{50, 50}, false, {}, {}),
 			mapObject("ChapelRight1Layer3", false, true, false, imageLookup.getSequenceAsString("CHAPELRIGHTLAYER3","STAND_FRONT"), "1", 45, imageLookup.layerDefaults["PLAYER"] + 2, "1.0", "2.0", "CENTRE", {50,50},false, {},{}),
 			mapObject("Statue", false, true, false, imageLookup.getSequenceAsString("CHAPELRIGHTSTATUE","STAND_FRONT"), "0", 0, imageLookup.layerDefaults["PLAYER"], "1.0", "2.0", "BOTTOMCENTRE", {56.92,4.2},false, List<mapFloor::triangle>(),{}),
-			mapObject("Pulpit", false, true, false, imageLookup.getSequenceAsString("CHAPELRIGHTPULPIT","STAND_FRONT"), "0", 0, imageLookup.layerDefaults["PLAYER"], "1.0", "2.0", "CENTRE", {86.6,14.1},false, {},{}),
+			mapObject("Pulpit", false, true, false, imageLookup.getSequenceAsString("CHAPELRIGHTPULPIT","STAND_FRONT"), "0", 0, imageLookup.layerDefaults["PLAYER"], "1.0", "1.5", "CENTRE", {86.6,14.1},false, {},{}),
 			mapObject("Letter1", true, false, false, "","0",0,0,"","","CENTRE",{5, 38}, false, List<mapFloor::triangle>({mapFloor::triangle({{5.886439606547356,40.592700242996216}, {3.6629196256399155,38.5809063911438}, {3.6629196256399155,40.592700242996216}}),mapFloor::triangle({{5.886439606547356,40.592700242996216}, {5.886439606547356,38.5809063911438}, {3.6629196256399155,38.5809063911438}}),}), Map<string, string>({
 																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Read Note"}),
 																		pair<string, string>({"copy","Letter1"}),
@@ -2902,7 +2906,7 @@ mapFloor::triangle({{89.7495448589325,3.1144849956035614}, {88.66528868675232,3.
 					// chest on planks
 					mapObject::getTreasureChest("PlanksChest1", { 50,6 }, "NORMAL2_FRONT", "Tome of Ward Against Weapons"),
 					mapObject::getTreasureChest("PlanksChest2", { 65,21 }, "NORMAL3_FRONT", "Tome of Atrophy"),
-					mapObject::getTreasureChest("PlanksChest3", { 7,7 }, "NORMAL3_FRONT", "Tome of Vampiric Strike"),
+					mapObject::getTreasureChest("PlanksChest3", { 7,7 }, "NORMAL2_FRONT", "Tome of Vampiric Strike"),
 					// chests in dorms area
 					mapObject::getTreasureChest("DormsChest1", { 26,70 }, "NORMAL3_FRONT", "Chaworth's Gown"),
 					// chests in dungeon area
@@ -3063,11 +3067,11 @@ mapFloor::triangle({{61.344319581985474,71.6862440109253}, {60.33329367637634,71
 			mapObject("FireTopLeftON", false, true, false, imageLookup.getSequenceAsString("ChapelLeftFire","ON_FRONT"),"1",90,0,"1.0","3.3","CENTRE",{8, 19}, false, {}, Map<string, string>({
 					pair<string, string>("don'tLoadIfNot", "FireSpigotTopLeftActivated"),
 				})),
-				mapObject("FireTopRightOFF", false, true, false, imageLookup.getSequenceAsString("ChapelLeftFire","OFF_FRONT"),"1",90,0,"1.0","3.3","CENTRE",{92, 5}, false, {}, Map<string, string>({
-					pair<string, string>("don'tLoadIf", "FireSpigotTopLeftActivated"),
+			mapObject("FireTopRightOFF", false, true, false, imageLookup.getSequenceAsString("ChapelLeftFire","OFF_FRONT"),"1",90,0,"1.0","3.3","CENTRE",{92, 5}, false, {}, Map<string, string>({
+					pair<string, string>("don'tLoadIf", "FireSpigotTopRightActivated"),
 				})),
 			mapObject("FireTopRightON", false, true, false, imageLookup.getSequenceAsString("ChapelLeftFire","ON_FRONT"),"1",90,0,"1.0","3.3","CENTRE",{92, 5}, false, {}, Map<string, string>({
-					pair<string, string>("don'tLoadIfNot", "FireSpigotTopLeftActivated"),
+					pair<string, string>("don'tLoadIfNot", "FireSpigotTopRightActivated"),
 				})),
 			puzzleContainer.getFireSpigot("FireSpigotLeft", {9.5,52}),
 			puzzleContainer.getFireSpigot("FireSpigotTopLeft", {9.5,26.5}),
@@ -3112,7 +3116,7 @@ mapFloor::triangle({{61.344319581985474,71.6862440109253}, {60.33329367637634,71
 																		pair<string, string>("shadowColour", "BLACK"),
 																		pair<string, string>("layer", to_string(imageLookup.layerDefaults["TEXTONMAP"])),
 																		pair<string, string>({"format","LightText_20"})})),
-			mapObject("AT_GoInside", true, false, false, "","0",0,0,"","","CENTRE",{58, 7.6}, false, List<mapFloor::triangle>({mapFloor::triangle({{51.94462537765503,88.31487894058228}, {48.49110543727875,86.78488731384277}, {48.49110543727875,88.31487894058228}}),mapFloor::triangle({{51.94462537765503,88.31487894058228}, {51.94462537765503,86.78488731384277}, {48.49110543727875,86.78488731384277}}),}), Map<string, string>({
+			mapObject("AT_GoInside", true, false, false, "","0",0,0,"","","CENTRE",{50, 86}, false, List<mapFloor::triangle>({mapFloor::triangle({{51.94462537765503,88.31487894058228}, {48.49110543727875,86.78488731384277}, {48.49110543727875,88.31487894058228}}),mapFloor::triangle({{51.94462537765503,88.31487894058228}, {51.94462537765503,86.78488731384277}, {48.49110543727875,86.78488731384277}}),}), Map<string, string>({
 																		pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Go Inside"}),
 																		pair<string, string>({"copy","AT_GoInside"}),
 																		pair<string, string>({"areaTransition","ChapelLeft1"}),

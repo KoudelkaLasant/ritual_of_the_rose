@@ -1,6 +1,5 @@
 #pragma once
 #include "framework.h"
-#include "Strings.h"
 
 template <typename T>
 struct List {

@@ -1,5 +1,6 @@
-﻿#pragma once
+﻿#include "pch.h"
 #include "framework.h"
+#include "ROTR_STRINGS.h"
 
 map<string, map<string, map<string, wstring>>> strings = {
 	{"ENG", {
@@ -88,6 +89,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"Peuerbach", L"Georg von Peuerbach"},
 			{"PalaceVisitor", L"Palace Visitor"},
 			{ "Fatma", L"Handmaiden Fatma" },
+			{ "Fleshmender", L"Fleshmender" },
 }},
 		{"NPCDescriptions", {
 			{"Angela Fleuret",L"Born: 1378 (Age: 72)\nNationality: French\nAllegiance: The Catholic Church\n\nCardinal Angela Fleuret started life as a provincial French peasant born to unremarkable circumstances in 1378. How she came to serve as one of Pope Nicholas V's closest advisors is a story of her undying dedication to the Church, bested only by her incessant devotion to God. In public, she is known as the elderly, bespectacled keeper of the tomes in the Vatican's illustrious vaults. Privately, however, she has for many years decades served as Nicholas' personal bodyguard, assassin, and 'handler' of any and all supernatural threats he, and by extension the Church, may be required to quietly deal with. These demands have only accelerated further after Nicholas was nominated to become Pope in 1447. He has personally dispatched Angela to the French village of Bénouville to investigate reports of inexplicable and disturbing incidents of violence amongst the townspeople."},
@@ -140,6 +142,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"DEFAULT_SUICIDE", L"Suicide"},
 			{"DEFAULT_LEECHSKILL", L"Leech Life"},
 			{"DEFAULT_DISEASE", L"Infect"},
+			{"SadBag", L"SadBag"},
 			{"Heal Wounds", L"Heal Wounds"},
 			{"Laying of Hands", L"Laying of Hands"},
 			{"Revitalise", L"Revitalise"},
@@ -371,6 +374,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{ "Hanged Man", L"Hanged Man" },
 			{ "Minion", L"Bone Minion" },
 			{ "Failed Embryo", L"Failed Embryo" },
+			{ "Fleshmender", L"Fleshmender" },
 }},
 		{"Skill Descriptions", {
 			{"DEFAULT_ATTACK", L"Perform a physical attack against target foe that deals②$DAMAGE_SINGLE_PHYSICAL$ damage."},
@@ -606,6 +610,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{ "Hanged Man", L"Animate the spirit of a Hanged Man that has②$LIFE$ life,②$LUCK$ Luck,②$AGILITY$ Agility and②$STRENGTH$ Strength. The Hanged Man uses physical attacks against your foes." },
 			{ "Minion", L"Animate an undead Bone Minion that has②$LIFE$ life and②$STRENGTH$ Strength. The Bone Minion uses physical attacks against your foes." },
 			{ "Failed Embryo", L"Animate an undead Failed Embryo that has②$LIFE$ life and②$INTELLIGENCE$ Intelligence. The Failed Embryo infects your foes with a harmful disease." },
+			{ "Fleshmender", L"Animate a Fleshmender spirit that has②$LIFE$ life, ②$INTELLIGENCE$ intelligence and②$PIETY$ piety. The Fleshmender heals any wounded allies." },
 }},
 		{"Effect Names", {
 			{"WET", L"Wet"},
@@ -685,6 +690,8 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"PHYSICAL",  L"physical"},
 			{"WAYFARING",  L"Wayfaring"},
 			{"POISON",  L"poison"},
+			{"ARMS",  L"Arms"},
+			{"MINORARMS",  L"Minor Arms"},
 }},
 		{ "Codex Categories", {
 			{"people",L"People"},
@@ -693,6 +700,11 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"armour", L"Armour" },
 			{"accessories", L"Accessories" },
 		}},
+		{ "Code2Codex", { // don't edit
+			{"Weapon", L"weapons"},
+			{"Armour", L"armour" },
+			{"Accessory", L"accessories" },
+		} },
 		{"Combat Messages", {
 			{"BATTLESTARTTEAMVSTEAM", L"$PLAYER$'s team and $OPPONENT$'s team engage in combat."},
 			{"BATTLESTARTTEAMVS1", L"$PLAYER$'s team engages in combat with $OPPONENT$!"},
@@ -784,7 +796,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 					{"Vial of Dragon Venom", L"Vial of Dragon Venom"},
 					{"Dido's Compass", L"Dido's Compass"},
 					{"Dido's Robes", L"Dido's Robes"},
-					{"Dido's Dousing Rods", L"Dido's Dousing Rods"},
+					{"Dido's Dousing Rod", L"Dido's Dousing Rod"},
 					{"Promethean Cloak", L"Promethean Cloak"},
 					{"Promethean Spear", L"Promethean Spear"},
 					{"Promethean Icon", L"Promethean Spear"},
@@ -910,6 +922,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"GOLD_1", L"Livre"},
 			{"GOLD_X", L"Livres"},
 			{ "VENOMOUS", L"Poisons you inflict last 50% longer than usual." },
+			{ "BURNING", L"You are set on fire in the first round." },
 }},
 		{"Attribute Names", {
 			{"STRENGTH", L"Strength"},
@@ -928,7 +941,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 		{"GUI", {
 			{"NewGame1", L"Who will lead the others through the darkness?"},
 			{"NewGame2", L"This decision can be changed later."},
-			{"CREDITSMESSAGE", L"Ritual of the Rose is a C++ game engine project written by Koudelka. All code and 3D art assets are made by Koudelka. Absolutely no AI was involved in any of the coding or 3D modelling. Almost all 2D assets are made by Koudelka with the exception of some images taken from historical sources, public sources, or generated by AI. Credits to the SoLoud C++ library for asynchronous handling of audio streams. All sound effects were taken from public sources or ripped from sources such as sounds-resource.com. Ritual of the Rose is strictly not for profit and all 3rd-party assets are used under the assumption of fair use and not for commercial gain. All music belongs to the following copyright holders and is, where possible, used with the permission of the artist:\n\nMain Theme: Fate/Apocrypha - Hope (Fate/Apocrypha Soundtrack)\nTension Theme: Invasion (Fate/Apocrypha Soundtrack)\nTown Theme: The Use of Meia (Alundra OST) reinstrumented by Koudelka\nChapel Theme: Cathedralis Titanum (Monasterium Imperi)\nCombat Theme 1:  Battle - Red Faction (Fate/Apocrypha Soundtrack)\nCombat Theme 2: Knight of Rebellion (Fate/Apocrypha Soundtrack)\nBoss Theme: T-Liturgy (Monasterium Imperi)"},
+			{"CREDITSMESSAGE", L"Ritual of the Rose is a C++ game engine project written by Koudelka. All code and 3D art assets are made by Koudelka. Absolutely no AI was involved in any of the coding or 3D modelling. Almost all 2D assets are made by Koudelka with the exception of some images taken from historical sources, public sources, or generated by AI. Credits to the SoLoud C++ library for asynchronous handling of audio streams. All sound effects were taken from public sources or ripped from sources such as sounds-resource.com. Ritual of the Rose is strictly not for profit and all 3rd-party assets are used under the assumption of fair use and not for commercial gain.\n\nMusic credits:\n\nMain Theme: Fate/Apocrypha - Hope (Fate/Apocrypha Soundtrack) Arranged by Koudelka\nTension Theme: Arranged and Composed by Koudelka\nTown Theme: The Use of Meia (Alundra OST) Arranged by Koudelka\nChapel Theme: Cathedralis Titanum (Monasterium Imperi)\nCombat Theme 1: Arranged and Composed by Koudelka\nCombat Theme 2: Arranged and Composed by Koudelka\nBoss Theme: T-Liturgy (Monasterium Imperi)"},
 			{"VERSION", L"Version: 0.0"},
 			{"CREDIT", L"©2024-2025 Koudelka"},
 			{"START", L"START"},
@@ -1032,7 +1045,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"TELEPORTTOESTATESECRET", L"Teleport to Estate Balcony"},
 			{"TELEPORTTOESTATECRACKINWALL", L"Teleport to Estate Crack in Wall"},
 			{ "TELEPORTTOCHAPELLEFT1", L"Teleport to Chapel L1" },
-			{ "HELP1", L""},
+			{ "HELP1", L"Click on a button to get more information about a certain topic."},
 			{ "TELEPORTTOMERCHANT", L"Teleport to Merchants"},
 			{ "DEBUGUSERINPUT", L"Debug User Input"},
 			{ "DEBUGPLAYER2", L"DebugPlayer2"},
@@ -1055,6 +1068,17 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"TELEPORTTOSPAIN", L"Teleport to Spain Dream"},
 			{"RIDERDEFEATED", L"Rider Defeated Cutscene"},
 			{"BLOODWALLINTRO", L"Blood Wall Intro"},
+			{"WaterRoomDebug", L"Water Room Debug"},
+			{"HELPBUTTONCOMBATBASICS", L"What are the basics of combat?"},
+			{ "HELPBUTTONCOMBATBASICSANSWER", L"In combat, your team is pitted against another. You must use your equipped skills to reduce the life meters of everyone on the opposing team to zero before they can do the same to you. Exploring the world and finding new equipment and skill tomes is vital to improving your team. A combatant's equipment and skills is called a 'build' - a build might focus on dealing damage, disabling opponents, empowering allies, or healing wounds.\n\nSkill tomes are the only way to learn new skills. They can only be used outside of combat. Skills can only be equipped, unequipped, and rearranged outside of combat. Therefore it is essential to prepare before a fight starts." },
+			{ "HELPBUTTONPARTYMANAGEMENTBASICS", L"How do I manage my current party?" },
+			{ "HELPBUTTONPARTYMANAGEMENTBASICSANSWER", L"In the party management menu, you can rearrange the members of your party by clicking and dragging on their portraits. To move people in and out of your party, click on Reform Party and click and drag their portraits to move them between the reserves list and the current party.\n\nIn the Skill Management menu, you can swap and rearrange skills.\n\nNote at the top of the menu that you have two choices for skill trees - categories which contain all the character's known skills of a certain discipline. You can only have two skill trees made available to you at any time. For example, if you have Hydromancy and Terramancy selected and you swap out Terramancy for Pyromancy, any equipped Terramancy skills will be removed, but Pyromancy skills will now be available for you to equip.\n\nEquipment can be swapped in the Equipment Menu, where you have the options to change the equipped Armour, Weapon, and Accessory items. Equipment can never just be ''removed' - it must be swapped with another piece of equipment. Check out what each piece of equipment does and see what will complement your current buid." },
+			{ "HELPBUTTONEXPLOREBASICS", L"Where can I find more skills and equipment?" },
+			{ "HELPBUTTONEXPLOREBASICSANSWER", L"There are three main ways to get more items - winning in combat, trading with merchants, and opening treasure chests. Defeating opponents in combat normally yields a modest amount of livres - the currency of France in 1450. With enough cash you can start buying items from merchants you find either in shops, marketplaces, or hidden locations. You can also sell items to merchants and use that to buy better gear. During your travels you will also come across many treasure chests which contain valuable items." },
+			{ "HELPBUTTONEXPLOREMOREBASICS", L"I'm lost / stuck. What do I do next?" },
+			{ "HELPBUTTONEXPLOREMOREBASICSANSWER", L"When exploring, look for objects of interest to interact with, passageways to traverse, or doors to open. If all else fails, try talking to someone back in town." },
+			{ "HELPBUTTONBUILDBASICS", L"I'm struggling to win a battle and I want to improve my team. What should I do?" },
+			{ "HELPBUTTONBUILDBASICSANSWER", L"With over 200 skills available to choose from, putting together a good team can be daunting at first. The two key aspects of buildcraft are anticipating challenges and responding to them by executing certain roles. Here are some example build and role ideas to get you started:\n\nHEALER\nHaving a healer is essential to every successful party because they heal life points, protect against life loss, and even revive those knocked out during combat. Cleromancy, Hieromancy, Hydromancy, and Terramancy are all useful for healers.\n\nDAMAGER\nThe simplest way to win - kill them before they can kill you. Most skill trees have access to damaging abilities, standout offensive lines are Arms, Minor Arms, and Pyromancy.\n\nSUMMONER\nNecromancy is the only skill tree which creates new allies, extremely useful in combat.\n	\nSABOTEUR\nInterrupt foes, strip them of their boons and energy, and make them vulnerable for other teammates to pick off. Umbromancy and Sangromancy possess useful tools to do this.\n\nTANK\nProtect yourself and your allies while bolstering their combat abilities. Wayfaring excels at this role." },
 }},
 		{"Map Pop Up Text", {
 			{"Dead Horse", L"Press the Spacebar to interact with objects of interest"},
@@ -1253,6 +1277,9 @@ map<string, map<string, map<string, wstring>>> strings = {
 				{"1 Hernando Pizarro", L"Ah... to lay by such a fire with a glass of wine, a good friend and passionate conversation... maybe another time."},
 				{"1 Gihat al-Din Jaqmaq", L"I shouldn't be wasting any more time standing in this dead peasant's house!"},
 	}},
+		{ "WaterRoomDebug", {
+			{"1 $AREATRANSITION$", L"ChapelRight1$42,26$STAND_BACK$direction=STAND_BACK"},
+			}},
 		{ "Leave Bénouville", {
 			{"1 Angela Fleuret", L"I cannot leave until my work here is done."},
 			{"1 Tianshun Song", L"It would be easy for me to walk away, but the dark energy of this place would just call me back."},
@@ -1332,7 +1359,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 		{"41.2 Father Michelet?$DIRECT$", L"He's an Enraged, now. There's nothing we can do..."},
 		{"41.3 Isobella de Vaines?$DIRECT$", L"Oh yes there is! I can't let him kill anyone else!"},
 		{"41.5 $STOPDIALOGUE$", L""},
-		{"43 $ANIMATEOBJECT$", L"White Knight_White Knight_WALK_LEFT"}, 
+		{"43 $ANIMATEOBJECT$", L"White Knight_White Knight_WALK_LEFT"},
 		{"44 $ANIMATEOBJECT$", L"Shadow White Knight_Shadow White Knight_WALK_LEFT"},
 		{"45 $MOVEOBJECTS$", L"White Knight_Shadow White Knight$55,10,HORSE_55,10,HORSE$50"},
 		{"46 $ANIMATEOBJECT$", L"White Knight_White Knight_STAND_LEFT"},
@@ -1578,6 +1605,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"12 Father Michelet?$DIRECT$", L"You must be the one sent by the church..."},
 			{"12.1 Father Michelet?$DIRECT$", L"But you're not exactly what I was expecting."},
 			{"13 $ANIMATEOBJECT$", L"PLAYER1_Angela Fleuret_STAND_BACK"},
+			{"13.1 $ANIMATEOBJECT$", L"Shadow PLAYER1_Shadow Angela Fleuret_STAND_BACK"},
 			{"14 Angela Fleuret", L"Well I mean, if you wish, I could go back and tell him you don't need our help?"},
 			{"15 Father Michelet?$DIRECT$", L"I, uh... no, I mean, please..."},
 			{"15.2 Angela Fleuret", L"I'm glad that's settled. You two must be Father Michelet and the lovely Isobella de Vaines. His Holiness thanks you for contacting the Vatican directly about this matter."},
@@ -1708,7 +1736,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 		{"28 $LOADOBJECT$", L"Isobella de Vaines_48_57_6_500_Isobella de Vaines_STAND_FRONT_0.9_1.0_0_CENTRE"},
 		{"29 $LOADOBJECT$", L"Shadow Isobella de Vaines_48_57_5_500_Shadow Isobella de Vaines_STAND_FRONT_0.9_0.5_0_CENTRE"},
 		{"30 $MOVEOBJECTS$", L"CAMERA$46.5,61,NOAUDIO$20"},
-		
+
 		{"31 Angela Fleuret", L"You said in your letter there was violence in the town, but now there is almost no-one left... What happened here?"},
 		{"31 Tianshun Song", L"Such a miserable place... reminds me of home. What happened here?"},
 		{"31 Olyver Sumner", L"This place is like a ghost town. What happened here?"},
@@ -2392,7 +2420,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"3 Angela Fleuret$DIRECT$", L"Don't undervalue yourself."},
 			{"4 Olyver Sumner$DIRECT$", L"Well, I've been thinking about what's happening to this town, but I don't have much of an answer yet. Why is it some of the villagers were spared from the Enragement?"},
 			{"5 Olyver Sumner$DIRECT$", L"I remember reading about the Black Death. Even in something as wickedly spreadable as that miasma, some people remained totally untouched by it."},
-			{"6 Angela Fleuret$DIRECT$", L"Yes, 'bad air' indeed. You know I read a story of an English priest who burned holy fires and sat amongst them. The smoke was said to have protected him against infection."},
+			{"6 Angela Fleuret$DIRECT$", L"Yes, 'bad air' indeed. You know, I read a story of an English priest who burned holy fires and sat amongst them. The smoke was said to have protected him against infection."},
 			{"7 Olyver Sumner$DIRECT$", L"Is there some behaviour or action undertaken by those who remain in town that has protected them from Enragement? Should we be doing something?"},
 			{"8 Angela Fleuret$DIRECT$", L"The prevailing suspicion is that the Bateau Estate Chapel is the source."},
 			{"9 Angela Fleuret$DIRECT$", L"But with that being said, we've been on the Estate, and we don't seem to be affected by it..."},
@@ -2518,6 +2546,141 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"12 Gihat al-Din Jaqmaq$DIRECT$", L"Everyone is a reader of the Greeks. Especially when they inspire me so greatly. So many ancient women of power... and none of them had to pretend to be a man to get it!"},
 			{"13 Hernando Pizarro$DIRECT$", L"You forget that I am a great admirer of women, too."},
 		} },
+
+		{ "TavernTianshun3+Angela Fleuret", {
+			{"1 Angela Fleuret$DIRECT$", L"Good morning, little one. Did you sleep well last night?"},
+			{"2 Tianshun Song$DIRECT$", L"'Well'? Hmm. For weeks now, the dark energy of this place place has been... calling to me, in one way or another."},
+			{"3 Tianshun Song$DIRECT$", L"I thought getting closer would make it worse, but now that I'm here the calling has stopped, almost as if it knows I'm here, now. Whatever 'it' is."},
+			{"4 Angela Fleuret$DIRECT$", L"It's remarkable how sensitive you are to the flow of mana. Perhaps by virtue of your young age you are able to sense what your elders perceive as nothing but noise."},
+			{"5 Angela Fleuret$DIRECT$", L"Sure, I guess. Just don't use me as a magical sniffing dog."},
+			{"6 Angela Fleuret$DIRECT$", L"And here I thought you might be a little bit cheerier after being proven right last night."},
+			{"7 Tianshun Song$DIRECT$", L"'Proven right? Oh, I see, Oudin L'Escot."},
+			{"8 Tianshun Song$DIRECT$", L"'Sad, wasted potential. If he really was the original architect of the Bateau Estate he could have helped us, and we could have helped him."},
+			{"9 Tianshun Song$DIRECT$", L"'Now we have no choice but to instead rely on a priest who's too scared to fight."},
+			{"10 Angela Fleuret$DIRECT$", L"Perhaps your no-nonsense attitude will light a fire under him. 'From the mouths of babes does God build strength against his enemies.'"},
+			{"11 Tianshun Song$DIRECT$", L"'For thou hast made him a little lower than the angels and crowned him with glory and honour.'"},
+			{"12 Angela Fleuret$DIRECT$", L"Some day you're going to need to explain to me how a Chinese child not only speaks my language, but also knows my bible like a believer.'"},
+			{"13 Tianshun Song$DIRECT$", L"You wouldn't think highly of what I have to say."},
+			{"14 Angela Fleuret$DIRECT$", L"Has that ever stopped you before?"},
+			{"15 Tianshun Song$DIRECT$", L"Alright, well... when I left China, I travelled to Europe through a dangerous mountainous region."},
+			{"16 Tianshun Song$DIRECT$", L"I came across a burned-out camp once. The men there had been attacked by Tibetan soldiers."},
+			{"17 Tianshun Song$DIRECT$", L"They were hacked apart and left to die in the snow."},
+			{"18 Angela Fleuret$DIRECT$", L"Who were these men?"},
+			{"19 Tianshun Song$DIRECT$", L"Unarmed, defenceless, Christian missionaries trying to evangelise a world that rejected their notions of God more strongly than they anticipated."},
+			{"20 Angela Fleuret$DIRECT$", L"And... one of these men survived, taught you how to speak his language, and left you on your merry way?"},
+			{"21 Tianshun Song$DIRECT$", L"I ate their corpses."},
+			{"22 $STOPDIALOGUE$", L""},
+			{"23 $WAIT$", L"wait_1000"},
+			{"24 Tianshun Song$DIRECT$", L"Metaphysically speaking. I drained whatever life energy I could from those wretched, suffering men, in order to give me the strength to continue my journey."},
+
+			{"25 Tianshun Song$DIRECT$", L"It took me time to realise this, but when I consume someone's life force, I don't always destroy what I consume. Sometimes it becomes a part of me... for better or worse."},
+			{"26 Tianshun Song$DIRECT$", L"Those men live on through me, in a sense. I have absorbed some of the inner workings of their brains. Not memories, exactly, but... intuition. Natural instincts, like language."},
+			{"27 Angela Fleuret$DIRECT$", L"A powerful and... vile gift. I hope you use it wisely... and it does not consume you."},
+		} },
+		{ "TavernOlyver3+Angela Fleuret", {
+			{"1 Olyver Sumner$DIRECT$", L"Ah, good morning Ms. Fleuret! I hope you slept well last night?"},
+			{"2 Angela Fleuret$DIRECT$", L"At my age I should just be glad I woke up."},
+			{"3 Olyver Sumner$DIRECT$", L"You're too harsh on yourself. I thought you were great yesterday when you calmed everyone down."},
+			{"4 Angela Fleuret$DIRECT$", L"A skill one acquires when babysitting. The ages change but the behaviour is much the same."},
+			{"5 Olyver Sumner$DIRECT$", L"Well I personally think you'd have made for an excellent mother. Or, grandmother, or... you know."},
+			{"6 Angela Fleuret$DIRECT$", L"I will... humbly accept that as a compliment."},
+			{"7 Angela Fleuret$DIRECT$", L"I do wonder sometimes if I'd made different choices, what would have become of me. Perhaps I would be sitting in my homestead growing old with a husband, or watching my children marry and have their own children."},
+			{"8 Olyver Sumner$DIRECT$", L"Would you have liked that?"},
+			{"9 Angela Fleuret$DIRECT$", L"Perhaps. But I could never turn away from what I've done for the Church, and what it's done for me in return."},
+			{"10 Angela Fleuret$DIRECT$", L"To be a woman of any age in my position is quite the novelty. I am only the second in recorded history to hold high office in the Church."},
+			{"11 Olyver Sumner$DIRECT$", L"Who was the first?"},
+			{"12 Angela Fleuret$DIRECT$", L"A woman in the 11th century named Joan, who became Pope via deception."},
+			{"13 Olyver Sumner$DIRECT$", L"Deception?"},
+			{"14 Angela Fleuret$DIRECT$", L"She disguised herself as a man."},
+			{"15 Olyver Sumner$DIRECT$", L"Oh."},
+			{"16 Angela Fleuret$DIRECT$", L"She must have been very convincing as she served as a Priest, a Cardinal, and was then elected Pope. It took the others years to find out the truth."},
+			{"17 Olyver Sumner$DIRECT$", L"And once her true sex was revealed, they... thanked her for all her hard work and let her retire early?"},
+			{"18 Angela Fleuret$DIRECT$", L"They beat her to death."},
+			{"19 Olyver Sumner$DIRECT$", L"Good Lord. I'm so glad to be alive in the 15th Century and not the 11th. How barbaric..."},
+			{"20 Angela Fleuret$DIRECT$", L"She may not have had a noble end but I like to think that at least for a brief moment in history, she proved to everyone that she was just as capable as any man."},
+			{"21 Angela Fleuret$DIRECT$", L"I believe God has waited a long time for women to step free from the shadows of men and serve a higher calling in their own right."},
+			{"22 Angela Fleuret$DIRECT$", L"Even if that means I've had to cut out great parts of a woman's normal life and replace them with duty, I am honoured to think that by doing so I may have set an example for the next generation."},
+			{"23 Olyver Sumner$DIRECT$", L"Well, you're inspiring to me at any rate. Keep up the good work!"},
+
+		} },
+		{ "TavernHernando3+Angela Fleuret", {
+			{"1 Hernando Pizarro$DIRECT$", L"Good morning, my lady. Did you sleep well?"},
+			{"2 Angela Fleuret$DIRECT$", L"You know, I did, actually. Much to my surprise. I thought I would be tormented by nightmares of Enraged hordes breaking into the tavern, but alas, common sense won out."},
+			{"3 Hernando Pizarro$DIRECT$", L"Whenever I've served on shipping vessels I've found I slept better knowing I trust the people around me have my back."},
+			{"4 Hernando Pizarro$DIRECT$", L"The five of us are, in my mind, like a sailing crew. At sea we have to have a certain level of trust in one another when the tides get tough."},
+			{"5 Angela Fleuret$DIRECT$", L"An old woman, a child, a princess, a scholar, and a gentleman. Quite the motley crew, and not I suspect what you would find on your average vessel."},
+			{"6 Hernando Pizarro$DIRECT$", L"No use denying we're a bunch of mavericks. But if last night is anything to go by I'd say we weathered the storm well enough, with you at the helm."},
+			{"7 Angela Fleuret$DIRECT$", L"It does feel as though we are in the eye of the storm, doesn't it."},
+			{"8 Hernando Pizarro$DIRECT$", L"Ah, I see you have the wisdom of a seasoned sailor. And you are right, a moment of calm hides beneath its veil an onslaught."},
+			{"9 Angela Fleuret$DIRECT$", L"You must have dealt with many a storm in your time."},
+			{"10 Hernando Pizarro$DIRECT$", L"Oh yes I suppose, more or less. But overall the Mediterranean Sea is kind to its travellers. Temperate and shored in by Europe, Eurasia and Africa."},
+			{"11 Hernando Pizarro$DIRECT$", L"I've heard wild stories about those who dare sail to the West, beyond the Iberian Peninsula. Talk of a new world beyond a sea a dozen times wider and a hundred times taller than the Med."},
+			{"12 Hernando Pizarro$DIRECT$", L"A new land where godless, wild people live in harmony with the animals in a world without war or disease."},
+			{"13 Hernando Pizarro$DIRECT$", L"It sounds like an incredible place. I should love to see such a land for myself."},
+			{"14 Angela Fleuret$DIRECT$", L"A land without God? It sounds rather frightening."},
+			{"15 Hernando Pizarro$DIRECT$", L"Perhaps it is not outside God's purview to create something and, let's say, leave it behind? To forget he created it?"},
+			{"16 Angela Fleuret$DIRECT$", L"Some philosophers argue that after the events of the New Testament, God no longer had any intervention in, or even awareness of, any human activity."},
+			{"17 Angela Fleuret$DIRECT$", L"But I disagree. Any part of our world where the sun shines and the rivers flow is proof God is there, one way or another."},
+		} },
+		{ "TavernGihat3+Angela Fleuret", {
+			{"1 Angela Fleuret$DIRECT$", L"Good morning, Miss Jaqmaq. I hope you slept well?"},
+			{"2 Gihat al-Din Jaqmaq$DIRECT$", L"...   "},
+			{"3 Gihat al-Din Jaqmaq$DIRECT$", L"Well enough, I suppose. This place could do with a good clean, though."},
+			{"4 Gihat al-Din Jaqmaq$DIRECT$", L"And stale bread for breakfast? No wonder everyone in this country is so fat."},
+			{"5 Gihat al-Din Jaqmaq$DIRECT$", L"Being here really makes me miss home in ways I'd never imagined."},
+			{"6 Gihat al-Din Jaqmaq$DIRECT$", L"Though I suppose you'll say that makes me sound childish, so I'll stop complaining."},
+			{"7 Angela Fleuret$DIRECT$", L"If speaking your mind helps you clear it, I say have at it, girl."},
+			{"8 Angela Fleuret$DIRECT$", L"We could all do with letting our feelings out after after last night."},
+			{"9 Gihat al-Din Jaqmaq$DIRECT$", L"Our feelings? Don't get all motherly on me."},
+			{"10 Angela Fleuret$DIRECT$", L"Hundreds of people died yesterday. People I wanted to save. Don't you think that's quite a heavy burden on all of us?"},
+			{"11 Gihat al-Din Jaqmaq$DIRECT$", L"Look, I'm not saying I'm happy that they died. But you have to face facts, they were Enraged - goners. There's nothing we could have done to help them."},
+			{"12 Angela Fleuret$DIRECT$", L"I don't want to believe that."},
+			{"13 Gihat al-Din Jaqmaq$DIRECT$", L"Well maybe you'd feel a lot better if you did. Don't try to intellectualise last night. There's nothing to 'work out'. We took out one threat, but others remain. Let's keep going and stay focused without getting lost in our feelings."},
+			{"14 Angela Fleuret$DIRECT$", L"You're a very strong young lady, but don't forget, I've done my share of fighting and killing, too. For many more years than you have been alive. I know from experience that even when you pretend to be numb about it, part of you does hurt, at least for a while."},
+			{"15 Gihat al-Din Jaqmaq$DIRECT$", L"So you're not one of those Christians that says a prayer after battle and feels absolved of all guilt?"},
+			{"16 Angela Fleuret$DIRECT$", L"No. But my life would have been a lot easier if I were."},
+		} },
+		{ "TavernOlyver3+Tianshun Song", {
+			{"1 Tianshun Song$DIRECT$", L"Mister Sumner."},
+			{"2 Olyver Sumner$DIRECT$", L"Oh, good morning! Did you sleep well?"},
+			{"3 Tianshun Song$DIRECT$", L"Is it normal to ask people that? It seems like everyone wants to know."},
+			{"4 Olyver Sumner$DIRECT$", L"Well, I can't speak for anyone else, but as for me, I ask because I care about your wellbeing."},
+			{"5 Olyver Sumner$DIRECT$", L"In many ways I look up to you. Not literally, obviously, but..."},
+			{"6 Tianshun Song$DIRECT$", L"... you do?"},
+			{"7 Olyver Sumner$DIRECT$", L"I'll admit you may not be the most... sociable, young lady. But you're a phenomenal mage, you stand up for yourself in a fight, and you're not scared of anything."},
+			{"8 Olyver Sumner$DIRECT$", L"I didn't even have an ounce of your courage when I was your age. You should be proud of yourself!"},
+			{"9 Tianshun Song$DIRECT$", L"Pride is a distraction. I simply know facts and don't suffer delusions."},
+			{"10 Olyver Sumner$DIRECT$", L"What I'm trying to say is, you shouldn't be surprised when people ask how you are. We all want you to be feeling your best, especially after last night."},
+			{"11 Tianshun Song$DIRECT$", L"Oh, right. You mean the dozens of people we killed, the hundreds of corpses, the vampire."},
+			{"12 Tianshun Song$DIRECT$", L"I won't hide it. I would have been frightened had I been alone."},
+			{"13 Tianshun Song$DIRECT$", L"Not of those worthless peasants, of course. Any idiot could defeat them. But the vampire, Oudin."},
+			{"14 Tianshun Song$DIRECT$", L"Compared to me he was a vastly superior mage. He was a powerful necromancer who could summon creatures at great speed."},
+			{"15 Tianshun Song$DIRECT$", L"It reminds me of a time when I was travelling out of China. I was travelling through a mountain pass, where I was... being stalked."},
+			{"16 Olyver Sumner$DIRECT$", L"Stalked?! What happened?"},
+			{"17 Tianshun Song$DIRECT$", L"I never saw who was following me, but I could feel their presence. Both of us must have had the same connection to the dead, each one able to pick up on the movements of the other."},
+			{"18 Tianshun Song$DIRECT$", L"I knew pretty quickly I was being pursued by another necromancer, but one older and more powerful than I. One with a desire to steal my lifeforce."},
+			{"19 Tianshun Song$DIRECT$", L"Had I not found a camp of dead and dying travellers to drain of power, I don't think I would have escaped that mage."},
+			{"20 Olyver Sumner$DIRECT$", L"You drained energy from dying people..."},
+			{"21 Tianshun Song$DIRECT$", L"Bet you're not looking up to me so much anymore, huh?"},
+			{"22 Olyver Sumner$DIRECT$", L"On the contrary. You did something terrible to survive. That takes... a certain kind of courage."},
+		} },
+		{ "TavernOlyver3+Hernando Pizarro", {
+			{"1 Olyver Sumner$DIRECT$", L"Ah, Señor Pizarro. Do you need a moment to rest?"},
+
+		} },
+		{ "TavernOlyver3+Gihat al-Din Jaqmaq", {
+			{"1 Olyver Sumner$DIRECT$", L"Ah, Miss Jaqmaq. Everything going well, I take it?"},
+		} },
+		{ "TavernTianshun3+Gihat al-Din Jaqmaq", {
+			{"1 Gihat al-Din Jaqmaq$DIRECT$", L"Are you here because you need a nap, little girl?"},
+		} },
+		{ "TavernTianshun3+Hernando Pizarro", {
+			{"1 Hernando Pizarro$DIRECT$", L"Is everything alright, young lady?"},
+		} },
+		{ "TavernGihat3+Hernando Pizarro", {
+			{"1 Gihat al-Din Jaqmaq$DIRECT$", L"Are you ready to go, yet? I grow tired of waiting here."},
+		} },
+
 		{ "TavernMichelet1+NotEnoughPeople", {
 			{"1 Father Michelet$DIRECT$", L"I think it would be best if at least four of you joined with me to go to the Bateau Estate. Speak to me when you've decided who to go with and we'll be on our way."},
 			{"2 EMPTY$DIRECT$", L"Press➀Esc to access the➀Main➀Menu. Click on➀Party➀Management and then➀Reform➀Party to change the current party members by clicking and dragging the characters."},
@@ -2989,7 +3152,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"1 Tianshun Song", L"News? Right, sure. Well, before you go ballistic on me you should know that "},
 
 			{"2 PLAYER", L"The man you knew as Oudin L'Escot was, in fact, an undead creature whose slumber the Enraged unwittingly disturbed."},
-			{"3 PLAYER", L"With no viable options to restore reason to the Enraged, he lost his patience and slaughtered them, and then tried to kill us."},
+			{"3 PLAYER", L"Something, or someone, tipped him into madness. He lost his reason and slaughtered them, and then tried to kill us."},
 			{"4 PLAYER", L"The fact I have returned should indicate the outcome."},
 
 			{"5 Isobella de Vaines$DIRECT$", L"Oh, God... what did we do to deserve this..."},
@@ -3188,7 +3351,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"17 Angela Fleuret$DIRECT$", L"I know."},
 			{"18 $STOPDIALOGUE$", L""},
 			{"19 $WAIT$", L"wait_1000"},
-			{"20 Tianshun Song$DIRECT$", L"...   "},  
+			{"20 Tianshun Song$DIRECT$", L"...   "},
 			{"21 Tianshun Song$DIRECT$", L"Oh, you 'know' do you?! And here you are, so calm about it? You could at least have the decency to pretend to be shocked."},
 			{"22 $ANIMATEOBJECT$", L"Angela Fleuret_Angela Fleuret_STAND_LEFT"},
 			{"23 $ANIMATEOBJECT$", L"Shadow Angela Fleuret_Shadow Angela Fleuret_STAND_LEFT"},
@@ -3975,7 +4138,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"23 JOANA?$DIRECT$", L"You are nothing more than a vampire, preying off of the innocent! You kept them locked up here so you could drink their blood at your leisure!"},
 			{"24 OUDIN$DIRECT$", L"You understand nothing! I was trying to save the town from those bloodthirsty, crazed killers, I... I just took what I needed... to keep myself alive so I could..."},
 			{"25 OUDIN$DIRECT$", L"Grrr! Why am I bothering explaining myself to you! You're the fool who let them all escape!"},
-			{"26 JOANA?$DIRECT$", L"Quite attached to those villagers, aren't you? Deep in your heart you despite them, but without them, you can't stay alive. And as long as they're here you can never rest..."},
+			{"26 JOANA?$DIRECT$", L"Quite attached to those villagers, aren't you? Deep in your heart you despite them, but without them, you can't stay alive. But as long as they're here, you can never rest... how sad."},
 			{"27 JOANA?$DIRECT$", L"If you wish for them to return that badly, then don't let me stand in your way. I'll step aside and allow them to return of their own volition."},
 			{"28 OUDIN$ASYNC$$DIRECT$", L"Wh-what?!"},
 			{"29 $LOADOBJECT$", L"EnragedGroup_50_38_6_500_EnragedGroup_WALK_BACK_0.95_1.0_0_CENTRE"},
@@ -3993,8 +4156,19 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"33 $ANIMATEOBJECT$", L"JOANA_JOANA_WALK_FRONT"},
 			{"34 $ANIMATEOBJECT$", L"Shadow JOANA_Shadow JOANA_WALK_FRONT"},
 			{"35 JOANA?$ASYNC$$DIRECT$", L"I do enjoy poetic justice so. It's why I'm here, after all!"},
-			{"36 $MOVEOBJECTS$", L"JOANA_Shadow JOANA$50,37,CHAPELSTEP_50,37,NOAUDIO$50"},
-			{"37 OUDIN$DIRECT$", L"No! No, stay back, you freaks! Stay back! No!!"},
+			{"36 $MOVEOBJECTS$", L"JOANA_Shadow JOANA$50,40,CHAPELSTEP_50,40,NOAUDIO$50"},
+			{"36.1 OUDIN$DIRECT$", L"No! No, stay back, you freaks! Stay back I say!!"},
+			{"36.2 OUDIN$DIRECT$", L"Grrrahhh! ENOUGH of this! Why should I try to reason with you, ANY of you?! You're the ones invading MY home! Suffer as I have!"},
+			{"37 $STOPDIALOGUE$", L""},
+			
+			{"37.2 $HANDLESKILLANIMATION$", L"OUDIN2$EnragedGroup$Vampiric Strike$xOffset%0"},
+			{"37.3 $PLAYSFX$", L"17816_0_1"},
+			{"37.4 $ANIMATEOBJECT$", L"EnragedGroup_EnragedGroup_DYING_BACK"},
+			{"37.5 $ANIMATEOBJECT$", L"Shadow EnragedGroup_Shadow EnragedGroup_DYING_BACK"},
+			{"37.6 $CHANGEANIMATIONSPEED$", L"EnragedGroup_Shadow EnragedGroup$40$SINGLE"},
+			{"37.8 $WAITFORANIMATION$", L"EnragedGroup"},
+			{"37.9 OUDIN$DIRECT$", L"Your life force serves me, now! And there's more where that came from..."},
+
 			{"38 $STOPDIALOGUE$", L""},
 			{"39 $LOADOBJECT$", L"CutsceneLoadingScreen_0_0_25_50_CutsceneLoadingScreen_ACTION_1_2.0_0.0_1_CENTRE"},
 			{"40 $CHANGEANIMATIONSPEED$", L"CutsceneLoadingScreen$50$SINGLE_FADEIN"},
@@ -4005,7 +4179,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"44 $TELEPORTCAMERA$", L"72,26"},
 
 			{"45 $AREATRANSITION$", L"ChapelEntryHall$72,26$STAND_FRONT$direction=STAND_FRONT"},
-			
+
 			{"46 $CHANGEANIMATIONSPEED$", L"CutsceneLoadingScreen_CutsceneLoadingScreen$80$SINGLE_FADEOUT"},
 			{"47 $WAITFORANIMATION$", L"CutsceneLoadingScreen"},
 			{"48 $WAIT$", L"wait_250"},
@@ -4035,10 +4209,10 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"20.1 $WAIT$", L"wait_250"},
 			{"20.2 $WAITFORANIMATION$", L"CutsceneLoadingScreen"},
 			{"21 $MOVEOBJECTS$", L"CAMERA$50,59.5,NOAUDIO$60"},
-			{"22 Angela Fleuret$DIRECT$", L"Good God in heaven..."},
-			{"23 Olyver Sumner$DIRECT$", L"What is that thing?!"},
-			{"24 Hernando Pizarro$DIRECT$", L"I don't care what it is! Oudin's using it to keep us out, and the townspeople inside!"},
-			{"25 Hernando Pizarro$DIRECT$", L"You fooled us, Oudin! You betrayed us! You will pay for this!"},
+			{"22 Angela Fleuret$DIRECT$", L"My God. Oudin, what have you done?!"},
+			{"23 Olyver Sumner$DIRECT$", L"Oudin did this?! Why would he make something so disgusting?!"},
+			{"24 Hernando Pizarro$DIRECT$", L"Isn't it obvious you fool?! He's using it to keep us out, and his victims inside!"},
+			{"25 Hernando Pizarro$DIRECT$", L"Damn you to hell, Oudin! You betrayed us! You will pay for this!"},
 			{"26 $STOPDIALOGUE$", L""},
 
 			{"33 $ANIMATEOBJECT$", L"Hernando_Hernando Pizarro_MAPACTIONATTACK2_BACK"},
@@ -4200,8 +4374,8 @@ map<string, map<string, map<string, wstring>>> strings = {
 
 			{ "175 Hernando Pizarro$DIRECT$", L"But I..." },
 			{ "176 Olyver Sumner$DIRECT$", L"It's like Father Michelet said... Enragement takes the anger in your heart and amplifies it until you lose control of yourself! We can't let that happen to us!" },
-			
-			
+
+
 			{ "177 Angela Fleuret$DIRECT$", L"Yes, Mister Sumner, that's right! Good! Keep going! Let the anger fade away. Clear your minds!" },
 			{ "177.1 $STOPDIALOGUE$", L"" },
 			{ "177.2 $WAIT$", L"wait_1000" },
@@ -4881,31 +5055,31 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"0.15 $CHANGEANIMATIONSPEED$", L"CutsceneLoadingScreen$50$SINGLE_FADEIN"},
 			{"0.2 $WAITFORANIMATION$", L"CutsceneLoadingScreen"},
 			{"0.3 $WAIT$", L"wait_1000"},
-			{"0.4 $LOADOBJECT$", L"CutsceneLoadingScreen2_0_0_20_50_CutsceneLoadingScreen_ACTION_1_2.0_1.0_1_CENTRE"},
+			{"0.4 $LOADOBJECT$", L"CutsceneLoadingScreen2_0_0_25_50_CutsceneLoadingScreen_ACTION_1_2.0_1.0_1_CENTRE"},
 			{"1 $AREATRANSITION$", L"ChapelEntryHall$50,43$STAND_BACK$direction=STAND_BACK"},
 			{"2 $LOADOBJECT$", L"DeadEnragedGroup1_46_41_6_1_DeadEnragedGroup1_STAND_FRONT_0.95_1.0_0_CENTRE"},
 			{"3 $LOADOBJECT$", L"DeadEnragedGroup2_54_37_6_1_DeadEnragedGroup2_STAND_FRONT_0.95_1.0_0_CENTRE"},
 			{"4 $LOADOBJECT$", L"Oudin_50_18_6_400_OUDIN_WAITING_BACK_1_1.0_0_CENTRE"},
 			{"5 $LOADOBJECT$", L"ZombieF_46.8_17.6_6_100_EnragedZombieFemale_STAND_FRONT_1_1.0_0_CENTRE"},
 			{"6 $LOADOBJECT$", L"ZombieM_53.5_18_6_100_EnragedZombieMale_STAND_FRONT_1_1.0_0_CENTRE"},
-			
-			{"8.2 $WAITFORANIMATION$", L"CutsceneLoadingScreen"},
-			{"9 $REMOVEIMAGES$", L"CutsceneLoadingScreen"},
-			{"13 $ANIMATEOBJECT$", L"PLAYER1_PLAYER1_WALK_BACK"},
-			{"14 $ANIMATEOBJECT$", L"Shadow PLAYER1_Shadow PLAYER1_WALK_BACK"},
-			{"15 $MOVEOBJECTS$", L"PLAYER1_Shadow PLAYER1$-1,24,NOAUDIO_-1,24,CHAPELSTEP$60"},
-			{"16 $ANIMATEOBJECT$", L"PLAYER1_PLAYER1_STAND_BACK"},
-			{"17 $ANIMATEOBJECT$", L"Shadow PLAYER1_Shadow PLAYER1_STAND_BACK"},
-			{"17.1 $CHANGECAMERAOPERTATION$", L"0"},
-			{"17.2 $MOVEOBJECTS$", L"CAMERA$-1,22,NOAUDIO$60"},
-			{"17.3 $CHANGEANIMATIONSPEED$", L"CutsceneLoadingScreen2$80$SINGLE_FADEOUT"},
-			{"17.4 $WAITFORANIMATION$", L"CutsceneLoadingScreen2"},
-			{"17.5 $REMOVEIMAGES$", L"CutsceneLoadingScreen2"},
+
+			{"7 $WAITFORANIMATION$", L"CutsceneLoadingScreen"},
+			{"8 $REMOVEIMAGES$", L"CutsceneLoadingScreen"},
+			{"8.1 $CHANGEANIMATIONSPEED$", L"CutsceneLoadingScreen2$80$SINGLE_FADEOUT"},
+			{"8.2 $WAITFORANIMATION$", L"CutsceneLoadingScreen2"},
+			{"9 $ANIMATEOBJECT$", L"PLAYER1_PLAYER1_WALK_BACK"},
+			{"10 $ANIMATEOBJECT$", L"Shadow PLAYER1_Shadow PLAYER1_WALK_BACK"},
+			{"11 $MOVEOBJECTS$", L"PLAYER1_Shadow PLAYER1$-1,24,NOAUDIO_-1,24,CHAPELSTEP$60"},
+			{"11.1 $REMOVEIMAGES$", L"CutsceneLoadingScreen2"},
+			{"12 $ANIMATEOBJECT$", L"PLAYER1_PLAYER1_STAND_BACK"},
+			{"13 $ANIMATEOBJECT$", L"Shadow PLAYER1_Shadow PLAYER1_STAND_BACK"},
+			{"14 $CHANGECAMERAOPERTATION$", L"0"},
+			{"15 $MOVEOBJECTS$", L"CAMERA$-1,22,NOAUDIO$60"},
 			{"18 OUDIN$DIRECT$", L"...   "},
 			{"19 OUDIN$DIRECT$", L"One hundred years ago I built this estate so it would become my eternal resting place..."},
 			{"20 OUDIN$DIRECT$", L"All I wanted to do was be left alone in peace."},
 			{"21 OUDIN$DIRECT$", L"But those damned crazed villagers ruined everything! To hell with those Enraged, and your worthless priest! I tried to care and I tried to help and all for nought!"},
-			
+
 			{"21.1 Angela Fleuret", L"You killed all these people, Oudin! How could you?!"},
 			{"21.1 Tianshun Song", L"What you've done is made a mess. Killing all these people was a waste of potential."},
 			{"21.1 Olyver Sumner", L"We were trying to help them, Oudin. You shouldn't have done this!"},
@@ -4945,7 +5119,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"41 Hernando Pizarro", L"Your existence will end with one more lesson. People are not tools for you to use."},
 			{"42 Hernando Pizarro", L"I will put an end to you!"},
 			{"43 $STOPDIALOGUE$", L""},
-			{"100 $STARTCOMBAT$", L"team1=PARTY,team1allies=N/A,team2=OUDIN,team2allies=N/A,background=17286,song=N/A,postBattle=OudinDefeated,LOOT$GOLD=100,direction=STAND_FRONT,x=9.5,y=56,"},
+			{"100 $STARTCOMBAT$", L"team1=PARTY,team1allies=N/A,team2=OUDIN,team2allies=N/A,background=17286,song=17050,postBattle=OudinDefeated,LOOT$GOLD=250,direction=STAND_FRONT,x=9.5,y=56,"},
 		}},
 		{ "OudinDefeated", {
 			{"0 $SETFLAG$", L"OudinDefeated=1"},
@@ -4953,8 +5127,10 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"3 $CHANGEANIMATIONSPEED$", L"CutsceneLoadingScreen$50$SINGLE_FADEIN"},
 			{"4 $WAITFORANIMATION$", L"CutsceneLoadingScreen"},
 			{"5 $WAIT$", L"wait_1000"},
-			{"6 $LOADOBJECT$", L"CutsceneLoadingScreen2_0_0_20_50_CutsceneLoadingScreen_ACTION_1_2.0_1.0_1_CENTRE"},
+
+			{"6 $LOADOBJECT$", L"CutsceneLoadingScreen2_0_0_25_50_CutsceneLoadingScreen_ACTION_1_2.0_1.0_1_CENTRE"},
 			{"6.1 $AREATRANSITION$", L"ChapelEntryHall$50,26$STAND_BACK$direction=STAND_BACK"},
+
 			{"6.2 $CHANGEOPACITY$", L"PLAYER1$0.0"},
 			{"6.3 $CHANGEOPACITY$", L"PLAYER1 Shadow$0.0"},
 			{"6.4 $CHANGECAMERAOPERTATION$", L"0"},
@@ -4969,7 +5145,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"13 $LOADOBJECT$", L"Olyver_51_25_6_500_Olyver Sumner_STAND_BACK_1.0_1.0_0_CENTRE"},
 			{"14 $LOADOBJECT$", L"OlyverShadow_51_25_5_500_Shadow Olyver Sumner_STAND_BACK_1.0_0.5_0_CENTRE"},
 			{"15 $LOADOBJECT$", L"Hernando_52_24_6_500_Hernando Pizarro_STAND_BACK_1.0_1.0_0_CENTRE"},
-			{"16 $LOADOBJECT$", L"HernandoShadow_52_7_24_500_Shadow Hernando Pizarro_STAND_BACK_1.0_0.5_0_CENTRE"},
+			{"16 $LOADOBJECT$", L"HernandoShadow_52_24_5_500_Shadow Hernando Pizarro_STAND_BACK_1.0_0.5_0_CENTRE"},
 			{"17 $LOADOBJECT$", L"Oudin2_50_20_6_500_OUDIN_DYING_FRONT_1.0_1.0_0_CENTRE"},
 			{"18 $LOADOBJECT$", L"Shadow Oudin2_50_20_6_500_Shadow OUDIN_DYING_FRONT_1.0_1.0_0_CENTRE"},
 
@@ -4982,42 +5158,55 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"25 $WAIT$", L"wait_1000"},
 			{"26 $PLAYSFX$",L"15983_0_1"},
 			{"27 $ANIMATEOBJECT$", L"Oudin2_OUDIN_FADEOUT_FRONT"},
-			{"28 $CHANGEANIMATIONSPEED$", L"Oudin2$30$SINGLE"},
+			{"28 $CHANGEANIMATIONSPEED$", L"Oudin2$80$SINGLE_FADEOUT"},
+			{"28.1 $CHANGEANIMATIONSPEED$", L"Shadow Oudin2$300$SINGLE_FADEOUT"},
 			{"29 $WAITFORANIMATION$", L"Oudin2"},
+			{"30 $WAIT$", L"wait_2000"},
+			{"31 $MOVEOBJECTS$", L"CAMERA$-1,24,NOAUDIO$60"},
+
+
+			{"32 Angela Fleuret$DIRECT$", L"Was he just... another victim of this place?"},
+			{"33 Gihat al-Din Jaqmaq$DIRECT$", L"They say not to speak ill of the dead, but the undead? Not likely."},
+			{"34 Hernando Pizarro$DIRECT$", L"If he is a victim, he's not one who'll get any sympathy from me. He killed all these people just to hide from the truth about who he really was."},
 			
-			{"30 Angela Fleuret$DIRECT$", L"In a rather tortured sense of the word, might we consider him another victim of a sort?"},
-			{"31 Hernando Pizarro$DIRECT$", L"My lady's sympathies go far further than mine. Pray for his soul if you wish, I shall reserve mine for his victims."},
-			{"32 Tianshun Song$DIRECT$", L"Rest in peace, or... whatever. Such a sad waste of talent. And what a mess he's made..."},
-			{"33 Gihat al-Din Jaqmaq$DIRECT$", L"What an inspiring eulogy. Can we go, already? I still haven't found the man I'm looking for. After all, this Chapel is but one building on the Estate."},
-			{"34 Olyver Sumner$DIRECT$", L"I'd be a little more concerned about other matters if I were you... we still don't know what's making people Enraged. And who is that woman in white?"},
-			{"35 Gihat al-Din Jaqmaq$DIRECT$", L"All the more reason to keep going."},
-			{"36 Hernando Pizarro$DIRECT$", L"Dear girl, I doubt even Suero de Quiñones could keep up with you. You forget we all walked to this town today and have been fighting on our feet ever since!"},
-			{"37 Hernando Pizarro$DIRECT$", L"Unless the Sultan dropped you off outside in a palanquin I'd dare wager you too could do with a rest."},
-			{"38 Gihat al-Din Jaqmaq$DIRECT$", L"But I- but the envoy could be out there."},
-			{"39 Hernando Pizarro$DIRECT$", L"All the more reason to keep going - *tomorrow*. After we get some sleep."},
-			{"40 Gihat al-Din Jaqmaq$DIRECT$", L"... fine."},
-			{"41 Olyver Sumner$DIRECT$", L"We should... probably tell someone like Isobella about what's happened here... everyone who was in the Chapel is... definitely dead, now..."},
-			{"45 Angela Fleuret", L"Bad news may be better received in morning light. Let's rest for now and speak with her tomorrow."},
-			{"45 Tianshun Song", L"I'm sure she'll find something to complain about at any rate. Let's go to the tavern and get some rest... and deal with her tomorrow."},
-			{"45 Gihat al-Din Jaqmaq", L"She better not make a big song and dance about this - these Enraged were all dead anyway, in a manner of speaking. But I'll take your advice: rest first, deal with the problems tomorrow."},
-			{"45 Hernando Pizarro", L"Maybe I'm just getting old, but there's no way I'm running into more danger without a good night's rest and some food first."},
-			{"46 $STOPDIALOGUE$", L""},
+			{"35 Angela Fleuret$DIRECT$", L"I do not disagree. However..."},
+			{"36 $STOPDIALOGUE$", L""},
+			{"40 $ANIMATEOBJECT$", L"Angela_Angela Fleuret_STAND_FRONT"},
+			{"41 $ANIMATEOBJECT$", L"AngelaShadow_Shadow Angela Fleuret_STAND_FRONT"},
+			{"42 Angela Fleuret$DIRECT$", L"Is it possible he was... pushed? Did he himself become an Enraged?"},
+			{"43 Tianshun Song$DIRECT$", L"By what?"},
+			{"44 Olyver Sumner$DIRECT$", L"More precisely, by whom. That woman in white he was talking to... who is she? What does she want?"},
+			{"45 Angela Fleuret$DIRECT$", L"I don't know, but I suspect my duty here won't be done until I find out."},
+			{"46 Hernando Pizarro$DIRECT$", L"Nor mine! There are still Enraged out there, and until we know what's causing it, more will follow. I'm not going anywhere until this town's troubles are settled."},
+			{"47 Gihat al-Din Jaqmaq$DIRECT$", L"I'm sticking around... for now. I still need to find the missing envoy."},
+			{"48 Tianshun Song$DIRECT$", L"We may have sanctified this Chapel, but the dark energy that brought me to Bénouville is still flowing strong."},
+			{"49 Olyver Sumner$DIRECT$", L"The only problem is... the gates that lead to the rest of the Estate are locked tight. And the man with the keys has run away."},
+			{"50 Angela Fleuret$DIRECT$", L"Yes, Father Michelet..."},
 
-			{"50 $CHANGEANIMATIONSPEED$", L"CutsceneLoadingScreen2_CutsceneLoadingScreen$80$SINGLE_FADEIN"},
-			{"51 $WAITFORANIMATION$", L"CutsceneLoadingScreen2"},
-			{"52 $CHANGECAMERAOPERTATION$", L"0"},
+			{"51 Angela Fleuret", L"It has been a long, long day. I suggest we call it a night, and go find the good Father in the morning."},
+			{"51 Tianshun Song", L"I'm not really in the mood to stay up all night looking for him, all this fighting has exhausted me. Let's rest and settle this in the morning."},
+			{"51 Olyver Sumner", L"We should find him as soon as possible! That is... after a good sleep. I'm absolutely knackered. Let's take some time to rest and find him in the morning."},
+			{"51 Gihat al-Din Jaqmaq", L"Ugh, of course that crybaby would leave us in the lurch. Fine, let's go find him. But first, rest. I need my beauty sleep. My feet are killing me."},
+			{"51 Hernando Pizarro", L"The poor Father... I hope he's safe out there, wherever he is. I agree we must find him, but perchance we could rest first? A good soldier knows his limits."},
+
+			{"146 $STOPDIALOGUE$", L""},
+
+			{"150 $CHANGEANIMATIONSPEED$", L"CutsceneLoadingScreen2_CutsceneLoadingScreen$80$SINGLE_FADEIN"},
+			{"151 $WAITFORANIMATION$", L"CutsceneLoadingScreen2"},
+			{"152 $CHANGECAMERAOPERTATION$", L"1"},
 
 
-			{"53 $CHANGEOPACITY$", L"PLAYER1$0.0"},
-			{"54 $CHANGEOPACITY$", L"PLAYER1 Shadow$0.0"},
+			{"153 $CHANGEOPACITY$", L"PLAYER1$0.0"},
+			{"154 $CHANGEOPACITY$", L"PLAYER1 Shadow$0.0"},
 
-			{"55 $STARTCUTSCENEDIRECTLY$", L"TavernLetter$PLAYER"},
+			{"155 $STARTCUTSCENEDIRECTLY$", L"TavernLetter$PLAYER"},
 		}},
 		{ "TavernLetter$Angela Fleuret", {
 			{"1 $AREATRANSITION$", L"TavernUpstairsNight$48.1,48.7$WRITING_FRONT$direction=WRITING_FRONT"},
+			{"1.1 $CHANGECAMERAOPERTATION$", L"1"},
+			{"1.2 $CHANGEANIMATIONSPEED$", L"CutsceneLoadingScreen2_CutsceneLoadingScreen$80$SINGLE_FADEOUT"},
+
 			{"2 $WAIT$", L"wait_1500"},
-
-
 			{"3 Angela Fleuret$DIRECT$", L"To his Holiness, Pope Nicholas V."},
 			{"4 Angela Fleuret$DIRECT$", L"You were wise to send me to Bénouville. There are forces wracking this town with hidden hands, more dangerous than I could have predicted and faster than I was prepared for."},
 			{"5 Angela Fleuret$DIRECT$", L"To put it simply, the reality on the ground is thus. Most of the town was driven to a mad, infectious rage, which compelled them to wildly attack whomstever had the misfortune of crossing paths with them."},
@@ -5069,7 +5258,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"72 Cardinal1$DIRECT$", L"Wh-what is the meaning of this, Nicholas?!"},
 			{"73 Cardinal1$DIRECT$", L"You have invoked a meeting of the Council of Cardinals in these hallowed halls only to have us play court to a woman?!"},
 			{"74 Cardinal2$DIRECT$", L"I believe I know this woman. She is an... administrator, is that right? At the Vatican's Libraries? Perhaps if you were to frequent them more often you would already know this."},
-			{"75 Cardinal1$DIRECT$", L"I don't care who she is! She is no Cardinal! She has no right to be here! This is a violation of our tenants of faith!"},
+			{"75 Cardinal1$DIRECT$", L"I don't care who she is! She is no Cardinal! She has no right to be here! This is a violation of our tennets of faith!"},
 			{"76 Pope$DIRECT$", L"I believe the decision of who is and is not a Cardinal lies solely in my hands, does it not?"},
 			{"77 Cardinal3$DIRECT$", L"What are you saying, your holiness?"},
 			{"78 Pope$DIRECT$", L"I have invoked this council meeting to announce the selection of Mother Angela Fleuret to ascend to the position of Cardinal of Rouen with immediate effect."},
@@ -5108,6 +5297,8 @@ map<string, map<string, map<string, wstring>>> strings = {
 		}},
 		{ "TavernLetter$Tianshun Song", {
 			{"1 $AREATRANSITION$", L"TavernUpstairsNight$48.1,48.7$WRITING_FRONT$direction=WRITING_FRONT"},
+			{"1.1 $CHANGECAMERAOPERTATION$", L"1"},
+			{"1.2 $CHANGEANIMATIONSPEED$", L"CutsceneLoadingScreen2_CutsceneLoadingScreen$80$SINGLE_FADEOUT"},
 			{"2 $WAIT$", L"wait_1500"},
 
 
@@ -5174,7 +5365,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"92 $ANIMATEOBJECT$", L"TianshunMother_TianshunMother_STAND_RIGHT"},
 			{"92.1 $ANIMATEOBJECT$", L"Shadow TianshunMother_Shadow TianshunMother_STAND_RIGHT"},
 
-			
+
 			{"93 $WAIT$", L"wait_1500"},
 			{"94 $LOADOBJECT$", L"Soldier1_55_50.5_6_200_MongolianSoldier_WALK_LEFT_1.1_1.0_0_CENTRE"},
 			{"95 $LOADOBJECT$", L"Soldier2_55.3_51.5_6_200_MongolianSoldier_WALK_LEFT_1.1_1.0_0_CENTRE"},
@@ -5233,7 +5424,8 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"1001 $STARTCUTSCENEDIRECTLY$", L"AfterDream1"},
 		} },
 		{ "TavernLetter$Olyver Sumner", {
-			{"1 $AREATRANSITION$", L"TavernUpstairsNight$48.1,48.7$WRITING_FRONT$direction=WRITING_FRONT"},
+			{"1.1 $CHANGECAMERAOPERTATION$", L"1"},
+			{"1.2 $CHANGEANIMATIONSPEED$", L"CutsceneLoadingScreen2_CutsceneLoadingScreen$80$SINGLE_FADEOUT"},
 			{"2 $WAIT$", L"wait_1500"},
 			{"3 Olyver Sumner$DIRECT$", L"To my dear friend, Vice-President of The Planetarum Society, Mary Fairfax."},
 			{"4 Olyver Sumner$DIRECT$", L"Thank you once again for filling in as society leader in my absence. Please forgive me, both for not writing sooner, and for the curtness of my penmanship, as I write under the harrying vigour of mortal peril."},
@@ -5324,6 +5516,8 @@ map<string, map<string, map<string, wstring>>> strings = {
 		} },
 		{ "TavernLetter$Hernando Pizarro", {
 			{"1 $AREATRANSITION$", L"TavernUpstairsNight$48.1,48.7$WRITING_FRONT$direction=WRITING_FRONT"},
+			{"1.1 $CHANGECAMERAOPERTATION$", L"1"},
+			{"1.2 $CHANGEANIMATIONSPEED$", L"CutsceneLoadingScreen2_CutsceneLoadingScreen$80$SINGLE_FADEOUT"},
 			{"2 $WAIT$", L"wait_1500"},
 
 			{"3 Hernando Pizarro$DIRECT$", L"To my dear friend, Fernando de Cáceres."},
@@ -5398,6 +5592,8 @@ map<string, map<string, map<string, wstring>>> strings = {
 		} },
 		{ "TavernLetter$Gihat al-Din Jaqmaq", {
 			{"1 $AREATRANSITION$", L"TavernUpstairsNight$48.1,48.7$WRITING_FRONT$direction=WRITING_FRONT"},
+			{"1.1 $CHANGECAMERAOPERTATION$", L"1"},
+			{"1.2 $CHANGEANIMATIONSPEED$", L"CutsceneLoadingScreen2_CutsceneLoadingScreen$80$SINGLE_FADEOUT"},
 			{"2 $WAIT$", L"wait_1500"},
 
 			{"3 Gihat al-Din Jaqmaq$DIRECT$", L"Dear Father. I am writing to you because I have arrived in Bénouville."},
@@ -5439,7 +5635,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"65 Gihat al-Din Jaqmaq$DIRECT$", L"(Oh dear, Father must be busy with his previous visitor. I should help smooth things over...)"},
 			{"65.1 $STOPDIALOGUE$", L""},
 			{"66 $MOVEPLAYERCUTSCENE$", L"50$-1$CHAPELSTEP$60"},
-			
+
 
 			{"67 $ANIMATEOBJECT$", L"PLAYER1_PLAYER1_STAND_FRONT"},
 			{"67.1 $ANIMATEOBJECT$", L"Shadow PLAYER1_Shadow PLAYER1_STAND_FRONT"},
@@ -5550,7 +5746,10 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"3 PLAYER", L"What a strange dream..."},
 			{"4 PLAYER", L"...   "},
 			{"6 PLAYER", L"No, not a dream. A memory."},
-			{"7 PLAYER", L"I should find Isobella de Vaines and report to her what happened yesterday."},
+			{"7 $STOPDIALOGUE$", L""},
+			{"8 $WAIT$", L"wait_2000"},
+			{"9 PLAYER", L"I should go speak to Isobella de Vaines. It's possible she might know where Father Michelet is."},
+			{"10 PLAYER", L"I think she mentioned living across the street from the tavern."},
 			{"1000 $REMOVEIMAGES$", L"CutsceneLoadingScreen2"},
 		} },
 		{ "ChapelRightCombat1", {
@@ -5583,3 +5782,7 @@ map<string, map<string, map<string, wstring>>> strings = {
 			{"31.4 Angela Fleuret", L"You'll have to work a little harder to persuade me that we're truly safe. Your letter says townspeople are turning mad out of thin air and I don't need convincing of what they're capable of once lost to its grasp. How is anyone in this town satisfied they won't be next?"},
 			//{"1 EMPTY$DIRECT$", L".!?Test String➀é hello I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes. I am a long string used to test the cropping of text boxes."},
 } }}} };
+
+map<string, map<string, map<string, wstring>>> getStrings() {
+	return strings;
+}
