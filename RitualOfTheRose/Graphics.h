@@ -366,6 +366,8 @@ public:
             try {
                 D2D1_SIZE_F size = texture->GetSize();
                 D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
+               // renderTargetSize.width = controller.currentRenderSize.first;
+                //renderTargetSize.height = controller.currentRenderSize.second;
                 pair<float, float> position = getAbsolutePosition(renderTargetSize);
                 D2D1_RECT_F rect = getRect(position, size);
                 return rect;
@@ -528,6 +530,8 @@ public:
                     &extraShadowBrushes[key]);
             }
             D2D1_SIZE_F renderTargetSize = graphics.hwndRenderTarget->GetSize();
+           // renderTargetSize.height = controller.currentRenderSize.first;
+           // renderTargetSize.width = controller.currentRenderSize.second;
             pair<float, float> position = getAbsolutePosition(renderTargetSize);
             pair<float, float> trueSize = convertPercentToActual(renderTargetSize, size);
             D2D_SIZE_F size_as_d2d = D2D_SIZE_F();

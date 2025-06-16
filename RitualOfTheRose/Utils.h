@@ -636,6 +636,8 @@ public:
 		right = List<int>({ VK_RIGHT, 0x44 });
 		down = List<int>({ VK_DOWN, 0x53 });
 		directionalKeys = List<int>({ VK_UP, 0x57, VK_LEFT, 0x41,VK_RIGHT, 0x44, VK_DOWN, 0x53 });
+
+		startRenderSizeAsFloat = { actualRenderSizeAsFloat.first * initialGUIScale, actualRenderSizeAsFloat.second * initialGUIScale };
 	}
 	void setup(HWND* _hwnd) {
 		hwnd = _hwnd;
@@ -687,20 +689,20 @@ public:
 		pair<float, float> results;
 		results.first = LOWORD(lParam);
 		results.second = HIWORD(lParam);
-		RECT rect;
-		GetWindowRect(*hwnd, &rect);
+
 		pair<int, int> normalHwndSize = { actualRenderSizeAsFloat.first, actualRenderSizeAsFloat.second + 38};
-		pair<int, int> normalClickableRange = { normalHwndSize.first - 17,normalHwndSize.second - 40};
-		pair<int, int> currentHwndSize = { rect.right - rect.left, rect.bottom - rect.top };
-		pair<int, int> currentClickableRange = { currentHwndSize.first -17, currentHwndSize.second - 40};
+		pair<int, int> normalClickableRange = { normalHwndSize.first - 17, normalHwndSize.second - 40};
+		pair<int, int> currentClickableRange = { actualRenderSizeAsFloat.first -17, actualRenderSizeAsFloat.second - 40};
 		
-		pair<float, float> scaledResults = {
-			results.first / currentClickableRange.first * normalClickableRange.first,
-			results.second / currentClickableRange.second * normalClickableRange.second
-		};
-		scaledResults.first -= 13;
-		scaledResults.second -= 13;
-		return scaledResults;
+
+		results.first = results.first * actualRenderSizeAsFloat.first / currentRenderSize.first;
+		results.second = results.second * actualRenderSizeAsFloat.second / currentRenderSize.second;
+
+
+		results.first -= 13;
+		results.second -= 13;
+
+		return results;
 	}
 	bool userPressedOneOfThese(list<int> codes) {
 		bool result = false;
@@ -788,7 +790,10 @@ public:
 	List<int> left;
 	List<int> right;
 	List<int> down;
+	float initialGUIScale = 1;
+	pair<float, float> startRenderSizeAsFloat = { 0,0 };
 	pair<float, float> actualRenderSizeAsFloat = { 1264.0f, 719.0f };
+	pair<float, float> currentRenderSize = {0,0};
 	string latestMenuItemHovered = "";
 	bool menuItemCooldown = false; // set this to true if a keyboard button was recently pressed and wait until nothing is pressed
 	bool cursorHotspotInCentre = true; // I couldn't fix this :( 

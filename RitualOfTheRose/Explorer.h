@@ -3353,7 +3353,7 @@ mapFloor::triangle({{57.8132688999176,52.938079833984375}, {57.8132688999176,57.
 		currentMap = maps[mapName];
 		playerOnMap.position = currentMap.playerStartPosition;
 		mapSize = currentMap.imageSize;
-		resolutionAsFloat = { mapSize.first * 100.0f / actualRenderSizeAsFloat.first, mapSize.second * 100.0f / actualRenderSizeAsFloat.second };
+		setResolutionAsFloat();
 	}
 	mapObject& getThisMapObject(string name) {
 		for (mapObject& obj : currentMap.objects.internalList) {
@@ -3364,12 +3364,14 @@ mapFloor::triangle({{57.8132688999176,52.938079833984375}, {57.8132688999176,57.
 	}
 	map<string, pair<float, float>> getUpdatedMapImagePositions() {
 		map<string, pair<float, float>> result;
+		pair<float, float> actualRenderSizeAsFloat = controller.startRenderSizeAsFloat;
+
 		if (perspective == "FOLLOW_PLAYER") {
 			activeCamera.position = playerOnMap.position;
 		}
 		result["player image position"] = { 50.0f,50.0f };
 		result["map position"] = { 50.0f + (50.0f - activeCamera.position.first) * resolutionAsFloat.first / 100.0f , 50.0f + (50.0f - activeCamera.position.second) * resolutionAsFloat.second / 100.0f };
-
+		
 		float xLimitMax; float xLimitMin; float yLimitMax; float yLimitMin;
 
 		if (mapSize.first == 5000) {
@@ -3667,6 +3669,9 @@ mapFloor::triangle({{57.8132688999176,52.938079833984375}, {57.8132688999176,57.
 		}
 		return ""; // no change
 	}
+	void setResolutionAsFloat() {
+		resolutionAsFloat = { mapSize.first * 100.0f / controller.startRenderSizeAsFloat.first, mapSize.second * 100.0f / controller.startRenderSizeAsFloat.second };
+	}
 
 	int resource;
 	float unitOfMovement = 0.5;
@@ -3676,9 +3681,7 @@ mapFloor::triangle({{57.8132688999176,52.938079833984375}, {57.8132688999176,57.
 	string perspective = "FOLLOW_PLAYER";
 	string mapPopupTextID = "mappopuptextID";
 	Map<string, mapInstance> maps;
-	pair<int, int> resolution = controller.actualRenderSizeAsFloat;
-	pair<float, float> actualRenderSizeAsFloat = controller.actualRenderSizeAsFloat;
 	pair<int, int> mapSize = { 2500,2500 };
-	pair<float, float> resolutionAsFloat = { mapSize.first * 100.0f / actualRenderSizeAsFloat.first, mapSize.second * 100.0f / actualRenderSizeAsFloat.second };
+	pair<float, float> resolutionAsFloat = { 0,0 };
 };
 Explorer explorer;

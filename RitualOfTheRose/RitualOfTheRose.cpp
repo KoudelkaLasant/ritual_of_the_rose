@@ -82,7 +82,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    int titlebar_gap = 38;
 
    window = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_THICKFRAME,
-      CW_USEDEFAULT, 0, explorer.resolution.first, explorer.resolution.second + titlebar_gap, nullptr, nullptr, hInstance, nullptr);
+      CW_USEDEFAULT, 0, controller.startRenderSizeAsFloat.first, controller.startRenderSizeAsFloat.second + titlebar_gap, nullptr, nullptr, hInstance, nullptr);
    graphics.hwnd = &window;
 
    if (!window)
@@ -99,6 +99,13 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
     controller.acceptAllInput(message, wParam, lParam);
     switch (message){
+    case WM_SIZE: {
+        UINT width = LOWORD(lParam);
+        UINT height = HIWORD(lParam);
+        controller.currentRenderSize = { width, height };
+        explorer.setResolutionAsFloat();
+        break;
+    }
     case WM_SETCURSOR: {
         HCURSOR hCursor = graphics.Cursors[graphics.CurrentCursor];
         SetCursor(hCursor);
