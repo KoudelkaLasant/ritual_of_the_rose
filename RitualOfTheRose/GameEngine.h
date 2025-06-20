@@ -49,6 +49,7 @@ public:
 				if (data.getKeys().contains("scale")) {
 					image->scale = stof(data["scale"]); // make maps x2 the size by default
 				}
+				image->scale *= controller.initialGUIScale;
 				return true;
 			}
 			if (type == "STOPALLSONGS") {
@@ -779,16 +780,16 @@ public:
 					}
 					if (!didASwap and data["mode"] == "reform") {
 						RECT partyRegion;
-						partyRegion.top = 120;
-						partyRegion.left = 350;
-						partyRegion.bottom = 250;
-						partyRegion.right = 630;
+						partyRegion.top = 120 * controller.initialGUIScale;
+						partyRegion.left = 350 * controller.initialGUIScale;
+						partyRegion.bottom = 250 * controller.initialGUIScale;
+						partyRegion.right = 630 * controller.initialGUIScale;
 
 						RECT reserveRegion;
-						reserveRegion.top = 120;
-						reserveRegion.left = 780;
-						reserveRegion.bottom = 350;
-						reserveRegion.right = 1083;
+						reserveRegion.top = 120 * controller.initialGUIScale;
+						reserveRegion.left = 780 * controller.initialGUIScale;
+						reserveRegion.bottom = 350 * controller.initialGUIScale;
+						reserveRegion.right = 1083 * controller.initialGUIScale;
 
 						pair<float, float> unclickPos = controller.mouseUnclickPosition;
 
@@ -2556,7 +2557,7 @@ return true;
 						pair<string, string>("y", "50"),
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
-						pair<string, string>("scale", "1.0"),
+						pair<string, string>("scale", "1.1"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["BUTTONS"] - 1)),
 						pair<string, string>("uniqueID", "HELPIMAGE"),
 						})).run(*&gameEngine);
@@ -3203,6 +3204,7 @@ return true;
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "NewGameCutscene", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					saveContainer.activeSaveSlot = saveContainer.getNextSaveSlot();
 					saveContainer.unlockThisCodexPage("people", gameEngine.stateFlags["PARTYEDITSELECTED"]);
+					saveContainer.addAllPagesFromThisBook("skill trees");
 					return false;
 				}
 				if (buttonLogic == "FROMPAUSETOTOME") {
@@ -3698,7 +3700,7 @@ return true;
 				float scale = stof(data["scale"]);
 				pair<float, float> centreAnchor = { stof(data["x"]), stof(data["y"]) };
 				Map<string, string> skills = saveContainer.getNamesOfCurrentEquippedSkills(who, drawFullSkillbar);
-				float widthOfOneSkill = Graphics::Drawable().convertActualToPercent(graphics.hwndRenderTarget->GetSize(), { 100,100 }).first * scale;
+				float widthOfOneSkill = Graphics::Drawable().convertActualToPercent(graphics.hwndRenderTarget->GetSize(), { 100,100 }).first * scale * controller.initialGUIScale;
 				float firstXSlot = centreAnchor.first - (widthOfOneSkill * 3);
 				float difference = widthOfOneSkill;
 				if (drawFullSkillbar) {
@@ -5204,7 +5206,7 @@ return true;
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("layer", "0"),
-						pair<string, string>("scale", "1.0"),
+						pair<string, string>("scale", "1.1"),
 						pair<string, string>("uniqueID", "BattleBackground"),
 							}))).run(*&gameEngine);
 				Event("FilmGrain", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
@@ -5214,7 +5216,7 @@ return true;
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["ENVIRONMENT"])),
-						pair<string, string>("scale", "1.0"),
+						pair<string, string>("scale", "1.1"),
 						pair<string, string>("uniqueID", "FilmGrain"),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "LOOP"),
@@ -6344,7 +6346,7 @@ return true;
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", opacity),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
-						pair<string, string>("scale", "4.0"),
+						pair<string, string>("scale", "4.1"),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "SINGLE"),
 						pair<string, string>("animation_speed", "30"),
@@ -6674,7 +6676,7 @@ return true;
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
-						pair<string, string>("scale", "2.0"),
+						pair<string, string>("scale", "2.1"),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "SINGLE"),
 						pair<string, string>("animation_speed", "20"),
@@ -6686,7 +6688,7 @@ return true;
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
-						pair<string, string>("scale", "2.0"),
+						pair<string, string>("scale", "2.1"),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "SINGLE"),
 						pair<string, string>("animation_speed", "20"),
@@ -6802,7 +6804,7 @@ return true;
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("layer", to_string(targetLayer-1)),
-						pair<string, string>("scale", "2.0"),
+						pair<string, string>("scale", "2.1"),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "SINGLE"),
 						pair<string, string>("animation_speed", "40"),
@@ -6828,7 +6830,7 @@ return true;
 						pair<string, string>("anchor", "BOTTOMMIDDLE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
-						pair<string, string>("scale", "1.5"),
+						pair<string, string>("scale", "1.6"),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "SINGLE"),
 						pair<string, string>("animation_speed", "120"),
@@ -6863,7 +6865,7 @@ return true;
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
-						pair<string, string>("scale", "2.0"),
+						pair<string, string>("scale", "2.1"),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "SINGLE"),
 						pair<string, string>("animation_speed", "20"),
@@ -8039,6 +8041,7 @@ return true;
 	void setup() {
 		string mode = Args.get("mode");
 		if (mode == "DEBUG") {
+			explorer.keepMapFullyOnScreen = true;
 			activeProcedure = storedProcedures["DEBUG3"];
 		}
 		else if (mode == "NORMAL") {

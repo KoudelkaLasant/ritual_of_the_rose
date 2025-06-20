@@ -82,7 +82,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    int titlebar_gap = 38;
 
    window = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW | WS_THICKFRAME,
-      CW_USEDEFAULT, 0, controller.startRenderSizeAsFloat.first, controller.startRenderSizeAsFloat.second + titlebar_gap, nullptr, nullptr, hInstance, nullptr);
+      CW_USEDEFAULT, 0, controller.actualRenderSizeAsFloat.first, controller.actualRenderSizeAsFloat.second + titlebar_gap, nullptr, nullptr, hInstance, nullptr);
    graphics.hwnd = &window;
 
    if (!window)
@@ -99,11 +99,25 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
     controller.acceptAllInput(message, wParam, lParam);
     switch (message){
+    case WM_MOUSEMOVE: {
+        break;
+    }
     case WM_SIZE: {
+        RECT rect;
+        GetWindowRect(hWnd, &rect);
+        float currentWidth = rect.right - rect.left;
+        float currentHeight = rect.bottom - rect.top;
+        float ratio = currentWidth / currentHeight;
+        float desired = explorer.desiredRatio;
+        bool correctRatio = fabs(ratio - desired) < FLT_EPSILON;
+        if (!correctRatio) {
+            RECT rect;
+            GetWindowRect(hWnd, &rect);
+            SetWindowPos(hWnd, NULL, 0,0, currentWidth, (currentWidth / desired), SWP_NOMOVE);
+        }
         UINT width = LOWORD(lParam);
         UINT height = HIWORD(lParam);
         controller.currentRenderSize = { width, height };
-        explorer.setResolutionAsFloat();
         break;
     }
     case WM_SETCURSOR: {

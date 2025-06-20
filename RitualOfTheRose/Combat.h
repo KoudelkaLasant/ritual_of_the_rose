@@ -7061,7 +7061,7 @@ public:
 			}), "ELITESKILLYELLOW", 500);
 		equipmentDefinitions["Dido's Compass"] = Equipment(*this, "Dido's Compass", "Accessory", CODEXPAGE_LOCKET1, List<Combat::Effect>({
 			Combat::Effect("INTELLIGENCE",1.0f,true,true),
-			Combat::Effect("COLDBOOST",1.5f,true,false),
+			Combat::Effect("COLDBOOST",0.5f,true,false),
 			}), "EQUIPMENTBLUE", 25);
 		equipmentDefinitions["Artemisia Fragment"] = Equipment(*this, "Artemisia Fragment", "Accessory", CODEXPAGE_LOCKET1, List<Combat::Effect>({
 			Combat::Effect("STRENGTH",2.0f,true,true),

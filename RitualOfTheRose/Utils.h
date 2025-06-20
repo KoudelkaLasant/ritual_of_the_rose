@@ -637,7 +637,7 @@ public:
 		down = List<int>({ VK_DOWN, 0x53 });
 		directionalKeys = List<int>({ VK_UP, 0x57, VK_LEFT, 0x41,VK_RIGHT, 0x44, VK_DOWN, 0x53 });
 
-		startRenderSizeAsFloat = { actualRenderSizeAsFloat.first * initialGUIScale, actualRenderSizeAsFloat.second * initialGUIScale };
+		actualRenderSizeAsFloat.first *= initialGUIScale; actualRenderSizeAsFloat.second *= initialGUIScale;
 	}
 	void setup(HWND* _hwnd) {
 		hwnd = _hwnd;
@@ -790,8 +790,7 @@ public:
 	List<int> left;
 	List<int> right;
 	List<int> down;
-	float initialGUIScale = 1;
-	pair<float, float> startRenderSizeAsFloat = { 0,0 };
+	float initialGUIScale = 1.25;
 	pair<float, float> actualRenderSizeAsFloat = { 1264.0f, 719.0f };
 	pair<float, float> currentRenderSize = {0,0};
 	string latestMenuItemHovered = "";
@@ -1054,7 +1053,9 @@ public:
 			inventory[itemName] = 0;
 		}
 		inventory[itemName] = TChange(inventory[itemName], 1, 0, inventoryLimitPerItem);
-		unlockThisCodexPage(WStringToString(strings["ENG"]["Code2Codex"][itemCategory]), itemName);
+		if (itemCategory != "Tome") {
+			unlockThisCodexPage(WStringToString(strings["ENG"]["Code2Codex"][itemCategory]), itemName);
+		}
 		current.inventory = inventory.internalMap;
 		return true;
 	}
@@ -1109,6 +1110,15 @@ public:
 			result = slots.getKeys().back() + 1;
 		}
 		return result;
+	}
+	void addAllPagesFromThisBook(string book) {
+		if (book == "skill trees") {
+			for (auto [key, val] : strings["ENG"]["Skill Tree Names"]) {
+				List<string> toIgnore = list<string>({ "DEFAULT", "Debug" });
+				if (toIgnore.contains(key)) { continue; }
+				unlockThisCodexPage("skill trees", key);
+			}
+		}
 	}
 	void addToCharacterList(string who) {
 		List<string> currentParty = getAllCharacterNames();

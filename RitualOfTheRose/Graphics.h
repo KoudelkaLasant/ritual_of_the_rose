@@ -283,7 +283,7 @@ public:
                                 pSource,
                                 originalWidth,
                                 originalHeight,
-                                WICBitmapInterpolationModeCubic
+                                WICBitmapInterpolationModeHighQualityCubic
                             );
                             if (SUCCEEDED(hr))
                             {
@@ -544,8 +544,10 @@ public:
             shadowP.x -= 1;
             shadowP.y += 1;
 
+            
             hr = graphics.DWriteFactories[font]->CreateTextLayout(removeTagsBeforePrinting(graphics, message).c_str(), message.size(), graphics.WriteTextFormats[format], size_as_d2d.width, size_as_d2d.height, &textLayout);
             hr = graphics.DWriteFactories[font]->CreateTextLayout(removeTagsBeforePrinting(graphics, message).c_str(), message.size(), graphics.WriteTextFormats[format], size_as_d2d.width, size_as_d2d.height, &shadowTextLayout);
+            
 
             for (auto const& [key, value] : subcolours.internalMap) {
                 for (auto const& range : subcolours[key].internalList) {
@@ -564,6 +566,12 @@ public:
                 hr = shadowTextLayout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
                 hr = shadowTextLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
             }
+            /*
+            float baseFontSize = textLayout->GetFontSize();
+            DWRITE_TEXT_RANGE entireRange = { unsigned(0), unsigned(message.size()) };
+            textLayout->SetFontSize(baseFontSize / 2.0f, entireRange);
+            shadowTextLayout->SetFontSize(baseFontSize / 2.0f, entireRange);
+            */
         }
         void resetMessage(Graphics& graphics, wstring _message) {
             message = _message;
@@ -736,7 +744,7 @@ public:
             IDWriteFontCollection1* fontCollection = NULL;
             IDWriteFontSetBuilder1* fontSetBuilder = NULL;
 
-            hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_ISOLATED, __uuidof(DWriteFactory),reinterpret_cast<IUnknown**>(&DWriteFactory));
+            hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(DWriteFactory),reinterpret_cast<IUnknown**>(&DWriteFactory));
 
             idwriteinmemoryfontfileloaders[font.first] = NULL;
             hr = DWriteFactory->CreateInMemoryFontFileLoader(&idwriteinmemoryfontfileloaders[font.first]);
@@ -769,17 +777,19 @@ public:
             fontSetBuilders[font.first] = fontSetBuilder;
 
             for (auto const& size : customFontSizes.internalList) {
+                int sizeToLoad = size * controller.initialGUIScale;
                 IDWriteTextFormat* textFormat = NULL;
                 hr = DWriteFactory->CreateTextFormat(wstring(font.first.begin(), font.first.end()).c_str(),
                     fontCollection,
                     DWRITE_FONT_WEIGHT_NORMAL,
                     DWRITE_FONT_STYLE_NORMAL,
                     DWRITE_FONT_STRETCH_NORMAL,
-                    size,
+                    sizeToLoad,
                     L"",
                     &textFormat);
                 if (SUCCEEDED(hr)) {
                     WriteTextFormats.add({ font.first + "_" + to_string(size), textFormat });
+                    loadedFontSizes.addToBackIfNotAlreadyInList(size);
                 }
                 else {
                     throw exception("Failed to load this font.");
@@ -1211,5 +1221,6 @@ public:
     List<string> recentlyFinishedBeingDragged;
     Map<int, ID2D1Bitmap*> TextureMemory;
     string CurrentCursor = "DEFAULT";
+    List<int> loadedFontSizes;
 };
 Graphics graphics = Graphics();

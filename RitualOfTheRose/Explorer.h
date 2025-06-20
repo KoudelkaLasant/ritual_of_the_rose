@@ -627,6 +627,17 @@ mapFloor::triangle({{49.4265079498291,4.762154072523117}, {-19.623970985412598,2
 	};
 	puzzles puzzleContainer;
 	void defineAllMaps() {
+		maps["Debug"] = mapInstance("Debug", MAP_DEBUG, { 50,50, }, List<mapObject>({
+			mapObject("Well", false, true, false, imageLookup.getSequenceAsString("Well","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{42,26.6}, false, {}, {}),
+			mapObject("Well2", false, true, false, imageLookup.getSequenceAsString("Well","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{0,0}, false, {}, {}),
+			mapObject("Well3", false, true, false, imageLookup.getSequenceAsString("Well","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{100,100}, false, {}, {}),
+			mapObject("Well4", false, true, false, imageLookup.getSequenceAsString("Well","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{50,50}, false, {}, {}),
+			mapObject("Well5", false, true, false, imageLookup.getSequenceAsString("Well","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{60,60}, false, {}, {}),
+			}), List<mapFloor>({
+			mapFloor("Walkable", List<mapFloor::triangle>({mapFloor::triangle({{-6.996595859527588,130.84323406219482}, {110.42678356170654,-16.976630687713623}, {-9.78589653968811,-16.976630687713623}}),mapFloor::triangle({{-6.996595859527588,130.84323406219482}, {120.72354555130005,123.77851009368896}, {110.42678356170654,-16.976630687713623}}),}), true, Map<string, string>({})),
+				}), {}, { 5000, 5000 }, Map<string, string>({
+				pair<string,string>({"LoadingScreenImage",to_string(LOADINGSCREEN_1)}),
+					}));
 		maps["RoadToBénouville"] = mapInstance("RoadToBénouville", MAP_DEBUG, { 45,8 /*51,55*/ }, List<mapObject>({
 			mapObject("WilliamCombat", true, true, false, imageLookup.getSequenceAsString("White Knight", "STAND_BACK"), "1", 800, imageLookup.layerDefaults["PLAYER"], "2.0", "2.0","CENTRE", { 55, 87 }, false, List<mapFloor::triangle>({mapFloor::triangle({{59.13970470428467,84.17178392410278}, {52.62807011604309,89.39529061317444}, {52.72292494773865,84.57980155944824}}),mapFloor::triangle({{59.13970470428467,84.17178392410278}, {60.45340299606323,89.39529061317444}, {52.62807011604309,89.39529061317444}}),}), Map<string, string>({
 										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Attack the Mad Rider"}),
@@ -680,7 +691,7 @@ mapFloor::triangle({{56.244462728500366,4.765757918357849}, {50.94001889228821,4
 			mapObject("Lamp3", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{34.9, 18.0}, false, {}, {}),
 			mapObject("Lamp4", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{46.8, 13.7}, false, {}, {}),
 			mapObject("Lamp5", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{49.2, 1.2}, false, {}, {}),
-			mapObject("Well", false, true, false, imageLookup.getSequenceAsString("Well","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{42, 26.6}, false, {}, {}),
+			mapObject("Well", false, true, false, imageLookup.getSequenceAsString("Well","STAND_FRONT"),"0",0,imageLookup.layerDefaults["PLAYER"],"1.0","1.0","CENTRE",{42, 26.5}, false, {}, {}),
 			mapObject("Lamp6", false, true, false, imageLookup.getSequenceAsString("LampLight1","STAND_FRONT"),"1",20,imageLookup.layerDefaults["ENVIRONMENT"],"1.0","1.0","CENTRE",{56.9, 1.2}, false, {}, {}),
 			mapObject("DeadHorse", true, false, false, "","0",0,imageLookup.layerDefaults["SMALLOBJECTS"],"1.0","1.0","CENTRE",{54.6, 16.9}, false, List<mapFloor::triangle>({mapFloor::triangle({{50.72616934776306,23.629747331142426}, {56.28034472465515,16.637805104255676}, {50.594234466552734,16.637805104255676}}),mapFloor::triangle({{50.72616934776306,23.629747331142426}, {56.76738619804382,23.295582830905914}, {56.28034472465515,16.637805104255676}}),}), Map<string, string>({
 										pair<string, string>({"message","$LANGUAGE$_Map Pop Up Text_Dead Horse"}),
@@ -3352,8 +3363,6 @@ mapFloor::triangle({{57.8132688999176,52.938079833984375}, {57.8132688999176,57.
 		defineAllMaps();
 		currentMap = maps[mapName];
 		playerOnMap.position = currentMap.playerStartPosition;
-		mapSize = currentMap.imageSize;
-		setResolutionAsFloat();
 	}
 	mapObject& getThisMapObject(string name) {
 		for (mapObject& obj : currentMap.objects.internalList) {
@@ -3363,22 +3372,77 @@ mapFloor::triangle({{57.8132688999176,52.938079833984375}, {57.8132688999176,57.
 		}
 	}
 	map<string, pair<float, float>> getUpdatedMapImagePositions() {
-		map<string, pair<float, float>> result;
-		pair<float, float> actualRenderSizeAsFloat = controller.startRenderSizeAsFloat;
+		/*
+		Requirements:
+		-> Player is in the middle of the window unless the player moves to the edges of the map where the map stops moving and the player continues to move
 
+		Notes:
+		-> The position values in the results map represent percentages of the current window size.
+		-> The map image is anchored in its centre
+		-> Maps are normally either 5000x5000 or 2500x2500
+		*/
+		map<string, pair<float, float>> result;
 		if (perspective == "FOLLOW_PLAYER") {
 			activeCamera.position = playerOnMap.position;
 		}
+
+		pair<float, float> mapImageDefaultPosition = { 50,50 };
 		result["player image position"] = { 50.0f,50.0f };
-		result["map position"] = { 50.0f + (50.0f - activeCamera.position.first) * resolutionAsFloat.first / 100.0f , 50.0f + (50.0f - activeCamera.position.second) * resolutionAsFloat.second / 100.0f };
+		pair<float, float> originalMapSize = currentMap.imageSize;
+		pair<float, float> mapSize = currentMap.imageSize;
+
+		// make it so the player's feet are its position on the map
+		float sizeOfPlayerImage = 200.0 * controller.initialGUIScale;
+		mapSize.first -= sizeOfPlayerImage;
+		mapSize.second += sizeOfPlayerImage;
+
+
+		pair<float, float> mapSizeAsPercentageOfCurrentRenderWindow = { (mapSize.first * 100) / controller.actualRenderSizeAsFloat.first, (mapSize.second * 100) / controller.actualRenderSizeAsFloat.second };
+		pair<float, float> originalMapSizeAsPercentageOfCurrentRenderWindow = { (originalMapSize.first * 100) / controller.actualRenderSizeAsFloat.first, (originalMapSize.second * 100) / controller.actualRenderSizeAsFloat.second };
+		pair<float, float> differenceBetweenCameraAndCentre = { mapImageDefaultPosition.first - activeCamera.position.first, mapImageDefaultPosition.second - activeCamera.position.second };
+		pair<float, float> differenceBetweenCameraAndCentreAsPercentageOfCurrentRenderWindow = { 
+			(mapSizeAsPercentageOfCurrentRenderWindow.first / 100) * differenceBetweenCameraAndCentre.first,
+			(mapSizeAsPercentageOfCurrentRenderWindow.second / 100)* differenceBetweenCameraAndCentre.second,};
+		pair<float, float> differenceAsAbsolutePixelValue = { 
+			(controller.actualRenderSizeAsFloat.first / differenceBetweenCameraAndCentreAsPercentageOfCurrentRenderWindow.first) * 100,
+			(controller.actualRenderSizeAsFloat.second / differenceBetweenCameraAndCentreAsPercentageOfCurrentRenderWindow.second) * 100,
+		};
+		pair<float, float> CurrentRenderWindowAsPercentageOfMap = { mapSize.first * 100 / controller.actualRenderSizeAsFloat.first , mapSize.second * 100 / controller.actualRenderSizeAsFloat.second };
+
+		pair<float, float> mapImageTargetPosition = {
+			(100 - activeCamera.position.first) + differenceBetweenCameraAndCentreAsPercentageOfCurrentRenderWindow.first,
+			(100 - activeCamera.position.second) + differenceBetweenCameraAndCentreAsPercentageOfCurrentRenderWindow.second };
+
+		result["map position"] = mapImageTargetPosition;
+
+		float xMod = 1.31;
+		float yMod = 1.1725;
+
+		if (perspective == "FOLLOW_CAMERA") {
+			float xDifference = mapSizeAsPercentageOfCurrentRenderWindow.first / 100 * (mapImageDefaultPosition.first - playerOnMap.position.first);
+			float yDifference = mapSizeAsPercentageOfCurrentRenderWindow.second / 100 * (mapImageDefaultPosition.second - playerOnMap.position.second);
+			xDifference *= xMod;
+			yDifference *= yMod;
+			float percentXPos = result["map position"].first - xDifference;
+			float percentYPos = result["map position"].second - yDifference;
+
+			pair<float, float> objectPosition = {
+				percentXPos,
+				percentYPos,
+			};
+			result["player image position"] = objectPosition;
+		}
+
+		
+		
 		
 		float xLimitMax; float xLimitMin; float yLimitMax; float yLimitMin;
 
-		if (mapSize.first == 5000) {
-			xLimitMax = 0.04 * mapSize.first; // 0.03944
+		if (currentMap.imageSize.first == 5000) {
+			xLimitMax = 200;
 			xLimitMin = -97.5;
-			yLimitMax = 0.06944 * mapSize.second;
-			yLimitMin = -245.549377;
+			yLimitMax = 275 * controller.initialGUIScale;
+			yLimitMin = -244.5;
 		}
 		else {
 			xLimitMax = 98.6f;
@@ -3387,10 +3451,7 @@ mapFloor::triangle({{57.8132688999176,52.938079833984375}, {57.8132688999176,57.
 			yLimitMin = -73.6f;
 		}
 
-		bool hold = true;
-
-
-		if (hold) {
+		if (keepMapFullyOnScreen) {
 			if (result["map position"].first > xLimitMax) {
 				float difference = result["map position"].first - xLimitMax;
 				result["map position"].first = xLimitMax;
@@ -3412,38 +3473,28 @@ mapFloor::triangle({{57.8132688999176,52.938079833984375}, {57.8132688999176,57.
 				result["player image position"].second = 50 - (yLimitMin * -1 + difference);
 			}
 		}
-		result["absolute map position"] = {
-			actualRenderSizeAsFloat.first * result["map position"].first / 100.0f,
-			actualRenderSizeAsFloat.second * result["map position"].second / 100.0f,
-		};
-		result["absolute map top left"] = {
-			result["absolute map position"].second - (mapSize.second / 2),
-			result["absolute map position"].first - (mapSize.first / 2),
-		};
-
-		if (perspective == "FOLLOW_CAMERA") {
-			float absoluteXPos = result["absolute map top left"].second + (mapSize.first / 100 * playerOnMap.position.first);
-			float absoluteYPos = result["absolute map top left"].first + (mapSize.second / 100 * playerOnMap.position.second);
-			float percentXPos = absoluteXPos * 100.0f / actualRenderSizeAsFloat.first;
-			float percentYPos = absoluteYPos * 100.0f / actualRenderSizeAsFloat.second;
-			float percentOffsetX = 0.0;
-			float percentOffsetY = 0.0;
-			pair<float, float> objectPosition = {
-				percentXPos,
-				percentYPos,
-			};
-			result["player image position"] = objectPosition;
-		}
 
 		for (auto x : currentMap.objects.internalList) {
 			if (x.tracksToPlayer) { result[x.name] = { 50.0f, 50.0f }; }
 			if (!x.tracksToPlayer) {
-				float absoluteXPos = result["absolute map top left"].second + (mapSize.first / 100 * x.positionOnMap.first);
-				float absoluteYPos = result["absolute map top left"].first + (mapSize.second / 100 * x.positionOnMap.second);
-				float percentXPos = absoluteXPos * 100.0f / actualRenderSizeAsFloat.first;
-				float percentYPos = absoluteYPos * 100.0f / actualRenderSizeAsFloat.second;
-				float percentOffsetX = 0.0;
-				float percentOffsetY = 0.0;
+				float xDifference = mapSizeAsPercentageOfCurrentRenderWindow.first / 100 * (mapImageDefaultPosition.first - x.positionOnMap.first);
+				float yDifference = mapSizeAsPercentageOfCurrentRenderWindow.second / 100 * (mapImageDefaultPosition.second - x.positionOnMap.second);
+
+				// 1.0 scaling
+				//xDifference *= 1.035 * controller.initialGUIScale;
+				//yDifference *= 0.966 * controller.initialGUIScale;
+
+				// 1.25 scaling
+				xDifference *= xMod;
+				yDifference *= yMod;
+
+
+				float percentXPos = result["map position"].first - xDifference;
+				float percentYPos = result["map position"].second - yDifference;
+
+				float percentOffsetX = 0;
+				float percentOffsetY = 0;
+
 				pair<float, float> objectPosition = {
 					percentXPos,
 					percentYPos,
@@ -3461,6 +3512,7 @@ mapFloor::triangle({{57.8132688999176,52.938079833984375}, {57.8132688999176,57.
 
 		return result;
 	}
+	
 	bool isThisDestinationWalkable(pair<float, float> position) {
 		bool walkable = false;
 		bool obstructed = false;
@@ -3559,7 +3611,7 @@ mapFloor::triangle({{57.8132688999176,52.938079833984375}, {57.8132688999176,57.
 	}
 	Map<string, int> getAnimationSpeeds() {
 		Map<string, int> result;
-		result.internalMap = { pair<string, int>("WALK",200) , pair<string, int>("STAND" ,500), pair<string, int>("MOVE", mapSize.first / 50) };
+		result.internalMap = { pair<string, int>("WALK",200) , pair<string, int>("STAND" ,500), pair<string, int>("MOVE", currentMap.imageSize.first / 50) };
 		return result;
 	}
 	bool areThesePointsInSamePlace(pair<float, float> LHS, pair<float, float> RHS, bool ignoreFirst, bool ignoreSecond) {
@@ -3669,9 +3721,6 @@ mapFloor::triangle({{57.8132688999176,52.938079833984375}, {57.8132688999176,57.
 		}
 		return ""; // no change
 	}
-	void setResolutionAsFloat() {
-		resolutionAsFloat = { mapSize.first * 100.0f / controller.startRenderSizeAsFloat.first, mapSize.second * 100.0f / controller.startRenderSizeAsFloat.second };
-	}
 
 	int resource;
 	float unitOfMovement = 0.5;
@@ -3681,7 +3730,7 @@ mapFloor::triangle({{57.8132688999176,52.938079833984375}, {57.8132688999176,57.
 	string perspective = "FOLLOW_PLAYER";
 	string mapPopupTextID = "mappopuptextID";
 	Map<string, mapInstance> maps;
-	pair<int, int> mapSize = { 2500,2500 };
-	pair<float, float> resolutionAsFloat = { 0,0 };
+	bool keepMapFullyOnScreen = true;
+	float desiredRatio = 1.669749009247028;
 };
 Explorer explorer;

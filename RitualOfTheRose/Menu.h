@@ -256,14 +256,14 @@ public:
 	}
 	static const Map<string, RECT> getSkillBarEditPositions() {
 		Map<string, RECT> result;
-		float top = 560;
-		float bottom = 660;
-		//result["WHOLESKILLBAR"] = graphics.makeRect(top, 398, bottom,1098);
-		result["SKILLSLOT1"] = graphics.makeRect(top, 498, bottom, 598);
-		result["SKILLSLOT2"] = graphics.makeRect(top, 598, bottom, 698);
-		result["SKILLSLOT3"] = graphics.makeRect(top, 698, bottom, 798);
-		result["SKILLSLOT4"] = graphics.makeRect(top, 798, bottom, 898);
-		result["SKILLSLOT5"] = graphics.makeRect(top, 898, bottom, 998);
+		float multiplier = controller.initialGUIScale;
+		float top = 560 * multiplier;
+		float bottom = 660 * multiplier;
+		result["SKILLSLOT1"] = graphics.makeRect(top, 498 * multiplier, bottom, 598 * multiplier);
+		result["SKILLSLOT2"] = graphics.makeRect(top, 598 * multiplier, bottom, 698 * multiplier);
+		result["SKILLSLOT3"] = graphics.makeRect(top, 698 * multiplier, bottom, 798 * multiplier);
+		result["SKILLSLOT4"] = graphics.makeRect(top, 798 * multiplier, bottom, 898 * multiplier);
+		result["SKILLSLOT5"] = graphics.makeRect(top, 898 * multiplier, bottom, 998 * multiplier);
 
 		return result;
 	}
