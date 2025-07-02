@@ -2038,7 +2038,7 @@ public:
 						for (CombatantInstance* actor : getMyAlliesThatAreAlive(*&combat).internalList) {
 							targets.push_back(actor->c.uniqueCombatID);
 						}
-						results.push_back(CombatEvent("LIFEHEAL_AOE_COLD", "SKILL", "Nacreous Aura 2", c.uniqueCombatID, targets, subSData, subVData));
+						results.push_back(CombatEvent("LIFEHEAL_SINGLE_COLD", "SKILL", "Nacreous Aura 2", c.uniqueCombatID, targets, subSData, subVData));
 					}
 					if (effect ->e.logicName == "Ensorcell" and c.getSkillBeingCast().skillTypeTags.contains("PHYSICAL")) {
 						Map<string, string> subSData;
@@ -2642,7 +2642,7 @@ public:
 					if (report.combatantsAffected.contains("WORLD")) {
 						// an effect stack executed by a world effect may need to be retargeted if it does not affect all targets by default. i.e. Healing Rain
 						if (report.logic.find("_AOE_") != -1) {
-							List<CombatantInstance* > newTargets = combat.currentBattle->getThisCombatant(report.originalUser)->getAllMyAllies(*&combat);
+							List<CombatantInstance* > newTargets = combat.currentBattle->getThisCombatant(report.originalUser)->getMyAlliesThatAreAlive(*&combat);
 							List<string> newTargetNames;
 							for (CombatantInstance* c : newTargets.internalList) {
 								newTargetNames.push_back(c->c.uniqueCombatID);
@@ -7136,6 +7136,7 @@ public:
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
 						pair<string, string>("0", "DEFAULT_WAIT"),
+						pair<string, string>("1", "Exile"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 				}));
@@ -8005,7 +8006,7 @@ public:
 				definedCombatants["EnragedPriest"],
 			}) };
 
-		definedTeams["BloodWall"] = { "Blood Wall", List<Combatant>({
+		definedTeams["BloodWall"] = { "BloodWall", List<Combatant>({
 				definedCombatants["BloodWall"],
 			}) };
 

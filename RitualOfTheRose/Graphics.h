@@ -156,6 +156,13 @@ public:
             return { RHS.first * 100.0f / renderTargetSize.width, RHS.second * 100.0f / renderTargetSize.height };
         }
         pair<float, float> positionAsPercentage = { 0.0f,0.0f };
+        D2D1_RECT_F mirrorX(D2D1_RECT_F current) {
+            float right = current.right;
+            float left = current.left;
+            current.left = right;
+            current.right = left;
+            return current;
+        }
         string anchorStyle;
         string unique_ID;
         float scale = 1.0f;
@@ -352,6 +359,9 @@ public:
             }
             texture = textures.at(frame);
             D2D1_RECT_F rect = getPosition(graphics);
+            if (direction == "LEFT") {
+                rect = mirrorX(rect);
+            }
             graphics.hwndRenderTarget->DrawBitmap(
                 texture,
                 rect, 

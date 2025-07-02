@@ -1362,6 +1362,9 @@ public:
 		animationFrames["TAVERN1_UPSTAIRS"]["STAND_FRONT"].internalList = { TAVERNUPSTAIRSNIGHT };
 		animationFrames["TAVERN1_UPSTAIRS"]["ON_TOP"].internalList = { TAVERNUPSTAIRSNIGHTONTOP_1,TAVERNUPSTAIRSNIGHTONTOP_2,TAVERNUPSTAIRSNIGHTONTOP_3,TAVERNUPSTAIRSNIGHTONTOP_4,TAVERNUPSTAIRSNIGHTONTOP_5, };
 		animationFrames["TAVERN1_UPSTAIRSDAY"]["STAND_FRONT"].internalList = { TAVERNUPSTAIRSDAY };
+		animationFrames["TAVERN1_BASEMENT"]["STAND_FRONT"].internalList = { TAVERNBASEMENT };
+		animationFrames["TAVERN1_BASEMENTONTOP1"]["STAND_FRONT"].internalList = { TAVERNBASEMENT_1 };
+		animationFrames["TAVERN1_BASEMENTONTOP2"]["STAND_FRONT"].internalList = { TAVERNBASEMENT_2 };
 
 		animationFrames["VATICAN"]["STAND_FRONT"].internalList = { VATICAN };
 		animationFrames["TianshunHouse"]["STAND_FRONT"].internalList = { TIANSHUNHOUSE };
@@ -1413,7 +1416,7 @@ public:
 		animationFrames["Angela Fleuret"]["CARD_SELECTED"].internalList = { CARD_ANGELA_SELECTED };
 		animationFrames["Angela Fleuret"]["STAND_FRONT"].internalList = { ANGELA_STAND_FRONT_1, ANGELA_STAND_FRONT_2 };
 		animationFrames["Angela Fleuret"]["STAND_BACK"].internalList = { ANGELA_STAND_BACK_1, ANGELA_STAND_BACK_2 };
-		animationFrames["Angela Fleuret"]["STAND_LEFT"].internalList = { ANGELA_STAND_LEFT_1, ANGELA_STAND_LEFT_2 };
+		animationFrames["Angela Fleuret"]["STAND_LEFT"].internalList = { ANGELA_STAND_RIGHT_1, ANGELA_STAND_RIGHT_1 };
 		animationFrames["Angela Fleuret"]["STAND_RIGHT"].internalList = { ANGELA_STAND_RIGHT_1, ANGELA_STAND_RIGHT_2 };
 		animationFrames["Angela Fleuret"]["WALK_BACK"].internalList = { ANGELA_WALK_BACK_1, ANGELA_WALK_BACK_2, ANGELA_WALK_BACK_3, ANGELA_WALK_BACK_2, };
 		animationFrames["Angela Fleuret"]["WALK_FRONT"].internalList = { ANGELA_WALK_FRONT_1, ANGELA_WALK_FRONT_2, ANGELA_WALK_FRONT_3, ANGELA_WALK_FRONT_2, };
@@ -1600,6 +1603,9 @@ public:
 		animationFrames["Father Michelet"]["SAD_FRONT"].internalList = { PRIESTMICHELET_SAD_F1, PRIESTMICHELET_SAD_F2 };
 		animationFrames["Father Michelet"]["CARD"].internalList = { CARD_MICHELET };
 		animationFrames["Father Michelet"]["CARD_SELECTED"].internalList = { CARD_MICHELET_SELECTED };
+		animationFrames["Father Michelet"]["SIT_FRONT"].internalList = { MICHELETSITTING_1, MICHELETSITTING_2 };
+
+
 
 		animationFrames["Shadow Father Michelet"]["STAND_FRONT"].internalList = { PRIESTMICHELET_SHADOW_STAND_F1, PRIESTMICHELET_SHADOW_STAND_F2 };
 		animationFrames["Shadow Father Michelet"]["STAND_RIGHT"].internalList = { PRIESTMICHELET_SHADOW_STAND_R1, PRIESTMICHELET_SHADOW_STAND_R2 };
@@ -1610,6 +1616,8 @@ public:
 		animationFrames["Shadow Father Michelet"]["WALK_LEFT"].internalList = { PRIESTMICHELET_SHADOW_WALK_L1, PRIESTMICHELET_SHADOW_WALK_L2, PRIESTMICHELET_SHADOW_WALK_L3, PRIESTMICHELET_SHADOW_WALK_L2 };
 		animationFrames["Shadow Father Michelet"]["WALK_BACK"].internalList = { PRIESTMICHELET_SHADOW_WALK_B1, PRIESTMICHELET_SHADOW_WALK_B2, PRIESTMICHELET_SHADOW_WALK_B3, PRIESTMICHELET_SHADOW_WALK_B2 };
 		animationFrames["Father Michelet"]["SPEAKER"].internalList = { PRIESTMICHELET_Speaker };
+		animationFrames["Shadow Father Michelet"]["SIT_FRONT"].internalList = { SHADOWMICHELETSITTING_1, SHADOWMICHELETSITTING_2 };
+
 		animationFrames["Isobella de Vaines"]["STAND_FRONT"].internalList = { LADYISOBELLA_STAND_F1, LADYISOBELLA_STAND_F2 };
 		animationFrames["Isobella de Vaines"]["STAND_RIGHT"].internalList = { LADYISOBELLA_STAND_R1, LADYISOBELLA_STAND_R2 };
 		animationFrames["Isobella de Vaines"]["STAND_LEFT"].internalList = { LADYISOBELLA_STAND_L1, LADYISOBELLA_STAND_L2 };
@@ -2900,6 +2908,7 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 		animationFrames["FireSpigot"]["STAND_FRONT"].internalList = { FIRESPIGOT };
 
 		animationFrames["CombatLoadingScreen"]["STAND_FRONT"].internalList = { COMBATLOADINGSCREEN_1 };
+		animationFrames["FakeFightBackground"]["STAND_FRONT"].internalList = { BATTLEBACKGROUND_TOWN };
 		animationFrames["Tutorial1"]["STAND_FRONT"].internalList = { TUTORIAL_1 };
 		animationFrames["Tutorial2"]["STAND_FRONT"].internalList = { TUTORIAL_2 };
 		animationFrames["Tutorial3"]["STAND_FRONT"].internalList = { TUTORIAL_3 };
@@ -3073,8 +3082,24 @@ public:
 			cutsceneName = SReplace(cutsceneName, "+PAIR", toInsert);
 		}
 		if (cutsceneName == "GraveDigger") {
+			if (flags["OudinDefeated"]) {
+				cutsceneName = "GraveDiggerOudinDefeated";
+			}
 			if (flags["debugFlag"]) {
 				cutsceneName = "GraveDiggerDebug";
+			}
+			if (flags["LookingForMichelet"] and not flags["FoundMichelet"]) {
+				cutsceneName = "GraveDiggerLookingForMichelet";
+			}
+		}
+		if (cutsceneName == "Cat") {
+			if (flags["LookingForMichelet"] and not flags["FoundMichelet"]) {
+				cutsceneName = "CatLookingForMichelet";
+			}
+		}
+		if (cutsceneName == "Dog") {
+			if (flags["LookingForMichelet"] and not flags["FoundMichelet"]) {
+				cutsceneName = "DogLookingForMichelet";
 			}
 		}
 		if (cutsceneName == "TavernTianshun1") {
@@ -3256,20 +3281,31 @@ public:
 			if (flags["OudinDefeated"]) {
 				cutsceneName = "TownGuards1OudinDefeated";
 			}
+			if (flags["LookingForMichelet"] and not flags["FoundMichelet"]) {
+				cutsceneName = "TownGuards1LookingForMichelet";
+			}
+
 		}
 		if (cutsceneName == "BeggarF") {
 			if (flags["OudinDefeated"]) {
 				cutsceneName = "BeggarFOudinDefeated";
+			}
+			if (flags["LookingForMichelet"] and not flags["FoundMichelet"]) {
+				cutsceneName = "BeggarFLookingForMichelet";
 			}
 		}
 		if (cutsceneName == "OldWoman1") {
 			if (flags["OudinDefeated"]) {
 				cutsceneName = "OldWoman1OudinDefeated";
 			}
+			if (flags["LookingForMichelet"] and not flags["FoundMichelet"]) {
+				cutsceneName = "OldWoman1LookingForMichelet";
+			}
+
 		}
-		if (cutsceneName == "GraveDigger") {
-			if (flags["OudinDefeated"]) {
-				cutsceneName = "GraveDiggerOudinDefeated";
+		if (cutsceneName == "Estate2Graveyard") {
+			if (!flags["FoundMichelet"]) {
+				cutsceneName = "GraveyardLocked";
 			}
 		}
 		return cutsceneName;

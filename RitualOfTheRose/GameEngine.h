@@ -141,7 +141,7 @@ public:
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "0.0"),
 						pair<string, string>("layer",to_string(imageLookup.layerDefaults["LOADINGSCREEN"])),
-						pair<string, string>("scale", "1.0"),
+						pair<string, string>("scale", "1.1"),
 						pair<string, string>("uniqueID", uniqueID), }))).run(*&gameEngine);
 					return false;
 				}
@@ -3589,7 +3589,23 @@ return true;
 					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "WaterRoomDebug", saveContainer.getCurrentMainCharacter(), "EXPLORE");
 					return true;
 				}
-
+				if (buttonLogic == "DebugButton_LookingForMichelet") {
+					Event("DoButton", "HANDLEBUTTON", Map<string, string>({
+							pair<string, string>("uniqueID", "DebugButton_ChapelFinished"),
+						})).run(*&gameEngine);
+					Event("DoButton", "HANDLEBUTTON", Map<string, string>({
+							pair<string, string>("uniqueID", "DebugButton_ToggleFlag_LookingForMichelet"),
+						})).run(*&gameEngine);
+					return true;
+				}
+				if (buttonLogic == "DebugButton_FoundMichelet") {
+					Event("DoButton", "HANDLEBUTTON", Map<string, string>({
+							pair<string, string>("uniqueID", "DebugButton_LookingForMichelet"),
+						})).run(*&gameEngine);
+					Event("DoButton", "HANDLEBUTTON", Map<string, string>({
+							pair<string, string>("uniqueID", "DebugButton_ToggleFlag_FoundMichelet"),
+						})).run(*&gameEngine);
+				}
 
 				if (buttonLogic.find("TOMETEACHTHESKILL_") != -1) {
 					List<string> data = split(buttonLogic, "_");
@@ -6192,6 +6208,13 @@ return true;
 	class SkillAnimationContainer {
 	public:
 		bool handleAnimation(GameEngine & gameEngine, Graphics::Image* caster, Graphics::Image* target, string procedureName, Map<string, string> extras) {
+			if (procedureName == "Charge Bolt") {
+				if (caster == target) {
+					// don't do anything for the enchant self part of the skill
+					Combat::CombatantInstance* actualTarget = combat.currentBattle->getThisCombatant(combat.currentBattle->getCurrentCombatant()->c.currentTarget);
+					target = graphics.accessImageViaUniqueID(actualTarget->c.uniqueCombatID);
+				}
+			}
 			pair<float, float> targetLocation = target->positionAsPercentage;
 			pair<float, float> casterLocation = caster->positionAsPercentage;
 			Map<string, bool> finished; // each bubble
@@ -6246,7 +6269,7 @@ return true;
 
 
 			List<string> defaultAnimateOnTarget = list<string>({"Revitalise","Strength of Reason", "Laying of Hands", "Heal Wounds", "Serrated Strike", "Brilliant Spark", "Stone Strike", 
-				"Stone Curse", "Atrophy", "Blade of Blood", "Vampiric Strike", "Exile", "Brain Drain","Blood Gift","Curse from Beyond the Grave","Viper Eyes", "Hypoxia", "Beggar's Blessing", "Botched Procedure", "Cestodarian Siphon", "Conciliatory Prayer", "Thoughtful Prayer", "Apostle of Patience","Shield of a Goddess", "Ivory Sanctuary", "Papalcy", "Incessant Devotion", "Ambrosia", "Blessed Light","Gift of Knowledge", "Paraclete's Invitation", "Castigate Cruor", "Entomb Spirit","Exalted Smash", "Erase Evil", "Absolution", "Adjudicate", "Stalked by Vengeance", "Rotation Blade", "Trickblade", "Debilitating Smash", "Clobber", "Cleave Armour", "Knee Crack", "Bulldoze","Knight Vision", "On My Target!", "Glass Sword", "Hack", "Bramble Cloak", "Shield of the Messenger", "Smuggler's Gambit", "Magebane Strike","Skewer", "Dragon Smash", "Weaponsmithing", "Winter Blast", "Sanctum Shroud", "Lacrymactory", "Mourning Edge", "Exemplar's Posture", "Bewrayment", "Avenger's Prayer", "Proscribe", "Conversion", "Fading Justice","Suppress","I Shall Take Care of This!","Song of Angels", "Lord's Authority", "Bailiff's Blade", "Fight the Pain!", "Fencer's Flash", "You're Worthless!", "Vapour Blade", "Light from the Other Side", "You're Revolting!", "Night Fracture", "Mug","Charm Collapse","Stalked by Shadows","Psychic Pithing", "Mind Maze", "Blinded Eye", "Black Djinn's Breath", "Wastrel's Comeuppance", "Petrifying Touch", "Rude Awakening", "Time Walk", "Deathdancer's Strike", "Natural Stab", "Platinum Lotus Strike", "Summer Strike", "Ring of Ash", "Charge Bolt", "Shock Value", "Electrocute", "Ball Lightning", "Double-Edged Lightning", "Chain Lightning", "Blinding Flash", "Electric Loop","Mind Fry", "Valkyrie's Aura","Shadow Game", "Twilightning", "Storm Djinn's Grace", "Short Circuit", "Shocking Defeat", "Scowling Rift", "Fire Bolt", "Arcane Furnace", "Hellraiser's Haste", "Glittering Gaze", "Fireball", "Ensorcell", "Phoenix", "Stalked by Flames", "Delay Blast", "Delay Blast 2", "Exalted Explosion", "Starburst", "Odyllic Cleansing", "Brine", "Cryogenic Sleep", "Polar Prison", "Nacreous Aura", "Polar Vortex", "Mirror of Ice", "Earthen Shell", "Crown of Sands", "Crumble", "Crystalline Scythe", "Master of Wards", "Exalted Stab", "Backstab", "Black Mamba Strike", "Stormdragon Strike", "Paralytic Venom", "Blades of Punishment", "Spirit Shanks", "Brutalism", "Royal Slicers", "Parting Stab", "Shattered Moebius", "Magehunter Strike", "Death Chant", "Shroud of Intrigue", 
+				"Stone Curse", "Atrophy", "Blade of Blood", "Vampiric Strike", "Exile", "Brain Drain","Blood Gift","Curse from Beyond the Grave","Viper Eyes", "Hypoxia", "Beggar's Blessing", "Botched Procedure", "Cestodarian Siphon", "Conciliatory Prayer", "Thoughtful Prayer", "Apostle of Patience","Shield of a Goddess", "Ivory Sanctuary", "Papalcy", "Incessant Devotion", "Ambrosia", "Blessed Light","Gift of Knowledge", "Paraclete's Invitation", "Castigate Cruor", "Entomb Spirit","Exalted Smash", "Erase Evil", "Absolution", "Adjudicate", "Stalked by Vengeance", "Rotation Blade", "Trickblade", "Debilitating Smash", "Clobber", "Cleave Armour", "Knee Crack", "Bulldoze","Knight Vision", "On My Target!", "Glass Sword", "Hack", "Bramble Cloak", "Shield of the Messenger", "Smuggler's Gambit", "Magebane Strike","Skewer", "Dragon Smash", "Weaponsmithing", "Winter Blast", "Sanctum Shroud", "Lacrymactory", "Mourning Edge", "Exemplar's Posture", "Bewrayment", "Avenger's Prayer", "Proscribe", "Conversion", "Fading Justice","Suppress","I Shall Take Care of This!","Song of Angels", "Lord's Authority", "Bailiff's Blade", "Fight the Pain!", "Fencer's Flash", "You're Worthless!", "Vapour Blade", "Light from the Other Side", "You're Revolting!", "Night Fracture", "Mug","Charm Collapse","Stalked by Shadows","Psychic Pithing", "Mind Maze", "Blinded Eye", "Black Djinn's Breath", "Wastrel's Comeuppance", "Petrifying Touch", "Rude Awakening", "Time Walk", "Deathdancer's Strike", "Natural Stab", "Platinum Lotus Strike", "Summer Strike", "Ring of Ash", "Shock Value", "Electrocute", "Ball Lightning", "Double-Edged Lightning", "Chain Lightning", "Blinding Flash", "Electric Loop","Mind Fry", "Valkyrie's Aura","Shadow Game", "Twilightning", "Storm Djinn's Grace", "Short Circuit", "Shocking Defeat", "Scowling Rift", "Fire Bolt", "Arcane Furnace", "Hellraiser's Haste", "Glittering Gaze", "Fireball", "Ensorcell", "Phoenix", "Stalked by Flames", "Delay Blast", "Delay Blast 2", "Exalted Explosion", "Starburst", "Odyllic Cleansing", "Brine", "Cryogenic Sleep", "Polar Prison", "Nacreous Aura", "Polar Vortex", "Mirror of Ice", "Earthen Shell", "Crown of Sands", "Crumble", "Crystalline Scythe", "Master of Wards", "Exalted Stab", "Backstab", "Black Mamba Strike", "Stormdragon Strike", "Paralytic Venom", "Blades of Punishment", "Spirit Shanks", "Brutalism", "Royal Slicers", "Parting Stab", "Shattered Moebius", "Magehunter Strike", "Death Chant", "Shroud of Intrigue", "Charge Bolt",
 				"BURNING", "BLEEDING", "DISEASED", "POISONED"});
 			List<string> defaultAnimateFullScreen = list<string>({"Light of Day", "Wishing Well", "Heatwave", "Pressure Front", "Prophesized Return", "Overrule", "Ice Age", "Global Warming", "Tempest", "Drought", "Rainstorm", "Healing Rain", "Excommunicative Assault", "Godly Repulsion","No One Said You Could Touch!", "Ice Storm", "Chaos Storm", "Underworld Dreams", "Rageflame", "Cataclysm","Thunderstorm", "Stormseeker", "Flame Wave", "Firespitter", "Vault of Destruction", "Tsunami", "Borealis Blast", "Sliprain", "Sandstorm", "Dust Torrent", "Rocky Soil", "Volcano", "Ward Against Magic", "Ward Against Weapons", "Ward Against Catastrophe", "Ward Against Cruelty", "Scatter Strike", });
 			List<string> defaultAnimateOnEveryTarget = list<string>({"Order of the Wasp", "Great Gospel", "Remedy Ward", "Angelic Observatory", "Iridescent Breath", "Healing Winds", "Heal Wounds All", "Go On Without Me!", "Time Vortex", "Nacreous Aura 2", "Mass Burial", "Chant of Concentration", "DEFAULT_AFFECTION","Shadow Spike" });
@@ -6296,14 +6319,22 @@ return true;
 
 			if (defaultAnimateOnTarget.contains(procedureName)) {
 				if (!started) {
+					float xLocation = targetLocation.first + xOffset;
+					float yLocation = targetLocation.second + yOffset;
+
+					string scale = "2.0";
+					if (procedureName == "Charge Bolt") {
+						scale = "6.0";
+						yLocation = 50;
+					}
 					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 						pair<string, string>("sources", imageLookup.getSequenceAsString(procedureName, "ACTION_1")),
-						pair<string, string>("x", to_string(targetLocation.first + xOffset)),
-						pair<string, string>("y", to_string(targetLocation.second - 15 + yOffset)),
+						pair<string, string>("x", to_string(xLocation)),
+						pair<string, string>("y", to_string(yLocation)),
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
-						pair<string, string>("scale", "2.0"),
+						pair<string, string>("scale", scale),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "SINGLE"),
 						pair<string, string>("animation_speed", "20"),
@@ -6892,7 +6923,7 @@ return true;
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
-						pair<string, string>("scale", "2.0"),
+						pair<string, string>("scale", "2.1"),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "SINGLE"),
 						pair<string, string>("animation_speed", "20"),
@@ -6916,7 +6947,7 @@ return true;
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", "1.0"),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
-						pair<string, string>("scale", "2.0"),
+						pair<string, string>("scale", "2.1"),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "LOOP"),
 						pair<string, string>("animation_speed", "40"),
@@ -7388,6 +7419,8 @@ return true;
 				Menu::smallButton("DebugButton_VariousChapelL1Flags", "GUI_ChapelLeftSpigotsDone", {70,20}),
 				Menu::smallButton("DebugButton_ChapelFinished", "GUI_ChapelFinished", {70,25}),
 				Menu::smallButton("DebugButton_WaterRoomDebug", "GUI_WaterRoomDebug", {70,30}),
+				Menu::smallButton("DebugButton_LookingForMichelet", "GUI_LookingForMichelet", {70,35}),
+				Menu::smallButton("DebugButton_FoundMichelet", "GUI_FoundMichelet", {70,40}),
 
 				}), Map<string, string>({
 					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " DebugButton_BackToExplore"),
@@ -7997,6 +8030,11 @@ return true;
 					results.push_back(Event("Wait", "HANDLEMENU", Map<string, string>({
 						pair<string, string>("uniqueID", menuName),
 						})));
+					acceptedLines.push_back(thisLine);
+					continue;
+				}
+				if (speaker == "TEARDOWNMAPPOPUPTEXT") {
+					results.push_back(Event("TearDownPopUpText", "TEARDOWNTEXT", Map<string, string>(pair<string, string>{"uniqueID", explorer.mapPopupTextID})));
 					acceptedLines.push_back(thisLine);
 					continue;
 				}
