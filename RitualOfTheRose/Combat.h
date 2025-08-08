@@ -4,7 +4,8 @@
 
 class Combat {
 public:
-	Combat() {
+	Combat() {}
+	void load() {
 		influenceLookups["STRENGTH"] = 0.05;
 		influenceLookups["INTELLIGENCE"] = 0.03;
 		influenceLookups["VITALITY"] = 0.1;
@@ -290,7 +291,7 @@ public:
 		layerScaleLookup["TEAM2ALLIES"] = "0.8";
 		layerScaleLookup["TEAM2"] = "0.7";
 
-		elements = {"FIRE","EARTH","ELECTRIC","COLD"};
+		elements = { "FIRE","EARTH","ELECTRIC","COLD" };
 	}
 	class PowerValue {
 	public:
@@ -3051,6 +3052,16 @@ public:
 											report.vData[v] *= 0.5;
 										}
 									}
+									if (effect->e.logicName == "PLANT") {
+										for (auto element : combat.elements.internalList) {
+											if (v.find("DAMAGE_") != -1 and v.find(element) != -1) {
+												report.vData[v] *= 0.5;
+											}
+										}
+										if (v.find("DAMAGE_") != -1 and v.find("PHYSICAL") != -1) {
+											report.vData[v] *= 1.5;
+										}
+									}
 									if (effect->e.logicName == "ARMOURVSPOISON" and report.sourceName == "POISONED") {
 										float power = (100.0 - effect->e.values["power"]) / 100;
 										report.vData["DAMAGE_SINGLE_NEUTRAL"] *= power;
@@ -4866,7 +4877,7 @@ public:
 				}),
 				list<string>({ "CUREALLY", }), REMEDYWARD_WAV);
 
-		skillDefinitions["Angelic Observatory"] = Skill("Angelic Observatory", "Angelic Observatory", "Cleromancy", SKILLICON_ANGELICOBSERVATORY, 60, 1, 5, "SELF",
+		skillDefinitions["Angelic Observatory"] = Skill("Angelic Observatory", "Angelic Observatory", "Cleromancy", SKILLICON_ANGELICOBSERVATORY, 60, 0, 5, "SELF",
 			list<string>({ "APPLY_Angelic Observatory_ALLALLIES" }),
 			list<string>({ "MAGICAL","HOLY", "HEAL", "ELITE"}),
 			Map<string, PowerValue>({
@@ -4908,7 +4919,7 @@ public:
 				}),
 				list<string>({ "ENCHANTSELF", }), REMEDYWARD_WAV);
 
-		skillDefinitions["Healing Winds"] = Skill("Healing Winds", "Healing Winds", "Cleromancy", SKILLICON_HEALINGWINDS, 25, 1, 3, "SELF",
+		skillDefinitions["Healing Winds"] = Skill("Healing Winds", "Healing Winds", "Cleromancy", SKILLICON_HEALINGWINDS, 25, 0, 3, "SELF",
 			list<string>({ "LIFEHEAL_ALLALLIES_HOLY", }),
 			list<string>({ "MAGICAL","HOLY", "HEAL", }),
 			Map<string, PowerValue>({
@@ -5203,11 +5214,11 @@ public:
 				}),
 				list<string>({ "HEALSELF", }), ATROPHY_WAV);
 
-		skillDefinitions["Hypoxia"] = Skill("Hypoxia", "Hypoxia", "Sangromancy", SKILLICON_HYPOXIA, 15, 0, 2, "SINGLEFOE",
+		skillDefinitions["Hypoxia"] = Skill("Hypoxia", "Hypoxia", "Sangromancy", SKILLICON_HYPOXIA, 15, 0, 3, "SINGLEFOE",
 			list<string>({ "INTERRUPTIF?TARGETHASWEAKENED_SINGLE" }),
 			list<string>({ "MAGICAL","BLOOD","UNHOLY" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("LIFESTEAL_SINGLE_UNHOLY", PowerValue("LIFESTEAL_SINGLE_UNHOLY", 10, 0, 999, true, list<string>({}))),
+				pair<string, PowerValue>("LIFESTEAL_SINGLE_UNHOLY", PowerValue("LIFESTEAL_SINGLE_UNHOLY", 20, 0, 999, true, list<string>({}))),
 				}),
 				list<string>({ "DEALDAMAGE", }), HYPOXIA_WAV);
 
@@ -5582,11 +5593,11 @@ public:
 				}),
 				list<string>({ "DEALDAMAGE" }), DEATHDANCERSTRIKE_WAV);
 
-		skillDefinitions["Natural Stab"] = Skill("Natural Stab", "Natural Stab", "Minor Arms", SKILLICON_NATURALSTAB, 10, 0, 3, "SINGLEFOE",
+		skillDefinitions["Natural Stab"] = Skill("Natural Stab", "Natural Stab", "Minor Arms", SKILLICON_NATURALSTAB, 5, 0, 1, "SINGLEFOE",
 			list<string>({ "DAMAGE_SINGLE_PHYSICAL", }),
 			list<string>({ "PHYSICAL","ATTACK" }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 5, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_SINGLE_PHYSICAL", PowerValue("DAMAGE_SINGLE_PHYSICAL", 15, 0, 999, true, list<string>({ "STRENGTH", "MINORARMSBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), NATURALSTAB_WAV);
 
@@ -6239,7 +6250,7 @@ public:
 				}),
 				list<string>({ "DEALDAMAGE", }), SUMMERSTRIKE_WAV);
 
-		skillDefinitions["Wildfire"] = Skill("Wildfire", "Wildfire", "Pyromancy", SKILLICON_WILDFIRE, 20, 0, 0, "SINGLEFOE",
+		skillDefinitions["Wildfire"] = Skill("Wildfire", "Wildfire", "Pyromancy", SKILLICON_WILDFIRE, 20, 0, 5, "SINGLEFOE",
 			list<string>({ "APPLY_Wildfire_SINGLE", "DAMAGE_SINGLE_FIRE"}),
 			list<string>({ "MAGICAL","FIRE", "ELEMENTAL" }),
 			Map<string, PowerValue>({
@@ -6519,20 +6530,20 @@ public:
 				list<string>({ "CURSEFOE" }), DUSTTORRENT_WAV);
 
 		skillDefinitions["Mass Burial"] = Skill("Mass Burial", "Mass Burial", "Terramancy", SKILLICON_MASSBURIAL, 20, 1, 2, "SINGLEFOE",
-			list<string>({ "DAMAGE_AOE_EARTH", "APPLY_Mass Burial_ALLFOES" }),
+			list<string>({ "DAMAGE_ALLFOES_EARTH", "APPLY_Mass Burial_ALLFOES" }),
 			list<string>({ "MAGICAL", "EARTH", "ELEMENTAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_AOE_EARTH", PowerValue("DAMAGE_AOE_EARTH", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_ALLFOES_EARTH", PowerValue("DAMAGE_ALLFOES_EARTH", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("POWER_Mass Burial", PowerValue("POWER_Mass Burial", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("DURATION_Mass Burial", PowerValue("DURATION_Mass Burial", 8, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
 				}),
 				list<string>({ "DEALDAMAGE" }), MASSBURIAL_WAV);
 
 		skillDefinitions["Rocky Soil"] = Skill("Rocky Soil", "Rocky Soil", "Terramancy", SKILLICON_ROCKYSOIL, 25, 2, 12, "SINGLEFOE",
-			list<string>({ "APPLY_Rocky Soil_WORLD", "DAMAGE_AOE_EARTH", "APPLY_CRIPPLED_ALLFOES"}),
+			list<string>({ "APPLY_Rocky Soil_WORLD", "DAMAGE_ALLFOES_EARTH", "APPLY_CRIPPLED_ALLFOES"}),
 			list<string>({ "MAGICAL", "EARTH", "ELEMENTAL", }),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_AOE_EARTH", PowerValue("DAMAGE_AOE_EARTH", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_ALLFOES_EARTH", PowerValue("DAMAGE_ALLFOES_EARTH", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("POWER_Rocky Soil", PowerValue("POWER_Rocky Soil", 20, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("DURATION_Rocky Soil", PowerValue("DURATION_Rocky Soil", 5, 5, 5, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("DURATION_CRIPPLED", PowerValue("DURATION_CRIPPLED", 2, 5, 5, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
@@ -6562,7 +6573,7 @@ public:
 			list<string>({ "APPLY_Uneasy Earth_WORLD", "DAMAGE_ALLFOES_EARTH"}),
 			list<string>({ "MAGICAL", "EARTH", "ELEMENTAL",}),
 			Map<string, PowerValue>({
-				pair<string, PowerValue>("DAMAGE_AOE_EARTH", PowerValue("DAMAGE_AOE_EARTH", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
+				pair<string, PowerValue>("DAMAGE_ALLFOES_EARTH", PowerValue("DAMAGE_ALLFOES_EARTH", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("POWER_Uneasy Earth", PowerValue("POWER_Rocky Soil", 25, 0, 999, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
 				pair<string, PowerValue>("DURATION_Uneasy Earth", PowerValue("DURATION_Uneasy Earth", 5, 5, 5, true, list<string>({ "INTELLIGENCE", "EARTHBOOST", "ELEMENTALBOOST"}))),
 				}),
@@ -6911,6 +6922,10 @@ public:
 			Combat::Effect("ARMSBOOST",0.333f,true,false),
 			Combat::Effect("WAYFARINGBOOST",0.333f,true,false),
 			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Golden Spear"] = Equipment(*this, "Djinn's Spear", "Weapon", CODEXPAGE_SPEAR, List<Combat::Effect>({
+			Combat::Effect("FIREBOOST",0.333f,true,false),
+			Combat::Effect("ARMSBOOST",1.0f,true,false),
+			}), "EQUIPMENTBLUE", 25);
 
 
 		// ARMOUR
@@ -7091,6 +7106,10 @@ public:
 			Combat::Effect("LUCK",2.0f,true,true),
 			Combat::Effect("SHADOWBOOST",1.5f,true,false),
 			}), "EQUIPMENTBLUE", 25);
+		equipmentDefinitions["Duban's Charm"] = Equipment(*this, "Duban's Charm", "Accessory", CODEXPAGE_ROCK1, List<Combat::Effect>({
+			Combat::Effect("INTELLIGENCE",3.0f,true,true),
+			}), "EQUIPMENTBLUE", 25);
+
 
 	}
 	void defineAllCombatants() {
@@ -7136,7 +7155,7 @@ public:
 					})),
 					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
 						pair<string, string>("0", "DEFAULT_WAIT"),
-						pair<string, string>("1", "Exile"),
+						pair<string, string>("1", "Cursed Doll"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
 						})),
 				}));
@@ -7867,6 +7886,100 @@ public:
 						})),
 					}));
 
+		// Plants
+		definedCombatants["Enraged Tree"] = Combatant("Enraged Tree", "Enraged Tree",
+			Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 4),
+				pair<string, int>("PIETY", 10),
+				pair<string, int>("VITALITY", 8),
+				pair<string, int>("STRENGTH", 2),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Enraged Tree", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Enraged Tree", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("PLANT", "1"),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Earthquake"),
+						pair<string, string>("2", "Mass Burial"),
+						pair<string, string>("3", "Bramble Cloak"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+		definedCombatants["Enraged Venus"] = Combatant("Enraged Venus", "Enraged Venus",
+			Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 16),
+				pair<string, int>("PIETY", 16),
+				pair<string, int>("VITALITY", 5),
+				pair<string, int>("STRENGTH", 3),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Enraged Venus", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Enraged Venus", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("PLANT", "1"),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Steal Enchantment"),
+						pair<string, string>("2", "Time Vortex"),
+						pair<string, string>("3", "Healing Rain"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+		definedCombatants["Enraged Vines"] = Combatant("Enraged Vines", "Enraged Vines",
+			Map<string, int>({
+				pair<string, int>("PIETY", 5),
+				pair<string, int>("VITALITY", 5),
+				pair<string, int>("STRENGTH", 25),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Enraged Vines", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Enraged Vines", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("PLANT", "1"),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Shield of the Messenger"),
+						pair<string, string>("2", "Fencer's Flash"),
+						pair<string, string>("3", "Glass Sword"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+
+		definedCombatants["Enraged Thorn"] = Combatant("Enraged Thorn", "Enraged Thorn",
+			Map<string, int>({
+				pair<string, int>("PIETY", 10),
+				pair<string, int>("VITALITY", 10),
+				pair<string, int>("STRENGTH", 10),
+				pair<string, int>("AGILITY", 30),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("Enraged Thorn", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("Enraged Thorn", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("PLANT", "1"),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "DEFAULT_ATTACK"),
+						pair<string, string>("1", "Black Mamba Strike"),
+						pair<string, string>("2", "Fine Strike"),
+						pair<string, string>("3", "Exemplar's Posture"),
+						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+
 		// Other Monsters
 		definedCombatants["BloodWall"] = Combatant("BloodWall", "BloodWall",
 			Map<string, int>({
@@ -7913,6 +8026,26 @@ public:
 						pair<string, string>("4", "Vampiric Strike"),
 						pair<string, string>("5", "Time Walk"),
 						pair<string, string>("6", "DEFAULT_WAIT"),
+						})),
+					}));
+
+		definedCombatants["WomanInWhite"] = Combatant("WomanInWhite", "WomanInWhite",
+			Map<string, int>({
+				pair<string, int>("INTELLIGENCE", 500),
+				pair<string, int>("AGILITY", 100),
+				pair<string, int>("LUCK", 100),
+				}),
+				Map<string, Map<string, string>>({
+					pair<string, Map<string, string>>("Images", Map<string, string>({
+						pair<string, string>("Back", imageLookup.getSequenceAsString("WomanInWhite", "COMBAT_BACK")),
+						pair<string, string>("Front", imageLookup.getSequenceAsString("WomanInWhite", "COMBAT_FRONT")),
+					})),
+					pair<string, Map<string, string>>("Effects", Map<string, string>({
+						pair<string, string>("UNDEAD", "1"),
+					})),
+					pair <string,Map<string, string>>("equippedSkillNames", Map<string, string>({
+						pair<string, string>("0", "Flame Wave"),
+						pair<string, string>("6", "Flame Wave"),
 						})),
 					}));
 
@@ -8023,7 +8156,46 @@ public:
 				definedCombatants["ZombieEnragedM"],
 			}) };
 
-		// ENRAGED
+		definedTeams["WomanInWhite"] = { "WomanInWhite", List<Combatant>({
+				definedCombatants["WomanInWhite"],
+			}) };
+
+		// Plants in Graveyard
+		definedTeams["EnragedTrees"] = { "Enraged Tree", List<Combatant>({
+				definedCombatants["Enraged Tree"],
+				definedCombatants["Enraged Tree"],
+				definedCombatants["Enraged Tree"],
+			}) };
+
+		definedTeams["EnragedTrees2"] = { "Enraged Tree", List<Combatant>({
+				definedCombatants["Enraged Venus"],
+				definedCombatants["Enraged Tree"],
+				definedCombatants["Enraged Tree"],
+				definedCombatants["Enraged Venus"],
+			}) };
+
+		definedTeams["EnragedTrees3"] = { "Enraged Tree", List<Combatant>({
+				definedCombatants["Enraged Venus"],
+				definedCombatants["Enraged Tree"],
+				definedCombatants["Enraged Tree"],
+				definedCombatants["Enraged Vines"],
+			}) };
+
+		definedTeams["EnragedTrees4"] = { "Enraged Tree", List<Combatant>({
+				definedCombatants["Enraged Thorn"],
+				definedCombatants["Enraged Vines"],
+				definedCombatants["Enraged Venus"],
+				definedCombatants["Enraged Vines"],
+			}) };
+
+		definedTeams["EnragedTrees5"] = { "Enraged Tree", List<Combatant>({
+				definedCombatants["Enraged Tree"],
+				definedCombatants["Enraged Vines"],
+				definedCombatants["Enraged Venus"],
+				definedCombatants["Enraged Thorn"],
+			}) };
+
+
 
 	}
 	void defineAllEffectDefinitions() {
@@ -8562,6 +8734,10 @@ public:
 		allEffectDefinitions["SPIRIT"] = EffectObject("SPIRIT", "PERM", EFFECTICON_SPIRIT, "SPIRIT", true,
 			List<string>(list<string>({ "SPIRIT", })),
 			List<string>(list<string>({ "ONTAKINGDAMAGE",  })));
+
+		allEffectDefinitions["PLANT"] = EffectObject("PLANT", "PERM", EFFECTICON_PLANT, "PLANT", true,
+			List<string>(list<string>({ "PLANT", })),
+			List<string>(list<string>({ "ONTAKINGDAMAGE", })));
 
 		allEffectDefinitions["Fragile"] = EffectObject("Fragile", "PERM", EFFECTICON_UNDEAD, "Fragile", true,
 			List<string>(list<string>({ "Fragile", })),

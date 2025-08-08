@@ -359,13 +359,29 @@ public:
             }
             texture = textures.at(frame);
             D2D1_RECT_F rect = getPosition(graphics);
-            if (direction == "LEFT") {
-                rect = mirrorX(rect);
+            List<string> mustBeMirrored = List<string>({"LEFT", "NW", "SW"});
+            if (unique_ID.find("Shadow") == -1 and mustBeMirrored.contains(direction)) { // don't flip shadows
+                D2D1_MATRIX_3X2_F originalTransform;
+                graphics.hwndRenderTarget->GetTransform(&originalTransform);
+                float width = rect.right - rect.left;
+                float height = rect.bottom - rect.top;
+                float centreX = (rect.left + rect.right) / 2.0f;
+                float centreY = (rect.top + rect.bottom) / 2.0f;
+                D2D1_MATRIX_3X2_F flipTransform =
+                    D2D1::Matrix3x2F::Translation(-centreX, -centreY) *   
+                    D2D1::Matrix3x2F::Scale(-1.0f, 1.0f) *               
+                    D2D1::Matrix3x2F::Translation(centreX, centreY);
+                graphics.hwndRenderTarget->SetTransform(flipTransform);
+                D2D1_RECT_F sourceRect = D2D1::RectF(0, 0, width, height);
+                graphics.hwndRenderTarget->DrawBitmap(texture, rect, opacity);
+                graphics.hwndRenderTarget->SetTransform(originalTransform);
             }
-            graphics.hwndRenderTarget->DrawBitmap(
-                texture,
-                rect, 
-                opacity);
+            else {
+                graphics.hwndRenderTarget->DrawBitmap(
+                    texture,
+                    rect,
+                    opacity);
+            }
         }
         D2D1_RECT_F getPosition(Graphics & graphics) {
             ID2D1Bitmap* texture = getWhichTexture();

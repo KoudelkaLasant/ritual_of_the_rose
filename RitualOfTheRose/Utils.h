@@ -114,7 +114,7 @@ string WStringToString(wstring str) {
 
 vector<float> convertIntColour(vector<int> colour) {
 	float factor = 255.0f;
-	vector<float> result = { 
+	vector<float> result = {
 		float(colour.at(0)) / factor,
 		float(colour.at(1)) / factor,
 		float(colour.at(2)) / factor,
@@ -163,7 +163,7 @@ public:
 			ranges[option] = { start, start + probabilities[option] };
 			start += probabilities[option];
 		}
-		int diceRoll = getRandom(0, start-1);
+		int diceRoll = getRandom(0, start - 1);
 
 		T result;
 
@@ -230,7 +230,7 @@ public:
 		return parsed_args[key];
 	}
 	void toggle(string key) {
-		if (get(key) != "1"){
+		if (get(key) != "1") {
 			parsed_args[key] = "1";
 		}
 		else {
@@ -238,7 +238,7 @@ public:
 		}
 	}
 	List<string> raw_args;
-	Map<string, string> parsed_args = List<pair<string,string>>({pair<string, string>("mode","game")});
+	Map<string, string> parsed_args = List<pair<string, string>>({ pair<string, string>("mode","game") });
 };
 RuntimeArgs Args;
 
@@ -316,22 +316,27 @@ Clock CLOCK;
 
 class audioManager {
 public:
-	audioManager() {
-		SFXCollections["PARCHMENT"] = List<int>({ 
-			PARCHMENT_WAV_1,
-			PARCHMENT_WAV_2,
-			PARCHMENT_WAV_3,
-			PARCHMENT_WAV_4,
-			PARCHMENT_WAV_5,
-			PARCHMENT_WAV_6,
-			PARCHMENT_WAV_7,
-			PARCHMENT_WAV_8,
-			PARCHMENT_WAV_9,
-			PARCHMENT_WAV_10,
-			PARCHMENT_WAV_11,
-			PARCHMENT_WAV_12,
-			PARCHMENT_WAV_13,
-		});
+	audioManager() {}
+	~audioManager() {
+		unloadAllAudio();
+		soloud.deinit();
+	}
+	void load() {
+		SFXCollections["PARCHMENT"] = List<int>({
+	PARCHMENT_WAV_1,
+	PARCHMENT_WAV_2,
+	PARCHMENT_WAV_3,
+	PARCHMENT_WAV_4,
+	PARCHMENT_WAV_5,
+	PARCHMENT_WAV_6,
+	PARCHMENT_WAV_7,
+	PARCHMENT_WAV_8,
+	PARCHMENT_WAV_9,
+	PARCHMENT_WAV_10,
+	PARCHMENT_WAV_11,
+	PARCHMENT_WAV_12,
+	PARCHMENT_WAV_13,
+			});
 		SFXCollections["GRASS"] = List<int>({
 			GRASS_WAV_1,
 			GRASS_WAV_2,
@@ -394,7 +399,7 @@ public:
 			BARK4_WAV,
 			BARK5_WAV,
 			});
-		SFXCollections["SHOPDOOR1"] = List<int>({ SHOPDOOR1_WAV 
+		SFXCollections["SHOPDOOR1"] = List<int>({ SHOPDOOR1_WAV
 			});
 		SFXCollections["SHOPDOOR2"] = List<int>({ SHOPDOOR2_WAV
 			});
@@ -425,6 +430,9 @@ public:
 		SFXCollections["CHAPELMULTISTEP"] = List<int>({
 				CHAPELMULTISTEPS_WAV,
 			});
+		SFXCollections["GATE"] = List<int>({
+				LOCKEDGATE_WAV,
+			});
 		SFXCollections["DUSTY"] = List<int>({
 				DUSTY_WAV,
 			});
@@ -446,12 +454,8 @@ public:
 		soloud.init();
 		tryToLoadAudioSettings();
 	}
-	~audioManager() {
-		unloadAllAudio();
-		soloud.deinit();
-	}
 	void preloadSFX() {
-		for (auto const & x : SFXCollections["PARCHMENT"].internalList) {
+		for (auto const& x : SFXCollections["PARCHMENT"].internalList) {
 			loadAudio(x);
 		}
 	}
@@ -506,7 +510,7 @@ public:
 	}
 	void loadAudio(int resource) {
 		if (loadedResources[resource]) {
-			return; 
+			return;
 		}
 		HRSRC hResInfo = FindResource(NULL, MAKEINTRESOURCE(resource), L"WAVE");
 		HGLOBAL hResData = LoadResource(NULL, hResInfo);
@@ -557,10 +561,10 @@ public:
 		}
 	}
 	void fadeOutAndStopThis(int resource, int speed) {
-		for (auto handle: resourceToHandleLookup[resource].internalList) {
+		for (auto handle : resourceToHandleLookup[resource].internalList) {
 			soloud.fadeVolume(handle, 0, speed);
 		}
-		
+
 	}
 	filesystem::path getPathToAudioSettings() {
 		TCHAR lpTempPathBuffer[MAX_PATH];
@@ -628,10 +632,10 @@ class UserInput {
 public:
 	UserInput() {
 		allKeyboardButtons.internalMap = { {1, VK_LBUTTON }, { 8, VK_BACK },{9,VK_TAB},{12,VK_CLEAR},{13,VK_RETURN},{16,VK_SHIFT},{17,VK_CONTROL},{18,VK_MENU},{19,VK_PAUSE},{20,VK_CAPITAL},{21,VK_KANA},{27,VK_ESCAPE},{30,VK_ACCEPT},{32,VK_SPACE},{33,VK_PRIOR},{34,VK_NEXT},{35,VK_END},{36,VK_HOME},{37,VK_LEFT},{38,VK_UP},{39,VK_RIGHT},{40,VK_DOWN},{41,VK_SELECT},{42,VK_PRINT},{43,VK_EXECUTE},{44,VK_SNAPSHOT},{46,VK_DELETE},{48,0},{49,1},{50,2},{51,3},{52,4},{53,5},{54,6},{55,7},{56,8},{57,9},{65,65},{66,66},{67,67},{68,68},{69,69},{70,70},{71,71},{72,72},{73,73},{74,74},{75,75},{76,76},{77,77},{78,78},{79,79},{80,80},{81,81},{82,82},{83,83},{84,84},{85,85},{86,86},{87,87},{88,88},{89,89},{90,90},{96,VK_NUMPAD0},{97,VK_NUMPAD1},{98,VK_NUMPAD2},{99,VK_NUMPAD3},{100,VK_NUMPAD4},{101,VK_NUMPAD5},{102,VK_NUMPAD6},{103,VK_NUMPAD7},{104,VK_NUMPAD8},{105,VK_NUMPAD9},{106,VK_MULTIPLY},{107,VK_ADD},{108,VK_SEPARATOR},{109,VK_SUBTRACT},{110,VK_DECIMAL},{111,VK_DIVIDE},{112,VK_F1},{113,VK_F2},{114,VK_F3},{115,VK_F4},{116,VK_F5},{117,VK_F6},{118,VK_F7},{119,VK_F8},{120,VK_F9},{121,VK_F10},{122,VK_F11},{123,VK_F12},{124,VK_F13},{125,VK_F14},{126,VK_F15},{127,VK_F16},{128,VK_F17},{129,VK_F18},{130,VK_F19},{131,VK_F20},{132,VK_F21},{133,VK_F22},{134,VK_F23},{135,VK_F24},{144,VK_NUMLOCK},{145,VK_SCROLL},{160,VK_LSHIFT},{161,VK_RSHIFT},{162,VK_LCONTROL},{163,VK_RCONTROL} };
-		upperToLowerCase.internalMap = {{"A","a"},{"B","b"},{"C","c"},{"D","d"},{"E","e"},{"F","f"},{"G","g"},{"H","h"},{"I","i"},{"J","j"},{"K","k"},{"L","l"},{"M","m"},{"N","n"},{"O","o"},{"P","p"},{"Q","q"},{"R","r"},{"S","s"},{"T","t"},{"U","u"},{"V","v"},{"W","w"},{"X","x"},{"Y","y"},{"Z","z"} };
-		allPossibleMouseStatuses.internalList = {WM_LBUTTONDOWN, WM_LBUTTONDBLCLK, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_MOUSEHWHEEL, WM_MOUSEMOVE, WM_MOUSEWHEEL };
-		allPossibleMouseInputs.internalList = {MK_CONTROL, MK_LBUTTON, MK_MBUTTON, MK_RBUTTON, MK_SHIFT, MK_XBUTTON1, MK_XBUTTON2};
-		up = List<int>({VK_UP, 0x57});
+		upperToLowerCase.internalMap = { {"A","a"},{"B","b"},{"C","c"},{"D","d"},{"E","e"},{"F","f"},{"G","g"},{"H","h"},{"I","i"},{"J","j"},{"K","k"},{"L","l"},{"M","m"},{"N","n"},{"O","o"},{"P","p"},{"Q","q"},{"R","r"},{"S","s"},{"T","t"},{"U","u"},{"V","v"},{"W","w"},{"X","x"},{"Y","y"},{"Z","z"} };
+		allPossibleMouseStatuses.internalList = { WM_LBUTTONDOWN, WM_LBUTTONDBLCLK, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_MOUSEHWHEEL, WM_MOUSEMOVE, WM_MOUSEWHEEL };
+		allPossibleMouseInputs.internalList = { MK_CONTROL, MK_LBUTTON, MK_MBUTTON, MK_RBUTTON, MK_SHIFT, MK_XBUTTON1, MK_XBUTTON2 };
+		up = List<int>({ VK_UP, 0x57 });
 		left = List<int>({ VK_LEFT, 0x41 });
 		right = List<int>({ VK_RIGHT, 0x44 });
 		down = List<int>({ VK_DOWN, 0x53 });
@@ -646,7 +650,7 @@ public:
 		mouseInstructionsInOrder.clear();
 		acceptMousePosition(msg, wParam, lParam);
 		bool hasAnyKeyBeenPressed = false;
-		for (auto const &  [key, value] : allKeyboardButtons.internalMap) {
+		for (auto const& [key, value] : allKeyboardButtons.internalMap) {
 			if (hasThisBeenPressed(key)) {
 				keysPressedInOrder.addToFrontIfNotAlreadyInList(to_string(key));
 				keysPressedInOrderAsInts.addToFrontIfNotAlreadyInList(key);
@@ -666,7 +670,7 @@ public:
 			acceptMouseMovePosition(lParam);
 			mouseInstructionsInOrder.push_back("MouseMove");
 		}
-		if (msg ==WM_LBUTTONDOWN) {
+		if (msg == WM_LBUTTONDOWN) {
 			acceptMouseClickPosition(lParam);
 			mouseInstructionsInOrder.push_back("LButtonDown");
 		}
@@ -690,10 +694,10 @@ public:
 		results.first = LOWORD(lParam);
 		results.second = HIWORD(lParam);
 
-		pair<int, int> normalHwndSize = { actualRenderSizeAsFloat.first, actualRenderSizeAsFloat.second + 38};
-		pair<int, int> normalClickableRange = { normalHwndSize.first - 17, normalHwndSize.second - 40};
-		pair<int, int> currentClickableRange = { actualRenderSizeAsFloat.first -17, actualRenderSizeAsFloat.second - 40};
-		
+		pair<int, int> normalHwndSize = { actualRenderSizeAsFloat.first, actualRenderSizeAsFloat.second + 38 };
+		pair<int, int> normalClickableRange = { normalHwndSize.first - 17, normalHwndSize.second - 40 };
+		pair<int, int> currentClickableRange = { actualRenderSizeAsFloat.first - 17, actualRenderSizeAsFloat.second - 40 };
+
 
 		results.first = results.first * actualRenderSizeAsFloat.first / currentRenderSize.first;
 		results.second = results.second * actualRenderSizeAsFloat.second / currentRenderSize.second;
@@ -768,10 +772,10 @@ public:
 		mouseClickPosition = { -1,-1 };
 	}
 	void resetMouseMovePosition() {
-		mouseMovePosition = {-1,-1};
+		mouseMovePosition = { -1,-1 };
 	}
 	void resetMouseUnclickPosition() {
-		mouseUnclickPosition = {-1,-1};
+		mouseUnclickPosition = { -1,-1 };
 	}
 
 	HWND* hwnd;
@@ -792,7 +796,7 @@ public:
 	List<int> down;
 	float initialGUIScale = 1.25;
 	pair<float, float> actualRenderSizeAsFloat = { 1264.0f, 719.0f };
-	pair<float, float> currentRenderSize = {0,0};
+	pair<float, float> currentRenderSize = { 0,0 };
 	string latestMenuItemHovered = "";
 	bool menuItemCooldown = false; // set this to true if a keyboard button was recently pressed and wait until nothing is pressed
 	bool cursorHotspotInCentre = true; // I couldn't fix this :( 
@@ -806,22 +810,22 @@ public:
 	public:
 		SaveFile() {}
 		SaveFile(filesystem::path filepath) {
-		json data = jsonio.read_file(filepath);
-		party = data["party"];
-		flags = data["flags"];
-		knownSkills = data["known skills"];
-		equippedSkills = data["equipped skills"];
-		equippedItems = data["equipped items"];
-		equippedSkillTrees = data["equipped skilltrees"];
-		inventory = data["inventory"];
-		itemsSold = data["items sold"];
-		allCharacters = data["all characters"];
-		attributeInvestments = data["attribute investments"];
-		stats = data["stats"];
-		money = data["money"];
-		enemiesDefeated = data["enemies defeated"];
-		codexPages = data["codex pages"];
-		loaded = true;
+			json data = jsonio.read_file(filepath);
+			party = data["party"];
+			flags = data["flags"];
+			knownSkills = data["known skills"];
+			equippedSkills = data["equipped skills"];
+			equippedItems = data["equipped items"];
+			equippedSkillTrees = data["equipped skilltrees"];
+			inventory = data["inventory"];
+			itemsSold = data["items sold"];
+			allCharacters = data["all characters"];
+			attributeInvestments = data["attribute investments"];
+			stats = data["stats"];
+			money = data["money"];
+			enemiesDefeated = data["enemies defeated"];
+			codexPages = data["codex pages"];
+			loaded = true;
 		}
 		void saveToDisk(filesystem::path filepath) {
 			json data;
@@ -935,7 +939,7 @@ public:
 		if (pointsLeft == attributeInvestmentLimit and !goingUp) {
 			return;
 		}
-		if (!goingUp and current.attributeInvestments[who][attribute] == 0) { 
+		if (!goingUp and current.attributeInvestments[who][attribute] == 0) {
 			return;
 		}
 		if (goingUp) {
@@ -1049,7 +1053,7 @@ public:
 		// need to use itemCategory so codex can be updated from here
 		Map<string, int> inventory; inventory.internalMap = current.inventory;
 		if (inventory.hasKey(itemName) and inventory[itemName] <= 0) { inventory[itemName] = 0; }
-		if (!inventory.hasKey(itemName)) { 
+		if (!inventory.hasKey(itemName)) {
 			inventory[itemName] = 0;
 		}
 		inventory[itemName] = TChange(inventory[itemName], 1, 0, inventoryLimitPerItem);
@@ -1147,7 +1151,7 @@ public:
 	}
 	List<string> getAllPlayableCharacters() {
 		List<string> results = List<string>({ "Angela Fleuret", "Tianshun Song", "Olyver Sumner", "Hernando Pizarro","Gihat al-Din Jaqmaq",
-			"Father Michelet", "Koudelka Bloodmire", "Adriana Aragon", "Stacia Silver", "Tifa Kurosawa", 
+			"Father Michelet", "Koudelka Bloodmire", "Adriana Aragon", "Stacia Silver", "Tifa Kurosawa",
 			});
 		return results;
 	}
@@ -1264,132 +1268,14 @@ Codex codex;
 
 class ImageLookup {
 public:
-	ImageLookup() {
+	ImageLookup() {}
+	void load() {
 		defineLookups();
 		defineCharacters();
 		defineSkills();
 		defineCombatPlayerImages();
 		defineCodexImages();
 		defineMapObjects();
-
-		animationFrames["EMPTY"]["SPEAKER"].internalList = { EMPTYOBJECT };
-		animationFrames["LampLight1"]["STAND_FRONT"].internalList = { 
-			LAMPLIGHT1 , LAMPLIGHT2, LAMPLIGHT3, LAMPLIGHT4, LAMPLIGHT5, LAMPLIGHT6, LAMPLIGHT7, LAMPLIGHT8, LAMPLIGHT9, LAMPLIGHT10, LAMPLIGHT11,LAMPLIGHT12,LAMPLIGHT13,LAMPLIGHT14,LAMPLIGHT15,LAMPLIGHT16,LAMPLIGHT17,LAMPLIGHT18
-		};
-		animationFrames["Well"]["STAND_FRONT"].internalList = {WELL};
-		animationFrames["DeadWoman1"]["STAND_FRONT"].internalList = { DEADWOMAN1 };
-		animationFrames["DeadMan1"]["STAND_FRONT"].internalList = { DEADMAN1 };
-		animationFrames["Fog2"]["STAND_FRONT"].internalList = { FOG2_1 };
-		animationFrames["Fog1"]["STAND_FRONT"].internalList = { FOG1,FOG2,FOG3,FOG4,FOG5,FOG6,FOG7,FOG8,FOG9,FOG10,FOG11,FOG12,FOG13,FOG14,FOG15,FOG16,FOG17,FOG18,FOG19,FOG20,FOG21,FOG22,FOG23,FOG24,FOG24,FOG23,FOG22,FOG21,FOG20,FOG19,FOG18,FOG17,FOG16,FOG15,FOG14,FOG13,FOG12,FOG11,FOG10,FOG9,FOG8,FOG7,FOG6,FOG5,FOG4,FOG3,FOG2,FOG1, };
-		animationFrames["CityFog1"]["STAND_FRONT"].internalList = { CITYFOGFOG1_1,CITYFOGFOG1_2,CITYFOGFOG1_3,CITYFOGFOG1_4,CITYFOGFOG1_5,CITYFOGFOG1_6,CITYFOGFOG1_7,CITYFOGFOG1_8,CITYFOGFOG1_9,CITYFOGFOG1_10,CITYFOGFOG1_11,CITYFOGFOG1_12,CITYFOGFOG1_13,CITYFOGFOG1_14,CITYFOGFOG1_15,CITYFOGFOG1_16,CITYFOGFOG1_17,CITYFOGFOG1_18,CITYFOGFOG1_19,CITYFOGFOG1_20,CITYFOGFOG1_21,CITYFOGFOG1_22,CITYFOGFOG1_23,CITYFOGFOG1_24,CITYFOGFOG1_23,CITYFOGFOG1_22,CITYFOGFOG1_21,CITYFOGFOG1_20,CITYFOGFOG1_19,CITYFOGFOG1_18,CITYFOGFOG1_17,CITYFOGFOG1_16,CITYFOGFOG1_15,CITYFOGFOG1_14,CITYFOGFOG1_13,CITYFOGFOG1_12,CITYFOGFOG1_11,CITYFOGFOG1_10,CITYFOGFOG1_9,CITYFOGFOG1_8,CITYFOGFOG1_7,CITYFOGFOG1_6,CITYFOGFOG1_5,CITYFOGFOG1_4,CITYFOGFOG1_3,CITYFOGFOG1_2,CITYFOGFOG1_1, };
-
-		animationFrames["House1Inside1AsObject"]["STAND_FRONT"].internalList = { HOUSE1INSIDE1 };
-		animationFrames["House1Inside2AsObject"]["STAND_FRONT"].internalList = { HOUSE1INSIDE2 };
-		animationFrames["Fireplace1"]["STAND_FRONT"].internalList = { FIREPLACE1_1, FIREPLACE1_2,FIREPLACE1_3,FIREPLACE1_4,FIREPLACE1_5,FIREPLACE1_6,FIREPLACE1_7,FIREPLACE1_8,FIREPLACE1_9,FIREPLACE1_10,FIREPLACE1_11,FIREPLACE1_12,FIREPLACE1_13,FIREPLACE1_14,FIREPLACE1_15,FIREPLACE1_16,FIREPLACE1_17,FIREPLACE1_18,FIREPLACE1_19,FIREPLACE1_20,FIREPLACE1_21,FIREPLACE1_22,FIREPLACE1_23,FIREPLACE1_24 };
-		animationFrames["Fireplace2"]["STAND_FRONT"].internalList = { FIREPLACE2_1,FIREPLACE2_2,FIREPLACE2_3,FIREPLACE2_4,FIREPLACE2_5,FIREPLACE2_6,FIREPLACE2_7,FIREPLACE2_8,FIREPLACE2_9,FIREPLACE2_10,FIREPLACE2_11,FIREPLACE2_12,FIREPLACE2_13,FIREPLACE2_14,FIREPLACE2_15,FIREPLACE2_16,FIREPLACE2_17,FIREPLACE2_18,FIREPLACE2_19,FIREPLACE2_20,FIREPLACE2_21,FIREPLACE2_22,FIREPLACE2_23,FIREPLACE2_24,FIREPLACE2_25,FIREPLACE2_26,FIREPLACE2_27,FIREPLACE2_28,FIREPLACE2_29,FIREPLACE2_30,FIREPLACE2_31,FIREPLACE2_32,FIREPLACE2_33,FIREPLACE2_34,FIREPLACE2_35,FIREPLACE2_36,FIREPLACE2_37,FIREPLACE2_38,FIREPLACE2_39,FIREPLACE2_40,FIREPLACE2_41,FIREPLACE2_42,FIREPLACE2_43,FIREPLACE2_44,FIREPLACE2_45,FIREPLACE2_46,FIREPLACE2_47,FIREPLACE2_48, };
-		animationFrames["OldBookMan"]["STAND_FRONT"].internalList = { BOOKSELLER_OLD_MAN_STAND_FRONT_1, BOOKSELLER_OLD_MAN_STAND_FRONT_2 };
-		animationFrames["Shadow OldBookMan"]["STAND_FRONT"].internalList = { SHADOW_BOOKSELLER_OLD_MAN_STAND_FRONT_1, SHADOW_BOOKSELLER_OLD_MAN_STAND_FRONT_2 };
-		
-		
-
-		
-
-		animationFrames["CutsceneLoadingScreen"]["ACTION_1"].internalList = { LOADINGSCREEN_1 };
-		animationFrames["TownTop"]["STAND_FRONT"].internalList = { TOWNTOP };
-		animationFrames["Town1Fence"]["STAND_FRONT"].internalList = { TOWN1FENCE };
-		animationFrames["CAT1"]["STAND_FRONT"].internalList = { CAT1,CAT2 };
-		animationFrames["CAT1SHADOW1"]["STAND_FRONT"].internalList = { CAT1SHADOW1,CAT1SHADOW2 };
-		animationFrames["CITYLAMP"]["STAND_FRONT"].internalList = { CITYLAMP_1 ,CITYLAMP_2 ,CITYLAMP_3,CITYLAMP_4,CITYLAMP_5,CITYLAMP_6,CITYLAMP_7,CITYLAMP_8,CITYLAMP_9,CITYLAMP_10,CITYLAMP_11,CITYLAMP_12 };
-		animationFrames["CITYLAMP2"]["STAND_FRONT"].internalList = animationFrames["CITYLAMP"]["STAND_FRONT"].internalList;
-		animationFrames["CITYLAMP2"]["STAND_FRONT"].internalList.reverse();
-		animationFrames["CITYLAMP3"]["STAND_FRONT"].internalList = { CITYLAMP_6,CITYLAMP_7,CITYLAMP_8,CITYLAMP_9,CITYLAMP_10,CITYLAMP_11,CITYLAMP_12,CITYLAMP_1,CITYLAMP_2,CITYLAMP_3,CITYLAMP_4,CITYLAMP_5 };
-
-		animationFrames["FLAG1"]["STAND_FRONT"].internalList = { FLAG1_1,FLAG1_2,FLAG1_3,FLAG1_4,FLAG1_5,FLAG1_6,FLAG1_7,FLAG1_8,FLAG1_9,FLAG1_10,FLAG1_11,FLAG1_12,FLAG1_13,FLAG1_14,FLAG1_15,FLAG1_16,FLAG1_17,FLAG1_18,FLAG1_19,FLAG1_20,FLAG1_21,FLAG1_22,FLAG1_23,FLAG1_24,FLAG1_25,FLAG1_26,FLAG1_27,FLAG1_28,FLAG1_29,FLAG1_30,FLAG1_31,FLAG1_32,FLAG1_33,FLAG1_34,FLAG1_35,FLAG1_36,FLAG1_37,FLAG1_38,FLAG1_39,FLAG1_40,FLAG1_41,FLAG1_42,FLAG1_43,FLAG1_44,FLAG1_45,FLAG1_46,FLAG1_47,FLAG1_48,FLAG1_49,FLAG1_50,FLAG1_51,FLAG1_52,FLAG1_53,FLAG1_54,FLAG1_55,FLAG1_56,FLAG1_57,FLAG1_58,FLAG1_59,FLAG1_60,FLAG1_61,FLAG1_62,FLAG1_63,FLAG1_64,FLAG1_65,FLAG1_66,FLAG1_67,FLAG1_68,FLAG1_69,FLAG1_70,FLAG1_71,FLAG1_72,FLAG1_73,FLAG1_74,FLAG1_75,FLAG1_76,FLAG1_77,FLAG1_78,FLAG1_79,FLAG1_80,FLAG1_81,FLAG1_82,FLAG1_83,FLAG1_84,FLAG1_85,FLAG1_86,FLAG1_87,FLAG1_88,FLAG1_89,FLAG1_90,FLAG1_91,FLAG1_92,FLAG1_93,FLAG1_94,FLAG1_95,FLAG1_96,FLAG1_97,FLAG1_98,FLAG1_99,FLAG1_100,FLAG1_101,FLAG1_102,FLAG1_103,FLAG1_104,FLAG1_105,FLAG1_106,FLAG1_107,FLAG1_108,FLAG1_109,FLAG1_110,FLAG1_111,FLAG1_112,FLAG1_113,FLAG1_114,FLAG1_115,FLAG1_116,FLAG1_117,FLAG1_118,FLAG1_119,FLAG1_120,FLAG1_121,FLAG1_122,FLAG1_123,FLAG1_124,FLAG1_125,FLAG1_126,FLAG1_127,FLAG1_128,FLAG1_129,FLAG1_130,FLAG1_131,FLAG1_132,FLAG1_133,FLAG1_134,FLAG1_135,FLAG1_136,FLAG1_137,FLAG1_138,FLAG1_139,FLAG1_140,FLAG1_141,FLAG1_142,FLAG1_143,FLAG1_144,FLAG1_145,FLAG1_146,FLAG1_147,FLAG1_148,FLAG1_149,FLAG1_150, };
-
-		animationFrames["FLAG2"]["STAND_FRONT"].internalList = { FLAG2_1,FLAG2_2,FLAG2_3,FLAG2_4,FLAG2_5,FLAG2_6,FLAG2_7,FLAG2_8,FLAG2_9,FLAG2_10,FLAG2_11,FLAG2_12,FLAG2_13,FLAG2_14,FLAG2_15,FLAG2_16,FLAG2_17,FLAG2_18,FLAG2_19,FLAG2_20,FLAG2_21,FLAG2_22,FLAG2_23,FLAG2_24,FLAG2_25,FLAG2_26,FLAG2_27,FLAG2_28,FLAG2_29,FLAG2_30,FLAG2_31,FLAG2_32,FLAG2_33,FLAG2_34,FLAG2_35,FLAG2_36,FLAG2_37,FLAG2_38,FLAG2_39,FLAG2_40,FLAG2_41,FLAG2_42,FLAG2_43,FLAG2_44,FLAG2_45,FLAG2_46,FLAG2_47,FLAG2_48,FLAG2_49,FLAG2_50,FLAG2_51,FLAG2_52,FLAG2_53,FLAG2_54,FLAG2_55,FLAG2_56,FLAG2_57,FLAG2_58,FLAG2_59,FLAG2_60,FLAG2_61,FLAG2_62,FLAG2_63,FLAG2_64,FLAG2_65,FLAG2_66,FLAG2_67,FLAG2_68,FLAG2_69,FLAG2_70,FLAG2_71,FLAG2_72,FLAG2_73,FLAG2_74,FLAG2_75,FLAG2_76,FLAG2_77,FLAG2_78,FLAG2_79,FLAG2_80,FLAG2_81,FLAG2_82,FLAG2_83,FLAG2_84,FLAG2_85,FLAG2_86,FLAG2_87,FLAG2_88,FLAG2_89,FLAG2_90,FLAG2_91,FLAG2_92,FLAG2_93,FLAG2_94,FLAG2_95,FLAG2_96,FLAG2_97,FLAG2_98,FLAG2_99,FLAG2_100,FLAG2_101,FLAG2_102,FLAG2_103,FLAG2_104,FLAG2_105,FLAG2_106,FLAG2_107,FLAG2_108,FLAG2_109,FLAG2_110,FLAG2_111,FLAG2_112,FLAG2_113,FLAG2_114,FLAG2_115,FLAG2_116,FLAG2_117,FLAG2_118,FLAG2_119,FLAG2_120,FLAG2_121,FLAG2_122,FLAG2_123,FLAG2_124,FLAG2_125,FLAG2_126,FLAG2_127,FLAG2_128,FLAG2_129,FLAG2_130,FLAG2_131,FLAG2_132,FLAG2_133,FLAG2_134,FLAG2_135,FLAG2_136,FLAG2_137,FLAG2_138,FLAG2_139,FLAG2_140,FLAG2_141,FLAG2_142,FLAG2_143,FLAG2_144,FLAG2_145,FLAG2_146,FLAG2_147,FLAG2_148,FLAG2_149,FLAG2_150, };
-
-		animationFrames["DOG1"]["STAND_FRONT"].internalList = { DOG1_4, DOG1_5, DOG1_6, DOG1_5 };
-		animationFrames["DOG1SHADOW"]["STAND_FRONT"].internalList = { DOG1_1, DOG1_2, DOG1_3, DOG1_2 };
-
-		animationFrames["Gravedigger"]["STAND_FRONT"].internalList = { GRAVEDIGGER_1 , GRAVEDIGGER_2,};
-		animationFrames["Shadow Gravedigger"]["STAND_FRONT"].internalList = { GRAVEDIGGER_4 , GRAVEDIGGER_5, };
-		animationFrames["Father Charlot"]["SPEAKER"].internalList = { GRAVEDIGGER_3};
-
-		animationFrames["NPCMAN1"]["STAND_FRONT"].internalList = { NPCMAN1_1 ,NPCMAN1_2 };
-		animationFrames["NPCMAN1SHADOW"]["STAND_FRONT"].internalList = { NPCMAN1_3 ,NPCMAN1_4 };
-		animationFrames["NPCMAN1"]["SPEAKER"].internalList = { NPCMAN1_5};
-
-		animationFrames["NPCMAN2"]["STAND_FRONT"].internalList = { NPCMAN2_1 ,NPCMAN2_2 };
-		animationFrames["NPCMAN2SHADOW"]["STAND_FRONT"].internalList = { NPCMAN2_3 ,NPCMAN2_4 };
-		animationFrames["NPCMAN2"]["SPEAKER"].internalList = { NPCMAN2_5 };
-
-		animationFrames["ELDERLYF1"]["STAND_FRONT"].internalList = { ELDERLYF1_1 ,ELDERLYF1_2 };
-		animationFrames["ELDERLYF1SHADOW"]["STAND_FRONT"].internalList = { ELDERLYF1_3 ,ELDERLYF1_4 };
-		animationFrames["Colette Verderonne"]["SPEAKER"].internalList = { ELDERLYF1_5 };
-
-		animationFrames["ELDERLYF2"]["STAND_FRONT"].internalList = { ELDERLYF2_1 ,ELDERLYF2_2 };
-		animationFrames["ELDERLYF2SHADOW"]["STAND_FRONT"].internalList = { ELDERLYF1_3 ,ELDERLYF1_4 };
-
-		animationFrames["GUARD1M"]["STAND_FRONT"].internalList = { GUARDM1_1, GUARDM1_2 };
-		animationFrames["Shadow GUARD1M"]["STAND_FRONT"].internalList = { GUARDM1_3, GUARDM1_4 };
-		animationFrames["GuardM1"]["SPEAKER"].internalList = { GUARDM1_5 };
-
-		animationFrames["GUARD1F"]["STAND_FRONT"].internalList = { GUARDF1_1, GUARDF1_2 };
-		animationFrames["Shadow GUARD1F"]["STAND_FRONT"].internalList = { GUARDF1_3, GUARDF1_4 };
-		animationFrames["GuardF1"]["SPEAKER"].internalList = { GUARDF1_5 };
-
-		animationFrames["PEASANTF1"]["STAND_FRONT"].internalList = { PEASANTF1_1, PEASANTF1_2 };
-		animationFrames["Shadow PEASANTF1"]["STAND_FRONT"].internalList = { PEASANTF1_3, PEASANTF1_4 };
-		animationFrames["PeasantF1"]["SPEAKER"].internalList = { PEASANTF1_5 };
-
-		animationFrames["BSMITHM"]["STAND_FRONT"].internalList = { BSMITHM_1, BSMITHM_2 };
-		animationFrames["Shadow BSMITHM"]["STAND_FRONT"].internalList = { BSMITHM_3, BSMITHM_4 };
-
-		animationFrames["BSMITHF"]["STAND_FRONT"].internalList = { BSMITHF_1, BSMITHF_2 };
-		animationFrames["Shadow BSMITHF"]["STAND_FRONT"].internalList = { BSMITHF_3, BSMITHF_4 };
-
-		animationFrames["SMITHYINSIDE"]["STAND_FRONT"].internalList = { SMITHYINSIDE };
-
-		animationFrames["ISOHOUSE1"]["STAND_FRONT"].internalList = { ISOHOUSE1 };
-		animationFrames["ISOHOUSE2"]["STAND_FRONT"].internalList = { ISOHOUSE2 };
-
-		animationFrames["EMPTYOBJECT"]["STAND_FRONT"].internalList = {EMPTYOBJECT};
-		animationFrames["TAVERN1_1"]["STAND_FRONT"].internalList = { TAVERN1_1 };
-		animationFrames["TAVERN1_2"]["STAND_FRONT"].internalList = { TAVERN1_2 };
-		animationFrames["TAVERN1_3"]["STAND_FRONT"].internalList = { TAVERN1_3 };
-		animationFrames["TAVERN1_4"]["STAND_FRONT"].internalList = { TAVERN1_4 };
-
-		animationFrames["TAVERN1_UPSTAIRS"]["STAND_FRONT"].internalList = { TAVERNUPSTAIRSNIGHT };
-		animationFrames["TAVERN1_UPSTAIRS"]["ON_TOP"].internalList = { TAVERNUPSTAIRSNIGHTONTOP_1,TAVERNUPSTAIRSNIGHTONTOP_2,TAVERNUPSTAIRSNIGHTONTOP_3,TAVERNUPSTAIRSNIGHTONTOP_4,TAVERNUPSTAIRSNIGHTONTOP_5, };
-		animationFrames["TAVERN1_UPSTAIRSDAY"]["STAND_FRONT"].internalList = { TAVERNUPSTAIRSDAY };
-		animationFrames["TAVERN1_BASEMENT"]["STAND_FRONT"].internalList = { TAVERNBASEMENT };
-		animationFrames["TAVERN1_BASEMENTONTOP1"]["STAND_FRONT"].internalList = { TAVERNBASEMENT_1 };
-		animationFrames["TAVERN1_BASEMENTONTOP2"]["STAND_FRONT"].internalList = { TAVERNBASEMENT_2 };
-
-		animationFrames["VATICAN"]["STAND_FRONT"].internalList = { VATICAN };
-		animationFrames["TianshunHouse"]["STAND_FRONT"].internalList = { TIANSHUNHOUSE };
-
-		animationFrames["ViennaUniversity"]["STAND_FRONT"].internalList = { VIENNAUNIVERSITY1 };
-		animationFrames["ViennaUniversity2"]["STAND_FRONT"].internalList = { VIENNAUNIVERSITY2 };
-			
-		animationFrames["SKELESUMMON"]["SUMMON_FRONT"].internalList = { SKELESUMMON_1,SKELESUMMON_2,SKELESUMMON_3,SKELESUMMON_4,SKELESUMMON_5,SKELESUMMON_6,SKELESUMMON_7,SKELESUMMON_8,SKELESUMMON_9,SKELESUMMON_10,SKELESUMMON_11,SKELESUMMON_12,SKELESUMMON_13,SKELESUMMON_14,SKELESUMMON_15,SKELESUMMON_16,SKELESUMMON_17,SKELESUMMON_18,SKELESUMMON_19,SKELESUMMON_20,SKELESUMMON_21,SKELESUMMON_22,SKELESUMMON_23,SKELESUMMON_24,SKELESUMMON_25,SKELESUMMON_26,SKELESUMMON_27,SKELESUMMON_28,SKELESUMMON_29,SKELESUMMON_30,SKELESUMMON_31,SKELESUMMON_32,SKELESUMMON_33,SKELESUMMON_34,SKELESUMMON_35,SKELESUMMON_36,SKELESUMMON_37,SKELESUMMON_38,SKELESUMMON_39,SKELESUMMON_40,SKELESUMMON_41,SKELESUMMON_42,SKELESUMMON_43,SKELESUMMON_44,SKELESUMMON_45,SKELESUMMON_46,SKELESUMMON_47,SKELESUMMON_48, };
-
-		animationFrames["SKELESUMMON"]["UNSUMMON_FRONT"].internalList = animationFrames["SKELESUMMON"]["SUMMON_FRONT"].internalList;
-		animationFrames["SKELESUMMON"]["UNSUMMON_FRONT"].internalList.reverse();
-
-		animationFrames["SKELESUMMON"]["SUMMON_FRONT2"].internalList ={ SKELESUMMON_47,SKELESUMMON_48, };
-
-		animationFrames["WHOSETURN"]["FRONT_ACTION"].internalList = { WHOSETURN_1,WHOSETURN_2,WHOSETURN_3,WHOSETURN_4,WHOSETURN_5,WHOSETURN_6,WHOSETURN_7,WHOSETURN_8,WHOSETURN_9,WHOSETURN_10,WHOSETURN_11,WHOSETURN_12,WHOSETURN_13,WHOSETURN_14,WHOSETURN_15,WHOSETURN_16,WHOSETURN_17,WHOSETURN_18,WHOSETURN_19,WHOSETURN_20,WHOSETURN_21,WHOSETURN_22,WHOSETURN_23, };
-
-		animationFrames["BOOTMENU1"]["ACTION_1"].internalList = { MAINMENU1_1};
-
-		animationFrames["BOOTMENU2"]["ACTION_1"].internalList = { MAINMENU2_1,MAINMENU2_2,MAINMENU2_3,MAINMENU2_4,MAINMENU2_5,MAINMENU2_6,MAINMENU2_7,MAINMENU2_8,MAINMENU2_9,MAINMENU2_10,MAINMENU2_11,MAINMENU2_12,MAINMENU2_13,MAINMENU2_14,MAINMENU2_15,MAINMENU2_16,MAINMENU2_17,MAINMENU2_18,MAINMENU2_19,MAINMENU2_20,MAINMENU2_21,MAINMENU2_22,MAINMENU2_23,MAINMENU2_24,MAINMENU2_25,MAINMENU2_26,MAINMENU2_27,MAINMENU2_28,MAINMENU2_29,MAINMENU2_30,MAINMENU2_31,MAINMENU2_32,MAINMENU2_33,MAINMENU2_34,MAINMENU2_35,MAINMENU2_36,MAINMENU2_37,MAINMENU2_38,MAINMENU2_39,MAINMENU2_40,MAINMENU2_41,MAINMENU2_42,MAINMENU2_43,MAINMENU2_44,MAINMENU2_45,MAINMENU2_46,MAINMENU2_47,MAINMENU2_48,MAINMENU2_49,MAINMENU2_50,MAINMENU2_51,MAINMENU2_52,MAINMENU2_53,MAINMENU2_54,MAINMENU2_55,MAINMENU2_56,MAINMENU2_57,MAINMENU2_58,MAINMENU2_59,MAINMENU2_60,MAINMENU2_61,MAINMENU2_62,MAINMENU2_63,MAINMENU2_64,MAINMENU2_65,MAINMENU2_66,MAINMENU2_67,MAINMENU2_68,MAINMENU2_69,MAINMENU2_70,MAINMENU2_71,MAINMENU2_72,MAINMENU2_73,MAINMENU2_74,MAINMENU2_75,MAINMENU2_76,MAINMENU2_77,MAINMENU2_78,MAINMENU2_79,MAINMENU2_80,MAINMENU2_81,MAINMENU2_82,MAINMENU2_83,MAINMENU2_84,MAINMENU2_85,MAINMENU2_86,MAINMENU2_87,MAINMENU2_88,MAINMENU2_89,MAINMENU2_90,MAINMENU2_91,MAINMENU2_92,MAINMENU2_93,MAINMENU2_94,MAINMENU2_95,MAINMENU2_96,MAINMENU2_97,MAINMENU2_98,MAINMENU2_99,MAINMENU2_100,MAINMENU2_101,MAINMENU2_102,MAINMENU2_103,MAINMENU2_104,MAINMENU2_105,MAINMENU2_106,MAINMENU2_107,MAINMENU2_108,MAINMENU2_109,MAINMENU2_110,MAINMENU2_111,MAINMENU2_112,MAINMENU2_113,MAINMENU2_114,MAINMENU2_115,MAINMENU2_116,MAINMENU2_117,MAINMENU2_118,MAINMENU2_119,MAINMENU2_120, };
-
-		animationFrames["LOGO"]["ACTION_1"].internalList = {LOGO};
-
-		animationFrames["RoadToTownTop"]["ACTION_1"].internalList = { ROADTOTOWNTOPLAYER };
-
-
 	}
 	void defineLookups() {
 		layerDefaults["MAP"] = 1;
@@ -1416,45 +1302,70 @@ public:
 		animationFrames["Angela Fleuret"]["CARD_SELECTED"].internalList = { CARD_ANGELA_SELECTED };
 		animationFrames["Angela Fleuret"]["STAND_FRONT"].internalList = { ANGELA_STAND_FRONT_1, ANGELA_STAND_FRONT_2 };
 		animationFrames["Angela Fleuret"]["STAND_BACK"].internalList = { ANGELA_STAND_BACK_1, ANGELA_STAND_BACK_2 };
-		animationFrames["Angela Fleuret"]["STAND_LEFT"].internalList = { ANGELA_STAND_RIGHT_1, ANGELA_STAND_RIGHT_1 };
 		animationFrames["Angela Fleuret"]["STAND_RIGHT"].internalList = { ANGELA_STAND_RIGHT_1, ANGELA_STAND_RIGHT_2 };
+		animationFrames["Angela Fleuret"]["STAND_LEFT"] = animationFrames["Angela Fleuret"]["STAND_RIGHT"];
+
+		animationFrames["Angela Fleuret"]["STAND_NE"].internalList = { ANGELA_STAND_NE_1, ANGELA_STAND_NE_2 };
+		animationFrames["Angela Fleuret"]["STAND_SE"].internalList = { ANGELA_STAND_SE_1, ANGELA_STAND_SE_2 };
+		animationFrames["Angela Fleuret"]["WALK_NE"].internalList = { ANGELA_WALK_NE_1, ANGELA_WALK_NE_2,ANGELA_WALK_NE_3,ANGELA_WALK_NE_2 };
+		animationFrames["Angela Fleuret"]["WALK_SE"].internalList = { ANGELA_WALK_SE_1, ANGELA_WALK_SE_2,ANGELA_WALK_SE_3,ANGELA_WALK_SE_2 };
+		animationFrames["Angela Fleuret"]["STAND_NW"] = animationFrames["Angela Fleuret"]["STAND_NE"];
+		animationFrames["Angela Fleuret"]["WALK_NW"] = animationFrames["Angela Fleuret"]["WALK_NE"];
+		animationFrames["Angela Fleuret"]["STAND_SW"] = animationFrames["Angela Fleuret"]["STAND_SE"];
+		animationFrames["Angela Fleuret"]["WALK_SW"] = animationFrames["Angela Fleuret"]["WALK_SE"];
+
+
+
 		animationFrames["Angela Fleuret"]["WALK_BACK"].internalList = { ANGELA_WALK_BACK_1, ANGELA_WALK_BACK_2, ANGELA_WALK_BACK_3, ANGELA_WALK_BACK_2, };
 		animationFrames["Angela Fleuret"]["WALK_FRONT"].internalList = { ANGELA_WALK_FRONT_1, ANGELA_WALK_FRONT_2, ANGELA_WALK_FRONT_3, ANGELA_WALK_FRONT_2, };
-		animationFrames["Angela Fleuret"]["WALK_LEFT"].internalList = { ANGELA_WALK_LEFT_1, ANGELA_WALK_LEFT_2, ANGELA_WALK_LEFT_3, ANGELA_WALK_LEFT_2, };
 		animationFrames["Angela Fleuret"]["WALK_RIGHT"].internalList = { ANGELA_WALK_RIGHT_1, ANGELA_WALK_RIGHT_2, ANGELA_WALK_RIGHT_3, ANGELA_WALK_RIGHT_2 };
-		animationFrames["Angela Fleuret"]["MAPACTIONFIGHT_RIGHT"].internalList = { ANGELA_MAPACTIONFIGHT_R1, ANGELA_MAPACTIONFIGHT_R2, ANGELA_MAPACTIONFIGHT_R3 };
+		animationFrames["Angela Fleuret"]["WALK_LEFT"] = animationFrames["Angela Fleuret"]["WALK_RIGHT"];
+
 		animationFrames["Angela Fleuret"]["MAPACTIONFIGHT_FRONT"].internalList = { ANGELA_MAPACTIONFIGHT_F1, ANGELA_MAPACTIONFIGHT_F2, ANGELA_MAPACTIONFIGHT_F3 };
+		animationFrames["Angela Fleuret"]["MAPACTIONFIGHT_RIGHT"].internalList = { ANGELA_MAPACTIONFIGHT_R1, ANGELA_MAPACTIONFIGHT_R2, ANGELA_MAPACTIONFIGHT_R3 };
 		animationFrames["Angela Fleuret"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { ANGELA_MAPACTIONFIGHT_F3, ANGELA_MAPACTIONFIGHT_F2, ANGELA_MAPACTIONFIGHT_F1 };
-		animationFrames["Angela Fleuret"]["TAVERN_WAIT"].internalList = { ANGELA_TAVERN_WAIT_1, ANGELA_TAVERN_WAIT_2,};
+		animationFrames["Angela Fleuret"]["TAVERN_WAIT"].internalList = { ANGELA_TAVERN_WAIT_1, ANGELA_TAVERN_WAIT_2, };
 		animationFrames["Angela Fleuret"]["WRITING_FRONT"].internalList = { ANGELAWRITING1 };
 		animationFrames["Angela Fleuret"]["SLEEPING_FRONT"].internalList = { ANGELASLEEPING1 };
 
 
-		animationFrames["Shadow Angela Fleuret"]["MAPACTIONFIGHT_RIGHT"].internalList = { ANGELA_MAPACTIONFIGHT_SHADOW_R1, ANGELA_MAPACTIONFIGHT_SHADOW_R2, ANGELA_MAPACTIONFIGHT_SHADOW_R3 };
-		animationFrames["Shadow Angela Fleuret"]["MAPACTIONFIGHT_FRONT"].internalList = { ANGELA_MAPACTIONFIGHT_SHADOW_F1, ANGELA_MAPACTIONFIGHT_SHADOW_F2, ANGELA_MAPACTIONFIGHT_SHADOW_F3 };
-		animationFrames["Shadow Angela Fleuret"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { ANGELA_MAPACTIONFIGHT_SHADOW_F3, ANGELA_MAPACTIONFIGHT_SHADOW_F2, ANGELA_MAPACTIONFIGHT_SHADOW_F1 };
-		animationFrames["Shadow Angela Fleuret"]["STAND_FRONT"].internalList = { SHADOW_ANGELA_STAND_FRONT_1, SHADOW_ANGELA_STAND_FRONT_2 };
-		animationFrames["Shadow Angela Fleuret"]["STAND_BACK"].internalList = { SHADOW_ANGELA_STAND_BACK_1, SHADOW_ANGELA_STAND_BACK_2 };
-		animationFrames["Shadow Angela Fleuret"]["STAND_LEFT"].internalList = { SHADOW_ANGELA_STAND_LEFT_1, SHADOW_ANGELA_STAND_LEFT_2 };
-		animationFrames["Shadow Angela Fleuret"]["STAND_RIGHT"].internalList = { SHADOW_ANGELA_STAND_RIGHT_1, SHADOW_ANGELA_STAND_RIGHT_2 };
-		animationFrames["Shadow Angela Fleuret"]["WALK_BACK"].internalList = { SHADOW_ANGELA_WALK_BACK_1, SHADOW_ANGELA_WALK_BACK_2, SHADOW_ANGELA_WALK_BACK_3, SHADOW_ANGELA_WALK_BACK_2, };
-		animationFrames["Shadow Angela Fleuret"]["WALK_FRONT"].internalList = { SHADOW_ANGELA_WALK_FRONT_1, SHADOW_ANGELA_WALK_FRONT_2, SHADOW_ANGELA_WALK_FRONT_3, SHADOW_ANGELA_WALK_FRONT_2, };
-		animationFrames["Shadow Angela Fleuret"]["WALK_LEFT"].internalList = { SHADOW_ANGELA_WALK_LEFT_1, SHADOW_ANGELA_WALK_LEFT_2, SHADOW_ANGELA_WALK_LEFT_3, SHADOW_ANGELA_WALK_LEFT_2, };
-		animationFrames["Shadow Angela Fleuret"]["WALK_RIGHT"].internalList = { SHADOW_ANGELA_WALK_RIGHT_1, SHADOW_ANGELA_WALK_RIGHT_2, SHADOW_ANGELA_WALK_RIGHT_3, SHADOW_ANGELA_WALK_RIGHT_2 };
+		animationFrames["Shadow Angela Fleuret"]["MAPACTIONFIGHT_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Angela Fleuret"]["MAPACTIONFIGHT_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Angela Fleuret"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { BASIC_SHADOW, };
+		animationFrames["Shadow Angela Fleuret"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Angela Fleuret"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Angela Fleuret"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Angela Fleuret"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Angela Fleuret"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Angela Fleuret"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Angela Fleuret"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Angela Fleuret"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
 		animationFrames["Shadow Angela Fleuret"]["WRITING_FRONT"].internalList = { EMPTYOBJECT };
 		animationFrames["Shadow Angela Fleuret"]["SLEEPING_FRONT"].internalList = { EMPTYOBJECT };
+
+		animationFrames["Shadow Angela Fleuret"]["STAND_NE"] = animationFrames["Shadow Angela Fleuret"]["STAND_BACK"];
+		animationFrames["Shadow Angela Fleuret"]["STAND_SE"] = animationFrames["Shadow Angela Fleuret"]["STAND_FRONT"];
+		animationFrames["Shadow Angela Fleuret"]["WALK_NE"] = animationFrames["Shadow Angela Fleuret"]["WALK_BACK"];
+		animationFrames["Shadow Angela Fleuret"]["WALK_SE"] = animationFrames["Shadow Angela Fleuret"]["WALK_FRONT"];
+		animationFrames["Shadow Angela Fleuret"]["STAND_NW"] = animationFrames["Shadow Angela Fleuret"]["STAND_NE"];
+		animationFrames["Shadow Angela Fleuret"]["WALK_NW"] = animationFrames["Shadow Angela Fleuret"]["WALK_NE"];
+		animationFrames["Shadow Angela Fleuret"]["STAND_SW"] = animationFrames["Shadow Angela Fleuret"]["STAND_SE"];
+		animationFrames["Shadow Angela Fleuret"]["WALK_SW"] = animationFrames["Shadow Angela Fleuret"]["WALK_SE"];
+
 
 		animationFrames["Tianshun Song"]["SPEAKER"].internalList = { TIANSHUN_SPEAKER };
 		animationFrames["Tianshun Song"]["CARD"].internalList = { CARD_TIANSHUN };
 		animationFrames["Tianshun Song"]["CARD_SELECTED"].internalList = { CARD_TIANSHUN_SELECTED };
 		animationFrames["Tianshun Song"]["STAND_FRONT"].internalList = { TIANSHUN_STAND_FRONT_1, TIANSHUN_STAND_FRONT_2 };
 		animationFrames["Tianshun Song"]["STAND_BACK"].internalList = { TIANSHUN_STAND_BACK_1, TIANSHUN_STAND_BACK_2 };
-		animationFrames["Tianshun Song"]["STAND_LEFT"].internalList = { TIANSHUN_STAND_LEFT_1, TIANSHUN_STAND_LEFT_2 };
 		animationFrames["Tianshun Song"]["STAND_RIGHT"].internalList = { TIANSHUN_STAND_RIGHT_1, TIANSHUN_STAND_RIGHT_2 };
+		animationFrames["Tianshun Song"]["STAND_LEFT"] = animationFrames["Tianshun Song"]["STAND_RIGHT"];
+
 		animationFrames["Tianshun Song"]["WALK_BACK"].internalList = { TIANSHUN_WALK_BACK_1, TIANSHUN_WALK_BACK_2, TIANSHUN_WALK_BACK_3, TIANSHUN_WALK_BACK_2, };
 		animationFrames["Tianshun Song"]["WALK_FRONT"].internalList = { TIANSHUN_WALK_FRONT_1, TIANSHUN_WALK_FRONT_2, TIANSHUN_WALK_FRONT_3, TIANSHUN_WALK_FRONT_2, };
-		animationFrames["Tianshun Song"]["WALK_LEFT"].internalList = { TIANSHUN_WALK_LEFT_1, TIANSHUN_WALK_LEFT_2, TIANSHUN_WALK_LEFT_3, TIANSHUN_WALK_LEFT_2, };
 		animationFrames["Tianshun Song"]["WALK_RIGHT"].internalList = { TIANSHUN_WALK_RIGHT_1, TIANSHUN_WALK_RIGHT_2, TIANSHUN_WALK_RIGHT_3, TIANSHUN_WALK_RIGHT_2 };
+		animationFrames["Tianshun Song"]["WALK_LEFT"] = animationFrames["Tianshun Song"]["WALK_RIGHT"];
+
 		animationFrames["Tianshun Song"]["TAVERN_WAIT"].internalList = { TIANSHUN_TAVERN_WAIT_1, TIANSHUN_TAVERN_WAIT_2, };
 		animationFrames["Tianshun Song"]["WRITING_FRONT"].internalList = { TIANSHUNWRITING1 };
 		animationFrames["Tianshun Song"]["SLEEPING_FRONT"].internalList = { TIANSHUNSLEEPING1 };
@@ -1463,31 +1374,53 @@ public:
 		animationFrames["Tianshun Song"]["MAPACTIONFIGHT_FRONT"].internalList = { TIANSHUN_MAPACTIONFIGHT_F1, TIANSHUN_MAPACTIONFIGHT_F2, TIANSHUN_MAPACTIONFIGHT_F3 };
 		animationFrames["Tianshun Song"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { TIANSHUN_MAPACTIONFIGHT_F3, TIANSHUN_MAPACTIONFIGHT_F2, TIANSHUN_MAPACTIONFIGHT_F1 };
 
-		animationFrames["Shadow Tianshun Song"]["MAPACTIONFIGHT_RIGHT"].internalList = { TIANSHUN_MAPACTIONFIGHT_SHADOW_R1, TIANSHUN_MAPACTIONFIGHT_SHADOW_R2, TIANSHUN_MAPACTIONFIGHT_SHADOW_R3 };
-		animationFrames["Shadow Tianshun Song"]["MAPACTIONFIGHT_FRONT"].internalList = { TIANSHUN_MAPACTIONFIGHT_SHADOW_F1, TIANSHUN_MAPACTIONFIGHT_SHADOW_F2, TIANSHUN_MAPACTIONFIGHT_SHADOW_F3 };
-		animationFrames["Shadow Tianshun Song"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { TIANSHUN_MAPACTIONFIGHT_SHADOW_F3, TIANSHUN_MAPACTIONFIGHT_SHADOW_F2, TIANSHUN_MAPACTIONFIGHT_SHADOW_F1 };
-		animationFrames["Shadow Tianshun Song"]["STAND_FRONT"].internalList = { SHADOW_TIANSHUN_STAND_FRONT_1, SHADOW_TIANSHUN_STAND_FRONT_2 };
-		animationFrames["Shadow Tianshun Song"]["STAND_BACK"].internalList = { SHADOW_TIANSHUN_STAND_BACK_1, SHADOW_TIANSHUN_STAND_BACK_2 };
-		animationFrames["Shadow Tianshun Song"]["STAND_LEFT"].internalList = { SHADOW_TIANSHUN_STAND_LEFT_1, SHADOW_TIANSHUN_STAND_LEFT_2 };
-		animationFrames["Shadow Tianshun Song"]["STAND_RIGHT"].internalList = { SHADOW_TIANSHUN_STAND_RIGHT_1, SHADOW_TIANSHUN_STAND_RIGHT_2 };
-		animationFrames["Shadow Tianshun Song"]["WALK_BACK"].internalList = { SHADOW_TIANSHUN_WALK_BACK_1, SHADOW_TIANSHUN_WALK_BACK_2, SHADOW_TIANSHUN_WALK_BACK_3, SHADOW_TIANSHUN_WALK_BACK_2, };
-		animationFrames["Shadow Tianshun Song"]["WALK_FRONT"].internalList = { SHADOW_TIANSHUN_WALK_FRONT_1, SHADOW_TIANSHUN_WALK_FRONT_2, SHADOW_TIANSHUN_WALK_FRONT_3, SHADOW_TIANSHUN_WALK_FRONT_2, };
-		animationFrames["Shadow Tianshun Song"]["WALK_LEFT"].internalList = { SHADOW_TIANSHUN_WALK_LEFT_1, SHADOW_TIANSHUN_WALK_LEFT_2, SHADOW_TIANSHUN_WALK_LEFT_3, SHADOW_TIANSHUN_WALK_LEFT_2, };
-		animationFrames["Shadow Tianshun Song"]["WALK_RIGHT"].internalList = { SHADOW_TIANSHUN_WALK_RIGHT_1, SHADOW_TIANSHUN_WALK_RIGHT_2, SHADOW_TIANSHUN_WALK_RIGHT_3, SHADOW_TIANSHUN_WALK_RIGHT_2 };
+		animationFrames["Shadow Tianshun Song"]["MAPACTIONFIGHT_RIGHT"].internalList = { BASIC_SHADOW, };
+		animationFrames["Shadow Tianshun Song"]["MAPACTIONFIGHT_FRONT"].internalList = { BASIC_SHADOW, };
+		animationFrames["Shadow Tianshun Song"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { BASIC_SHADOW, };
+		animationFrames["Shadow Tianshun Song"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Tianshun Song"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Tianshun Song"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Tianshun Song"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+
+		animationFrames["Shadow Tianshun Song"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Tianshun Song"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Tianshun Song"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Tianshun Song"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+
 		animationFrames["Shadow Tianshun Song"]["WRITING_FRONT"].internalList = { EMPTYOBJECT };
 		animationFrames["Shadow Tianshun Song"]["SLEEPING_FRONT"].internalList = { EMPTYOBJECT };
+
+		animationFrames["Tianshun Song"]["STAND_NE"].internalList = { TIANSHUN_STAND_NE_1, TIANSHUN_STAND_NE_2 };
+		animationFrames["Tianshun Song"]["STAND_SE"].internalList = { TIANSHUN_STAND_SE_1, TIANSHUN_STAND_SE_2 };
+		animationFrames["Tianshun Song"]["WALK_NE"].internalList = { TIANSHUN_WALK_NE_1, TIANSHUN_WALK_NE_2,TIANSHUN_WALK_NE_3,TIANSHUN_WALK_NE_2 };
+		animationFrames["Tianshun Song"]["WALK_SE"].internalList = { TIANSHUN_WALK_SE_1, TIANSHUN_WALK_SE_2,TIANSHUN_WALK_SE_3,TIANSHUN_WALK_SE_2 };
+		animationFrames["Tianshun Song"]["STAND_NW"] = animationFrames["Tianshun Song"]["STAND_NE"];
+		animationFrames["Tianshun Song"]["WALK_NW"] = animationFrames["Tianshun Song"]["WALK_NE"];
+		animationFrames["Tianshun Song"]["STAND_SW"] = animationFrames["Tianshun Song"]["STAND_SE"];
+		animationFrames["Tianshun Song"]["WALK_SW"] = animationFrames["Tianshun Song"]["WALK_SE"];
+		animationFrames["Shadow Tianshun Song"]["STAND_NE"] = animationFrames["Shadow Tianshun Song"]["STAND_BACK"];
+		animationFrames["Shadow Tianshun Song"]["STAND_SE"] = animationFrames["Shadow Tianshun Song"]["STAND_FRONT"];
+		animationFrames["Shadow Tianshun Song"]["WALK_NE"] = animationFrames["Shadow Tianshun Song"]["WALK_BACK"];
+		animationFrames["Shadow Tianshun Song"]["WALK_SE"] = animationFrames["Shadow Tianshun Song"]["WALK_FRONT"];
+		animationFrames["Shadow Tianshun Song"]["STAND_NW"] = animationFrames["Shadow Tianshun Song"]["STAND_NE"];
+		animationFrames["Shadow Tianshun Song"]["WALK_NW"] = animationFrames["Shadow Tianshun Song"]["WALK_NE"];
+		animationFrames["Shadow Tianshun Song"]["STAND_SW"] = animationFrames["Shadow Tianshun Song"]["STAND_SE"];
+		animationFrames["Shadow Tianshun Song"]["WALK_SW"] = animationFrames["Shadow Tianshun Song"]["WALK_SE"];
+
 
 		animationFrames["Olyver Sumner"]["SPEAKER"].internalList = { OLYVER_SPEAKER };
 		animationFrames["Olyver Sumner"]["CARD"].internalList = { CARD_OLYVER };
 		animationFrames["Olyver Sumner"]["CARD_SELECTED"].internalList = { CARD_OLYVER_SELECTED };
 		animationFrames["Olyver Sumner"]["STAND_FRONT"].internalList = { OLYVER_STAND_FRONT_1, OLYVER_STAND_FRONT_2 };
 		animationFrames["Olyver Sumner"]["STAND_BACK"].internalList = { OLYVER_STAND_BACK_1, OLYVER_STAND_BACK_2 };
-		animationFrames["Olyver Sumner"]["STAND_LEFT"].internalList = { OLYVER_STAND_LEFT_1, OLYVER_STAND_LEFT_2 };
 		animationFrames["Olyver Sumner"]["STAND_RIGHT"].internalList = { OLYVER_STAND_RIGHT_1, OLYVER_STAND_RIGHT_2 };
+		animationFrames["Olyver Sumner"]["STAND_LEFT"] = animationFrames["Olyver Sumner"]["STAND_RIGHT"];
 		animationFrames["Olyver Sumner"]["WALK_BACK"].internalList = { OLYVER_WALK_BACK_1, OLYVER_WALK_BACK_2, OLYVER_WALK_BACK_3, OLYVER_WALK_BACK_2, };
+
+
 		animationFrames["Olyver Sumner"]["WALK_FRONT"].internalList = { OLYVER_WALK_FRONT_1, OLYVER_WALK_FRONT_2, OLYVER_WALK_FRONT_3, OLYVER_WALK_FRONT_2, };
-		animationFrames["Olyver Sumner"]["WALK_LEFT"].internalList = { OLYVER_WALK_LEFT_1, OLYVER_WALK_LEFT_2, OLYVER_WALK_LEFT_3, OLYVER_WALK_LEFT_2, };
 		animationFrames["Olyver Sumner"]["WALK_RIGHT"].internalList = { OLYVER_WALK_RIGHT_1, OLYVER_WALK_RIGHT_2, OLYVER_WALK_RIGHT_3, OLYVER_WALK_RIGHT_2 };
+		animationFrames["Olyver Sumner"]["WALK_LEFT"] = animationFrames["Olyver Sumner"]["WALK_RIGHT"];
 		animationFrames["Olyver Sumner"]["MAPACTIONFIGHT_RIGHT"].internalList = { OLYVER_MAPACTIONFIGHT_R1, OLYVER_MAPACTIONFIGHT_R2, OLYVER_MAPACTIONFIGHT_R3 };
 		animationFrames["Olyver Sumner"]["MAPACTIONFIGHT_FRONT"].internalList = { OLYVER_MAPACTIONFIGHT_F1, OLYVER_MAPACTIONFIGHT_F2, OLYVER_MAPACTIONFIGHT_F3 };
 		animationFrames["Olyver Sumner"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { OLYVER_MAPACTIONFIGHT_F3, OLYVER_MAPACTIONFIGHT_F2, OLYVER_MAPACTIONFIGHT_F1 };
@@ -1495,31 +1428,52 @@ public:
 		animationFrames["Olyver Sumner"]["WRITING_FRONT"].internalList = { OLYVERWRITING1 };
 		animationFrames["Olyver Sumner"]["SLEEPING_FRONT"].internalList = { OLYVERSLEEPING1 };
 
-		animationFrames["Shadow Olyver Sumner"]["MAPACTIONFIGHT_RIGHT"].internalList = { OLYVER_MAPACTIONFIGHT_SHADOW_R1, OLYVER_MAPACTIONFIGHT_SHADOW_R2, OLYVER_MAPACTIONFIGHT_SHADOW_R3 };
-		animationFrames["Shadow Olyver Sumner"]["MAPACTIONFIGHT_FRONT"].internalList = { OLYVER_MAPACTIONFIGHT_SHADOW_F1, OLYVER_MAPACTIONFIGHT_SHADOW_F2, OLYVER_MAPACTIONFIGHT_SHADOW_F3 };
-		animationFrames["Shadow Olyver Sumner"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { OLYVER_MAPACTIONFIGHT_SHADOW_F3, OLYVER_MAPACTIONFIGHT_SHADOW_F2, OLYVER_MAPACTIONFIGHT_SHADOW_F1 };
-		animationFrames["Shadow Olyver Sumner"]["STAND_FRONT"].internalList = { SHADOW_OLYVER_STAND_FRONT_1, SHADOW_OLYVER_STAND_FRONT_2 };
-		animationFrames["Shadow Olyver Sumner"]["STAND_BACK"].internalList = { SHADOW_OLYVER_STAND_BACK_1, SHADOW_OLYVER_STAND_BACK_2 };
-		animationFrames["Shadow Olyver Sumner"]["STAND_LEFT"].internalList = { SHADOW_OLYVER_STAND_LEFT_1, SHADOW_OLYVER_STAND_LEFT_2 };
-		animationFrames["Shadow Olyver Sumner"]["STAND_RIGHT"].internalList = { SHADOW_OLYVER_STAND_RIGHT_1, SHADOW_OLYVER_STAND_RIGHT_2 };
-		animationFrames["Shadow Olyver Sumner"]["WALK_BACK"].internalList = { SHADOW_OLYVER_WALK_BACK_1, SHADOW_OLYVER_WALK_BACK_2, SHADOW_OLYVER_WALK_BACK_3, SHADOW_OLYVER_WALK_BACK_2, };
-		animationFrames["Shadow Olyver Sumner"]["WALK_FRONT"].internalList = { SHADOW_OLYVER_WALK_FRONT_1, SHADOW_OLYVER_WALK_FRONT_2, SHADOW_OLYVER_WALK_FRONT_3, SHADOW_OLYVER_WALK_FRONT_2, };
-		animationFrames["Shadow Olyver Sumner"]["WALK_LEFT"].internalList = { SHADOW_OLYVER_WALK_LEFT_1, SHADOW_OLYVER_WALK_LEFT_2, SHADOW_OLYVER_WALK_LEFT_3, SHADOW_OLYVER_WALK_LEFT_2, };
-		animationFrames["Shadow Olyver Sumner"]["WALK_RIGHT"].internalList = { SHADOW_OLYVER_WALK_RIGHT_1, SHADOW_OLYVER_WALK_RIGHT_2, SHADOW_OLYVER_WALK_RIGHT_3, SHADOW_OLYVER_WALK_RIGHT_2 };
+		animationFrames["Shadow Olyver Sumner"]["MAPACTIONFIGHT_RIGHT"].internalList = { BASIC_SHADOW, };
+		animationFrames["Shadow Olyver Sumner"]["MAPACTIONFIGHT_FRONT"].internalList = { BASIC_SHADOW, };
+		animationFrames["Shadow Olyver Sumner"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { BASIC_SHADOW, };
+		animationFrames["Shadow Olyver Sumner"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Olyver Sumner"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Olyver Sumner"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Olyver Sumner"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+
+		animationFrames["Shadow Olyver Sumner"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Olyver Sumner"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Olyver Sumner"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Olyver Sumner"]["WALK_LEFT"] = animationFrames["Shadow Olyver Sumner"]["WALK_RIGHT"];
+
 		animationFrames["Shadow Olyver Sumner"]["WRITING_FRONT"].internalList = { EMPTYOBJECT };
 		animationFrames["Shadow Olyver Sumner"]["SLEEPING_FRONT"].internalList = { EMPTYOBJECT };
+
+		animationFrames["Olyver Sumner"]["STAND_NE"].internalList = { OLYVER_STAND_NE_1, OLYVER_STAND_NE_2 };
+		animationFrames["Olyver Sumner"]["STAND_SE"].internalList = { OLYVER_STAND_SE_1, OLYVER_STAND_SE_2 };
+		animationFrames["Olyver Sumner"]["WALK_NE"].internalList = { OLYVER_WALK_NE_1, OLYVER_WALK_NE_2,OLYVER_WALK_NE_3,OLYVER_WALK_NE_2 };
+		animationFrames["Olyver Sumner"]["WALK_SE"].internalList = { OLYVER_WALK_SE_1, OLYVER_WALK_SE_2,OLYVER_WALK_SE_3,OLYVER_WALK_SE_2 };
+		animationFrames["Olyver Sumner"]["STAND_NW"] = animationFrames["Olyver Sumner"]["STAND_NE"];
+		animationFrames["Olyver Sumner"]["WALK_NW"] = animationFrames["Olyver Sumner"]["WALK_NE"];
+		animationFrames["Olyver Sumner"]["STAND_SW"] = animationFrames["Olyver Sumner"]["STAND_SE"];
+		animationFrames["Olyver Sumner"]["WALK_SW"] = animationFrames["Olyver Sumner"]["WALK_SE"];
+		animationFrames["Shadow Olyver Sumner"]["STAND_NE"] = animationFrames["Shadow Olyver Sumner"]["STAND_BACK"];
+		animationFrames["Shadow Olyver Sumner"]["STAND_SE"] = animationFrames["Shadow Olyver Sumner"]["STAND_FRONT"];
+		animationFrames["Shadow Olyver Sumner"]["WALK_NE"] = animationFrames["Shadow Olyver Sumner"]["WALK_BACK"];
+		animationFrames["Shadow Olyver Sumner"]["WALK_SE"] = animationFrames["Shadow Olyver Sumner"]["WALK_FRONT"];
+		animationFrames["Shadow Olyver Sumner"]["STAND_NW"] = animationFrames["Shadow Olyver Sumner"]["STAND_NE"];
+		animationFrames["Shadow Olyver Sumner"]["WALK_NW"] = animationFrames["Shadow Olyver Sumner"]["WALK_NE"];
+		animationFrames["Shadow Olyver Sumner"]["STAND_SW"] = animationFrames["Shadow Olyver Sumner"]["STAND_SE"];
+		animationFrames["Shadow Olyver Sumner"]["WALK_SW"] = animationFrames["Shadow Olyver Sumner"]["WALK_SE"];
 
 		animationFrames["Hernando Pizarro"]["SPEAKER"].internalList = { HERNANDO_SPEAKER };
 		animationFrames["Hernando Pizarro"]["CARD"].internalList = { CARD_HERNANDO };
 		animationFrames["Hernando Pizarro"]["CARD_SELECTED"].internalList = { CARD_HERNANDO_SELECTED };
 		animationFrames["Hernando Pizarro"]["STAND_FRONT"].internalList = { HERNANDO_STAND_FRONT_1, HERNANDO_STAND_FRONT_2 };
 		animationFrames["Hernando Pizarro"]["STAND_BACK"].internalList = { HERNANDO_STAND_BACK_1, HERNANDO_STAND_BACK_2 };
-		animationFrames["Hernando Pizarro"]["STAND_LEFT"].internalList = { HERNANDO_STAND_LEFT_1, HERNANDO_STAND_LEFT_2 };
 		animationFrames["Hernando Pizarro"]["STAND_RIGHT"].internalList = { HERNANDO_STAND_RIGHT_1, HERNANDO_STAND_RIGHT_2 };
+		animationFrames["Hernando Pizarro"]["STAND_LEFT"] = animationFrames["Hernando Pizarro"]["STAND_RIGHT"];
+
 		animationFrames["Hernando Pizarro"]["WALK_BACK"].internalList = { HERNANDO_WALK_BACK_1, HERNANDO_WALK_BACK_2, HERNANDO_WALK_BACK_3, HERNANDO_WALK_BACK_2, };
 		animationFrames["Hernando Pizarro"]["WALK_FRONT"].internalList = { HERNANDO_WALK_FRONT_1, HERNANDO_WALK_FRONT_2, HERNANDO_WALK_FRONT_3, HERNANDO_WALK_FRONT_2, };
-		animationFrames["Hernando Pizarro"]["WALK_LEFT"].internalList = { HERNANDO_WALK_LEFT_1, HERNANDO_WALK_LEFT_2, HERNANDO_WALK_LEFT_3, HERNANDO_WALK_LEFT_2, };
 		animationFrames["Hernando Pizarro"]["WALK_RIGHT"].internalList = { HERNANDO_WALK_RIGHT_1, HERNANDO_WALK_RIGHT_2, HERNANDO_WALK_RIGHT_3, HERNANDO_WALK_RIGHT_2 };
+		animationFrames["Hernando Pizarro"]["WALK_LEFT"] = animationFrames["Hernando Pizarro"]["WALK_RIGHT"];
+
 		animationFrames["Hernando Pizarro"]["MAPACTIONFIGHT_RIGHT"].internalList = { HERNANDO_MAPACTIONFIGHT_R1, HERNANDO_MAPACTIONFIGHT_R2, HERNANDO_MAPACTIONFIGHT_R3 };
 		animationFrames["Hernando Pizarro"]["MAPACTIONFIGHT_FRONT"].internalList = { HERNANDO_MAPACTIONFIGHT_F1, HERNANDO_MAPACTIONFIGHT_F2, HERNANDO_MAPACTIONFIGHT_F3 };
 		animationFrames["Hernando Pizarro"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { HERNANDO_MAPACTIONFIGHT_F3, HERNANDO_MAPACTIONFIGHT_F2, HERNANDO_MAPACTIONFIGHT_F1 };
@@ -1531,74 +1485,114 @@ public:
 
 		animationFrames["Hernando Pizarro"]["MAPACTIONATTACK_R1"].internalList = { HERNANDO_MAPATTACK_01, HERNANDO_MAPATTACK_02, HERNANDO_MAPATTACK_03,HERNANDO_MAPATTACK_04,HERNANDO_MAPATTACK_05,HERNANDO_MAPATTACK_06,HERNANDO_MAPATTACK_07,HERNANDO_MAPATTACK_08,HERNANDO_MAPATTACK_09,HERNANDO_MAPATTACK_10, HERNANDO_MAPATTACK_11 };
 
-		animationFrames["Shadow Hernando Pizarro"]["MAPACTIONATTACK_R1"].internalList = { HERNANDO_MAPATTACK_SHADOW_01, HERNANDO_MAPATTACK_SHADOW_02, HERNANDO_MAPATTACK_SHADOW_03, HERNANDO_MAPATTACK_SHADOW_04,HERNANDO_MAPATTACK_SHADOW_05,HERNANDO_MAPATTACK_SHADOW_06,HERNANDO_MAPATTACK_SHADOW_07,HERNANDO_MAPATTACK_SHADOW_08,HERNANDO_MAPATTACK_SHADOW_09,HERNANDO_MAPATTACK_SHADOW_10, HERNANDO_MAPATTACK_SHADOW_11 };
+		animationFrames["Shadow Hernando Pizarro"]["MAPACTIONATTACK_R1"].internalList = { BASIC_SHADOW };
 
 
-		animationFrames["Shadow Hernando Pizarro"]["MAPACTIONFIGHT_RIGHT"].internalList = { HERNANDO_MAPACTIONFIGHT_SHADOW_R1, HERNANDO_MAPACTIONFIGHT_SHADOW_R2, HERNANDO_MAPACTIONFIGHT_SHADOW_R3 };
-		animationFrames["Shadow Hernando Pizarro"]["MAPACTIONFIGHT_FRONT"].internalList = { HERNANDO_MAPACTIONFIGHT_SHADOW_F1, HERNANDO_MAPACTIONFIGHT_SHADOW_F2, HERNANDO_MAPACTIONFIGHT_SHADOW_F3 };
-		animationFrames["Shadow Hernando Pizarro"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { HERNANDO_MAPACTIONFIGHT_SHADOW_F3, HERNANDO_MAPACTIONFIGHT_SHADOW_F2, HERNANDO_MAPACTIONFIGHT_SHADOW_F1 };
+		animationFrames["Shadow Hernando Pizarro"]["MAPACTIONFIGHT_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Hernando Pizarro"]["MAPACTIONFIGHT_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Hernando Pizarro"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { BASIC_SHADOW };
 
-		animationFrames["Shadow Hernando Pizarro"]["MAPACTIONATTACK2_BACK"].internalList = { SHADOW_HERNANDO_MAPATTACK2_1, SHADOW_HERNANDO_MAPATTACK2_2,SHADOW_HERNANDO_MAPATTACK2_3, SHADOW_HERNANDO_MAPATTACK2_4,SHADOW_HERNANDO_MAPATTACK2_5,SHADOW_HERNANDO_MAPATTACK2_6,SHADOW_HERNANDO_MAPATTACK2_7,SHADOW_HERNANDO_MAPATTACK2_8,SHADOW_HERNANDO_MAPATTACK2_9,SHADOW_HERNANDO_MAPATTACK2_10,SHADOW_HERNANDO_MAPATTACK2_11,SHADOW_HERNANDO_MAPATTACK2_12,SHADOW_HERNANDO_MAPATTACK2_13,SHADOW_HERNANDO_MAPATTACK2_14,SHADOW_HERNANDO_MAPATTACK2_15,SHADOW_HERNANDO_MAPATTACK2_16, };
+		animationFrames["Shadow Hernando Pizarro"]["MAPACTIONATTACK2_BACK"].internalList = { BASIC_SHADOW };
 
-		animationFrames["Shadow Hernando Pizarro"]["STAND_FRONT"].internalList = { SHADOW_HERNANDO_STAND_FRONT_1, SHADOW_HERNANDO_STAND_FRONT_2 };
-		animationFrames["Shadow Hernando Pizarro"]["STAND_BACK"].internalList = { SHADOW_HERNANDO_STAND_BACK_1, SHADOW_HERNANDO_STAND_BACK_2 };
-		animationFrames["Shadow Hernando Pizarro"]["STAND_LEFT"].internalList = { SHADOW_HERNANDO_STAND_LEFT_1, SHADOW_HERNANDO_STAND_LEFT_2 };
-		animationFrames["Shadow Hernando Pizarro"]["STAND_RIGHT"].internalList = { SHADOW_HERNANDO_STAND_RIGHT_1, SHADOW_HERNANDO_STAND_RIGHT_2 };
-		animationFrames["Shadow Hernando Pizarro"]["WALK_BACK"].internalList = { SHADOW_HERNANDO_WALK_BACK_1, SHADOW_HERNANDO_WALK_BACK_2, SHADOW_HERNANDO_WALK_BACK_3, SHADOW_HERNANDO_WALK_BACK_2, };
-		animationFrames["Shadow Hernando Pizarro"]["WALK_FRONT"].internalList = { SHADOW_HERNANDO_WALK_FRONT_1, SHADOW_HERNANDO_WALK_FRONT_2, SHADOW_HERNANDO_WALK_FRONT_3, SHADOW_HERNANDO_WALK_FRONT_2, };
-		animationFrames["Shadow Hernando Pizarro"]["WALK_LEFT"].internalList = { SHADOW_HERNANDO_WALK_LEFT_1, SHADOW_HERNANDO_WALK_LEFT_2, SHADOW_HERNANDO_WALK_LEFT_3, SHADOW_HERNANDO_WALK_LEFT_2, };
-		animationFrames["Shadow Hernando Pizarro"]["WALK_RIGHT"].internalList = { SHADOW_HERNANDO_WALK_RIGHT_1, SHADOW_HERNANDO_WALK_RIGHT_2, SHADOW_HERNANDO_WALK_RIGHT_3, SHADOW_HERNANDO_WALK_RIGHT_2 };
+		animationFrames["Shadow Hernando Pizarro"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Hernando Pizarro"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Hernando Pizarro"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Hernando Pizarro"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Hernando Pizarro"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Hernando Pizarro"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Hernando Pizarro"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Hernando Pizarro"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+
 		animationFrames["Shadow Hernando Pizarro"]["WRITING_FRONT"].internalList = { EMPTYOBJECT };
 		animationFrames["Shadow Hernando Pizarro"]["SLEEPING_FRONT"].internalList = { EMPTYOBJECT };
+
+		animationFrames["Hernando Pizarro"]["STAND_NE"].internalList = { HERNANDO_STAND_NE_1, HERNANDO_STAND_NE_2 };
+		animationFrames["Hernando Pizarro"]["STAND_SE"].internalList = { HERNANDO_STAND_SE_1, HERNANDO_STAND_SE_2 };
+		animationFrames["Hernando Pizarro"]["WALK_NE"].internalList = { HERNANDO_WALK_NE_1, HERNANDO_WALK_NE_2,HERNANDO_WALK_NE_3,HERNANDO_WALK_NE_2 };
+		animationFrames["Hernando Pizarro"]["WALK_SE"].internalList = { HERNANDO_WALK_SE_1, HERNANDO_WALK_SE_2,HERNANDO_WALK_SE_3,HERNANDO_WALK_SE_2 };
+		animationFrames["Hernando Pizarro"]["STAND_NW"] = animationFrames["Hernando Pizarro"]["STAND_NE"];
+		animationFrames["Hernando Pizarro"]["WALK_NW"] = animationFrames["Hernando Pizarro"]["WALK_NE"];
+		animationFrames["Hernando Pizarro"]["STAND_SW"] = animationFrames["Hernando Pizarro"]["STAND_SE"];
+		animationFrames["Hernando Pizarro"]["WALK_SW"] = animationFrames["Hernando Pizarro"]["WALK_SE"];
+		animationFrames["Shadow Hernando Pizarro"]["STAND_NE"] = animationFrames["Shadow Hernando Pizarro"]["STAND_BACK"];
+		animationFrames["Shadow Hernando Pizarro"]["STAND_SE"] = animationFrames["Shadow Hernando Pizarro"]["STAND_FRONT"];
+		animationFrames["Shadow Hernando Pizarro"]["WALK_NE"] = animationFrames["Shadow Hernando Pizarro"]["WALK_BACK"];
+		animationFrames["Shadow Hernando Pizarro"]["WALK_SE"] = animationFrames["Shadow Hernando Pizarro"]["WALK_FRONT"];
+		animationFrames["Shadow Hernando Pizarro"]["STAND_NW"] = animationFrames["Shadow Hernando Pizarro"]["STAND_NE"];
+		animationFrames["Shadow Hernando Pizarro"]["WALK_NW"] = animationFrames["Shadow Hernando Pizarro"]["WALK_NE"];
+		animationFrames["Shadow Hernando Pizarro"]["STAND_SW"] = animationFrames["Shadow Hernando Pizarro"]["STAND_SE"];
+		animationFrames["Shadow Hernando Pizarro"]["WALK_SW"] = animationFrames["Shadow Hernando Pizarro"]["WALK_SE"];
 
 		animationFrames["Gihat al-Din Jaqmaq"]["SPEAKER"].internalList = { GIHAT_SPEAKER };
 		animationFrames["Gihat al-Din Jaqmaq"]["CARD"].internalList = { CARD_GIHAT };
 		animationFrames["Gihat al-Din Jaqmaq"]["CARD_SELECTED"].internalList = { CARD_GIHAT_SELECTED };
 		animationFrames["Gihat al-Din Jaqmaq"]["STAND_FRONT"].internalList = { GIHAT_STAND_FRONT_1, GIHAT_STAND_FRONT_2 };
 		animationFrames["Gihat al-Din Jaqmaq"]["STAND_BACK"].internalList = { GIHAT_STAND_BACK_1, GIHAT_STAND_BACK_2 };
-		animationFrames["Gihat al-Din Jaqmaq"]["STAND_LEFT"].internalList = { GIHAT_STAND_LEFT_1, GIHAT_STAND_LEFT_2 };
 		animationFrames["Gihat al-Din Jaqmaq"]["STAND_RIGHT"].internalList = { GIHAT_STAND_RIGHT_1, GIHAT_STAND_RIGHT_2 };
+		animationFrames["Gihat al-Din Jaqmaq"]["STAND_LEFT"] = animationFrames["Gihat al-Din Jaqmaq"]["STAND_RIGHT"];
+
 		animationFrames["Gihat al-Din Jaqmaq"]["WALK_BACK"].internalList = { GIHAT_WALK_BACK_1, GIHAT_WALK_BACK_2, GIHAT_WALK_BACK_3, GIHAT_WALK_BACK_2, };
 		animationFrames["Gihat al-Din Jaqmaq"]["WALK_FRONT"].internalList = { GIHAT_WALK_FRONT_1, GIHAT_WALK_FRONT_2, GIHAT_WALK_FRONT_3, GIHAT_WALK_FRONT_2, };
-		animationFrames["Gihat al-Din Jaqmaq"]["WALK_LEFT"].internalList = { GIHAT_WALK_LEFT_1, GIHAT_WALK_LEFT_2, GIHAT_WALK_LEFT_3, GIHAT_WALK_LEFT_2, };
 		animationFrames["Gihat al-Din Jaqmaq"]["WALK_RIGHT"].internalList = { GIHAT_WALK_RIGHT_1, GIHAT_WALK_RIGHT_2, GIHAT_WALK_RIGHT_3, GIHAT_WALK_RIGHT_2 };
+		animationFrames["Gihat al-Din Jaqmaq"]["WALK_LEFT"] = animationFrames["Gihat al-Din Jaqmaq"]["WALK_RIGHT"];
+
 		animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_RIGHT"].internalList = { GIHAT_STAND_RIGHT_1, GIHAT_STAND_RIGHT_2, GIHAT_MAPACTIONFIGHT_R1, GIHAT_MAPACTIONFIGHT_R2, GIHAT_MAPACTIONFIGHT_R3 };
 		animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_FRONT"].internalList = { GIHAT_STAND_FRONT_1, GIHAT_STAND_FRONT_2, GIHAT_MAPACTIONFIGHT_F1, GIHAT_MAPACTIONFIGHT_F2, GIHAT_MAPACTIONFIGHT_F3 };
 		animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFADE_RIGHT"].internalList = { GIHAT_MAPACTIONFIGHT_R3, GIHAT_MAPACTIONFADE_R1, GIHAT_MAPACTIONFADE_R2, GIHAT_MAPACTIONFADE_R3 };
 		animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONATTACK_FRONT"].internalList = { GIHAT_MAPACTIONATTACK_F1 };
-		animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONATTACK2_LEFT"].internalList = { GIHAT_MAPACTIONATTACK2_L1 };
+
+		//animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONATTACK2_LEFT"].internalList = { GIHAT_MAPACTIONATTACK2_L1 };
 		animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFADEBACKIN_RIGHT"] = animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFADE_RIGHT"];
 		animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFADEBACKIN_RIGHT"].internalList.reverse();
 		animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFIGHTUNDO_FRONT"] = animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_FRONT"];
 		animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFIGHTUNDO_FRONT"].internalList.reverse();
+
 		animationFrames["Gihat al-Din Jaqmaq"]["TAVERN_WAIT"].internalList = { GIHAT_TAVERN_WAIT_1, GIHAT_TAVERN_WAIT_2, };
 		animationFrames["Gihat al-Din Jaqmaq"]["TAVERN_WAIT2"].internalList = { GIHAT_TAVERN_WAIT_3, GIHAT_TAVERN_WAIT_4, };
 		animationFrames["Gihat al-Din Jaqmaq"]["WRITING_FRONT"].internalList = { GIHATWRITING1 };
 		animationFrames["Gihat al-Din Jaqmaq"]["SLEEPING_FRONT"].internalList = { GIHATSLEEPING1 };
 
-		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFADE_RIGHT"].internalList = { GIHAT_MAPACTIONFIGHT_SHADOW_R3 };
-		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_RIGHT"].internalList = { SHADOW_GIHAT_STAND_RIGHT_1, SHADOW_GIHAT_STAND_RIGHT_2, GIHAT_MAPACTIONFIGHT_SHADOW_R1, GIHAT_MAPACTIONFIGHT_SHADOW_R2, GIHAT_MAPACTIONFIGHT_SHADOW_R3 };
-		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_FRONT"].internalList = { SHADOW_GIHAT_STAND_FRONT_1, SHADOW_GIHAT_STAND_FRONT_2, GIHAT_MAPACTIONFIGHT_SHADOW_F1, GIHAT_MAPACTIONFIGHT_SHADOW_F2, GIHAT_MAPACTIONFIGHT_SHADOW_F3 };
-		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { GIHAT_MAPACTIONFIGHT_SHADOW_F3 };
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFADE_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFIGHTUNDO_FRONT"].internalList = { BASIC_SHADOW };
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFIGHTUNDO_FRONT"].internalList.reverse();
-		animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_FRONT"].internalList = { SHADOW_GIHAT_STAND_FRONT_1, SHADOW_GIHAT_STAND_FRONT_2 };
-		animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_BACK"].internalList = { SHADOW_GIHAT_STAND_BACK_1, SHADOW_GIHAT_STAND_BACK_2 };
-		animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_LEFT"].internalList = { SHADOW_GIHAT_STAND_LEFT_1, SHADOW_GIHAT_STAND_LEFT_2 };
-		animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_RIGHT"].internalList = { SHADOW_GIHAT_STAND_RIGHT_1, SHADOW_GIHAT_STAND_RIGHT_2 };
-		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_BACK"].internalList = { SHADOW_GIHAT_WALK_BACK_1, SHADOW_GIHAT_WALK_BACK_2, SHADOW_GIHAT_WALK_BACK_3, SHADOW_GIHAT_WALK_BACK_2, };
-		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_FRONT"].internalList = { SHADOW_GIHAT_WALK_FRONT_1, SHADOW_GIHAT_WALK_FRONT_2, SHADOW_GIHAT_WALK_FRONT_3, SHADOW_GIHAT_WALK_FRONT_2, };
-		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_LEFT"].internalList = { SHADOW_GIHAT_WALK_LEFT_1, SHADOW_GIHAT_WALK_LEFT_2, SHADOW_GIHAT_WALK_LEFT_3, SHADOW_GIHAT_WALK_LEFT_2, };
-		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_RIGHT"].internalList = { SHADOW_GIHAT_WALK_RIGHT_1, SHADOW_GIHAT_WALK_RIGHT_2, SHADOW_GIHAT_WALK_RIGHT_3, SHADOW_GIHAT_WALK_RIGHT_2 };
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WRITING_FRONT"].internalList = { EMPTYOBJECT };
 		animationFrames["Shadow Gihat al-Din Jaqmaq"]["SLEEPING_FRONT"].internalList = { EMPTYOBJECT };
 
+		animationFrames["Gihat al-Din Jaqmaq"]["STAND_NE"].internalList = { GIHAT_STAND_NE_1, GIHAT_STAND_NE_2 };
+		animationFrames["Gihat al-Din Jaqmaq"]["STAND_SE"].internalList = { GIHAT_STAND_SE_1, GIHAT_STAND_SE_2 };
+		animationFrames["Gihat al-Din Jaqmaq"]["WALK_NE"].internalList = { GIHAT_WALK_NE_1, GIHAT_WALK_NE_2,GIHAT_WALK_NE_3,GIHAT_WALK_NE_2 };
+		animationFrames["Gihat al-Din Jaqmaq"]["WALK_SE"].internalList = { GIHAT_WALK_SE_1, GIHAT_WALK_SE_2,GIHAT_WALK_SE_3,GIHAT_WALK_SE_2 };
+		animationFrames["Gihat al-Din Jaqmaq"]["STAND_NW"] = animationFrames["Gihat al-Din Jaqmaq"]["STAND_NE"];
+		animationFrames["Gihat al-Din Jaqmaq"]["WALK_NW"] = animationFrames["Gihat al-Din Jaqmaq"]["WALK_NE"];
+		animationFrames["Gihat al-Din Jaqmaq"]["STAND_SW"] = animationFrames["Gihat al-Din Jaqmaq"]["STAND_SE"];
+		animationFrames["Gihat al-Din Jaqmaq"]["WALK_SW"] = animationFrames["Gihat al-Din Jaqmaq"]["WALK_SE"];
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_NE"] = animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_BACK"];
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_SE"] = animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_FRONT"];
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_NE"] = animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_BACK"];
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_SE"] = animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_FRONT"];
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_NW"] = animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_NE"];
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_NW"] = animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_NE"];
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_SW"] = animationFrames["Shadow Gihat al-Din Jaqmaq"]["STAND_SE"];
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_SW"] = animationFrames["Shadow Gihat al-Din Jaqmaq"]["WALK_SE"];
+
 		animationFrames["Father Michelet"]["STAND_FRONT"].internalList = { PRIESTMICHELET_STAND_F1, PRIESTMICHELET_STAND_F2 };
 		animationFrames["Father Michelet"]["STAND_RIGHT"].internalList = { PRIESTMICHELET_STAND_R1, PRIESTMICHELET_STAND_R2 };
-		animationFrames["Father Michelet"]["STAND_LEFT"].internalList = { PRIESTMICHELET_STAND_L1, PRIESTMICHELET_STAND_L2 };
+		animationFrames["Father Michelet"]["STAND_LEFT"] = animationFrames["Father Michelet"]["STAND_RIGHT"];
 		animationFrames["Father Michelet"]["STAND_BACK"].internalList = { PRIESTMICHELET_STAND_B1, PRIESTMICHELET_STAND_B2 };
 		animationFrames["Father Michelet"]["WALK_FRONT"].internalList = { PRIESTMICHELET_WALK_F1, PRIESTMICHELET_WALK_F2, PRIESTMICHELET_WALK_F3, PRIESTMICHELET_WALK_F2 };
 		animationFrames["Father Michelet"]["WALK_RIGHT"].internalList = { PRIESTMICHELET_WALK_R1, PRIESTMICHELET_WALK_R2, PRIESTMICHELET_WALK_R3, PRIESTMICHELET_WALK_R2 };
-		animationFrames["Father Michelet"]["WALK_LEFT"].internalList = { PRIESTMICHELET_WALK_L1, PRIESTMICHELET_WALK_L2, PRIESTMICHELET_WALK_L3, PRIESTMICHELET_WALK_L2 };
+		animationFrames["Father Michelet"]["WALK_LEFT"] = animationFrames["Father Michelet"]["WALK_RIGHT"];
 		animationFrames["Father Michelet"]["WALK_BACK"].internalList = { PRIESTMICHELET_WALK_B1, PRIESTMICHELET_WALK_B2, PRIESTMICHELET_WALK_B3, PRIESTMICHELET_WALK_B2 };
 		animationFrames["Father Michelet"]["SAD_FRONT"].internalList = { PRIESTMICHELET_SAD_F1, PRIESTMICHELET_SAD_F2 };
 		animationFrames["Father Michelet"]["CARD"].internalList = { CARD_MICHELET };
@@ -1607,54 +1601,70 @@ public:
 
 
 
-		animationFrames["Shadow Father Michelet"]["STAND_FRONT"].internalList = { PRIESTMICHELET_SHADOW_STAND_F1, PRIESTMICHELET_SHADOW_STAND_F2 };
-		animationFrames["Shadow Father Michelet"]["STAND_RIGHT"].internalList = { PRIESTMICHELET_SHADOW_STAND_R1, PRIESTMICHELET_SHADOW_STAND_R2 };
-		animationFrames["Shadow Father Michelet"]["STAND_LEFT"].internalList = { PRIESTMICHELET_SHADOW_STAND_L1, PRIESTMICHELET_SHADOW_STAND_L2 };
-		animationFrames["Shadow Father Michelet"]["STAND_BACK"].internalList = { PRIESTMICHELET_SHADOW_STAND_B1, PRIESTMICHELET_SHADOW_STAND_B2 };
-		animationFrames["Shadow Father Michelet"]["WALK_FRONT"].internalList = { PRIESTMICHELET_SHADOW_WALK_F1, PRIESTMICHELET_SHADOW_WALK_F2, PRIESTMICHELET_SHADOW_WALK_F3, PRIESTMICHELET_SHADOW_WALK_F2 };
-		animationFrames["Shadow Father Michelet"]["WALK_RIGHT"].internalList = { PRIESTMICHELET_SHADOW_WALK_R1, PRIESTMICHELET_SHADOW_WALK_R2, PRIESTMICHELET_SHADOW_WALK_R3, PRIESTMICHELET_SHADOW_WALK_R2 };
-		animationFrames["Shadow Father Michelet"]["WALK_LEFT"].internalList = { PRIESTMICHELET_SHADOW_WALK_L1, PRIESTMICHELET_SHADOW_WALK_L2, PRIESTMICHELET_SHADOW_WALK_L3, PRIESTMICHELET_SHADOW_WALK_L2 };
-		animationFrames["Shadow Father Michelet"]["WALK_BACK"].internalList = { PRIESTMICHELET_SHADOW_WALK_B1, PRIESTMICHELET_SHADOW_WALK_B2, PRIESTMICHELET_SHADOW_WALK_B3, PRIESTMICHELET_SHADOW_WALK_B2 };
+		animationFrames["Shadow Father Michelet"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Father Michelet"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Father Michelet"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Father Michelet"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Father Michelet"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Father Michelet"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Father Michelet"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Father Michelet"]["WALK_BACK"].internalList = { BASIC_SHADOW };
 		animationFrames["Father Michelet"]["SPEAKER"].internalList = { PRIESTMICHELET_Speaker };
-		animationFrames["Shadow Father Michelet"]["SIT_FRONT"].internalList = { SHADOWMICHELETSITTING_1, SHADOWMICHELETSITTING_2 };
+		animationFrames["Shadow Father Michelet"]["SIT_FRONT"].internalList = { BASIC_SHADOW };
 
 		animationFrames["Isobella de Vaines"]["STAND_FRONT"].internalList = { LADYISOBELLA_STAND_F1, LADYISOBELLA_STAND_F2 };
 		animationFrames["Isobella de Vaines"]["STAND_RIGHT"].internalList = { LADYISOBELLA_STAND_R1, LADYISOBELLA_STAND_R2 };
-		animationFrames["Isobella de Vaines"]["STAND_LEFT"].internalList = { LADYISOBELLA_STAND_L1, LADYISOBELLA_STAND_L2 };
+		animationFrames["Isobella de Vaines"]["STAND_LEFT"] = animationFrames["Isobella de Vaines"]["STAND_RIGHT"];
 		animationFrames["Isobella de Vaines"]["STAND_BACK"].internalList = { LADYISOBELLA_STAND_B1, LADYISOBELLA_STAND_B2 };
 		animationFrames["Isobella de Vaines"]["WALK_FRONT"].internalList = { LADYISOBELLA_WALK_F1, LADYISOBELLA_WALK_F2, LADYISOBELLA_WALK_F3, LADYISOBELLA_WALK_F2 };
 		animationFrames["Isobella de Vaines"]["WALK_RIGHT"].internalList = { LADYISOBELLA_WALK_R1, LADYISOBELLA_WALK_R2, LADYISOBELLA_WALK_R3, LADYISOBELLA_WALK_R2 };
-		animationFrames["Isobella de Vaines"]["WALK_LEFT"].internalList = { LADYISOBELLA_WALK_L1, LADYISOBELLA_WALK_L2, LADYISOBELLA_WALK_L3, LADYISOBELLA_WALK_L2 };
+		animationFrames["Isobella de Vaines"]["WALK_LEFT"] = animationFrames["Isobella de Vaines"]["WALK_RIGHT"];
 		animationFrames["Isobella de Vaines"]["WALK_BACK"].internalList = { LADYISOBELLA_WALK_B1, LADYISOBELLA_WALK_B2, LADYISOBELLA_WALK_B3, LADYISOBELLA_WALK_B2 };
-		animationFrames["Shadow Isobella de Vaines"]["STAND_FRONT"].internalList = { LADYISOBELLA_SHADOW_STAND_F1, LADYISOBELLA_SHADOW_STAND_F2 };
-		animationFrames["Shadow Isobella de Vaines"]["STAND_RIGHT"].internalList = { LADYISOBELLA_SHADOW_STAND_R1, LADYISOBELLA_SHADOW_STAND_R2 };
-		animationFrames["Shadow Isobella de Vaines"]["STAND_LEFT"].internalList = { LADYISOBELLA_SHADOW_STAND_L1, LADYISOBELLA_SHADOW_STAND_L2 };
-		animationFrames["Shadow Isobella de Vaines"]["STAND_BACK"].internalList = { LADYISOBELLA_SHADOW_STAND_B1, LADYISOBELLA_SHADOW_STAND_B2 };
-		animationFrames["Shadow Isobella de Vaines"]["WALK_FRONT"].internalList = { LADYISOBELLA_SHADOW_WALK_F1, LADYISOBELLA_SHADOW_WALK_F2, LADYISOBELLA_SHADOW_WALK_F3, LADYISOBELLA_SHADOW_WALK_F2 };
-		animationFrames["Shadow Isobella de Vaines"]["WALK_RIGHT"].internalList = { LADYISOBELLA_SHADOW_WALK_R1, LADYISOBELLA_SHADOW_WALK_R2, LADYISOBELLA_SHADOW_WALK_R3, LADYISOBELLA_SHADOW_WALK_R2 };
-		animationFrames["Shadow Isobella de Vaines"]["WALK_LEFT"].internalList = { LADYISOBELLA_SHADOW_WALK_L1, LADYISOBELLA_SHADOW_WALK_L2, LADYISOBELLA_SHADOW_WALK_L3, LADYISOBELLA_SHADOW_WALK_L2 };
-		animationFrames["Shadow Isobella de Vaines"]["WALK_BACK"].internalList = { LADYISOBELLA_SHADOW_WALK_B1, LADYISOBELLA_SHADOW_WALK_B2, LADYISOBELLA_SHADOW_WALK_B3, LADYISOBELLA_SHADOW_WALK_B2 };
+		animationFrames["Shadow Isobella de Vaines"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Isobella de Vaines"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Isobella de Vaines"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Isobella de Vaines"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Isobella de Vaines"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Isobella de Vaines"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Isobella de Vaines"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Isobella de Vaines"]["WALK_BACK"].internalList = { BASIC_SHADOW };
 		animationFrames["Isobella de Vaines"]["SPEAKER"].internalList = { LADYISOBELLA_Speaker };
 
-		animationFrames["Shadow JOANA"]["STAND_BACK"].internalList = { JOANA_1,JOANA_2 };
-		animationFrames["Shadow JOANA"]["STAND_FRONT"].internalList = { JOANA_3,JOANA_4 };
-		animationFrames["Shadow JOANA"]["STAND_LEFT"].internalList = { JOANA_5,JOANA_6 };
-		animationFrames["Shadow JOANA"]["STAND_RIGHT"].internalList = { JOANA_7,JOANA_8 };
-		animationFrames["Shadow JOANA"]["WALK_BACK"].internalList = { JOANA_9,JOANA_10,JOANA_11,JOANA_10 };
-		animationFrames["Shadow JOANA"]["WALK_FRONT"].internalList = { JOANA_12,JOANA_13,JOANA_14,JOANA_13 };
-		animationFrames["Shadow JOANA"]["WALK_LEFT"].internalList = { JOANA_15,JOANA_16,JOANA_17,JOANA_16 };
-		animationFrames["Shadow JOANA"]["WALK_RIGHT"].internalList = { JOANA_18,JOANA_19,JOANA_20,JOANA_19 };
+		animationFrames["Shadow JOANA"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow JOANA"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow JOANA"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow JOANA"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow JOANA"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow JOANA"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow JOANA"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow JOANA"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
 		animationFrames["JOANA"]["STAND_BACK"].internalList = { JOANA_22,JOANA_23 };
 		animationFrames["JOANA"]["STAND_FRONT"].internalList = { JOANA_24,JOANA_25 };
-		animationFrames["JOANA"]["STAND_LEFT"].internalList = { JOANA_26,JOANA_27 };
 		animationFrames["JOANA"]["STAND_RIGHT"].internalList = { JOANA_28,JOANA_29 };
+		animationFrames["JOANA"]["STAND_LEFT"] = animationFrames["JOANA"]["STAND_RIGHT"];
 		animationFrames["JOANA"]["WALK_BACK"].internalList = { JOANA_30,JOANA_31,JOANA_32,JOANA_31 };
 		animationFrames["JOANA"]["WALK_FRONT"].internalList = { JOANA_33,JOANA_34,JOANA_35,JOANA_34 };
-		animationFrames["JOANA"]["WALK_LEFT"].internalList = { JOANA_36,JOANA_37,JOANA_38,JOANA_37 };
 		animationFrames["JOANA"]["WALK_RIGHT"].internalList = { JOANA_39,JOANA_40,JOANA_41,JOANA_40 };
+		animationFrames["JOANA"]["WALK_LEFT"] = animationFrames["JOANA"]["WALK_RIGHT"];
 		animationFrames["JOANA"]["SPEAKER"].internalList = { JOANA_21 };
+		animationFrames["JOANA"]["STAND_NE"].internalList = { JOANA_STAND_NE_1, JOANA_STAND_NE_2 };
+		animationFrames["JOANA"]["STAND_SE"].internalList = { JOANA_STAND_SE_1, JOANA_STAND_SE_2 };
+		animationFrames["JOANA"]["WALK_NE"].internalList = { JOANA_WALK_NE_1, JOANA_WALK_NE_2, JOANA_WALK_NE_3, JOANA_WALK_NE_2 };
+		animationFrames["JOANA"]["WALK_SE"].internalList = { JOANA_WALK_SE_1, JOANA_WALK_SE_2, JOANA_WALK_SE_3, JOANA_WALK_SE_2 };
+		animationFrames["JOANA"]["STAND_NW"] = animationFrames["JOANA"]["STAND_NE"];
+		animationFrames["JOANA"]["STAND_SW"] = animationFrames["JOANA"]["STAND_SE"];
+		animationFrames["JOANA"]["WALK_NW"] = animationFrames["JOANA"]["WALK_NE"];
+		animationFrames["JOANA"]["WALK_SW"] = animationFrames["JOANA"]["WALK_SE"];
+		animationFrames["Shadow JOANA"]["STAND_NE"] = animationFrames["Shadow JOANA"]["STAND_BACK"];
+		animationFrames["Shadow JOANA"]["STAND_SE"] = animationFrames["Shadow JOANA"]["STAND_FRONT"];
+		animationFrames["Shadow JOANA"]["WALK_NE"] = animationFrames["Shadow JOANA"]["WALK_BACK"];
+		animationFrames["Shadow JOANA"]["WALK_SE"] = animationFrames["Shadow JOANA"]["WALK_FRONT"];
+		animationFrames["Shadow JOANA"]["STAND_NW"] = animationFrames["Shadow JOANA"]["STAND_NE"];
+		animationFrames["Shadow JOANA"]["WALK_NW"] = animationFrames["Shadow JOANA"]["WALK_NE"];
+		animationFrames["Shadow JOANA"]["STAND_SW"] = animationFrames["Shadow JOANA"]["STAND_SE"];
+		animationFrames["Shadow JOANA"]["WALK_SW"] = animationFrames["Shadow JOANA"]["WALK_SE"];
 
-		animationFrames["EnragedGroup"]["STAND_BACK"].internalList = { ENRAGEDGROUP_1, ENRAGEDGROUP_2};
+		animationFrames["EnragedGroup"]["STAND_BACK"].internalList = { ENRAGEDGROUP_1, ENRAGEDGROUP_2 };
 		animationFrames["EnragedGroup"]["WALK_BACK"].internalList = { ENRAGEDGROUP_3, ENRAGEDGROUP_4,ENRAGEDGROUP_5,ENRAGEDGROUP_4, };
 
 		animationFrames["EnragedGroup"]["DYING_BACK"].internalList = { ENRAGEDGROUP_6,ENRAGEDGROUP_7,ENRAGEDGROUP_8,ENRAGEDGROUP_9,ENRAGEDGROUP_10,ENRAGEDGROUP_11,ENRAGEDGROUP_12,ENRAGEDGROUP_13,ENRAGEDGROUP_14,ENRAGEDGROUP_15,ENRAGEDGROUP_16,ENRAGEDGROUP_17,ENRAGEDGROUP_18,ENRAGEDGROUP_19,ENRAGEDGROUP_20,ENRAGEDGROUP_21,ENRAGEDGROUP_22,ENRAGEDGROUP_23,ENRAGEDGROUP_24,ENRAGEDGROUP_25,ENRAGEDGROUP_26,ENRAGEDGROUP_27,ENRAGEDGROUP_28,ENRAGEDGROUP_29,ENRAGEDGROUP_30,ENRAGEDGROUP_31, };
@@ -1664,410 +1674,508 @@ public:
 		animationFrames["Shadow EnragedGroup"]["WALK_BACK"].internalList = { ENRAGEDGROUPSHADOW_3, ENRAGEDGROUPSHADOW_4,ENRAGEDGROUPSHADOW_5,ENRAGEDGROUPSHADOW_4, };
 		animationFrames["Shadow EnragedGroup"]["DYING_BACK"].internalList = { ENRAGEDGROUPSHADOW_6,ENRAGEDGROUPSHADOW_7,ENRAGEDGROUPSHADOW_8,ENRAGEDGROUPSHADOW_9,ENRAGEDGROUPSHADOW_10,ENRAGEDGROUPSHADOW_11,ENRAGEDGROUPSHADOW_12,ENRAGEDGROUPSHADOW_13,ENRAGEDGROUPSHADOW_14,ENRAGEDGROUPSHADOW_15,ENRAGEDGROUPSHADOW_16,ENRAGEDGROUPSHADOW_17,ENRAGEDGROUPSHADOW_18,ENRAGEDGROUPSHADOW_19,ENRAGEDGROUPSHADOW_20,ENRAGEDGROUPSHADOW_21,ENRAGEDGROUPSHADOW_22,ENRAGEDGROUPSHADOW_23,ENRAGEDGROUPSHADOW_24,ENRAGEDGROUPSHADOW_25,ENRAGEDGROUPSHADOW_26,ENRAGEDGROUPSHADOW_27,ENRAGEDGROUPSHADOW_28,ENRAGEDGROUPSHADOW_29,ENRAGEDGROUPSHADOW_30,ENRAGEDGROUPSHADOW_31, };
 
-		animationFrames["Blood Wall"]["STAND_FRONT"].internalList = { BLOODWALL_1 , BLOODWALL_2, BLOODWALL_3, BLOODWALL_4, BLOODWALL_5, BLOODWALL_6, BLOODWALL_7, BLOODWALL_8, BLOODWALL_9, BLOODWALL_10};
+		animationFrames["Blood Wall"]["STAND_FRONT"].internalList = { BLOODWALL_1 , BLOODWALL_2, BLOODWALL_3, BLOODWALL_4, BLOODWALL_5, BLOODWALL_6, BLOODWALL_7, BLOODWALL_8, BLOODWALL_9, BLOODWALL_10 };
 		animationFrames["Blood Wall"]["DAMAGE_FRONT"].internalList = { BLOODWALL_11 , BLOODWALL_12, BLOODWALL_13, BLOODWALL_14, BLOODWALL_15, BLOODWALL_16, BLOODWALL_17, BLOODWALL_18, BLOODWALL_19, BLOODWALL_20, BLOODWALL_19, BLOODWALL_18, BLOODWALL_17, BLOODWALL_16, BLOODWALL_15, BLOODWALL_14,BLOODWALL_13,BLOODWALL_12,BLOODWALL_13,BLOODWALL_12,BLOODWALL_11,BLOODWALL_10, };
 
 		animationFrames["White Knight"]["STAND_FRONT"].internalList = { WHITEKNIGHT_STAND_F1, WHITEKNIGHT_STAND_F2 };
 		animationFrames["White Knight"]["STAND_RIGHT"].internalList = { WHITEKNIGHT_STAND_R1, WHITEKNIGHT_STAND_R2 };
-		animationFrames["White Knight"]["STAND_LEFT"].internalList = { WHITEKNIGHT_STAND_L1, WHITEKNIGHT_STAND_L2 };
+		animationFrames["White Knight"]["STAND_LEFT"] = animationFrames["White Knight"]["STAND_RIGHT"];
 		animationFrames["White Knight"]["STAND_BACK"].internalList = { WHITEKNIGHT_STAND_B1, WHITEKNIGHT_STAND_B2 };
 		animationFrames["White Knight"]["WALK_FRONT"].internalList = { WHITEKNIGHT_WALK_F1, WHITEKNIGHT_WALK_F2, WHITEKNIGHT_WALK_F3, WHITEKNIGHT_WALK_F2 };
-		animationFrames["White Knight"]["WALK_RIGHT"].internalList = { WHITEKNIGHT_WALK_R1, WHITEKNIGHT_WALK_R2, WHITEKNIGHT_WALK_R3, WHITEKNIGHT_WALK_R2 };
+		animationFrames["White Knight"]["WALK_RIGHT"] = animationFrames["White Knight"]["WALK_RIGHT"];
 		animationFrames["White Knight"]["WALK_LEFT"].internalList = { WHITEKNIGHT_WALK_L1, WHITEKNIGHT_WALK_L2, WHITEKNIGHT_WALK_L3, WHITEKNIGHT_WALK_L2 };
 		animationFrames["White Knight"]["WALK_BACK"].internalList = { WHITEKNIGHT_WALK_B1, WHITEKNIGHT_WALK_B2, WHITEKNIGHT_WALK_B3, WHITEKNIGHT_WALK_B2 };
-		animationFrames["White Knight"]["REAR_LEFT"].internalList = { WHITEKNIGHT_REAR_L1, WHITEKNIGHT_REAR_L2, WHITEKNIGHT_REAR_L3, WHITEKNIGHT_REAR_L4, WHITEKNIGHT_REAR_L5, WHITEKNIGHT_REAR_L6, WHITEKNIGHT_REAR_L7, WHITEKNIGHT_REAR_L8, WHITEKNIGHT_REAR_L9, WHITEKNIGHT_REAR_L10, WHITEKNIGHT_REAR_L11, WHITEKNIGHT_REAR_L12, WHITEKNIGHT_REAR_L13, WHITEKNIGHT_REAR_L14, WHITEKNIGHT_REAR_L15, WHITEKNIGHT_REAR_L16, WHITEKNIGHT_REAR_L17, WHITEKNIGHT_REAR_L18, WHITEKNIGHT_REAR_L19, WHITEKNIGHT_REAR_L20, WHITEKNIGHT_REAR_L21, WHITEKNIGHT_REAR_L22, WHITEKNIGHT_REAR_L23, WHITEKNIGHT_REAR_L24, WHITEKNIGHT_REAR_L25, WHITEKNIGHT_REAR_L26, WHITEKNIGHT_REAR_L27, WHITEKNIGHT_REAR_L28, WHITEKNIGHT_REAR_L29, WHITEKNIGHT_REAR_L30, WHITEKNIGHT_REAR_L31, WHITEKNIGHT_REAR_L32, WHITEKNIGHT_REAR_L33, WHITEKNIGHT_REAR_L34, WHITEKNIGHT_REAR_L35, WHITEKNIGHT_REAR_L36, WHITEKNIGHT_REAR_L37, WHITEKNIGHT_REAR_L38, WHITEKNIGHT_REAR_L39, WHITEKNIGHT_REAR_L40, WHITEKNIGHT_REAR_L41, WHITEKNIGHT_REAR_L42, WHITEKNIGHT_REAR_L43, WHITEKNIGHT_REAR_L44, WHITEKNIGHT_REAR_L45, WHITEKNIGHT_REAR_L46, };
-		animationFrames["Shadow White Knight"]["REAR_LEFT"].internalList = { WHITEKNIGHT_SHADOW_REAR_L1, WHITEKNIGHT_SHADOW_REAR_L2, WHITEKNIGHT_SHADOW_REAR_L3, WHITEKNIGHT_SHADOW_REAR_L4, WHITEKNIGHT_SHADOW_REAR_L5, WHITEKNIGHT_SHADOW_REAR_L6, WHITEKNIGHT_SHADOW_REAR_L7, WHITEKNIGHT_SHADOW_REAR_L8, WHITEKNIGHT_SHADOW_REAR_L9, WHITEKNIGHT_SHADOW_REAR_L10, WHITEKNIGHT_SHADOW_REAR_L11, WHITEKNIGHT_SHADOW_REAR_L12, WHITEKNIGHT_SHADOW_REAR_L13, WHITEKNIGHT_SHADOW_REAR_L14, WHITEKNIGHT_SHADOW_REAR_L15, WHITEKNIGHT_SHADOW_REAR_L16, WHITEKNIGHT_SHADOW_REAR_L17, WHITEKNIGHT_SHADOW_REAR_L18, WHITEKNIGHT_SHADOW_REAR_L19, WHITEKNIGHT_SHADOW_REAR_L20, WHITEKNIGHT_SHADOW_REAR_L21, WHITEKNIGHT_SHADOW_REAR_L22, WHITEKNIGHT_SHADOW_REAR_L23, WHITEKNIGHT_SHADOW_REAR_L24, WHITEKNIGHT_SHADOW_REAR_L25, WHITEKNIGHT_SHADOW_REAR_L26, WHITEKNIGHT_SHADOW_REAR_L27, WHITEKNIGHT_SHADOW_REAR_L28, WHITEKNIGHT_SHADOW_REAR_L29, WHITEKNIGHT_SHADOW_REAR_L30, WHITEKNIGHT_SHADOW_REAR_L31, WHITEKNIGHT_SHADOW_REAR_L32, WHITEKNIGHT_SHADOW_REAR_L33, WHITEKNIGHT_SHADOW_REAR_L34, WHITEKNIGHT_SHADOW_REAR_L35, WHITEKNIGHT_SHADOW_REAR_L36, WHITEKNIGHT_SHADOW_REAR_L37, WHITEKNIGHT_SHADOW_REAR_L38, WHITEKNIGHT_SHADOW_REAR_L39, WHITEKNIGHT_SHADOW_REAR_L40, WHITEKNIGHT_SHADOW_REAR_L41, WHITEKNIGHT_SHADOW_REAR_L42, WHITEKNIGHT_SHADOW_REAR_L43, WHITEKNIGHT_SHADOW_REAR_L44, WHITEKNIGHT_SHADOW_REAR_L45, WHITEKNIGHT_SHADOW_REAR_L46, };
+
+		animationFrames["White Knight"]["REAR_RIGHT"].internalList = { WHITEKNIGHT_REAR_L1, WHITEKNIGHT_REAR_L2, WHITEKNIGHT_REAR_L3, WHITEKNIGHT_REAR_L4, WHITEKNIGHT_REAR_L5, WHITEKNIGHT_REAR_L6, WHITEKNIGHT_REAR_L7, WHITEKNIGHT_REAR_L8, WHITEKNIGHT_REAR_L9, WHITEKNIGHT_REAR_L10, WHITEKNIGHT_REAR_L11, WHITEKNIGHT_REAR_L12, WHITEKNIGHT_REAR_L13, WHITEKNIGHT_REAR_L14, WHITEKNIGHT_REAR_L15, WHITEKNIGHT_REAR_L16, WHITEKNIGHT_REAR_L17, WHITEKNIGHT_REAR_L18, WHITEKNIGHT_REAR_L19, WHITEKNIGHT_REAR_L20, WHITEKNIGHT_REAR_L21, WHITEKNIGHT_REAR_L22, WHITEKNIGHT_REAR_L23, WHITEKNIGHT_REAR_L24, WHITEKNIGHT_REAR_L25, WHITEKNIGHT_REAR_L26, WHITEKNIGHT_REAR_L27, WHITEKNIGHT_REAR_L28, WHITEKNIGHT_REAR_L29, WHITEKNIGHT_REAR_L30, WHITEKNIGHT_REAR_L31, WHITEKNIGHT_REAR_L32, WHITEKNIGHT_REAR_L33, WHITEKNIGHT_REAR_L34, WHITEKNIGHT_REAR_L35, WHITEKNIGHT_REAR_L36, WHITEKNIGHT_REAR_L37, WHITEKNIGHT_REAR_L38, WHITEKNIGHT_REAR_L39, WHITEKNIGHT_REAR_L40, WHITEKNIGHT_REAR_L41, WHITEKNIGHT_REAR_L42, WHITEKNIGHT_REAR_L43, WHITEKNIGHT_REAR_L44, WHITEKNIGHT_REAR_L45, WHITEKNIGHT_REAR_L46, };
+		animationFrames["Shadow White Knight"]["REAR_RIGHT"].internalList = { WHITEKNIGHT_SHADOW_REAR_L1, WHITEKNIGHT_SHADOW_REAR_L2, WHITEKNIGHT_SHADOW_REAR_L3, WHITEKNIGHT_SHADOW_REAR_L4, WHITEKNIGHT_SHADOW_REAR_L5, WHITEKNIGHT_SHADOW_REAR_L6, WHITEKNIGHT_SHADOW_REAR_L7, WHITEKNIGHT_SHADOW_REAR_L8, WHITEKNIGHT_SHADOW_REAR_L9, WHITEKNIGHT_SHADOW_REAR_L10, WHITEKNIGHT_SHADOW_REAR_L11, WHITEKNIGHT_SHADOW_REAR_L12, WHITEKNIGHT_SHADOW_REAR_L13, WHITEKNIGHT_SHADOW_REAR_L14, WHITEKNIGHT_SHADOW_REAR_L15, WHITEKNIGHT_SHADOW_REAR_L16, WHITEKNIGHT_SHADOW_REAR_L17, WHITEKNIGHT_SHADOW_REAR_L18, WHITEKNIGHT_SHADOW_REAR_L19, WHITEKNIGHT_SHADOW_REAR_L20, WHITEKNIGHT_SHADOW_REAR_L21, WHITEKNIGHT_SHADOW_REAR_L22, WHITEKNIGHT_SHADOW_REAR_L23, WHITEKNIGHT_SHADOW_REAR_L24, WHITEKNIGHT_SHADOW_REAR_L25, WHITEKNIGHT_SHADOW_REAR_L26, WHITEKNIGHT_SHADOW_REAR_L27, WHITEKNIGHT_SHADOW_REAR_L28, WHITEKNIGHT_SHADOW_REAR_L29, WHITEKNIGHT_SHADOW_REAR_L30, WHITEKNIGHT_SHADOW_REAR_L31, WHITEKNIGHT_SHADOW_REAR_L32, WHITEKNIGHT_SHADOW_REAR_L33, WHITEKNIGHT_SHADOW_REAR_L34, WHITEKNIGHT_SHADOW_REAR_L35, WHITEKNIGHT_SHADOW_REAR_L36, WHITEKNIGHT_SHADOW_REAR_L37, WHITEKNIGHT_SHADOW_REAR_L38, WHITEKNIGHT_SHADOW_REAR_L39, WHITEKNIGHT_SHADOW_REAR_L40, WHITEKNIGHT_SHADOW_REAR_L41, WHITEKNIGHT_SHADOW_REAR_L42, WHITEKNIGHT_SHADOW_REAR_L43, WHITEKNIGHT_SHADOW_REAR_L44, WHITEKNIGHT_SHADOW_REAR_L45, WHITEKNIGHT_SHADOW_REAR_L46, };
+
+		animationFrames["White Knight"]["REAR_LEFT"] = animationFrames["White Knight"]["REAR_RIGHT"];
+		animationFrames["Shadow White Knight"]["REAR_LEFT"] = animationFrames["Shadow White Knight"]["REAR_RIGHT"];
+
 		animationFrames["Shadow White Knight"]["STAND_FRONT"].internalList = { WHITEKNIGHT_SHADOW_STAND_F1, WHITEKNIGHT_SHADOW_STAND_F2 };
 		animationFrames["Shadow White Knight"]["STAND_RIGHT"].internalList = { WHITEKNIGHT_SHADOW_STAND_R1, WHITEKNIGHT_SHADOW_STAND_R2 };
 		animationFrames["Shadow White Knight"]["STAND_LEFT"].internalList = { WHITEKNIGHT_SHADOW_STAND_L1, WHITEKNIGHT_SHADOW_STAND_L2 };
 		animationFrames["Shadow White Knight"]["STAND_BACK"].internalList = { WHITEKNIGHT_SHADOW_STAND_B1, WHITEKNIGHT_SHADOW_STAND_B2 };
+
 		animationFrames["Shadow White Knight"]["WALK_FRONT"].internalList = { WHITEKNIGHT_SHADOW_WALK_F1, WHITEKNIGHT_SHADOW_WALK_F2, WHITEKNIGHT_SHADOW_WALK_F3, WHITEKNIGHT_SHADOW_WALK_F2 };
 		animationFrames["Shadow White Knight"]["WALK_RIGHT"].internalList = { WHITEKNIGHT_SHADOW_WALK_R1, WHITEKNIGHT_SHADOW_WALK_R2, WHITEKNIGHT_SHADOW_WALK_R3, WHITEKNIGHT_SHADOW_WALK_R2 };
 		animationFrames["Shadow White Knight"]["WALK_LEFT"].internalList = { WHITEKNIGHT_SHADOW_WALK_L1, WHITEKNIGHT_SHADOW_WALK_L2, WHITEKNIGHT_SHADOW_WALK_L3, WHITEKNIGHT_SHADOW_WALK_L2 };
 		animationFrames["Shadow White Knight"]["WALK_BACK"].internalList = { WHITEKNIGHT_SHADOW_WALK_B1, WHITEKNIGHT_SHADOW_WALK_B2, WHITEKNIGHT_SHADOW_WALK_B3, WHITEKNIGHT_SHADOW_WALK_B2 };
 		animationFrames["White Knight"]["SPEAKER"].internalList = { WHITEKNIGHT_Speaker };
 		animationFrames["William de Vaines"]["SPEAKER"].internalList = { WHITEKNIGHT_Speaker };
-		
+
 		animationFrames["EnragedVagrant"]["WALK_FRONT"].internalList = { ENRAGEDVAGRANT_8, ENRAGEDVAGRANT_9, ENRAGEDVAGRANT_10, ENRAGEDVAGRANT_9 };
-		animationFrames["Shadow EnragedVagrant"]["WALK_FRONT"].internalList = { ENRAGEDVAGRANT_3, ENRAGEDVAGRANT_4, ENRAGEDVAGRANT_5, ENRAGEDVAGRANT_4 };
+		animationFrames["Shadow EnragedVagrant"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
 
 		animationFrames["EnragedVagrant"]["STAND_FRONT"].internalList = { ENRAGEDVAGRANT_6, ENRAGEDVAGRANT_7 };
-		animationFrames["Shadow EnragedVagrant"]["STAND_FRONT"].internalList = { ENRAGEDVAGRANT_1, ENRAGEDVAGRANT_2, };
+		animationFrames["Shadow EnragedVagrant"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
 
 		animationFrames["EnragedPriest"]["WALK_FRONT"].internalList = { ENRAGEDPRIEST_8, ENRAGEDPRIEST_9, ENRAGEDPRIEST_10, ENRAGEDPRIEST_9 };
-		animationFrames["Shadow EnragedPriest"]["WALK_FRONT"].internalList = { ENRAGEDPRIEST_3, ENRAGEDPRIEST_4, ENRAGEDPRIEST_5, ENRAGEDPRIEST_4 };
+		animationFrames["Shadow EnragedPriest"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
 
 		animationFrames["EnragedPriest"]["STAND_FRONT"].internalList = { ENRAGEDPRIEST_6, ENRAGEDPRIEST_7 };
 		animationFrames["EnragedPriest"]["SPEAKER"].internalList = { ENRAGEDPRIEST_11 };
-		animationFrames["Shadow EnragedPriest"]["STAND_FRONT"].internalList = { ENRAGEDPRIEST_1, ENRAGEDPRIEST_2, };
+		animationFrames["Shadow EnragedPriest"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
 
 		animationFrames["EnragedVilomah"]["STAND_FRONT"].internalList = { ENRAGEDVILOMAH_6, ENRAGEDVILOMAH_7 };
 		animationFrames["EnragedVilomah"]["SPEAKER"].internalList = { ENRAGEDVILOMAH_11 };
-		animationFrames["Shadow EnragedVilomah"]["STAND_FRONT"].internalList = { ENRAGEDVILOMAH_1, ENRAGEDVILOMAH_2, };
+		animationFrames["Shadow EnragedVilomah"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
 		animationFrames["EnragedVilomah"]["WALK_FRONT"].internalList = { ENRAGEDVILOMAH_8, ENRAGEDVILOMAH_9, ENRAGEDVILOMAH_10, ENRAGEDVILOMAH_9 };
-		animationFrames["Shadow EnragedVilomah"]["WALK_FRONT"].internalList = { ENRAGEDVILOMAH_3, ENRAGEDVILOMAH_4, ENRAGEDVILOMAH_5, ENRAGEDVILOMAH_4 };
+		animationFrames["Shadow EnragedVilomah"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
 
 		animationFrames["EnragedMagician"]["STAND_FRONT"].internalList = { ENRAGEDMAGICIAN_6, ENRAGEDMAGICIAN_7 };
 		animationFrames["EnragedMagician"]["STAND_BACK"].internalList = { MAGICIAN_B1, MAGICIAN_B2 };
-		animationFrames["Shadow EnragedMagician"]["STAND_FRONT"].internalList = { ENRAGEDMAGICIAN_1, ENRAGEDMAGICIAN_2, };
+		animationFrames["Shadow EnragedMagician"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
 		animationFrames["EnragedMagician"]["WALK_FRONT"].internalList = { ENRAGEDMAGICIAN_8, ENRAGEDMAGICIAN_9, ENRAGEDMAGICIAN_10, ENRAGEDMAGICIAN_9 };
-		animationFrames["Shadow EnragedMagician"]["WALK_FRONT"].internalList = { ENRAGEDMAGICIAN_3, ENRAGEDMAGICIAN_4, ENRAGEDMAGICIAN_5, ENRAGEDMAGICIAN_4 };
+		animationFrames["Shadow EnragedMagician"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
 
-		animationFrames["EnragedMagician"]["DEAD_FRONT"].internalList = {ENRAGEDMAGICIANDEAD};
+		animationFrames["EnragedMagician"]["DEAD_FRONT"].internalList = { ENRAGEDMAGICIANDEAD };
 		animationFrames["EnragedPriest"]["DEAD_FRONT"].internalList = { ENRAGEDPRIESTDEAD };
 		animationFrames["EnragedVilomah"]["DEAD_FRONT"].internalList = { ENRAGEDVILOMAHDEAD };
 		animationFrames["EnragedVagrant"]["DEAD_FRONT"].internalList = { ENRAGEDVAGRANTDEAD };
 
 		animationFrames["Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_BACK"].internalList = { GIHAT_STAND_BACK_1, GIHAT_STAND_BACK_2, GIHAT_MAPACTIONFIGHT_B1, GIHAT_MAPACTIONFIGHT_B2, GIHAT_MAPACTIONFIGHT_B3 };
-		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_BACK"].internalList = { SHADOW_GIHAT_STAND_BACK_1, SHADOW_GIHAT_STAND_BACK_2, GIHAT_MAPACTIONFIGHT_SHADOW_B1, GIHAT_MAPACTIONFIGHT_SHADOW_B2, GIHAT_MAPACTIONFIGHT_SHADOW_B3 };
+		animationFrames["Shadow Gihat al-Din Jaqmaq"]["MAPACTIONFIGHT_BACK"].internalList = { BASIC_SHADOW };
 
 		animationFrames["Angela Fleuret"]["MAPACTIONFIGHT_BACK"].internalList = { ANGELA_STAND_BACK_1, ANGELA_STAND_BACK_2, ANGELA_MAPACTIONFIGHT_B1, ANGELA_MAPACTIONFIGHT_B2, ANGELA_MAPACTIONFIGHT_B3 };
-		animationFrames["Shadow Angela Fleuret"]["MAPACTIONFIGHT_BACK"].internalList = { SHADOW_ANGELA_STAND_BACK_1, SHADOW_ANGELA_STAND_BACK_2, ANGELA_MAPACTIONFIGHT_SHADOW_B1, ANGELA_MAPACTIONFIGHT_SHADOW_B2, ANGELA_MAPACTIONFIGHT_SHADOW_B3 };
+		animationFrames["Shadow Angela Fleuret"]["MAPACTIONFIGHT_BACK"].internalList = { BASIC_SHADOW };
 
 		animationFrames["Olyver Sumner"]["MAPACTIONFIGHT_BACK"].internalList = { OLYVER_STAND_BACK_1, OLYVER_STAND_BACK_2, OLYVER_MAPACTIONFIGHT_B1, OLYVER_MAPACTIONFIGHT_B2, OLYVER_MAPACTIONFIGHT_B3 };
-		animationFrames["Shadow Olyver Sumner"]["MAPACTIONFIGHT_BACK"].internalList = { SHADOW_OLYVER_STAND_BACK_1, SHADOW_OLYVER_STAND_BACK_2, OLYVER_MAPACTIONFIGHT_SHADOW_B1, OLYVER_MAPACTIONFIGHT_SHADOW_B2, OLYVER_MAPACTIONFIGHT_SHADOW_B3 };
+		animationFrames["Shadow Olyver Sumner"]["MAPACTIONFIGHT_BACK"].internalList = { BASIC_SHADOW };
 
 		animationFrames["Hernando Pizarro"]["MAPACTIONFIGHT_BACK"].internalList = { HERNANDO_STAND_BACK_1, HERNANDO_STAND_BACK_2, HERNANDO_MAPACTIONFIGHT_B1, HERNANDO_MAPACTIONFIGHT_B2, HERNANDO_MAPACTIONFIGHT_B3 };
-		animationFrames["Shadow Hernando Pizarro"]["MAPACTIONFIGHT_BACK"].internalList = { SHADOW_HERNANDO_STAND_BACK_1, SHADOW_HERNANDO_STAND_BACK_2, HERNANDO_MAPACTIONFIGHT_SHADOW_B1, HERNANDO_MAPACTIONFIGHT_SHADOW_B2, HERNANDO_MAPACTIONFIGHT_SHADOW_B3 };
+		animationFrames["Shadow Hernando Pizarro"]["MAPACTIONFIGHT_BACK"].internalList = { BASIC_SHADOW };
 
 		animationFrames["Hernando Pizarro"]["MAPACTIONSTAND_BACK"].internalList = { HERNANDO_MAPACTIONFIGHT_B3 };
-		animationFrames["Shadow Hernando Pizarro"]["MAPACTIONSTAND_BACK"].internalList = { HERNANDO_MAPACTIONFIGHT_SHADOW_B3 };
+		animationFrames["Shadow Hernando Pizarro"]["MAPACTIONSTAND_BACK"].internalList = { BASIC_SHADOW };
 
 		animationFrames["Tianshun Song"]["MAPACTIONFIGHT_BACK"].internalList = { TIANSHUN_STAND_BACK_1, TIANSHUN_STAND_BACK_2, TIANSHUN_MAPACTIONFIGHT_B1, TIANSHUN_MAPACTIONFIGHT_B2, TIANSHUN_MAPACTIONFIGHT_B3 };
-		animationFrames["Shadow Tianshun Song"]["MAPACTIONFIGHT_BACK"].internalList = { SHADOW_TIANSHUN_STAND_BACK_1, SHADOW_TIANSHUN_STAND_BACK_2, TIANSHUN_MAPACTIONFIGHT_SHADOW_B1, TIANSHUN_MAPACTIONFIGHT_SHADOW_B2, TIANSHUN_MAPACTIONFIGHT_SHADOW_B3 };
+		animationFrames["Shadow Tianshun Song"]["MAPACTIONFIGHT_BACK"].internalList = { BASIC_SHADOW };
 
-		animationFrames["SadBag"]["COMBAT_FRONT"].internalList = {SADBAG_FRONT};
+		animationFrames["SadBag"]["COMBAT_FRONT"].internalList = { SADBAG_FRONT };
 
 		animationFrames["SadBag"]["COMBAT_BACK"].internalList = { SADBAG_BACK };
 
-		animationFrames["Shadow OUDIN"]["STAND_BACK"].internalList = { OUDIN_1,OUDIN_2 };
-		animationFrames["Shadow OUDIN"]["STAND_FRONT"].internalList = { OUDIN_3,OUDIN_4 };
-		animationFrames["Shadow OUDIN"]["STAND_LEFT"].internalList = { OUDIN_5,OUDIN_6 };
-		animationFrames["Shadow OUDIN"]["STAND_RIGHT"].internalList = { OUDIN_7,OUDIN_8 };
-		animationFrames["Shadow OUDIN"]["WALK_BACK"].internalList = { OUDIN_9,OUDIN_10,OUDIN_11,OUDIN_10 };
-		animationFrames["Shadow OUDIN"]["WALK_FRONT"].internalList = { OUDIN_12,OUDIN_13,OUDIN_14,OUDIN_13 };
-		animationFrames["Shadow OUDIN"]["WALK_LEFT"].internalList = { OUDIN_15,OUDIN_16,OUDIN_17,OUDIN_16 };
-		animationFrames["Shadow OUDIN"]["WALK_RIGHT"].internalList = { OUDIN_18,OUDIN_19,OUDIN_20,OUDIN_19 };
+		animationFrames["Shadow OUDIN"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow OUDIN"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow OUDIN"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow OUDIN"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow OUDIN"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow OUDIN"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow OUDIN"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow OUDIN"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["OUDIN"]["STAND_BACK"].internalList = { OUDIN_22,OUDIN_23 };
 		animationFrames["OUDIN"]["STAND_FRONT"].internalList = { OUDIN_24,OUDIN_25 };
-		animationFrames["OUDIN"]["STAND_LEFT"].internalList = { OUDIN_26,OUDIN_27 };
 		animationFrames["OUDIN"]["STAND_RIGHT"].internalList = { OUDIN_28,OUDIN_29 };
+		animationFrames["OUDIN"]["STAND_LEFT"] = animationFrames["OUDIN"]["STAND_RIGHT"];
+
 		animationFrames["OUDIN"]["WALK_BACK"].internalList = { OUDIN_30,OUDIN_31,OUDIN_32,OUDIN_31 };
 		animationFrames["OUDIN"]["WALK_FRONT"].internalList = { OUDIN_33,OUDIN_34,OUDIN_35,OUDIN_34 };
-		animationFrames["OUDIN"]["WALK_LEFT"].internalList = { OUDIN_36,OUDIN_37,OUDIN_38,OUDIN_37 };
 		animationFrames["OUDIN"]["WALK_RIGHT"].internalList = { OUDIN_39,OUDIN_40,OUDIN_41,OUDIN_40 };
+		animationFrames["OUDIN"]["WALK_LEFT"] = animationFrames["OUDIN"]["WALK_RIGHT"];
+
 		animationFrames["OUDIN"]["SPEAKER"].internalList = { OUDIN_21 };
 		animationFrames["OUDIN"]["WAITING_BACK"].internalList = { OUDIN_WAITING_BACK_1 };
-		animationFrames["OUDIN"]["TURNING_BACK"].internalList = { OUDINTURNING_1,OUDINTURNING_2,OUDINTURNING_3,OUDINTURNING_4,OUDINTURNING_5};
+		animationFrames["OUDIN"]["TURNING_BACK"].internalList = { OUDINTURNING_1,OUDINTURNING_2,OUDINTURNING_3,OUDINTURNING_4,OUDINTURNING_5 };
 		animationFrames["Shadow OUDIN"]["DYING_FRONT"].internalList = { OUDIN_DEAD_SHADOW };
 		animationFrames["OUDIN"]["DYING_FRONT"].internalList = { OUDIN_FADEAWAY_1 };
 		animationFrames["OUDIN"]["FADEOUT_FRONT"].internalList = { OUDIN_FADEAWAY_1, OUDIN_FADEAWAY_2, OUDIN_FADEAWAY_3, OUDIN_FADEAWAY_4, OUDIN_FADEAWAY_5, OUDIN_FADEAWAY_6, OUDIN_FADEAWAY_7, OUDIN_FADEAWAY_8, OUDIN_FADEAWAY_9, OUDIN_FADEAWAY_10, OUDIN_FADEAWAY_11, OUDIN_FADEAWAY_12, OUDIN_FADEAWAY_13, OUDIN_FADEAWAY_14, OUDIN_FADEAWAY_15, OUDIN_FADEAWAY_16, OUDIN_FADEAWAY_17, OUDIN_FADEAWAY_18, OUDIN_FADEAWAY_19, OUDIN_FADEAWAY_20, OUDIN_FADEAWAY_21, OUDIN_FADEAWAY_22, OUDIN_FADEAWAY_23, OUDIN_FADEAWAY_24, OUDIN_FADEAWAY_25, OUDIN_FADEAWAY_26, OUDIN_FADEAWAY_27, OUDIN_FADEAWAY_28, OUDIN_FADEAWAY_29, OUDIN_FADEAWAY_30, };
 
-		animationFrames["Shadow Koudelka Bloodmire"]["STAND_BACK"].internalList = { KOUDELKA_1,KOUDELKA_2 };
-		animationFrames["Shadow Koudelka Bloodmire"]["STAND_FRONT"].internalList = { KOUDELKA_3,KOUDELKA_4 };
-		animationFrames["Shadow Koudelka Bloodmire"]["STAND_LEFT"].internalList = { KOUDELKA_5,KOUDELKA_6 };
-		animationFrames["Shadow Koudelka Bloodmire"]["STAND_RIGHT"].internalList = { KOUDELKA_7,KOUDELKA_8 };
-		animationFrames["Shadow Koudelka Bloodmire"]["WALK_BACK"].internalList = { KOUDELKA_9,KOUDELKA_10,KOUDELKA_11,KOUDELKA_10 };
-		animationFrames["Shadow Koudelka Bloodmire"]["WALK_FRONT"].internalList = { KOUDELKA_12,KOUDELKA_13,KOUDELKA_14,KOUDELKA_13 };
-		animationFrames["Shadow Koudelka Bloodmire"]["WALK_LEFT"].internalList = { KOUDELKA_15,KOUDELKA_16,KOUDELKA_17,KOUDELKA_16 };
-		animationFrames["Shadow Koudelka Bloodmire"]["WALK_RIGHT"].internalList = { KOUDELKA_18,KOUDELKA_19,KOUDELKA_20,KOUDELKA_19 };
+		animationFrames["Shadow Koudelka Bloodmire"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Koudelka Bloodmire"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Koudelka Bloodmire"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Koudelka Bloodmire"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Koudelka Bloodmire"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Koudelka Bloodmire"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Koudelka Bloodmire"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Koudelka Bloodmire"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["Koudelka Bloodmire"]["STAND_BACK"].internalList = { KOUDELKA_22,KOUDELKA_23 };
 		animationFrames["Koudelka Bloodmire"]["STAND_FRONT"].internalList = { KOUDELKA_24,KOUDELKA_25 };
-		animationFrames["Koudelka Bloodmire"]["STAND_LEFT"].internalList = { KOUDELKA_26,KOUDELKA_27 };
 		animationFrames["Koudelka Bloodmire"]["STAND_RIGHT"].internalList = { KOUDELKA_28,KOUDELKA_29 };
+		animationFrames["Koudelka Bloodmire"]["STAND_LEFT"] = animationFrames["Koudelka Bloodmire"]["STAND_RIGHT"];
 		animationFrames["Koudelka Bloodmire"]["WALK_BACK"].internalList = { KOUDELKA_30,KOUDELKA_31,KOUDELKA_32,KOUDELKA_31 };
 		animationFrames["Koudelka Bloodmire"]["WALK_FRONT"].internalList = { KOUDELKA_33,KOUDELKA_34,KOUDELKA_35,KOUDELKA_34 };
-		animationFrames["Koudelka Bloodmire"]["WALK_LEFT"].internalList = { KOUDELKA_36,KOUDELKA_37,KOUDELKA_38,KOUDELKA_37 };
 		animationFrames["Koudelka Bloodmire"]["WALK_RIGHT"].internalList = { KOUDELKA_39,KOUDELKA_40,KOUDELKA_41,KOUDELKA_40 };
+		animationFrames["Koudelka Bloodmire"]["WALK_LEFT"] = animationFrames["Koudelka Bloodmire"]["WALK_RIGHT"];
 		animationFrames["Koudelka Bloodmire"]["SPEAKER"].internalList = { KOUDELKA_21 };
 		animationFrames["Koudelka Bloodmire"]["CARD"].internalList = { CARD_KOUDELKA };
 		animationFrames["Koudelka Bloodmire"]["CARD_SELECTED"].internalList = { CARD_KOUDELKA_SELECTED };
 
-		animationFrames["Shadow Adriana Aragon"]["STAND_BACK"].internalList = { ADRIANA_1,ADRIANA_2 };
-		animationFrames["Shadow Adriana Aragon"]["STAND_FRONT"].internalList = { ADRIANA_3,ADRIANA_4 };
-		animationFrames["Shadow Adriana Aragon"]["STAND_LEFT"].internalList = { ADRIANA_5,ADRIANA_6 };
-		animationFrames["Shadow Adriana Aragon"]["STAND_RIGHT"].internalList = { ADRIANA_7,ADRIANA_8 };
-		animationFrames["Shadow Adriana Aragon"]["WALK_BACK"].internalList = { ADRIANA_9,ADRIANA_10,ADRIANA_11,ADRIANA_10 };
-		animationFrames["Shadow Adriana Aragon"]["WALK_FRONT"].internalList = { ADRIANA_12,ADRIANA_13,ADRIANA_14,ADRIANA_13 };
-		animationFrames["Shadow Adriana Aragon"]["WALK_LEFT"].internalList = { ADRIANA_15,ADRIANA_16,ADRIANA_17,ADRIANA_16 };
-		animationFrames["Shadow Adriana Aragon"]["WALK_RIGHT"].internalList = { ADRIANA_18,ADRIANA_19,ADRIANA_20,ADRIANA_19 };
+		animationFrames["Shadow Adriana Aragon"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Adriana Aragon"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Adriana Aragon"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Adriana Aragon"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Adriana Aragon"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Adriana Aragon"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Adriana Aragon"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Adriana Aragon"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["Adriana Aragon"]["STAND_BACK"].internalList = { ADRIANA_22,ADRIANA_23 };
 		animationFrames["Adriana Aragon"]["STAND_FRONT"].internalList = { ADRIANA_24,ADRIANA_25 };
-		animationFrames["Adriana Aragon"]["STAND_LEFT"].internalList = { ADRIANA_26,ADRIANA_27 };
 		animationFrames["Adriana Aragon"]["STAND_RIGHT"].internalList = { ADRIANA_28,ADRIANA_29 };
+		animationFrames["Adriana Aragon"]["STAND_LEFT"] = animationFrames["Adriana Aragon"]["STAND_RIGHT"];
 		animationFrames["Adriana Aragon"]["WALK_BACK"].internalList = { ADRIANA_30,ADRIANA_31,ADRIANA_32,ADRIANA_31 };
 		animationFrames["Adriana Aragon"]["WALK_FRONT"].internalList = { ADRIANA_33,ADRIANA_34,ADRIANA_35,ADRIANA_34 };
-		animationFrames["Adriana Aragon"]["WALK_LEFT"].internalList = { ADRIANA_36,ADRIANA_37,ADRIANA_38,ADRIANA_37 };
 		animationFrames["Adriana Aragon"]["WALK_RIGHT"].internalList = { ADRIANA_39,ADRIANA_40,ADRIANA_41,ADRIANA_40 };
+		animationFrames["Adriana Aragon"]["WALK_LEFT"] = animationFrames["Adriana Aragon"]["WALK_RIGHT"];
 		animationFrames["Adriana Aragon"]["SPEAKER"].internalList = { ADRIANA_21 };
 		animationFrames["Adriana Aragon"]["CARD"].internalList = { CARD_ADRIANA };
 		animationFrames["Adriana Aragon"]["CARD_SELECTED"].internalList = { CARD_ADRIANA_SELECTED };
 
-		animationFrames["Shadow Stacia Silver"]["STAND_BACK"].internalList = { STACIA_1,STACIA_2 };
-		animationFrames["Shadow Stacia Silver"]["STAND_FRONT"].internalList = { STACIA_3,STACIA_4 };
-		animationFrames["Shadow Stacia Silver"]["STAND_LEFT"].internalList = { STACIA_5,STACIA_6 };
-		animationFrames["Shadow Stacia Silver"]["STAND_RIGHT"].internalList = { STACIA_7,STACIA_8 };
-		animationFrames["Shadow Stacia Silver"]["WALK_BACK"].internalList = { STACIA_9,STACIA_10,STACIA_11,STACIA_10 };
-		animationFrames["Shadow Stacia Silver"]["WALK_FRONT"].internalList = { STACIA_12,STACIA_13,STACIA_14,STACIA_13 };
-		animationFrames["Shadow Stacia Silver"]["WALK_LEFT"].internalList = { STACIA_15,STACIA_16,STACIA_17,STACIA_16 };
-		animationFrames["Shadow Stacia Silver"]["WALK_RIGHT"].internalList = { STACIA_18,STACIA_19,STACIA_20,STACIA_19 };
+		animationFrames["Shadow Stacia Silver"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Stacia Silver"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Stacia Silver"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Stacia Silver"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Stacia Silver"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Stacia Silver"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Stacia Silver"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Stacia Silver"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["Stacia Silver"]["STAND_BACK"].internalList = { STACIA_22,STACIA_23 };
 		animationFrames["Stacia Silver"]["STAND_FRONT"].internalList = { STACIA_24,STACIA_25 };
-		animationFrames["Stacia Silver"]["STAND_LEFT"].internalList = { STACIA_26,STACIA_27 };
 		animationFrames["Stacia Silver"]["STAND_RIGHT"].internalList = { STACIA_28,STACIA_29 };
+		animationFrames["Stacia Silver"]["STAND_LEFT"] = animationFrames["Stacia Silver"]["STAND_RIGHT"];
 		animationFrames["Stacia Silver"]["WALK_BACK"].internalList = { STACIA_30,STACIA_31,STACIA_32,STACIA_31 };
 		animationFrames["Stacia Silver"]["WALK_FRONT"].internalList = { STACIA_33,STACIA_34,STACIA_35,STACIA_34 };
-		animationFrames["Stacia Silver"]["WALK_LEFT"].internalList = { STACIA_36,STACIA_37,STACIA_38,STACIA_37 };
 		animationFrames["Stacia Silver"]["WALK_RIGHT"].internalList = { STACIA_39,STACIA_40,STACIA_41,STACIA_40 };
+		animationFrames["Stacia Silver"]["WALK_LEFT"] = animationFrames["Stacia Silver"]["WALK_RIGHT"];
 		animationFrames["Stacia Silver"]["SPEAKER"].internalList = { STACIA_21 };
 		animationFrames["Stacia Silver"]["CARD"].internalList = { CARD_STACIA };
 		animationFrames["Stacia Silver"]["CARD_SELECTED"].internalList = { CARD_STACIA_SELECTED };
 
-		animationFrames["Shadow Tifa Kurosawa"]["STAND_BACK"].internalList = { TIFA_1,TIFA_2 };
-		animationFrames["Shadow Tifa Kurosawa"]["STAND_FRONT"].internalList = { TIFA_3,TIFA_4 };
-		animationFrames["Shadow Tifa Kurosawa"]["STAND_LEFT"].internalList = { TIFA_5,TIFA_6 };
-		animationFrames["Shadow Tifa Kurosawa"]["STAND_RIGHT"].internalList = { TIFA_7,TIFA_8 };
-		animationFrames["Shadow Tifa Kurosawa"]["WALK_BACK"].internalList = { TIFA_9,TIFA_10,TIFA_11,TIFA_10 };
-		animationFrames["Shadow Tifa Kurosawa"]["WALK_FRONT"].internalList = { TIFA_12,TIFA_13,TIFA_14,TIFA_13 };
-		animationFrames["Shadow Tifa Kurosawa"]["WALK_LEFT"].internalList = { TIFA_15,TIFA_16,TIFA_17,TIFA_16 };
-		animationFrames["Shadow Tifa Kurosawa"]["WALK_RIGHT"].internalList = { TIFA_18,TIFA_19,TIFA_20,TIFA_19 };
+		animationFrames["Shadow Tifa Kurosawa"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Tifa Kurosawa"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Tifa Kurosawa"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Tifa Kurosawa"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Tifa Kurosawa"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Tifa Kurosawa"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Tifa Kurosawa"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Tifa Kurosawa"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["Tifa Kurosawa"]["STAND_BACK"].internalList = { TIFA_22,TIFA_23 };
 		animationFrames["Tifa Kurosawa"]["STAND_FRONT"].internalList = { TIFA_24,TIFA_25 };
-		animationFrames["Tifa Kurosawa"]["STAND_LEFT"].internalList = { TIFA_26,TIFA_27 };
 		animationFrames["Tifa Kurosawa"]["STAND_RIGHT"].internalList = { TIFA_28,TIFA_29 };
+		animationFrames["Tifa Kurosawa"]["STAND_LEFT"] = animationFrames["Tifa Kurosawa"]["STAND_RIGHT"];
 		animationFrames["Tifa Kurosawa"]["WALK_BACK"].internalList = { TIFA_30,TIFA_31,TIFA_32,TIFA_31 };
 		animationFrames["Tifa Kurosawa"]["WALK_FRONT"].internalList = { TIFA_33,TIFA_34,TIFA_35,TIFA_34 };
-		animationFrames["Tifa Kurosawa"]["WALK_LEFT"].internalList = { TIFA_36,TIFA_37,TIFA_38,TIFA_37 };
 		animationFrames["Tifa Kurosawa"]["WALK_RIGHT"].internalList = { TIFA_39,TIFA_40,TIFA_41,TIFA_40 };
+		animationFrames["Tifa Kurosawa"]["WALK_LEFT"] = animationFrames["Tifa Kurosawa"]["WALK_RIGHT"];
 		animationFrames["Tifa Kurosawa"]["SPEAKER"].internalList = { TIFA_21 };
 		animationFrames["Tifa Kurosawa"]["CARD"].internalList = { CARD_TIFA };
 		animationFrames["Tifa Kurosawa"]["CARD_SELECTED"].internalList = { CARD_TIFA_SELECTED };
 
-		animationFrames["Shadow AngelaYounger"]["STAND_BACK"].internalList = { ANGELAYOUNGER_1,ANGELAYOUNGER_2 };
-		animationFrames["Shadow AngelaYounger"]["STAND_FRONT"].internalList = { ANGELAYOUNGER_3,ANGELAYOUNGER_4 };
-		animationFrames["Shadow AngelaYounger"]["STAND_LEFT"].internalList = { ANGELAYOUNGER_5,ANGELAYOUNGER_6 };
-		animationFrames["Shadow AngelaYounger"]["STAND_RIGHT"].internalList = { ANGELAYOUNGER_7,ANGELAYOUNGER_8 };
-		animationFrames["Shadow AngelaYounger"]["WALK_BACK"].internalList = { ANGELAYOUNGER_9,ANGELAYOUNGER_10,ANGELAYOUNGER_11,ANGELAYOUNGER_10 };
-		animationFrames["Shadow AngelaYounger"]["WALK_FRONT"].internalList = { ANGELAYOUNGER_12,ANGELAYOUNGER_13,ANGELAYOUNGER_14,ANGELAYOUNGER_13 };
-		animationFrames["Shadow AngelaYounger"]["WALK_LEFT"].internalList = { ANGELAYOUNGER_15,ANGELAYOUNGER_16,ANGELAYOUNGER_17,ANGELAYOUNGER_16 };
-		animationFrames["Shadow AngelaYounger"]["WALK_RIGHT"].internalList = { ANGELAYOUNGER_18,ANGELAYOUNGER_19,ANGELAYOUNGER_20,ANGELAYOUNGER_19 };
+		animationFrames["Shadow AngelaYounger"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow AngelaYounger"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow AngelaYounger"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow AngelaYounger"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow AngelaYounger"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow AngelaYounger"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow AngelaYounger"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow AngelaYounger"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["AngelaYounger"]["STAND_BACK"].internalList = { ANGELAYOUNGER_22,ANGELAYOUNGER_23 };
 		animationFrames["AngelaYounger"]["STAND_FRONT"].internalList = { ANGELAYOUNGER_24,ANGELAYOUNGER_25 };
-		animationFrames["AngelaYounger"]["STAND_LEFT"].internalList = { ANGELAYOUNGER_26,ANGELAYOUNGER_27 };
 		animationFrames["AngelaYounger"]["STAND_RIGHT"].internalList = { ANGELAYOUNGER_28,ANGELAYOUNGER_29 };
+		animationFrames["AngelaYounger"]["STAND_LEFT"] = animationFrames["AngelaYounger"]["STAND_RIGHT"];
 		animationFrames["AngelaYounger"]["WALK_BACK"].internalList = { ANGELAYOUNGER_30,ANGELAYOUNGER_31,ANGELAYOUNGER_32,ANGELAYOUNGER_31 };
 		animationFrames["AngelaYounger"]["WALK_FRONT"].internalList = { ANGELAYOUNGER_33,ANGELAYOUNGER_34,ANGELAYOUNGER_35,ANGELAYOUNGER_34 };
-		animationFrames["AngelaYounger"]["WALK_LEFT"].internalList = { ANGELAYOUNGER_36,ANGELAYOUNGER_37,ANGELAYOUNGER_38,ANGELAYOUNGER_37 };
 		animationFrames["AngelaYounger"]["WALK_RIGHT"].internalList = { ANGELAYOUNGER_39,ANGELAYOUNGER_40,ANGELAYOUNGER_41,ANGELAYOUNGER_40 };
+		animationFrames["AngelaYounger"]["WALK_LEFT"] = animationFrames["AngelaYounger"]["WALK_RIGHT"];
 		animationFrames["AngelaYounger"]["SPEAKER"].internalList = { ANGELAYOUNGER_21 };
 
-		animationFrames["Shadow EnglishSoldier"]["STAND_BACK"].internalList = { ENGLISHSOLDIER_1,ENGLISHSOLDIER_2 };
-		animationFrames["Shadow EnglishSoldier"]["STAND_FRONT"].internalList = { ENGLISHSOLDIER_3,ENGLISHSOLDIER_4 };
-		animationFrames["Shadow EnglishSoldier"]["STAND_LEFT"].internalList = { ENGLISHSOLDIER_5,ENGLISHSOLDIER_6 };
-		animationFrames["Shadow EnglishSoldier"]["STAND_RIGHT"].internalList = { ENGLISHSOLDIER_7,ENGLISHSOLDIER_8 };
-		animationFrames["Shadow EnglishSoldier"]["WALK_BACK"].internalList = { ENGLISHSOLDIER_9,ENGLISHSOLDIER_10,ENGLISHSOLDIER_11,ENGLISHSOLDIER_10 };
-		animationFrames["Shadow EnglishSoldier"]["WALK_FRONT"].internalList = { ENGLISHSOLDIER_12,ENGLISHSOLDIER_13,ENGLISHSOLDIER_14,ENGLISHSOLDIER_13 };
-		animationFrames["Shadow EnglishSoldier"]["WALK_LEFT"].internalList = { ENGLISHSOLDIER_15,ENGLISHSOLDIER_16,ENGLISHSOLDIER_17,ENGLISHSOLDIER_16 };
-		animationFrames["Shadow EnglishSoldier"]["WALK_RIGHT"].internalList = { ENGLISHSOLDIER_18,ENGLISHSOLDIER_19,ENGLISHSOLDIER_20,ENGLISHSOLDIER_19 };
+		animationFrames["Shadow EnglishSoldier"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnglishSoldier"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnglishSoldier"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnglishSoldier"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnglishSoldier"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnglishSoldier"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnglishSoldier"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnglishSoldier"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["EnglishSoldier"]["STAND_BACK"].internalList = { ENGLISHSOLDIER_22,ENGLISHSOLDIER_23 };
 		animationFrames["EnglishSoldier"]["STAND_FRONT"].internalList = { ENGLISHSOLDIER_24,ENGLISHSOLDIER_25 };
-		animationFrames["EnglishSoldier"]["STAND_LEFT"].internalList = { ENGLISHSOLDIER_26,ENGLISHSOLDIER_27 };
 		animationFrames["EnglishSoldier"]["STAND_RIGHT"].internalList = { ENGLISHSOLDIER_28,ENGLISHSOLDIER_29 };
+		animationFrames["EnglishSoldier"]["STAND_LEFT"] = animationFrames["EnglishSoldier"]["STAND_RIGHT"];
 		animationFrames["EnglishSoldier"]["WALK_BACK"].internalList = { ENGLISHSOLDIER_30,ENGLISHSOLDIER_31,ENGLISHSOLDIER_32,ENGLISHSOLDIER_31 };
 		animationFrames["EnglishSoldier"]["WALK_FRONT"].internalList = { ENGLISHSOLDIER_33,ENGLISHSOLDIER_34,ENGLISHSOLDIER_35,ENGLISHSOLDIER_34 };
-		animationFrames["EnglishSoldier"]["WALK_LEFT"].internalList = { ENGLISHSOLDIER_36,ENGLISHSOLDIER_37,ENGLISHSOLDIER_38,ENGLISHSOLDIER_37 };
 		animationFrames["EnglishSoldier"]["WALK_RIGHT"].internalList = { ENGLISHSOLDIER_39,ENGLISHSOLDIER_40,ENGLISHSOLDIER_41,ENGLISHSOLDIER_40 };
+		animationFrames["EnglishSoldier"]["WALK_LEFT"] = animationFrames["EnglishSoldier"]["WALK_RIGHT"];
 		animationFrames["EnglishSoldier"]["SPEAKER"].internalList = { ENGLISHSOLDIER_21 };
 
-		animationFrames["Shadow TianshunMother"]["STAND_BACK"].internalList = { TIANSHUNMOTHER_1,TIANSHUNMOTHER_2 };
-		animationFrames["Shadow TianshunMother"]["STAND_FRONT"].internalList = { TIANSHUNMOTHER_3,TIANSHUNMOTHER_4 };
-		animationFrames["Shadow TianshunMother"]["STAND_LEFT"].internalList = { TIANSHUNMOTHER_5,TIANSHUNMOTHER_6 };
-		animationFrames["Shadow TianshunMother"]["STAND_RIGHT"].internalList = { TIANSHUNMOTHER_7,TIANSHUNMOTHER_8 };
-		animationFrames["Shadow TianshunMother"]["WALK_BACK"].internalList = { TIANSHUNMOTHER_9,TIANSHUNMOTHER_10,TIANSHUNMOTHER_11,TIANSHUNMOTHER_10 };
-		animationFrames["Shadow TianshunMother"]["WALK_FRONT"].internalList = { TIANSHUNMOTHER_12,TIANSHUNMOTHER_13,TIANSHUNMOTHER_14,TIANSHUNMOTHER_13 };
-		animationFrames["Shadow TianshunMother"]["WALK_LEFT"].internalList = { TIANSHUNMOTHER_15,TIANSHUNMOTHER_16,TIANSHUNMOTHER_17,TIANSHUNMOTHER_16 };
-		animationFrames["Shadow TianshunMother"]["WALK_RIGHT"].internalList = { TIANSHUNMOTHER_18,TIANSHUNMOTHER_19,TIANSHUNMOTHER_20,TIANSHUNMOTHER_19 };
+		animationFrames["Shadow TianshunMother"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow TianshunMother"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow TianshunMother"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow TianshunMother"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow TianshunMother"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow TianshunMother"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow TianshunMother"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow TianshunMother"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["TianshunMother"]["STAND_BACK"].internalList = { TIANSHUNMOTHER_22,TIANSHUNMOTHER_23 };
 		animationFrames["TianshunMother"]["STAND_FRONT"].internalList = { TIANSHUNMOTHER_24,TIANSHUNMOTHER_25 };
-		animationFrames["TianshunMother"]["STAND_LEFT"].internalList = { TIANSHUNMOTHER_26,TIANSHUNMOTHER_27 };
 		animationFrames["TianshunMother"]["STAND_RIGHT"].internalList = { TIANSHUNMOTHER_28,TIANSHUNMOTHER_29 };
+		animationFrames["TianshunMother"]["STAND_LEFT"] = animationFrames["TianshunMother"]["STAND_RIGHT"];
 		animationFrames["TianshunMother"]["WALK_BACK"].internalList = { TIANSHUNMOTHER_30,TIANSHUNMOTHER_31,TIANSHUNMOTHER_32,TIANSHUNMOTHER_31 };
 		animationFrames["TianshunMother"]["WALK_FRONT"].internalList = { TIANSHUNMOTHER_33,TIANSHUNMOTHER_34,TIANSHUNMOTHER_35,TIANSHUNMOTHER_34 };
-		animationFrames["TianshunMother"]["WALK_LEFT"].internalList = { TIANSHUNMOTHER_36,TIANSHUNMOTHER_37,TIANSHUNMOTHER_38,TIANSHUNMOTHER_37 };
 		animationFrames["TianshunMother"]["WALK_RIGHT"].internalList = { TIANSHUNMOTHER_39,TIANSHUNMOTHER_40,TIANSHUNMOTHER_41,TIANSHUNMOTHER_40 };
+		animationFrames["TianshunMother"]["WALK_LEFT"] = animationFrames["TianshunMother"]["WALK_RIGHT"];
 		animationFrames["TianshunMother"]["SPEAKER"].internalList = { TIANSHUNMOTHER_21 };
 
-		animationFrames["Shadow Fernando"]["STAND_BACK"].internalList = { FERNANDO_1,FERNANDO_2 };
-		animationFrames["Shadow Fernando"]["STAND_FRONT"].internalList = { FERNANDO_3,FERNANDO_4 };
-		animationFrames["Shadow Fernando"]["STAND_LEFT"].internalList = { FERNANDO_5,FERNANDO_6 };
-		animationFrames["Shadow Fernando"]["STAND_RIGHT"].internalList = { FERNANDO_7,FERNANDO_8 };
-		animationFrames["Shadow Fernando"]["WALK_BACK"].internalList = { FERNANDO_9,FERNANDO_10,FERNANDO_11,FERNANDO_10 };
-		animationFrames["Shadow Fernando"]["WALK_FRONT"].internalList = { FERNANDO_12,FERNANDO_13,FERNANDO_14,FERNANDO_13 };
-		animationFrames["Shadow Fernando"]["WALK_LEFT"].internalList = { FERNANDO_15,FERNANDO_16,FERNANDO_17,FERNANDO_16 };
-		animationFrames["Shadow Fernando"]["WALK_RIGHT"].internalList = { FERNANDO_18,FERNANDO_19,FERNANDO_20,FERNANDO_19 };
+		animationFrames["Shadow Fernando"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Fernando"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Fernando"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Fernando"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Fernando"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Fernando"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Fernando"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Fernando"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["Fernando"]["STAND_BACK"].internalList = { FERNANDO_22,FERNANDO_23 };
 		animationFrames["Fernando"]["STAND_FRONT"].internalList = { FERNANDO_24,FERNANDO_25 };
-		animationFrames["Fernando"]["STAND_LEFT"].internalList = { FERNANDO_26,FERNANDO_27 };
 		animationFrames["Fernando"]["STAND_RIGHT"].internalList = { FERNANDO_28,FERNANDO_29 };
+		animationFrames["Fernando"]["STAND_LEFT"] = animationFrames["Fernando"]["STAND_RIGHT"];
 		animationFrames["Fernando"]["WALK_BACK"].internalList = { FERNANDO_30,FERNANDO_31,FERNANDO_32,FERNANDO_31 };
 		animationFrames["Fernando"]["WALK_FRONT"].internalList = { FERNANDO_33,FERNANDO_34,FERNANDO_35,FERNANDO_34 };
-		animationFrames["Fernando"]["WALK_LEFT"].internalList = { FERNANDO_36,FERNANDO_37,FERNANDO_38,FERNANDO_37 };
 		animationFrames["Fernando"]["WALK_RIGHT"].internalList = { FERNANDO_39,FERNANDO_40,FERNANDO_41,FERNANDO_40 };
+		animationFrames["Fernando"]["WALK_LEFT"] = animationFrames["Fernando"]["WALK_RIGHT"];
 		animationFrames["Fernando"]["SPEAKER"].internalList = { FERNANDO_21 };
 
-		animationFrames["Shadow Envoy"]["STAND_BACK"].internalList = { ENVOY_1,ENVOY_2 };
-		animationFrames["Shadow Envoy"]["STAND_FRONT"].internalList = { ENVOY_3,ENVOY_4 };
-		animationFrames["Shadow Envoy"]["STAND_LEFT"].internalList = { ENVOY_5,ENVOY_6 };
-		animationFrames["Shadow Envoy"]["STAND_RIGHT"].internalList = { ENVOY_7,ENVOY_8 };
-		animationFrames["Shadow Envoy"]["WALK_BACK"].internalList = { ENVOY_9,ENVOY_10,ENVOY_11,ENVOY_10 };
-		animationFrames["Shadow Envoy"]["WALK_FRONT"].internalList = { ENVOY_12,ENVOY_13,ENVOY_14,ENVOY_13 };
-		animationFrames["Shadow Envoy"]["WALK_LEFT"].internalList = { ENVOY_15,ENVOY_16,ENVOY_17,ENVOY_16 };
-		animationFrames["Shadow Envoy"]["WALK_RIGHT"].internalList = { ENVOY_18,ENVOY_19,ENVOY_20,ENVOY_19 };
+		animationFrames["Shadow Envoy"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Envoy"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Envoy"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Envoy"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Envoy"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Envoy"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Envoy"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Envoy"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["Envoy"]["STAND_BACK"].internalList = { ENVOY_22,ENVOY_23 };
 		animationFrames["Envoy"]["STAND_FRONT"].internalList = { ENVOY_24,ENVOY_25 };
-		animationFrames["Envoy"]["STAND_LEFT"].internalList = { ENVOY_26,ENVOY_27 };
 		animationFrames["Envoy"]["STAND_RIGHT"].internalList = { ENVOY_28,ENVOY_29 };
+		animationFrames["Envoy"]["STAND_LEFT"] = animationFrames["Envoy"]["STAND_RIGHT"];
 		animationFrames["Envoy"]["WALK_BACK"].internalList = { ENVOY_30,ENVOY_31,ENVOY_32,ENVOY_31 };
 		animationFrames["Envoy"]["WALK_FRONT"].internalList = { ENVOY_33,ENVOY_34,ENVOY_35,ENVOY_34 };
-		animationFrames["Envoy"]["WALK_LEFT"].internalList = { ENVOY_36,ENVOY_37,ENVOY_38,ENVOY_37 };
 		animationFrames["Envoy"]["WALK_RIGHT"].internalList = { ENVOY_39,ENVOY_40,ENVOY_41,ENVOY_40 };
+		animationFrames["Envoy"]["WALK_LEFT"] = animationFrames["Envoy"]["WALK_RIGHT"];
 		animationFrames["Envoy"]["SPEAKER"].internalList = { ENVOY_21 };
 
 		animationFrames["AngelaMeltingFace"]["SPEAKER"].internalList = { ANGELAMELTINGFACE };
 		animationFrames["TianshunMotherMeltingFace"]["SPEAKER"].internalList = { TIANSHUNMOTHERMELTINGFACE };
 		animationFrames["EnglishSoldierMeltingFace"]["SPEAKER"].internalList = { ENGLISHSOLDIERMELTINGFACE };
 		animationFrames["EnvoyMeltingFace"]["SPEAKER"].internalList = { ENVOYMELTINGFACE };
-		animationFrames["FernandoMeltingFace"]["SPEAKER"].internalList = {FERNANDOMELTINGFACE };
+		animationFrames["FernandoMeltingFace"]["SPEAKER"].internalList = { FERNANDOMELTINGFACE };
 
-		animationFrames["Shadow MongolianSoldier"]["STAND_BACK"].internalList = { MONGOLIANSOLDIER_1,MONGOLIANSOLDIER_2 };
-		animationFrames["Shadow MongolianSoldier"]["STAND_FRONT"].internalList = { MONGOLIANSOLDIER_3,MONGOLIANSOLDIER_4 };
-		animationFrames["Shadow MongolianSoldier"]["STAND_LEFT"].internalList = { MONGOLIANSOLDIER_5,MONGOLIANSOLDIER_6 };
-		animationFrames["Shadow MongolianSoldier"]["STAND_RIGHT"].internalList = { MONGOLIANSOLDIER_7,MONGOLIANSOLDIER_8 };
-		animationFrames["Shadow MongolianSoldier"]["WALK_BACK"].internalList = { MONGOLIANSOLDIER_9,MONGOLIANSOLDIER_10,MONGOLIANSOLDIER_11,MONGOLIANSOLDIER_10 };
-		animationFrames["Shadow MongolianSoldier"]["WALK_FRONT"].internalList = { MONGOLIANSOLDIER_12,MONGOLIANSOLDIER_13,MONGOLIANSOLDIER_14,MONGOLIANSOLDIER_13 };
-		animationFrames["Shadow MongolianSoldier"]["WALK_LEFT"].internalList = { MONGOLIANSOLDIER_15,MONGOLIANSOLDIER_16,MONGOLIANSOLDIER_17,MONGOLIANSOLDIER_16 };
-		animationFrames["Shadow MongolianSoldier"]["WALK_RIGHT"].internalList = { MONGOLIANSOLDIER_18,MONGOLIANSOLDIER_19,MONGOLIANSOLDIER_20,MONGOLIANSOLDIER_19 };
+		animationFrames["Shadow MongolianSoldier"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow MongolianSoldier"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow MongolianSoldier"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow MongolianSoldier"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow MongolianSoldier"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow MongolianSoldier"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow MongolianSoldier"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow MongolianSoldier"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["MongolianSoldier"]["STAND_BACK"].internalList = { MONGOLIANSOLDIER_22,MONGOLIANSOLDIER_23 };
 		animationFrames["MongolianSoldier"]["STAND_FRONT"].internalList = { MONGOLIANSOLDIER_24,MONGOLIANSOLDIER_25 };
-		animationFrames["MongolianSoldier"]["STAND_LEFT"].internalList = { MONGOLIANSOLDIER_26,MONGOLIANSOLDIER_27 };
 		animationFrames["MongolianSoldier"]["STAND_RIGHT"].internalList = { MONGOLIANSOLDIER_28,MONGOLIANSOLDIER_29 };
+		animationFrames["MongolianSoldier"]["STAND_LEFT"] = animationFrames["MongolianSoldier"]["STAND_RIGHT"];
 		animationFrames["MongolianSoldier"]["WALK_BACK"].internalList = { MONGOLIANSOLDIER_30,MONGOLIANSOLDIER_31,MONGOLIANSOLDIER_32,MONGOLIANSOLDIER_31 };
 		animationFrames["MongolianSoldier"]["WALK_FRONT"].internalList = { MONGOLIANSOLDIER_33,MONGOLIANSOLDIER_34,MONGOLIANSOLDIER_35,MONGOLIANSOLDIER_34 };
-		animationFrames["MongolianSoldier"]["WALK_LEFT"].internalList = { MONGOLIANSOLDIER_36,MONGOLIANSOLDIER_37,MONGOLIANSOLDIER_38,MONGOLIANSOLDIER_37 };
 		animationFrames["MongolianSoldier"]["WALK_RIGHT"].internalList = { MONGOLIANSOLDIER_39,MONGOLIANSOLDIER_40,MONGOLIANSOLDIER_41,MONGOLIANSOLDIER_40 };
+		animationFrames["MongolianSoldier"]["WALK_LEFT"] = animationFrames["MongolianSoldier"]["WALK_RIGHT"];
 		animationFrames["MongolianSoldier"]["SPEAKER"].internalList = { MONGOLIANSOLDIER_21 };
 
 		animationFrames["Peuerbach"]["STAND_FRONT"].internalList = { PEUERBACH_1 ,PEUERBACH_2 };
 		animationFrames["Peuerbach"]["SPEAKER"].internalList = { PEUERBACH_SPEAKER };
 
-		animationFrames["Shadow PalaceVisitor"]["STAND_BACK"].internalList = { ENVOY_1,ENVOY_2 };
-		animationFrames["Shadow PalaceVisitor"]["STAND_FRONT"].internalList = { ENVOY_3,ENVOY_4 };
-		animationFrames["Shadow PalaceVisitor"]["STAND_LEFT"].internalList = { ENVOY_5,ENVOY_6 };
-		animationFrames["Shadow PalaceVisitor"]["STAND_RIGHT"].internalList = { ENVOY_7,ENVOY_8 };
-		animationFrames["Shadow PalaceVisitor"]["WALK_BACK"].internalList = { ENVOY_9,ENVOY_10,ENVOY_11,ENVOY_10 };
-		animationFrames["Shadow PalaceVisitor"]["WALK_FRONT"].internalList = { ENVOY_12,ENVOY_13,ENVOY_14,ENVOY_13 };
-		animationFrames["Shadow PalaceVisitor"]["WALK_LEFT"].internalList = { ENVOY_15,ENVOY_16,ENVOY_17,ENVOY_16 };
-		animationFrames["Shadow PalaceVisitor"]["WALK_RIGHT"].internalList = { ENVOY_18,ENVOY_19,ENVOY_20,ENVOY_19 };
+		animationFrames["Shadow PalaceVisitor"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow PalaceVisitor"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow PalaceVisitor"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow PalaceVisitor"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow PalaceVisitor"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow PalaceVisitor"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow PalaceVisitor"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow PalaceVisitor"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["PalaceVisitor"]["STAND_BACK"].internalList = { PALACEVISITOR_22,PALACEVISITOR_23 };
 		animationFrames["PalaceVisitor"]["STAND_FRONT"].internalList = { PALACEVISITOR_24,PALACEVISITOR_25 };
-		animationFrames["PalaceVisitor"]["STAND_LEFT"].internalList = { PALACEVISITOR_26,PALACEVISITOR_27 };
 		animationFrames["PalaceVisitor"]["STAND_RIGHT"].internalList = { PALACEVISITOR_28,PALACEVISITOR_29 };
+		animationFrames["PalaceVisitor"]["STAND_LEFT"] = animationFrames["PalaceVisitor"]["STAND_RIGHT"];
 		animationFrames["PalaceVisitor"]["WALK_BACK"].internalList = { PALACEVISITOR_30,PALACEVISITOR_31,PALACEVISITOR_32,PALACEVISITOR_31 };
 		animationFrames["PalaceVisitor"]["WALK_FRONT"].internalList = { PALACEVISITOR_33,PALACEVISITOR_34,PALACEVISITOR_35,PALACEVISITOR_34 };
-		animationFrames["PalaceVisitor"]["WALK_LEFT"].internalList = { PALACEVISITOR_36,PALACEVISITOR_37,PALACEVISITOR_38,PALACEVISITOR_37 };
 		animationFrames["PalaceVisitor"]["WALK_RIGHT"].internalList = { PALACEVISITOR_39,PALACEVISITOR_40,PALACEVISITOR_41,PALACEVISITOR_40 };
+		animationFrames["PalaceVisitor"]["WALK_LEFT"] = animationFrames["PalaceVisitor"]["WALK_RIGHT"];
 		animationFrames["PalaceVisitor"]["SPEAKER"].internalList = { PALACEVISITOR_21 };
 
-		animationFrames["Shadow Fatma"]["STAND_BACK"].internalList = { FATMA_1,FATMA_2 };
-		animationFrames["Shadow Fatma"]["STAND_FRONT"].internalList = { FATMA_3,FATMA_4 };
-		animationFrames["Shadow Fatma"]["STAND_LEFT"].internalList = { FATMA_5,FATMA_6 };
-		animationFrames["Shadow Fatma"]["STAND_RIGHT"].internalList = { FATMA_7,FATMA_8 };
-		animationFrames["Shadow Fatma"]["WALK_BACK"].internalList = { FATMA_9,FATMA_10,FATMA_11,FATMA_10 };
-		animationFrames["Shadow Fatma"]["WALK_FRONT"].internalList = { FATMA_12,FATMA_13,FATMA_14,FATMA_13 };
-		animationFrames["Shadow Fatma"]["WALK_LEFT"].internalList = { FATMA_15,FATMA_16,FATMA_17,FATMA_16 };
-		animationFrames["Shadow Fatma"]["WALK_RIGHT"].internalList = { FATMA_18,FATMA_19,FATMA_20,FATMA_19 };
+		animationFrames["Shadow Fatma"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Fatma"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Fatma"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Fatma"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Fatma"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Fatma"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Fatma"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Fatma"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["Fatma"]["STAND_BACK"].internalList = { FATMA_22,FATMA_23 };
 		animationFrames["Fatma"]["STAND_FRONT"].internalList = { FATMA_24,FATMA_25 };
-		animationFrames["Fatma"]["STAND_LEFT"].internalList = { FATMA_26,FATMA_27 };
 		animationFrames["Fatma"]["STAND_RIGHT"].internalList = { FATMA_28,FATMA_29 };
+		animationFrames["Fatma"]["STAND_LEFT"] = animationFrames["Fatma"]["STAND_RIGHT"];
 		animationFrames["Fatma"]["WALK_BACK"].internalList = { FATMA_30,FATMA_31,FATMA_32,FATMA_31 };
 		animationFrames["Fatma"]["WALK_FRONT"].internalList = { FATMA_33,FATMA_34,FATMA_35,FATMA_34 };
-		animationFrames["Fatma"]["WALK_LEFT"].internalList = { FATMA_36,FATMA_37,FATMA_38,FATMA_37 };
 		animationFrames["Fatma"]["WALK_RIGHT"].internalList = { FATMA_39,FATMA_40,FATMA_41,FATMA_40 };
+		animationFrames["Fatma"]["WALK_LEFT"] = animationFrames["Fatma"]["WALK_RIGHT"];
 		animationFrames["Fatma"]["SPEAKER"].internalList = { FATMA_21 };
 
-		animationFrames["Shadow EnragedDoctor"]["STAND_BACK"].internalList = { ENRAGEDDOCTOR_1,ENRAGEDDOCTOR_2 };
-		animationFrames["Shadow EnragedDoctor"]["STAND_FRONT"].internalList = { ENRAGEDDOCTOR_3,ENRAGEDDOCTOR_4 };
-		animationFrames["Shadow EnragedDoctor"]["STAND_LEFT"].internalList = { ENRAGEDDOCTOR_5,ENRAGEDDOCTOR_6 };
-		animationFrames["Shadow EnragedDoctor"]["STAND_RIGHT"].internalList = { ENRAGEDDOCTOR_7,ENRAGEDDOCTOR_8 };
-		animationFrames["Shadow EnragedDoctor"]["WALK_BACK"].internalList = { ENRAGEDDOCTOR_9,ENRAGEDDOCTOR_10,ENRAGEDDOCTOR_11,ENRAGEDDOCTOR_10 };
-		animationFrames["Shadow EnragedDoctor"]["WALK_FRONT"].internalList = { ENRAGEDDOCTOR_12,ENRAGEDDOCTOR_13,ENRAGEDDOCTOR_14,ENRAGEDDOCTOR_13 };
-		animationFrames["Shadow EnragedDoctor"]["WALK_LEFT"].internalList = { ENRAGEDDOCTOR_15,ENRAGEDDOCTOR_16,ENRAGEDDOCTOR_17,ENRAGEDDOCTOR_16 };
-		animationFrames["Shadow EnragedDoctor"]["WALK_RIGHT"].internalList = { ENRAGEDDOCTOR_18,ENRAGEDDOCTOR_19,ENRAGEDDOCTOR_20,ENRAGEDDOCTOR_19 };
+		animationFrames["Shadow EnragedDoctor"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedDoctor"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedDoctor"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedDoctor"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedDoctor"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedDoctor"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedDoctor"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedDoctor"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["EnragedDoctor"]["STAND_BACK"].internalList = { ENRAGEDDOCTOR_22,ENRAGEDDOCTOR_23 };
 		animationFrames["EnragedDoctor"]["STAND_FRONT"].internalList = { ENRAGEDDOCTOR_24,ENRAGEDDOCTOR_25 };
-		animationFrames["EnragedDoctor"]["STAND_LEFT"].internalList = { ENRAGEDDOCTOR_26,ENRAGEDDOCTOR_27 };
 		animationFrames["EnragedDoctor"]["STAND_RIGHT"].internalList = { ENRAGEDDOCTOR_28,ENRAGEDDOCTOR_29 };
+		animationFrames["EnragedDoctor"]["STAND_LEFT"] = animationFrames["EnragedDoctor"]["STAND_RIGHT"];
 		animationFrames["EnragedDoctor"]["WALK_BACK"].internalList = { ENRAGEDDOCTOR_30,ENRAGEDDOCTOR_31,ENRAGEDDOCTOR_32,ENRAGEDDOCTOR_31 };
 		animationFrames["EnragedDoctor"]["WALK_FRONT"].internalList = { ENRAGEDDOCTOR_33,ENRAGEDDOCTOR_34,ENRAGEDDOCTOR_35,ENRAGEDDOCTOR_34 };
-		animationFrames["EnragedDoctor"]["WALK_LEFT"].internalList = { ENRAGEDDOCTOR_36,ENRAGEDDOCTOR_37,ENRAGEDDOCTOR_38,ENRAGEDDOCTOR_37 };
 		animationFrames["EnragedDoctor"]["WALK_RIGHT"].internalList = { ENRAGEDDOCTOR_39,ENRAGEDDOCTOR_40,ENRAGEDDOCTOR_41,ENRAGEDDOCTOR_40 };
+		animationFrames["EnragedDoctor"]["WALK_LEFT"] = animationFrames["EnragedDoctor"]["WALK_RIGHT"];
 		animationFrames["EnragedDoctor"]["SPEAKER"].internalList = { ENRAGEDDOCTOR_21 };
 
-		animationFrames["Shadow EnragedDeaconess"]["STAND_BACK"].internalList = { DEACONESS_1,DEACONESS_2 };
-		animationFrames["Shadow EnragedDeaconess"]["STAND_FRONT"].internalList = { DEACONESS_3,DEACONESS_4 };
-		animationFrames["Shadow EnragedDeaconess"]["STAND_LEFT"].internalList = { DEACONESS_5,DEACONESS_6 };
-		animationFrames["Shadow EnragedDeaconess"]["STAND_RIGHT"].internalList = { DEACONESS_7,DEACONESS_8 };
-		animationFrames["Shadow EnragedDeaconess"]["WALK_BACK"].internalList = { DEACONESS_9,DEACONESS_10,DEACONESS_11,DEACONESS_10 };
-		animationFrames["Shadow EnragedDeaconess"]["WALK_FRONT"].internalList = { DEACONESS_12,DEACONESS_13,DEACONESS_14,DEACONESS_13 };
-		animationFrames["Shadow EnragedDeaconess"]["WALK_LEFT"].internalList = { DEACONESS_15,DEACONESS_16,DEACONESS_17,DEACONESS_16 };
-		animationFrames["Shadow EnragedDeaconess"]["WALK_RIGHT"].internalList = { DEACONESS_18,DEACONESS_19,DEACONESS_20,DEACONESS_19 };
+		animationFrames["Shadow EnragedDeaconess"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedDeaconess"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedDeaconess"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedDeaconess"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedDeaconess"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedDeaconess"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedDeaconess"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedDeaconess"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["EnragedDeaconess"]["STAND_BACK"].internalList = { DEACONESS_22,DEACONESS_23 };
 		animationFrames["EnragedDeaconess"]["STAND_FRONT"].internalList = { DEACONESS_24,DEACONESS_25 };
-		animationFrames["EnragedDeaconess"]["STAND_LEFT"].internalList = { DEACONESS_26,DEACONESS_27 };
 		animationFrames["EnragedDeaconess"]["STAND_RIGHT"].internalList = { DEACONESS_28,DEACONESS_29 };
+		animationFrames["EnragedDeaconess"]["STAND_LEFT"] = animationFrames["EnragedDeaconess"]["STAND_RIGHT"];
 		animationFrames["EnragedDeaconess"]["WALK_BACK"].internalList = { DEACONESS_30,DEACONESS_31,DEACONESS_32,DEACONESS_31 };
 		animationFrames["EnragedDeaconess"]["WALK_FRONT"].internalList = { DEACONESS_33,DEACONESS_34,DEACONESS_35,DEACONESS_34 };
-		animationFrames["EnragedDeaconess"]["WALK_LEFT"].internalList = { DEACONESS_36,DEACONESS_37,DEACONESS_38,DEACONESS_37 };
 		animationFrames["EnragedDeaconess"]["WALK_RIGHT"].internalList = { DEACONESS_39,DEACONESS_40,DEACONESS_41,DEACONESS_40 };
+		animationFrames["EnragedDeaconess"]["WALK_LEFT"] = animationFrames["EnragedDeaconess"]["WALK_RIGHT"];
 		animationFrames["EnragedDeaconess"]["SPEAKER"].internalList = { DEACONESS_21 };
 
-		animationFrames["Shadow EnragedGuard"]["STAND_BACK"].internalList = { ENRAGEDGUARD_1,ENRAGEDGUARD_2 };
-		animationFrames["Shadow EnragedGuard"]["STAND_FRONT"].internalList = { ENRAGEDGUARD_3,ENRAGEDGUARD_4 };
-		animationFrames["Shadow EnragedGuard"]["STAND_LEFT"].internalList = { ENRAGEDGUARD_5,ENRAGEDGUARD_6 };
-		animationFrames["Shadow EnragedGuard"]["STAND_RIGHT"].internalList = { ENRAGEDGUARD_7,ENRAGEDGUARD_8 };
-		animationFrames["Shadow EnragedGuard"]["WALK_BACK"].internalList = { ENRAGEDGUARD_9,ENRAGEDGUARD_10,ENRAGEDGUARD_11,ENRAGEDGUARD_10 };
-		animationFrames["Shadow EnragedGuard"]["WALK_FRONT"].internalList = { ENRAGEDGUARD_12,ENRAGEDGUARD_13,ENRAGEDGUARD_14,ENRAGEDGUARD_13 };
-		animationFrames["Shadow EnragedGuard"]["WALK_LEFT"].internalList = { ENRAGEDGUARD_15,ENRAGEDGUARD_16,ENRAGEDGUARD_17,ENRAGEDGUARD_16 };
-		animationFrames["Shadow EnragedGuard"]["WALK_RIGHT"].internalList = { ENRAGEDGUARD_18,ENRAGEDGUARD_19,ENRAGEDGUARD_20,ENRAGEDGUARD_19 };
+		animationFrames["Shadow EnragedGuard"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedGuard"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedGuard"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedGuard"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedGuard"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedGuard"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedGuard"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedGuard"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["EnragedGuard"]["STAND_BACK"].internalList = { ENRAGEDGUARD_22,ENRAGEDGUARD_23 };
 		animationFrames["EnragedGuard"]["STAND_FRONT"].internalList = { ENRAGEDGUARD_24,ENRAGEDGUARD_25 };
-		animationFrames["EnragedGuard"]["STAND_LEFT"].internalList = { ENRAGEDGUARD_26,ENRAGEDGUARD_27 };
 		animationFrames["EnragedGuard"]["STAND_RIGHT"].internalList = { ENRAGEDGUARD_28,ENRAGEDGUARD_29 };
+		animationFrames["EnragedGuard"]["STAND_LEFT"] = animationFrames["EnragedGuard"]["STAND_RIGHT"];
 		animationFrames["EnragedGuard"]["WALK_BACK"].internalList = { ENRAGEDGUARD_30,ENRAGEDGUARD_31,ENRAGEDGUARD_32,ENRAGEDGUARD_31 };
 		animationFrames["EnragedGuard"]["WALK_FRONT"].internalList = { ENRAGEDGUARD_33,ENRAGEDGUARD_34,ENRAGEDGUARD_35,ENRAGEDGUARD_34 };
-		animationFrames["EnragedGuard"]["WALK_LEFT"].internalList = { ENRAGEDGUARD_36,ENRAGEDGUARD_37,ENRAGEDGUARD_38,ENRAGEDGUARD_37 };
 		animationFrames["EnragedGuard"]["WALK_RIGHT"].internalList = { ENRAGEDGUARD_39,ENRAGEDGUARD_40,ENRAGEDGUARD_41,ENRAGEDGUARD_40 };
+		animationFrames["EnragedGuard"]["WALK_LEFT"] = animationFrames["EnragedGuard"]["WALK_RIGHT"];
 		animationFrames["EnragedGuard"]["SPEAKER"].internalList = { ENRAGEDGUARD_21 };
 
-		animationFrames["Shadow EnragedNobleman"]["STAND_BACK"].internalList = { ENRAGEDNOBLEMAN_1,ENRAGEDNOBLEMAN_2 };
-		animationFrames["Shadow EnragedNobleman"]["STAND_FRONT"].internalList = { ENRAGEDNOBLEMAN_3,ENRAGEDNOBLEMAN_4 };
-		animationFrames["Shadow EnragedNobleman"]["STAND_LEFT"].internalList = { ENRAGEDNOBLEMAN_5,ENRAGEDNOBLEMAN_6 };
-		animationFrames["Shadow EnragedNobleman"]["STAND_RIGHT"].internalList = { ENRAGEDNOBLEMAN_7,ENRAGEDNOBLEMAN_8 };
-		animationFrames["Shadow EnragedNobleman"]["WALK_BACK"].internalList = { ENRAGEDNOBLEMAN_9,ENRAGEDNOBLEMAN_10,ENRAGEDNOBLEMAN_11,ENRAGEDNOBLEMAN_10 };
-		animationFrames["Shadow EnragedNobleman"]["WALK_FRONT"].internalList = { ENRAGEDNOBLEMAN_12,ENRAGEDNOBLEMAN_13,ENRAGEDNOBLEMAN_14,ENRAGEDNOBLEMAN_13 };
-		animationFrames["Shadow EnragedNobleman"]["WALK_LEFT"].internalList = { ENRAGEDNOBLEMAN_15,ENRAGEDNOBLEMAN_16,ENRAGEDNOBLEMAN_17,ENRAGEDNOBLEMAN_16 };
-		animationFrames["Shadow EnragedNobleman"]["WALK_RIGHT"].internalList = { ENRAGEDNOBLEMAN_18,ENRAGEDNOBLEMAN_19,ENRAGEDNOBLEMAN_20,ENRAGEDNOBLEMAN_19 };
+		animationFrames["Shadow EnragedNobleman"]["STAND_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedNobleman"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedNobleman"]["STAND_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedNobleman"]["STAND_RIGHT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedNobleman"]["WALK_BACK"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedNobleman"]["WALK_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedNobleman"]["WALK_LEFT"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow EnragedNobleman"]["WALK_RIGHT"].internalList = { BASIC_SHADOW };
 		animationFrames["EnragedNobleman"]["STAND_BACK"].internalList = { ENRAGEDNOBLEMAN_22,ENRAGEDNOBLEMAN_23 };
 		animationFrames["EnragedNobleman"]["STAND_FRONT"].internalList = { ENRAGEDNOBLEMAN_24,ENRAGEDNOBLEMAN_25 };
-		animationFrames["EnragedNobleman"]["STAND_LEFT"].internalList = { ENRAGEDNOBLEMAN_26,ENRAGEDNOBLEMAN_27 };
 		animationFrames["EnragedNobleman"]["STAND_RIGHT"].internalList = { ENRAGEDNOBLEMAN_28,ENRAGEDNOBLEMAN_29 };
+		animationFrames["EnragedNobleman"]["STAND_LEFT"] = animationFrames["EnragedNobleman"]["STAND_RIGHT"];
 		animationFrames["EnragedNobleman"]["WALK_BACK"].internalList = { ENRAGEDNOBLEMAN_30,ENRAGEDNOBLEMAN_31,ENRAGEDNOBLEMAN_32,ENRAGEDNOBLEMAN_31 };
 		animationFrames["EnragedNobleman"]["WALK_FRONT"].internalList = { ENRAGEDNOBLEMAN_33,ENRAGEDNOBLEMAN_34,ENRAGEDNOBLEMAN_35,ENRAGEDNOBLEMAN_34 };
-		animationFrames["EnragedNobleman"]["WALK_LEFT"].internalList = { ENRAGEDNOBLEMAN_36,ENRAGEDNOBLEMAN_37,ENRAGEDNOBLEMAN_38,ENRAGEDNOBLEMAN_37 };
 		animationFrames["EnragedNobleman"]["WALK_RIGHT"].internalList = { ENRAGEDNOBLEMAN_39,ENRAGEDNOBLEMAN_40,ENRAGEDNOBLEMAN_41,ENRAGEDNOBLEMAN_40 };
+		animationFrames["EnragedNobleman"]["WALK_LEFT"] = animationFrames["EnragedNobleman"]["WALK_RIGHT"];
 		animationFrames["EnragedNobleman"]["SPEAKER"].internalList = { ENRAGEDNOBLEMAN_21 };
 
+		animationFrames["Adriana Aragon"]["STAND_NE"].internalList = { ADRIANA_STAND_NE_1, ADRIANA_STAND_NE_2 };
+		animationFrames["Adriana Aragon"]["STAND_SE"].internalList = { ADRIANA_STAND_SE_1, ADRIANA_STAND_SE_2 };
+		animationFrames["Adriana Aragon"]["WALK_NE"].internalList = { ADRIANA_WALK_NE_1, ADRIANA_WALK_NE_2,ADRIANA_WALK_NE_3,ADRIANA_WALK_NE_2 };
+		animationFrames["Adriana Aragon"]["WALK_SE"].internalList = { ADRIANA_WALK_SE_1, ADRIANA_WALK_SE_2,ADRIANA_WALK_SE_3,ADRIANA_WALK_SE_2 };
+		animationFrames["Adriana Aragon"]["STAND_NW"] = animationFrames["Adriana Aragon"]["STAND_NE"];
+		animationFrames["Adriana Aragon"]["WALK_NW"] = animationFrames["Adriana Aragon"]["WALK_NE"];
+		animationFrames["Adriana Aragon"]["STAND_SW"] = animationFrames["Adriana Aragon"]["STAND_SE"];
+		animationFrames["Adriana Aragon"]["WALK_SW"] = animationFrames["Adriana Aragon"]["WALK_SE"];
+		animationFrames["Shadow Adriana Aragon"]["STAND_NE"] = animationFrames["Shadow Adriana Aragon"]["STAND_BACK"];
+		animationFrames["Shadow Adriana Aragon"]["STAND_SE"] = animationFrames["Shadow Adriana Aragon"]["STAND_FRONT"];
+		animationFrames["Shadow Adriana Aragon"]["WALK_NE"] = animationFrames["Shadow Adriana Aragon"]["WALK_BACK"];
+		animationFrames["Shadow Adriana Aragon"]["WALK_SE"] = animationFrames["Shadow Adriana Aragon"]["WALK_FRONT"];
+		animationFrames["Shadow Adriana Aragon"]["STAND_NW"] = animationFrames["Shadow Adriana Aragon"]["STAND_NE"];
+		animationFrames["Shadow Adriana Aragon"]["WALK_NW"] = animationFrames["Shadow Adriana Aragon"]["WALK_NE"];
+		animationFrames["Shadow Adriana Aragon"]["STAND_SW"] = animationFrames["Shadow Adriana Aragon"]["STAND_SE"];
+		animationFrames["Shadow Adriana Aragon"]["WALK_SW"] = animationFrames["Shadow Adriana Aragon"]["WALK_SE"];
+		animationFrames["Stacia Silver"]["STAND_NE"].internalList = { STACIA_STAND_NE_1, STACIA_STAND_NE_2 };
+		animationFrames["Stacia Silver"]["STAND_SE"].internalList = { STACIA_STAND_SE_1, STACIA_STAND_SE_2 };
+		animationFrames["Stacia Silver"]["WALK_NE"].internalList = { STACIA_WALK_NE_1, STACIA_WALK_NE_2,STACIA_WALK_NE_3,STACIA_WALK_NE_2 };
+		animationFrames["Stacia Silver"]["WALK_SE"].internalList = { STACIA_WALK_SE_1, STACIA_WALK_SE_2,STACIA_WALK_SE_3,STACIA_WALK_SE_2 };
+		animationFrames["Stacia Silver"]["STAND_NW"] = animationFrames["Stacia Silver"]["STAND_NE"];
+		animationFrames["Stacia Silver"]["WALK_NW"] = animationFrames["Stacia Silver"]["WALK_NE"];
+		animationFrames["Stacia Silver"]["STAND_SW"] = animationFrames["Stacia Silver"]["STAND_SE"];
+		animationFrames["Stacia Silver"]["WALK_SW"] = animationFrames["Stacia Silver"]["WALK_SE"];
+		animationFrames["Shadow Stacia Silver"]["STAND_NE"] = animationFrames["Shadow Stacia Silver"]["STAND_BACK"];
+		animationFrames["Shadow Stacia Silver"]["STAND_SE"] = animationFrames["Shadow Stacia Silver"]["STAND_FRONT"];
+		animationFrames["Shadow Stacia Silver"]["WALK_NE"] = animationFrames["Shadow Stacia Silver"]["WALK_BACK"];
+		animationFrames["Shadow Stacia Silver"]["WALK_SE"] = animationFrames["Shadow Stacia Silver"]["WALK_FRONT"];
+		animationFrames["Shadow Stacia Silver"]["STAND_NW"] = animationFrames["Shadow Stacia Silver"]["STAND_NE"];
+		animationFrames["Shadow Stacia Silver"]["WALK_NW"] = animationFrames["Shadow Stacia Silver"]["WALK_NE"];
+		animationFrames["Shadow Stacia Silver"]["STAND_SW"] = animationFrames["Shadow Stacia Silver"]["STAND_SE"];
+		animationFrames["Shadow Stacia Silver"]["WALK_SW"] = animationFrames["Shadow Stacia Silver"]["WALK_SE"];
+		animationFrames["Tifa Kurosawa"]["STAND_NE"].internalList = { TIFA_STAND_NE_1, TIFA_STAND_NE_2 };
+		animationFrames["Tifa Kurosawa"]["STAND_SE"].internalList = { TIFA_STAND_SE_1, TIFA_STAND_SE_2 };
+		animationFrames["Tifa Kurosawa"]["WALK_NE"].internalList = { TIFA_WALK_NE_1, TIFA_WALK_NE_2,TIFA_WALK_NE_3,TIFA_WALK_NE_2 };
+		animationFrames["Tifa Kurosawa"]["WALK_SE"].internalList = { TIFA_WALK_SE_1, TIFA_WALK_SE_2,TIFA_WALK_SE_3,TIFA_WALK_SE_2 };
+		animationFrames["Tifa Kurosawa"]["STAND_NW"] = animationFrames["Tifa Kurosawa"]["STAND_NE"];
+		animationFrames["Tifa Kurosawa"]["WALK_NW"] = animationFrames["Tifa Kurosawa"]["WALK_NE"];
+		animationFrames["Tifa Kurosawa"]["STAND_SW"] = animationFrames["Tifa Kurosawa"]["STAND_SE"];
+		animationFrames["Tifa Kurosawa"]["WALK_SW"] = animationFrames["Tifa Kurosawa"]["WALK_SE"];
+		animationFrames["Shadow Tifa Kurosawa"]["STAND_NE"] = animationFrames["Shadow Tifa Kurosawa"]["STAND_BACK"];
+		animationFrames["Shadow Tifa Kurosawa"]["STAND_SE"] = animationFrames["Shadow Tifa Kurosawa"]["STAND_FRONT"];
+		animationFrames["Shadow Tifa Kurosawa"]["WALK_NE"] = animationFrames["Shadow Tifa Kurosawa"]["WALK_BACK"];
+		animationFrames["Shadow Tifa Kurosawa"]["WALK_SE"] = animationFrames["Shadow Tifa Kurosawa"]["WALK_FRONT"];
+		animationFrames["Shadow Tifa Kurosawa"]["STAND_NW"] = animationFrames["Shadow Tifa Kurosawa"]["STAND_NE"];
+		animationFrames["Shadow Tifa Kurosawa"]["WALK_NW"] = animationFrames["Shadow Tifa Kurosawa"]["WALK_NE"];
+		animationFrames["Shadow Tifa Kurosawa"]["STAND_SW"] = animationFrames["Shadow Tifa Kurosawa"]["STAND_SE"];
+		animationFrames["Shadow Tifa Kurosawa"]["WALK_SW"] = animationFrames["Shadow Tifa Kurosawa"]["WALK_SE"];
+		animationFrames["Father Michelet"]["STAND_NE"].internalList = { MICHELET_STAND_NE_1, MICHELET_STAND_NE_2 };
+		animationFrames["Father Michelet"]["STAND_SE"].internalList = { MICHELET_STAND_SE_1, MICHELET_STAND_SE_2 };
+		animationFrames["Father Michelet"]["WALK_NE"].internalList = { MICHELET_WALK_NE_1, MICHELET_WALK_NE_2,MICHELET_WALK_NE_3,MICHELET_WALK_NE_2 };
+		animationFrames["Father Michelet"]["WALK_SE"].internalList = { MICHELET_WALK_SE_1, MICHELET_WALK_SE_2,MICHELET_WALK_SE_3,MICHELET_WALK_SE_2 };
+		animationFrames["Father Michelet"]["STAND_NW"] = animationFrames["Father Michelet"]["STAND_NE"];
+		animationFrames["Father Michelet"]["WALK_NW"] = animationFrames["Father Michelet"]["WALK_NE"];
+		animationFrames["Father Michelet"]["STAND_SW"] = animationFrames["Father Michelet"]["STAND_SE"];
+		animationFrames["Father Michelet"]["WALK_SW"] = animationFrames["Father Michelet"]["WALK_SE"];
+		animationFrames["Shadow Father Michelet"]["STAND_NE"] = animationFrames["Shadow Father Michelet"]["STAND_BACK"];
+		animationFrames["Shadow Father Michelet"]["STAND_SE"] = animationFrames["Shadow Father Michelet"]["STAND_FRONT"];
+		animationFrames["Shadow Father Michelet"]["WALK_NE"] = animationFrames["Shadow Father Michelet"]["WALK_BACK"];
+		animationFrames["Shadow Father Michelet"]["WALK_SE"] = animationFrames["Shadow Father Michelet"]["WALK_FRONT"];
+		animationFrames["Shadow Father Michelet"]["STAND_NW"] = animationFrames["Shadow Father Michelet"]["STAND_NE"];
+		animationFrames["Shadow Father Michelet"]["WALK_NW"] = animationFrames["Shadow Father Michelet"]["WALK_NE"];
+		animationFrames["Shadow Father Michelet"]["STAND_SW"] = animationFrames["Shadow Father Michelet"]["STAND_SE"];
+		animationFrames["Shadow Father Michelet"]["WALK_SW"] = animationFrames["Shadow Father Michelet"]["WALK_SE"];
+
+		animationFrames["Enraged Tree"]["APPEAR_NE"].internalList = { ENRAGEDTREE_1,ENRAGEDTREE_2,ENRAGEDTREE_3,ENRAGEDTREE_4,ENRAGEDTREE_5,ENRAGEDTREE_6,ENRAGEDTREE_7,ENRAGEDTREE_8,ENRAGEDTREE_9,ENRAGEDTREE_10,ENRAGEDTREE_11,ENRAGEDTREE_12,ENRAGEDTREE_13,ENRAGEDTREE_14,ENRAGEDTREE_15,ENRAGEDTREE_16,ENRAGEDTREE_17,ENRAGEDTREE_18,ENRAGEDTREE_19, };
+		animationFrames["Enraged Tree"]["APPEAR_NW"].internalList = { ENRAGEDTREE_1,ENRAGEDTREE_2,ENRAGEDTREE_3,ENRAGEDTREE_4,ENRAGEDTREE_5,ENRAGEDTREE_6,ENRAGEDTREE_7,ENRAGEDTREE_8,ENRAGEDTREE_9,ENRAGEDTREE_10,ENRAGEDTREE_11,ENRAGEDTREE_12,ENRAGEDTREE_13,ENRAGEDTREE_14,ENRAGEDTREE_15,ENRAGEDTREE_16,ENRAGEDTREE_17,ENRAGEDTREE_18,ENRAGEDTREE_19, };
+		animationFrames["Enraged Tree"]["APPEAR_SE"].internalList = { ENRAGEDTREE_20,ENRAGEDTREE_21,ENRAGEDTREE_22,ENRAGEDTREE_23,ENRAGEDTREE_24,ENRAGEDTREE_25,ENRAGEDTREE_26,ENRAGEDTREE_27,ENRAGEDTREE_28,ENRAGEDTREE_29,ENRAGEDTREE_30,ENRAGEDTREE_31,ENRAGEDTREE_32,ENRAGEDTREE_33,ENRAGEDTREE_34,ENRAGEDTREE_35,ENRAGEDTREE_36,ENRAGEDTREE_37,ENRAGEDTREE_38, };
+		animationFrames["Enraged Tree"]["APPEAR_SW"].internalList = { ENRAGEDTREE_20,ENRAGEDTREE_21,ENRAGEDTREE_22,ENRAGEDTREE_23,ENRAGEDTREE_24,ENRAGEDTREE_25,ENRAGEDTREE_26,ENRAGEDTREE_27,ENRAGEDTREE_28,ENRAGEDTREE_29,ENRAGEDTREE_30,ENRAGEDTREE_31,ENRAGEDTREE_32,ENRAGEDTREE_33,ENRAGEDTREE_34,ENRAGEDTREE_35,ENRAGEDTREE_36,ENRAGEDTREE_37,ENRAGEDTREE_38, };
+		animationFrames["Enraged Tree"]["DYING_NE"].internalList = { ENRAGEDTREE_39,ENRAGEDTREE_40,ENRAGEDTREE_41,ENRAGEDTREE_42,ENRAGEDTREE_43,ENRAGEDTREE_44,ENRAGEDTREE_45,ENRAGEDTREE_46,ENRAGEDTREE_47,ENRAGEDTREE_48,ENRAGEDTREE_49,ENRAGEDTREE_50,ENRAGEDTREE_51,ENRAGEDTREE_52,ENRAGEDTREE_53,ENRAGEDTREE_54,ENRAGEDTREE_55,ENRAGEDTREE_56,ENRAGEDTREE_57,ENRAGEDTREE_58,ENRAGEDTREE_59,ENRAGEDTREE_60,ENRAGEDTREE_61,ENRAGEDTREE_62,ENRAGEDTREE_63,ENRAGEDTREE_64, };
+		animationFrames["Enraged Tree"]["DYING_NW"].internalList = { ENRAGEDTREE_39,ENRAGEDTREE_40,ENRAGEDTREE_41,ENRAGEDTREE_42,ENRAGEDTREE_43,ENRAGEDTREE_44,ENRAGEDTREE_45,ENRAGEDTREE_46,ENRAGEDTREE_47,ENRAGEDTREE_48,ENRAGEDTREE_49,ENRAGEDTREE_50,ENRAGEDTREE_51,ENRAGEDTREE_52,ENRAGEDTREE_53,ENRAGEDTREE_54,ENRAGEDTREE_55,ENRAGEDTREE_56,ENRAGEDTREE_57,ENRAGEDTREE_58,ENRAGEDTREE_59,ENRAGEDTREE_60,ENRAGEDTREE_61,ENRAGEDTREE_62,ENRAGEDTREE_63,ENRAGEDTREE_64, };
+		animationFrames["Enraged Tree"]["DYING_SE"].internalList = { ENRAGEDTREE_65,ENRAGEDTREE_66,ENRAGEDTREE_67,ENRAGEDTREE_68,ENRAGEDTREE_69,ENRAGEDTREE_70,ENRAGEDTREE_71,ENRAGEDTREE_72,ENRAGEDTREE_73,ENRAGEDTREE_74,ENRAGEDTREE_75,ENRAGEDTREE_76,ENRAGEDTREE_77,ENRAGEDTREE_78,ENRAGEDTREE_79,ENRAGEDTREE_80,ENRAGEDTREE_81,ENRAGEDTREE_82,ENRAGEDTREE_83,ENRAGEDTREE_84,ENRAGEDTREE_85,ENRAGEDTREE_86,ENRAGEDTREE_87,ENRAGEDTREE_88,ENRAGEDTREE_89,ENRAGEDTREE_90, };
+		animationFrames["Enraged Tree"]["DYING_SW"].internalList = { ENRAGEDTREE_65,ENRAGEDTREE_66,ENRAGEDTREE_67,ENRAGEDTREE_68,ENRAGEDTREE_69,ENRAGEDTREE_70,ENRAGEDTREE_71,ENRAGEDTREE_72,ENRAGEDTREE_73,ENRAGEDTREE_74,ENRAGEDTREE_75,ENRAGEDTREE_76,ENRAGEDTREE_77,ENRAGEDTREE_78,ENRAGEDTREE_79,ENRAGEDTREE_80,ENRAGEDTREE_81,ENRAGEDTREE_82,ENRAGEDTREE_83,ENRAGEDTREE_84,ENRAGEDTREE_85,ENRAGEDTREE_86,ENRAGEDTREE_87,ENRAGEDTREE_88,ENRAGEDTREE_89,ENRAGEDTREE_90, };
+		animationFrames["Enraged Tree"]["SPEAKER"].internalList = { ENRAGEDTREE_91 };
+		animationFrames["Enraged Tree"]["STAND_NE"].internalList = { ENRAGEDTREE_92,ENRAGEDTREE_93, };
+		animationFrames["Enraged Tree"]["STAND_NW"].internalList = { ENRAGEDTREE_92,ENRAGEDTREE_93, };
+		animationFrames["Enraged Tree"]["STAND_SE"].internalList = { ENRAGEDTREE_94,ENRAGEDTREE_95, };
+		animationFrames["Enraged Tree"]["STAND_SW"].internalList = { ENRAGEDTREE_94,ENRAGEDTREE_95, };
+		animationFrames["Shadow Enraged Tree"]["APPEAR_NE"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Enraged Tree"]["APPEAR_NW"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Enraged Tree"]["APPEAR_SE"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Enraged Tree"]["APPEAR_SW"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Enraged Tree"]["DYING_NE"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Enraged Tree"]["DYING_NW"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Enraged Tree"]["DYING_SE"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Enraged Tree"]["DYING_SW"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Enraged Tree"]["STAND_NE"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Enraged Tree"]["STAND_NW"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Enraged Tree"]["STAND_SE"].internalList = { BASIC_SHADOW };
+		animationFrames["Shadow Enraged Tree"]["STAND_SW"].internalList = { BASIC_SHADOW };
 	}
 	void defineSkills() {
 		animationFrames["Default Attack"]["ACTION_FRONT"] = { DEFAULTATTACK_1,DEFAULTATTACK_2,DEFAULTATTACK_3,DEFAULTATTACK_4,DEFAULTATTACK_5,DEFAULTATTACK_6,DEFAULTATTACK_7,DEFAULTATTACK_8,DEFAULTATTACK_9,DEFAULTATTACK_10,DEFAULTATTACK_11,DEFAULTATTACK_12, };
@@ -2087,7 +2195,7 @@ public:
 
 		animationFrames["PlasmaPulse3"]["ACTION_1"] = { PLASMAPULSE3_01,PLASMAPULSE3_02,PLASMAPULSE3_03,PLASMAPULSE3_04,PLASMAPULSE3_05,PLASMAPULSE3_06,PLASMAPULSE3_07,PLASMAPULSE3_08,PLASMAPULSE3_09,PLASMAPULSE3_10, };
 
-		animationFrames["PlasmaPulse4"]["ACTION_1"] = { 
+		animationFrames["PlasmaPulse4"]["ACTION_1"] = {
 	PLASMAPULSE4_1,PLASMAPULSE4_2,PLASMAPULSE4_3,PLASMAPULSE4_4,PLASMAPULSE4_5,PLASMAPULSE4_6,PLASMAPULSE4_7,PLASMAPULSE4_8,PLASMAPULSE4_9,PLASMAPULSE4_10,PLASMAPULSE4_11,PLASMAPULSE4_12,PLASMAPULSE4_13,PLASMAPULSE4_14,PLASMAPULSE4_15,PLASMAPULSE4_16,PLASMAPULSE4_17,PLASMAPULSE4_18,PLASMAPULSE4_19,PLASMAPULSE4_20,PLASMAPULSE4_21,
 		};
 
@@ -2099,7 +2207,7 @@ public:
 
 		animationFrames["Snowblind"]["ACTION_1"].internalList = { SNOWBLIND_1,SNOWBLIND_2,SNOWBLIND_3,SNOWBLIND_4,SNOWBLIND_5,SNOWBLIND_6,SNOWBLIND_7,SNOWBLIND_8,SNOWBLIND_9,SNOWBLIND_10,SNOWBLIND_11,SNOWBLIND_12,SNOWBLIND_13,SNOWBLIND_14,SNOWBLIND_15,SNOWBLIND_16,SNOWBLIND_17,SNOWBLIND_18,SNOWBLIND_19,SNOWBLIND_20,SNOWBLIND_21,SNOWBLIND_22,SNOWBLIND_23,SNOWBLIND_24,SNOWBLIND_25,SNOWBLIND_26,SNOWBLIND_27,SNOWBLIND_28,SNOWBLIND_29,SNOWBLIND_30,SNOWBLIND_31,SNOWBLIND_32,SNOWBLIND_33,SNOWBLIND_34,SNOWBLIND_35,SNOWBLIND_36,SNOWBLIND_37,SNOWBLIND_38,SNOWBLIND_39,SNOWBLIND_40,SNOWBLIND_41,SNOWBLIND_42,SNOWBLIND_43,SNOWBLIND_44,SNOWBLIND_45,SNOWBLIND_46,SNOWBLIND_47,SNOWBLIND_48, };
 
-		animationFrames["Ice Beam"]["ACTION_1"].internalList = {			ICEBEAM_1,ICEBEAM_2,ICEBEAM_3,ICEBEAM_4,ICEBEAM_5,ICEBEAM_6,ICEBEAM_7,ICEBEAM_8,ICEBEAM_9,ICEBEAM_10,ICEBEAM_11,ICEBEAM_12,ICEBEAM_13,ICEBEAM_14,ICEBEAM_15,ICEBEAM_16,ICEBEAM_17,ICEBEAM_18,ICEBEAM_19,ICEBEAM_20,ICEBEAM_21,ICEBEAM_22,ICEBEAM_23,ICEBEAM_24,
+		animationFrames["Ice Beam"]["ACTION_1"].internalList = { ICEBEAM_1,ICEBEAM_2,ICEBEAM_3,ICEBEAM_4,ICEBEAM_5,ICEBEAM_6,ICEBEAM_7,ICEBEAM_8,ICEBEAM_9,ICEBEAM_10,ICEBEAM_11,ICEBEAM_12,ICEBEAM_13,ICEBEAM_14,ICEBEAM_15,ICEBEAM_16,ICEBEAM_17,ICEBEAM_18,ICEBEAM_19,ICEBEAM_20,ICEBEAM_21,ICEBEAM_22,ICEBEAM_23,ICEBEAM_24,
 		};
 
 		animationFrames["DEFAULT_LEECHSKILL"]["ACTION_1"] = animationFrames["Life Drain"]["ACTION_1"];
@@ -2128,10 +2236,10 @@ public:
 		animationFrames["SadBag"]["ACTION_FRONT"].internalList = { SADBAG_FRONT };
 		animationFrames["SadBag"]["ACTION_BACK"].internalList = { SADBAG_FRONT };
 
-		animationFrames["Bone Priest"]["ACTION_BACK"].internalList = {			BONEPRIESTBACK_1,BONEPRIESTBACK_2,BONEPRIESTBACK_3,BONEPRIESTBACK_4,BONEPRIESTBACK_5,BONEPRIESTBACK_6,BONEPRIESTBACK_7,BONEPRIESTBACK_8,BONEPRIESTBACK_9,BONEPRIESTBACK_10,BONEPRIESTBACK_11,BONEPRIESTBACK_12,BONEPRIESTBACK_13,BONEPRIESTBACK_14,BONEPRIESTBACK_15,BONEPRIESTBACK_16,BONEPRIESTBACK_17,BONEPRIESTBACK_18,BONEPRIESTBACK_19,BONEPRIESTBACK_20,BONEPRIESTBACK_21,BONEPRIESTBACK_22,BONEPRIESTBACK_23,BONEPRIESTBACK_24,BONEPRIESTBACK_25,BONEPRIESTBACK_26,BONEPRIESTBACK_27,BONEPRIESTBACK_28,BONEPRIESTBACK_29,BONEPRIESTBACK_30,BONEPRIESTBACK_31,BONEPRIESTBACK_32,BONEPRIESTBACK_33,BONEPRIESTBACK_34,
+		animationFrames["Bone Priest"]["ACTION_BACK"].internalList = { BONEPRIESTBACK_1,BONEPRIESTBACK_2,BONEPRIESTBACK_3,BONEPRIESTBACK_4,BONEPRIESTBACK_5,BONEPRIESTBACK_6,BONEPRIESTBACK_7,BONEPRIESTBACK_8,BONEPRIESTBACK_9,BONEPRIESTBACK_10,BONEPRIESTBACK_11,BONEPRIESTBACK_12,BONEPRIESTBACK_13,BONEPRIESTBACK_14,BONEPRIESTBACK_15,BONEPRIESTBACK_16,BONEPRIESTBACK_17,BONEPRIESTBACK_18,BONEPRIESTBACK_19,BONEPRIESTBACK_20,BONEPRIESTBACK_21,BONEPRIESTBACK_22,BONEPRIESTBACK_23,BONEPRIESTBACK_24,BONEPRIESTBACK_25,BONEPRIESTBACK_26,BONEPRIESTBACK_27,BONEPRIESTBACK_28,BONEPRIESTBACK_29,BONEPRIESTBACK_30,BONEPRIESTBACK_31,BONEPRIESTBACK_32,BONEPRIESTBACK_33,BONEPRIESTBACK_34,
 		};
 
-		animationFrames["Bone Priest"]["ACTION_FRONT"].internalList = {			BONEPRIESTFRONT_1,BONEPRIESTFRONT_2,BONEPRIESTFRONT_3,BONEPRIESTFRONT_4,BONEPRIESTFRONT_5,BONEPRIESTFRONT_6,BONEPRIESTFRONT_7,BONEPRIESTFRONT_8,BONEPRIESTFRONT_9,BONEPRIESTFRONT_10,BONEPRIESTFRONT_11,BONEPRIESTFRONT_12,BONEPRIESTFRONT_13,BONEPRIESTFRONT_14,BONEPRIESTFRONT_15,BONEPRIESTFRONT_16,BONEPRIESTFRONT_17,BONEPRIESTFRONT_18,BONEPRIESTFRONT_19,BONEPRIESTFRONT_20,BONEPRIESTFRONT_21,BONEPRIESTFRONT_22,BONEPRIESTFRONT_23,BONEPRIESTFRONT_24,BONEPRIESTFRONT_25,BONEPRIESTFRONT_26,BONEPRIESTFRONT_27,BONEPRIESTFRONT_28,BONEPRIESTFRONT_29,BONEPRIESTFRONT_30,BONEPRIESTFRONT_31,BONEPRIESTFRONT_32,BONEPRIESTFRONT_33,BONEPRIESTFRONT_34,
+		animationFrames["Bone Priest"]["ACTION_FRONT"].internalList = { BONEPRIESTFRONT_1,BONEPRIESTFRONT_2,BONEPRIESTFRONT_3,BONEPRIESTFRONT_4,BONEPRIESTFRONT_5,BONEPRIESTFRONT_6,BONEPRIESTFRONT_7,BONEPRIESTFRONT_8,BONEPRIESTFRONT_9,BONEPRIESTFRONT_10,BONEPRIESTFRONT_11,BONEPRIESTFRONT_12,BONEPRIESTFRONT_13,BONEPRIESTFRONT_14,BONEPRIESTFRONT_15,BONEPRIESTFRONT_16,BONEPRIESTFRONT_17,BONEPRIESTFRONT_18,BONEPRIESTFRONT_19,BONEPRIESTFRONT_20,BONEPRIESTFRONT_21,BONEPRIESTFRONT_22,BONEPRIESTFRONT_23,BONEPRIESTFRONT_24,BONEPRIESTFRONT_25,BONEPRIESTFRONT_26,BONEPRIESTFRONT_27,BONEPRIESTFRONT_28,BONEPRIESTFRONT_29,BONEPRIESTFRONT_30,BONEPRIESTFRONT_31,BONEPRIESTFRONT_32,BONEPRIESTFRONT_33,BONEPRIESTFRONT_34,
 		};
 
 		animationFrames["Avatar of the Night"]["ACTION_BACK"].internalList = { AVATAROFTHENIGHTBACK_1,AVATAROFTHENIGHTBACK_2,AVATAROFTHENIGHTBACK_3,AVATAROFTHENIGHTBACK_4,AVATAROFTHENIGHTBACK_5,AVATAROFTHENIGHTBACK_6,AVATAROFTHENIGHTBACK_7,AVATAROFTHENIGHTBACK_8,AVATAROFTHENIGHTBACK_9,AVATAROFTHENIGHTBACK_10,AVATAROFTHENIGHTBACK_11,AVATAROFTHENIGHTBACK_12,AVATAROFTHENIGHTBACK_13,AVATAROFTHENIGHTBACK_14,AVATAROFTHENIGHTBACK_15,AVATAROFTHENIGHTBACK_16,AVATAROFTHENIGHTBACK_17,AVATAROFTHENIGHTBACK_18,AVATAROFTHENIGHTBACK_19,AVATAROFTHENIGHTBACK_20,AVATAROFTHENIGHTBACK_21,AVATAROFTHENIGHTBACK_22,AVATAROFTHENIGHTBACK_23,AVATAROFTHENIGHTBACK_24,AVATAROFTHENIGHTBACK_25,AVATAROFTHENIGHTBACK_26,AVATAROFTHENIGHTBACK_27,AVATAROFTHENIGHTBACK_28,AVATAROFTHENIGHTBACK_29,AVATAROFTHENIGHTBACK_30,AVATAROFTHENIGHTBACK_31,AVATAROFTHENIGHTBACK_32,AVATAROFTHENIGHTBACK_33,AVATAROFTHENIGHTBACK_34, };
@@ -2140,7 +2248,7 @@ public:
 
 		animationFrames["Affection"]["ACTION_BACK"].internalList = { AFFECTIONBACK_1,AFFECTIONBACK_2,AFFECTIONBACK_3,AFFECTIONBACK_4,AFFECTIONBACK_5,AFFECTIONBACK_6,AFFECTIONBACK_7,AFFECTIONBACK_8,AFFECTIONBACK_9,AFFECTIONBACK_10,AFFECTIONBACK_11,AFFECTIONBACK_12,AFFECTIONBACK_13,AFFECTIONBACK_14,AFFECTIONBACK_15,AFFECTIONBACK_16,AFFECTIONBACK_17,AFFECTIONBACK_18,AFFECTIONBACK_19,AFFECTIONBACK_20,AFFECTIONBACK_21,AFFECTIONBACK_22,AFFECTIONBACK_23,AFFECTIONBACK_24,AFFECTIONBACK_25,AFFECTIONBACK_26,AFFECTIONBACK_27,AFFECTIONBACK_28,AFFECTIONBACK_29,AFFECTIONBACK_30,AFFECTIONBACK_31,AFFECTIONBACK_32,AFFECTIONBACK_33,AFFECTIONBACK_34, };
 
-		animationFrames["Affection"]["ACTION_FRONT"].internalList = {		AFFECTIONFRONT_1,AFFECTIONFRONT_2,AFFECTIONFRONT_3,AFFECTIONFRONT_4,AFFECTIONFRONT_5,AFFECTIONFRONT_6,AFFECTIONFRONT_7,AFFECTIONFRONT_8,AFFECTIONFRONT_9,AFFECTIONFRONT_10,AFFECTIONFRONT_11,AFFECTIONFRONT_12,AFFECTIONFRONT_13,AFFECTIONFRONT_14,AFFECTIONFRONT_15,AFFECTIONFRONT_16,AFFECTIONFRONT_17,AFFECTIONFRONT_18,AFFECTIONFRONT_19,AFFECTIONFRONT_20,AFFECTIONFRONT_21,AFFECTIONFRONT_22,AFFECTIONFRONT_23,AFFECTIONFRONT_24,AFFECTIONFRONT_25,AFFECTIONFRONT_26,AFFECTIONFRONT_27,AFFECTIONFRONT_28,AFFECTIONFRONT_29,AFFECTIONFRONT_30,AFFECTIONFRONT_31,AFFECTIONFRONT_32,AFFECTIONFRONT_33,AFFECTIONFRONT_34,
+		animationFrames["Affection"]["ACTION_FRONT"].internalList = { AFFECTIONFRONT_1,AFFECTIONFRONT_2,AFFECTIONFRONT_3,AFFECTIONFRONT_4,AFFECTIONFRONT_5,AFFECTIONFRONT_6,AFFECTIONFRONT_7,AFFECTIONFRONT_8,AFFECTIONFRONT_9,AFFECTIONFRONT_10,AFFECTIONFRONT_11,AFFECTIONFRONT_12,AFFECTIONFRONT_13,AFFECTIONFRONT_14,AFFECTIONFRONT_15,AFFECTIONFRONT_16,AFFECTIONFRONT_17,AFFECTIONFRONT_18,AFFECTIONFRONT_19,AFFECTIONFRONT_20,AFFECTIONFRONT_21,AFFECTIONFRONT_22,AFFECTIONFRONT_23,AFFECTIONFRONT_24,AFFECTIONFRONT_25,AFFECTIONFRONT_26,AFFECTIONFRONT_27,AFFECTIONFRONT_28,AFFECTIONFRONT_29,AFFECTIONFRONT_30,AFFECTIONFRONT_31,AFFECTIONFRONT_32,AFFECTIONFRONT_33,AFFECTIONFRONT_34,
 		};
 
 		animationFrames["Cursed Doll"]["ACTION_BACK"].internalList = { CURSEDDOLLBACK_1,CURSEDDOLLBACK_2,CURSEDDOLLBACK_3,CURSEDDOLLBACK_4,CURSEDDOLLBACK_5,CURSEDDOLLBACK_6,CURSEDDOLLBACK_7,CURSEDDOLLBACK_8,CURSEDDOLLBACK_9,CURSEDDOLLBACK_10,CURSEDDOLLBACK_11,CURSEDDOLLBACK_12,CURSEDDOLLBACK_13,CURSEDDOLLBACK_14,CURSEDDOLLBACK_15,CURSEDDOLLBACK_16,CURSEDDOLLBACK_17,CURSEDDOLLBACK_18,CURSEDDOLLBACK_19,CURSEDDOLLBACK_20,CURSEDDOLLBACK_21,CURSEDDOLLBACK_22,CURSEDDOLLBACK_23,CURSEDDOLLBACK_24,CURSEDDOLLBACK_25,CURSEDDOLLBACK_26,CURSEDDOLLBACK_27,CURSEDDOLLBACK_28,CURSEDDOLLBACK_29,CURSEDDOLLBACK_30,CURSEDDOLLBACK_31,CURSEDDOLLBACK_32,CURSEDDOLLBACK_33,CURSEDDOLLBACK_34, };
@@ -2250,7 +2358,7 @@ public:
 
 		animationFrames["Incessant Devotion"]["ACTION_1"].internalList = { INCESSANTDEVOTION_1,INCESSANTDEVOTION_2,INCESSANTDEVOTION_3,INCESSANTDEVOTION_4,INCESSANTDEVOTION_5,INCESSANTDEVOTION_6,INCESSANTDEVOTION_7,INCESSANTDEVOTION_8,INCESSANTDEVOTION_9,INCESSANTDEVOTION_10,INCESSANTDEVOTION_11,INCESSANTDEVOTION_12,INCESSANTDEVOTION_13,INCESSANTDEVOTION_14,INCESSANTDEVOTION_15,INCESSANTDEVOTION_16,INCESSANTDEVOTION_17,INCESSANTDEVOTION_18,INCESSANTDEVOTION_19,INCESSANTDEVOTION_20,INCESSANTDEVOTION_21,INCESSANTDEVOTION_22,INCESSANTDEVOTION_23,INCESSANTDEVOTION_24,INCESSANTDEVOTION_25,INCESSANTDEVOTION_26,INCESSANTDEVOTION_27,INCESSANTDEVOTION_28,INCESSANTDEVOTION_29,INCESSANTDEVOTION_30,INCESSANTDEVOTION_31,INCESSANTDEVOTION_32,INCESSANTDEVOTION_33,INCESSANTDEVOTION_34,INCESSANTDEVOTION_35,INCESSANTDEVOTION_36,INCESSANTDEVOTION_37,INCESSANTDEVOTION_38,INCESSANTDEVOTION_39,INCESSANTDEVOTION_40,INCESSANTDEVOTION_41,INCESSANTDEVOTION_42,INCESSANTDEVOTION_43,INCESSANTDEVOTION_44,INCESSANTDEVOTION_45,INCESSANTDEVOTION_46,INCESSANTDEVOTION_47,INCESSANTDEVOTION_48, };
 
-		animationFrames["Conciliatory Prayer"]["ACTION_1"].internalList = { CONCILIATORYPRAYER_1,CONCILIATORYPRAYER_2,CONCILIATORYPRAYER_3,CONCILIATORYPRAYER_4,CONCILIATORYPRAYER_5,CONCILIATORYPRAYER_6,CONCILIATORYPRAYER_7,CONCILIATORYPRAYER_8,CONCILIATORYPRAYER_9,CONCILIATORYPRAYER_10,CONCILIATORYPRAYER_11,CONCILIATORYPRAYER_12,CONCILIATORYPRAYER_13,CONCILIATORYPRAYER_14,CONCILIATORYPRAYER_15,CONCILIATORYPRAYER_16,CONCILIATORYPRAYER_17,CONCILIATORYPRAYER_18,CONCILIATORYPRAYER_19,CONCILIATORYPRAYER_20,CONCILIATORYPRAYER_21,CONCILIATORYPRAYER_22,CONCILIATORYPRAYER_23,CONCILIATORYPRAYER_24,CONCILIATORYPRAYER_25,CONCILIATORYPRAYER_26,CONCILIATORYPRAYER_27,CONCILIATORYPRAYER_28,CONCILIATORYPRAYER_29,CONCILIATORYPRAYER_30,CONCILIATORYPRAYER_31,CONCILIATORYPRAYER_32,CONCILIATORYPRAYER_33,CONCILIATORYPRAYER_34,CONCILIATORYPRAYER_35,CONCILIATORYPRAYER_36,CONCILIATORYPRAYER_37,CONCILIATORYPRAYER_38,CONCILIATORYPRAYER_39,CONCILIATORYPRAYER_40,CONCILIATORYPRAYER_41,CONCILIATORYPRAYER_42,CONCILIATORYPRAYER_43,CONCILIATORYPRAYER_44,CONCILIATORYPRAYER_45,CONCILIATORYPRAYER_46,CONCILIATORYPRAYER_47,CONCILIATORYPRAYER_48};
+		animationFrames["Conciliatory Prayer"]["ACTION_1"].internalList = { CONCILIATORYPRAYER_1,CONCILIATORYPRAYER_2,CONCILIATORYPRAYER_3,CONCILIATORYPRAYER_4,CONCILIATORYPRAYER_5,CONCILIATORYPRAYER_6,CONCILIATORYPRAYER_7,CONCILIATORYPRAYER_8,CONCILIATORYPRAYER_9,CONCILIATORYPRAYER_10,CONCILIATORYPRAYER_11,CONCILIATORYPRAYER_12,CONCILIATORYPRAYER_13,CONCILIATORYPRAYER_14,CONCILIATORYPRAYER_15,CONCILIATORYPRAYER_16,CONCILIATORYPRAYER_17,CONCILIATORYPRAYER_18,CONCILIATORYPRAYER_19,CONCILIATORYPRAYER_20,CONCILIATORYPRAYER_21,CONCILIATORYPRAYER_22,CONCILIATORYPRAYER_23,CONCILIATORYPRAYER_24,CONCILIATORYPRAYER_25,CONCILIATORYPRAYER_26,CONCILIATORYPRAYER_27,CONCILIATORYPRAYER_28,CONCILIATORYPRAYER_29,CONCILIATORYPRAYER_30,CONCILIATORYPRAYER_31,CONCILIATORYPRAYER_32,CONCILIATORYPRAYER_33,CONCILIATORYPRAYER_34,CONCILIATORYPRAYER_35,CONCILIATORYPRAYER_36,CONCILIATORYPRAYER_37,CONCILIATORYPRAYER_38,CONCILIATORYPRAYER_39,CONCILIATORYPRAYER_40,CONCILIATORYPRAYER_41,CONCILIATORYPRAYER_42,CONCILIATORYPRAYER_43,CONCILIATORYPRAYER_44,CONCILIATORYPRAYER_45,CONCILIATORYPRAYER_46,CONCILIATORYPRAYER_47,CONCILIATORYPRAYER_48 };
 
 		animationFrames["Ambrosia"]["ACTION_1"].internalList = { AMBROSIA_1,AMBROSIA_2,AMBROSIA_3,AMBROSIA_4,AMBROSIA_5,AMBROSIA_6,AMBROSIA_7,AMBROSIA_8,AMBROSIA_9,AMBROSIA_10,AMBROSIA_11,AMBROSIA_12,AMBROSIA_13,AMBROSIA_14,AMBROSIA_15,AMBROSIA_16,AMBROSIA_17,AMBROSIA_18,AMBROSIA_19,AMBROSIA_20,AMBROSIA_21,AMBROSIA_22,AMBROSIA_23,AMBROSIA_24,AMBROSIA_25,AMBROSIA_26,AMBROSIA_27,AMBROSIA_28,AMBROSIA_29,AMBROSIA_30,AMBROSIA_31,AMBROSIA_32,AMBROSIA_33,AMBROSIA_34,AMBROSIA_35,AMBROSIA_36,AMBROSIA_37,AMBROSIA_38,AMBROSIA_39,AMBROSIA_40,AMBROSIA_41,AMBROSIA_42,AMBROSIA_43,AMBROSIA_44,AMBROSIA_45,AMBROSIA_46,AMBROSIA_47,AMBROSIA_48, };
 
@@ -2268,7 +2376,7 @@ public:
 
 		animationFrames["Prophesized Return"]["ACTION_1"].internalList = { PROPHESIZEDRETURN_1,PROPHESIZEDRETURN_2,PROPHESIZEDRETURN_3,PROPHESIZEDRETURN_4,PROPHESIZEDRETURN_5,PROPHESIZEDRETURN_6,PROPHESIZEDRETURN_7,PROPHESIZEDRETURN_8,PROPHESIZEDRETURN_9,PROPHESIZEDRETURN_10,PROPHESIZEDRETURN_11,PROPHESIZEDRETURN_12,PROPHESIZEDRETURN_13,PROPHESIZEDRETURN_14,PROPHESIZEDRETURN_15,PROPHESIZEDRETURN_16,PROPHESIZEDRETURN_17,PROPHESIZEDRETURN_18,PROPHESIZEDRETURN_19,PROPHESIZEDRETURN_20,PROPHESIZEDRETURN_21,PROPHESIZEDRETURN_22,PROPHESIZEDRETURN_23,PROPHESIZEDRETURN_24,PROPHESIZEDRETURN_25,PROPHESIZEDRETURN_26,PROPHESIZEDRETURN_27,PROPHESIZEDRETURN_28,PROPHESIZEDRETURN_29,PROPHESIZEDRETURN_30,PROPHESIZEDRETURN_31,PROPHESIZEDRETURN_32,PROPHESIZEDRETURN_33,PROPHESIZEDRETURN_34,PROPHESIZEDRETURN_35,PROPHESIZEDRETURN_36,PROPHESIZEDRETURN_37,PROPHESIZEDRETURN_38,PROPHESIZEDRETURN_39,PROPHESIZEDRETURN_40,PROPHESIZEDRETURN_41,PROPHESIZEDRETURN_42,PROPHESIZEDRETURN_43,PROPHESIZEDRETURN_44,PROPHESIZEDRETURN_45,PROPHESIZEDRETURN_46,PROPHESIZEDRETURN_47,PROPHESIZEDRETURN_48, };
 
-		animationFrames["Entomb Spirit"]["ACTION_1"].internalList = {	ENTOMBSPIRIT_1,ENTOMBSPIRIT_2,ENTOMBSPIRIT_3,ENTOMBSPIRIT_4,ENTOMBSPIRIT_5,ENTOMBSPIRIT_6,ENTOMBSPIRIT_7,ENTOMBSPIRIT_8,ENTOMBSPIRIT_9,ENTOMBSPIRIT_10,ENTOMBSPIRIT_11,ENTOMBSPIRIT_12,ENTOMBSPIRIT_13,ENTOMBSPIRIT_14,ENTOMBSPIRIT_15,ENTOMBSPIRIT_16,ENTOMBSPIRIT_17,ENTOMBSPIRIT_18,ENTOMBSPIRIT_19,ENTOMBSPIRIT_20,ENTOMBSPIRIT_21,ENTOMBSPIRIT_22,ENTOMBSPIRIT_23,ENTOMBSPIRIT_24,ENTOMBSPIRIT_25,ENTOMBSPIRIT_26,ENTOMBSPIRIT_27,ENTOMBSPIRIT_28,ENTOMBSPIRIT_29,ENTOMBSPIRIT_30,ENTOMBSPIRIT_31,ENTOMBSPIRIT_32,ENTOMBSPIRIT_33,ENTOMBSPIRIT_34,ENTOMBSPIRIT_35,ENTOMBSPIRIT_36,ENTOMBSPIRIT_37,ENTOMBSPIRIT_38,ENTOMBSPIRIT_39,ENTOMBSPIRIT_40,ENTOMBSPIRIT_41,ENTOMBSPIRIT_42,ENTOMBSPIRIT_43,ENTOMBSPIRIT_44,ENTOMBSPIRIT_45,ENTOMBSPIRIT_46,ENTOMBSPIRIT_47,ENTOMBSPIRIT_48,
+		animationFrames["Entomb Spirit"]["ACTION_1"].internalList = { ENTOMBSPIRIT_1,ENTOMBSPIRIT_2,ENTOMBSPIRIT_3,ENTOMBSPIRIT_4,ENTOMBSPIRIT_5,ENTOMBSPIRIT_6,ENTOMBSPIRIT_7,ENTOMBSPIRIT_8,ENTOMBSPIRIT_9,ENTOMBSPIRIT_10,ENTOMBSPIRIT_11,ENTOMBSPIRIT_12,ENTOMBSPIRIT_13,ENTOMBSPIRIT_14,ENTOMBSPIRIT_15,ENTOMBSPIRIT_16,ENTOMBSPIRIT_17,ENTOMBSPIRIT_18,ENTOMBSPIRIT_19,ENTOMBSPIRIT_20,ENTOMBSPIRIT_21,ENTOMBSPIRIT_22,ENTOMBSPIRIT_23,ENTOMBSPIRIT_24,ENTOMBSPIRIT_25,ENTOMBSPIRIT_26,ENTOMBSPIRIT_27,ENTOMBSPIRIT_28,ENTOMBSPIRIT_29,ENTOMBSPIRIT_30,ENTOMBSPIRIT_31,ENTOMBSPIRIT_32,ENTOMBSPIRIT_33,ENTOMBSPIRIT_34,ENTOMBSPIRIT_35,ENTOMBSPIRIT_36,ENTOMBSPIRIT_37,ENTOMBSPIRIT_38,ENTOMBSPIRIT_39,ENTOMBSPIRIT_40,ENTOMBSPIRIT_41,ENTOMBSPIRIT_42,ENTOMBSPIRIT_43,ENTOMBSPIRIT_44,ENTOMBSPIRIT_45,ENTOMBSPIRIT_46,ENTOMBSPIRIT_47,ENTOMBSPIRIT_48,
 		};
 
 		animationFrames["Exalted Smash"]["ACTION_1"].internalList = { EXALTEDSMASH_1,EXALTEDSMASH_2,EXALTEDSMASH_3,EXALTEDSMASH_4,EXALTEDSMASH_5,EXALTEDSMASH_6,EXALTEDSMASH_7,EXALTEDSMASH_8,EXALTEDSMASH_9,EXALTEDSMASH_10,EXALTEDSMASH_11,EXALTEDSMASH_12,EXALTEDSMASH_13,EXALTEDSMASH_14,EXALTEDSMASH_15,EXALTEDSMASH_16,EXALTEDSMASH_17,EXALTEDSMASH_18,EXALTEDSMASH_19,EXALTEDSMASH_20,EXALTEDSMASH_21,EXALTEDSMASH_22,EXALTEDSMASH_23,EXALTEDSMASH_24,EXALTEDSMASH_25, };
@@ -2277,40 +2385,40 @@ public:
 
 		animationFrames["Absolution"]["ACTION_1"].internalList = { ABSOLUTION_1,ABSOLUTION_2,ABSOLUTION_3,ABSOLUTION_4,ABSOLUTION_5,ABSOLUTION_6,ABSOLUTION_7,ABSOLUTION_8,ABSOLUTION_9,ABSOLUTION_10,ABSOLUTION_11,ABSOLUTION_12,ABSOLUTION_13,ABSOLUTION_14,ABSOLUTION_15,ABSOLUTION_16,ABSOLUTION_17,ABSOLUTION_18,ABSOLUTION_19,ABSOLUTION_20,ABSOLUTION_21,ABSOLUTION_22,ABSOLUTION_23,ABSOLUTION_24,ABSOLUTION_25,ABSOLUTION_26,ABSOLUTION_27,ABSOLUTION_28,ABSOLUTION_29,ABSOLUTION_30,ABSOLUTION_31,ABSOLUTION_32,ABSOLUTION_33,ABSOLUTION_34,ABSOLUTION_35,ABSOLUTION_36,ABSOLUTION_37,ABSOLUTION_38,ABSOLUTION_39,ABSOLUTION_40,ABSOLUTION_41,ABSOLUTION_42,ABSOLUTION_43,ABSOLUTION_44,ABSOLUTION_45,ABSOLUTION_46,ABSOLUTION_47,ABSOLUTION_48, };
 
-		animationFrames["Adjudicate"]["ACTION_1"].internalList = {						ADJUDICATE_1,ADJUDICATE_2,ADJUDICATE_3,ADJUDICATE_4,ADJUDICATE_5,ADJUDICATE_6,ADJUDICATE_7,ADJUDICATE_8,ADJUDICATE_9,ADJUDICATE_10,ADJUDICATE_11,ADJUDICATE_12,ADJUDICATE_13,ADJUDICATE_14,ADJUDICATE_15,ADJUDICATE_16,ADJUDICATE_17,ADJUDICATE_18,ADJUDICATE_19,ADJUDICATE_20,ADJUDICATE_21,ADJUDICATE_22,ADJUDICATE_23,ADJUDICATE_24,ADJUDICATE_25,ADJUDICATE_26,ADJUDICATE_27,ADJUDICATE_28,ADJUDICATE_29,ADJUDICATE_30,ADJUDICATE_31,ADJUDICATE_32,ADJUDICATE_33,ADJUDICATE_34,ADJUDICATE_35,ADJUDICATE_36,ADJUDICATE_37,ADJUDICATE_38,ADJUDICATE_39,ADJUDICATE_40,ADJUDICATE_41,ADJUDICATE_42,ADJUDICATE_43,ADJUDICATE_44,ADJUDICATE_45,ADJUDICATE_46,ADJUDICATE_47,ADJUDICATE_48,
+		animationFrames["Adjudicate"]["ACTION_1"].internalList = { ADJUDICATE_1,ADJUDICATE_2,ADJUDICATE_3,ADJUDICATE_4,ADJUDICATE_5,ADJUDICATE_6,ADJUDICATE_7,ADJUDICATE_8,ADJUDICATE_9,ADJUDICATE_10,ADJUDICATE_11,ADJUDICATE_12,ADJUDICATE_13,ADJUDICATE_14,ADJUDICATE_15,ADJUDICATE_16,ADJUDICATE_17,ADJUDICATE_18,ADJUDICATE_19,ADJUDICATE_20,ADJUDICATE_21,ADJUDICATE_22,ADJUDICATE_23,ADJUDICATE_24,ADJUDICATE_25,ADJUDICATE_26,ADJUDICATE_27,ADJUDICATE_28,ADJUDICATE_29,ADJUDICATE_30,ADJUDICATE_31,ADJUDICATE_32,ADJUDICATE_33,ADJUDICATE_34,ADJUDICATE_35,ADJUDICATE_36,ADJUDICATE_37,ADJUDICATE_38,ADJUDICATE_39,ADJUDICATE_40,ADJUDICATE_41,ADJUDICATE_42,ADJUDICATE_43,ADJUDICATE_44,ADJUDICATE_45,ADJUDICATE_46,ADJUDICATE_47,ADJUDICATE_48,
 		};
 
-		animationFrames["Stalked by Vengeance"]["ACTION_1"].internalList = {			STALKEDBYVENGEANCE_1,STALKEDBYVENGEANCE_2,STALKEDBYVENGEANCE_3,STALKEDBYVENGEANCE_4,STALKEDBYVENGEANCE_5,STALKEDBYVENGEANCE_6,STALKEDBYVENGEANCE_7,STALKEDBYVENGEANCE_8,STALKEDBYVENGEANCE_9,STALKEDBYVENGEANCE_10,STALKEDBYVENGEANCE_11,STALKEDBYVENGEANCE_12,STALKEDBYVENGEANCE_13,STALKEDBYVENGEANCE_14,STALKEDBYVENGEANCE_15,STALKEDBYVENGEANCE_16,STALKEDBYVENGEANCE_17,STALKEDBYVENGEANCE_18,STALKEDBYVENGEANCE_19,STALKEDBYVENGEANCE_20,STALKEDBYVENGEANCE_21,STALKEDBYVENGEANCE_22,STALKEDBYVENGEANCE_23,STALKEDBYVENGEANCE_24,STALKEDBYVENGEANCE_25,STALKEDBYVENGEANCE_26,STALKEDBYVENGEANCE_27,STALKEDBYVENGEANCE_28,STALKEDBYVENGEANCE_29,STALKEDBYVENGEANCE_30,STALKEDBYVENGEANCE_31,STALKEDBYVENGEANCE_32,STALKEDBYVENGEANCE_33,STALKEDBYVENGEANCE_34,STALKEDBYVENGEANCE_35,STALKEDBYVENGEANCE_36,STALKEDBYVENGEANCE_37,STALKEDBYVENGEANCE_38,STALKEDBYVENGEANCE_39,STALKEDBYVENGEANCE_40,STALKEDBYVENGEANCE_41,STALKEDBYVENGEANCE_42,STALKEDBYVENGEANCE_43,STALKEDBYVENGEANCE_44,STALKEDBYVENGEANCE_45,STALKEDBYVENGEANCE_46,STALKEDBYVENGEANCE_47,STALKEDBYVENGEANCE_48,
+		animationFrames["Stalked by Vengeance"]["ACTION_1"].internalList = { STALKEDBYVENGEANCE_1,STALKEDBYVENGEANCE_2,STALKEDBYVENGEANCE_3,STALKEDBYVENGEANCE_4,STALKEDBYVENGEANCE_5,STALKEDBYVENGEANCE_6,STALKEDBYVENGEANCE_7,STALKEDBYVENGEANCE_8,STALKEDBYVENGEANCE_9,STALKEDBYVENGEANCE_10,STALKEDBYVENGEANCE_11,STALKEDBYVENGEANCE_12,STALKEDBYVENGEANCE_13,STALKEDBYVENGEANCE_14,STALKEDBYVENGEANCE_15,STALKEDBYVENGEANCE_16,STALKEDBYVENGEANCE_17,STALKEDBYVENGEANCE_18,STALKEDBYVENGEANCE_19,STALKEDBYVENGEANCE_20,STALKEDBYVENGEANCE_21,STALKEDBYVENGEANCE_22,STALKEDBYVENGEANCE_23,STALKEDBYVENGEANCE_24,STALKEDBYVENGEANCE_25,STALKEDBYVENGEANCE_26,STALKEDBYVENGEANCE_27,STALKEDBYVENGEANCE_28,STALKEDBYVENGEANCE_29,STALKEDBYVENGEANCE_30,STALKEDBYVENGEANCE_31,STALKEDBYVENGEANCE_32,STALKEDBYVENGEANCE_33,STALKEDBYVENGEANCE_34,STALKEDBYVENGEANCE_35,STALKEDBYVENGEANCE_36,STALKEDBYVENGEANCE_37,STALKEDBYVENGEANCE_38,STALKEDBYVENGEANCE_39,STALKEDBYVENGEANCE_40,STALKEDBYVENGEANCE_41,STALKEDBYVENGEANCE_42,STALKEDBYVENGEANCE_43,STALKEDBYVENGEANCE_44,STALKEDBYVENGEANCE_45,STALKEDBYVENGEANCE_46,STALKEDBYVENGEANCE_47,STALKEDBYVENGEANCE_48,
 		};
-		animationFrames["Overrule"]["ACTION_1"].internalList = {			OVERRULE_1,OVERRULE_2,OVERRULE_3,OVERRULE_4,OVERRULE_5,OVERRULE_6,OVERRULE_7,OVERRULE_8,OVERRULE_9,OVERRULE_10,OVERRULE_11,OVERRULE_12,OVERRULE_13,OVERRULE_14,OVERRULE_15,OVERRULE_16,OVERRULE_17,OVERRULE_18,OVERRULE_19,OVERRULE_20,OVERRULE_21,OVERRULE_22,OVERRULE_23,OVERRULE_24,OVERRULE_25,OVERRULE_26,OVERRULE_27,OVERRULE_28,OVERRULE_29,OVERRULE_30,OVERRULE_31,OVERRULE_32,OVERRULE_33,OVERRULE_34,OVERRULE_35,OVERRULE_36,OVERRULE_37,OVERRULE_38,OVERRULE_39,OVERRULE_40,OVERRULE_41,OVERRULE_42,OVERRULE_43,OVERRULE_44,OVERRULE_45,OVERRULE_46,OVERRULE_47,OVERRULE_48,
-		};
-
-		animationFrames["Rotation Blade"]["ACTION_1"].internalList = {			ROTATIONBLADE_1,ROTATIONBLADE_2,ROTATIONBLADE_3,ROTATIONBLADE_4,ROTATIONBLADE_5,ROTATIONBLADE_6,ROTATIONBLADE_7,ROTATIONBLADE_8,ROTATIONBLADE_9,ROTATIONBLADE_10,ROTATIONBLADE_11,ROTATIONBLADE_12,ROTATIONBLADE_13,ROTATIONBLADE_14,ROTATIONBLADE_15,ROTATIONBLADE_16,ROTATIONBLADE_17,ROTATIONBLADE_18,ROTATIONBLADE_19,ROTATIONBLADE_20,ROTATIONBLADE_21,ROTATIONBLADE_22,ROTATIONBLADE_23,ROTATIONBLADE_24,
+		animationFrames["Overrule"]["ACTION_1"].internalList = { OVERRULE_1,OVERRULE_2,OVERRULE_3,OVERRULE_4,OVERRULE_5,OVERRULE_6,OVERRULE_7,OVERRULE_8,OVERRULE_9,OVERRULE_10,OVERRULE_11,OVERRULE_12,OVERRULE_13,OVERRULE_14,OVERRULE_15,OVERRULE_16,OVERRULE_17,OVERRULE_18,OVERRULE_19,OVERRULE_20,OVERRULE_21,OVERRULE_22,OVERRULE_23,OVERRULE_24,OVERRULE_25,OVERRULE_26,OVERRULE_27,OVERRULE_28,OVERRULE_29,OVERRULE_30,OVERRULE_31,OVERRULE_32,OVERRULE_33,OVERRULE_34,OVERRULE_35,OVERRULE_36,OVERRULE_37,OVERRULE_38,OVERRULE_39,OVERRULE_40,OVERRULE_41,OVERRULE_42,OVERRULE_43,OVERRULE_44,OVERRULE_45,OVERRULE_46,OVERRULE_47,OVERRULE_48,
 		};
 
-		animationFrames["Trickblade"]["ACTION_1"].internalList = {			TRICKBLADE_1,TRICKBLADE_2,TRICKBLADE_3,TRICKBLADE_4,TRICKBLADE_5,TRICKBLADE_6,TRICKBLADE_7,TRICKBLADE_8,TRICKBLADE_9,TRICKBLADE_10,TRICKBLADE_11,TRICKBLADE_12,TRICKBLADE_13,TRICKBLADE_14,TRICKBLADE_15,TRICKBLADE_16,TRICKBLADE_17,TRICKBLADE_18,TRICKBLADE_19,TRICKBLADE_20,TRICKBLADE_21,TRICKBLADE_22,TRICKBLADE_23,TRICKBLADE_24,
+		animationFrames["Rotation Blade"]["ACTION_1"].internalList = { ROTATIONBLADE_1,ROTATIONBLADE_2,ROTATIONBLADE_3,ROTATIONBLADE_4,ROTATIONBLADE_5,ROTATIONBLADE_6,ROTATIONBLADE_7,ROTATIONBLADE_8,ROTATIONBLADE_9,ROTATIONBLADE_10,ROTATIONBLADE_11,ROTATIONBLADE_12,ROTATIONBLADE_13,ROTATIONBLADE_14,ROTATIONBLADE_15,ROTATIONBLADE_16,ROTATIONBLADE_17,ROTATIONBLADE_18,ROTATIONBLADE_19,ROTATIONBLADE_20,ROTATIONBLADE_21,ROTATIONBLADE_22,ROTATIONBLADE_23,ROTATIONBLADE_24,
 		};
 
-		animationFrames["Debilitating Smash"]["ACTION_1"].internalList = {			DEBILITATINGSMASH_1,DEBILITATINGSMASH_2,DEBILITATINGSMASH_3,DEBILITATINGSMASH_4,DEBILITATINGSMASH_5,DEBILITATINGSMASH_6,DEBILITATINGSMASH_7,DEBILITATINGSMASH_8,DEBILITATINGSMASH_9,DEBILITATINGSMASH_10,DEBILITATINGSMASH_11,DEBILITATINGSMASH_12,DEBILITATINGSMASH_13,DEBILITATINGSMASH_14,DEBILITATINGSMASH_15,DEBILITATINGSMASH_16,DEBILITATINGSMASH_17,DEBILITATINGSMASH_18,DEBILITATINGSMASH_19,DEBILITATINGSMASH_20,DEBILITATINGSMASH_21,DEBILITATINGSMASH_22,DEBILITATINGSMASH_23,DEBILITATINGSMASH_24,
+		animationFrames["Trickblade"]["ACTION_1"].internalList = { TRICKBLADE_1,TRICKBLADE_2,TRICKBLADE_3,TRICKBLADE_4,TRICKBLADE_5,TRICKBLADE_6,TRICKBLADE_7,TRICKBLADE_8,TRICKBLADE_9,TRICKBLADE_10,TRICKBLADE_11,TRICKBLADE_12,TRICKBLADE_13,TRICKBLADE_14,TRICKBLADE_15,TRICKBLADE_16,TRICKBLADE_17,TRICKBLADE_18,TRICKBLADE_19,TRICKBLADE_20,TRICKBLADE_21,TRICKBLADE_22,TRICKBLADE_23,TRICKBLADE_24,
+		};
+
+		animationFrames["Debilitating Smash"]["ACTION_1"].internalList = { DEBILITATINGSMASH_1,DEBILITATINGSMASH_2,DEBILITATINGSMASH_3,DEBILITATINGSMASH_4,DEBILITATINGSMASH_5,DEBILITATINGSMASH_6,DEBILITATINGSMASH_7,DEBILITATINGSMASH_8,DEBILITATINGSMASH_9,DEBILITATINGSMASH_10,DEBILITATINGSMASH_11,DEBILITATINGSMASH_12,DEBILITATINGSMASH_13,DEBILITATINGSMASH_14,DEBILITATINGSMASH_15,DEBILITATINGSMASH_16,DEBILITATINGSMASH_17,DEBILITATINGSMASH_18,DEBILITATINGSMASH_19,DEBILITATINGSMASH_20,DEBILITATINGSMASH_21,DEBILITATINGSMASH_22,DEBILITATINGSMASH_23,DEBILITATINGSMASH_24,
 		};
 
 		animationFrames["Clobber"]["ACTION_1"].internalList = { CLOBBER_1,CLOBBER_2,CLOBBER_3,CLOBBER_4,CLOBBER_5,CLOBBER_6,CLOBBER_7,CLOBBER_8,CLOBBER_9,CLOBBER_10,CLOBBER_11,CLOBBER_12,CLOBBER_13,CLOBBER_14,CLOBBER_15,CLOBBER_16,CLOBBER_17,CLOBBER_18,CLOBBER_19,CLOBBER_20,CLOBBER_21,CLOBBER_22,CLOBBER_23,CLOBBER_24, };
 
 		animationFrames["Cleave Armour"]["ACTION_1"].internalList = { CLEAVEARMOUR_1,CLEAVEARMOUR_2,CLEAVEARMOUR_3,CLEAVEARMOUR_4,CLEAVEARMOUR_5,CLEAVEARMOUR_6,CLEAVEARMOUR_7,CLEAVEARMOUR_8,CLEAVEARMOUR_9,CLEAVEARMOUR_10,CLEAVEARMOUR_11,CLEAVEARMOUR_12,CLEAVEARMOUR_13,CLEAVEARMOUR_14,CLEAVEARMOUR_15,CLEAVEARMOUR_16,CLEAVEARMOUR_17,CLEAVEARMOUR_18,CLEAVEARMOUR_19,CLEAVEARMOUR_20,CLEAVEARMOUR_21,CLEAVEARMOUR_22,CLEAVEARMOUR_23,CLEAVEARMOUR_24, };
 
-		animationFrames["Knee Crack"]["ACTION_1"].internalList = {			KNEECRACK_1,KNEECRACK_2,KNEECRACK_3,KNEECRACK_4,KNEECRACK_5,KNEECRACK_6,KNEECRACK_7,KNEECRACK_8,KNEECRACK_9,KNEECRACK_10,KNEECRACK_11,KNEECRACK_12,KNEECRACK_13,KNEECRACK_14,KNEECRACK_15,KNEECRACK_16,KNEECRACK_17,KNEECRACK_18,KNEECRACK_19,KNEECRACK_20,KNEECRACK_21,KNEECRACK_22,KNEECRACK_23,KNEECRACK_24,
+		animationFrames["Knee Crack"]["ACTION_1"].internalList = { KNEECRACK_1,KNEECRACK_2,KNEECRACK_3,KNEECRACK_4,KNEECRACK_5,KNEECRACK_6,KNEECRACK_7,KNEECRACK_8,KNEECRACK_9,KNEECRACK_10,KNEECRACK_11,KNEECRACK_12,KNEECRACK_13,KNEECRACK_14,KNEECRACK_15,KNEECRACK_16,KNEECRACK_17,KNEECRACK_18,KNEECRACK_19,KNEECRACK_20,KNEECRACK_21,KNEECRACK_22,KNEECRACK_23,KNEECRACK_24,
 		};
 
-		animationFrames["Bulldoze"]["ACTION_1"].internalList = {			BULLDOZE_1,BULLDOZE_2,BULLDOZE_3,BULLDOZE_4,BULLDOZE_5,BULLDOZE_6,BULLDOZE_7,BULLDOZE_8,BULLDOZE_9,BULLDOZE_10,BULLDOZE_11,BULLDOZE_12,BULLDOZE_13,BULLDOZE_14,BULLDOZE_15,BULLDOZE_16,BULLDOZE_17,BULLDOZE_18,BULLDOZE_19,BULLDOZE_20,BULLDOZE_21,BULLDOZE_22,BULLDOZE_23,BULLDOZE_24,
+		animationFrames["Bulldoze"]["ACTION_1"].internalList = { BULLDOZE_1,BULLDOZE_2,BULLDOZE_3,BULLDOZE_4,BULLDOZE_5,BULLDOZE_6,BULLDOZE_7,BULLDOZE_8,BULLDOZE_9,BULLDOZE_10,BULLDOZE_11,BULLDOZE_12,BULLDOZE_13,BULLDOZE_14,BULLDOZE_15,BULLDOZE_16,BULLDOZE_17,BULLDOZE_18,BULLDOZE_19,BULLDOZE_20,BULLDOZE_21,BULLDOZE_22,BULLDOZE_23,BULLDOZE_24,
 		};
 
-		animationFrames["Knight Vision"]["ACTION_1"].internalList = {			KNIGHTVISION_1,KNIGHTVISION_2,KNIGHTVISION_3,KNIGHTVISION_4,KNIGHTVISION_5,KNIGHTVISION_6,KNIGHTVISION_7,KNIGHTVISION_8,KNIGHTVISION_9,KNIGHTVISION_10,KNIGHTVISION_11,KNIGHTVISION_12,KNIGHTVISION_13,KNIGHTVISION_14,KNIGHTVISION_15,KNIGHTVISION_16,KNIGHTVISION_17,KNIGHTVISION_18,KNIGHTVISION_19,KNIGHTVISION_20,KNIGHTVISION_21,KNIGHTVISION_22,KNIGHTVISION_23,KNIGHTVISION_24,
+		animationFrames["Knight Vision"]["ACTION_1"].internalList = { KNIGHTVISION_1,KNIGHTVISION_2,KNIGHTVISION_3,KNIGHTVISION_4,KNIGHTVISION_5,KNIGHTVISION_6,KNIGHTVISION_7,KNIGHTVISION_8,KNIGHTVISION_9,KNIGHTVISION_10,KNIGHTVISION_11,KNIGHTVISION_12,KNIGHTVISION_13,KNIGHTVISION_14,KNIGHTVISION_15,KNIGHTVISION_16,KNIGHTVISION_17,KNIGHTVISION_18,KNIGHTVISION_19,KNIGHTVISION_20,KNIGHTVISION_21,KNIGHTVISION_22,KNIGHTVISION_23,KNIGHTVISION_24,
 		};
 
-		animationFrames["On My Target!"]["ACTION_1"].internalList = {			ONMYTARGET_1,ONMYTARGET_2,ONMYTARGET_3,ONMYTARGET_4,ONMYTARGET_5,ONMYTARGET_6,ONMYTARGET_7,ONMYTARGET_8,ONMYTARGET_9,ONMYTARGET_10,ONMYTARGET_11,ONMYTARGET_12,ONMYTARGET_13,ONMYTARGET_14,ONMYTARGET_15,ONMYTARGET_16,ONMYTARGET_17,ONMYTARGET_18,ONMYTARGET_19,ONMYTARGET_20,ONMYTARGET_21,ONMYTARGET_22,ONMYTARGET_23,ONMYTARGET_24,ONMYTARGET_25,ONMYTARGET_26,ONMYTARGET_27,ONMYTARGET_28,ONMYTARGET_29,ONMYTARGET_30,ONMYTARGET_31,ONMYTARGET_32,
+		animationFrames["On My Target!"]["ACTION_1"].internalList = { ONMYTARGET_1,ONMYTARGET_2,ONMYTARGET_3,ONMYTARGET_4,ONMYTARGET_5,ONMYTARGET_6,ONMYTARGET_7,ONMYTARGET_8,ONMYTARGET_9,ONMYTARGET_10,ONMYTARGET_11,ONMYTARGET_12,ONMYTARGET_13,ONMYTARGET_14,ONMYTARGET_15,ONMYTARGET_16,ONMYTARGET_17,ONMYTARGET_18,ONMYTARGET_19,ONMYTARGET_20,ONMYTARGET_21,ONMYTARGET_22,ONMYTARGET_23,ONMYTARGET_24,ONMYTARGET_25,ONMYTARGET_26,ONMYTARGET_27,ONMYTARGET_28,ONMYTARGET_29,ONMYTARGET_30,ONMYTARGET_31,ONMYTARGET_32,
 		};
 
-		animationFrames["Glass Sword"]["ACTION_1"].internalList = {			GLASSSWORD_1,GLASSSWORD_2,GLASSSWORD_3,GLASSSWORD_4,GLASSSWORD_5,GLASSSWORD_6,GLASSSWORD_7,GLASSSWORD_8,GLASSSWORD_9,GLASSSWORD_10,GLASSSWORD_11,GLASSSWORD_12,GLASSSWORD_13,GLASSSWORD_14,GLASSSWORD_15,GLASSSWORD_16,GLASSSWORD_17,GLASSSWORD_18,GLASSSWORD_19,GLASSSWORD_20,GLASSSWORD_21,GLASSSWORD_22,GLASSSWORD_23,GLASSSWORD_24,
+		animationFrames["Glass Sword"]["ACTION_1"].internalList = { GLASSSWORD_1,GLASSSWORD_2,GLASSSWORD_3,GLASSSWORD_4,GLASSSWORD_5,GLASSSWORD_6,GLASSSWORD_7,GLASSSWORD_8,GLASSSWORD_9,GLASSSWORD_10,GLASSSWORD_11,GLASSSWORD_12,GLASSSWORD_13,GLASSSWORD_14,GLASSSWORD_15,GLASSSWORD_16,GLASSSWORD_17,GLASSSWORD_18,GLASSSWORD_19,GLASSSWORD_20,GLASSSWORD_21,GLASSSWORD_22,GLASSSWORD_23,GLASSSWORD_24,
 		};
 
 		animationFrames["Hack"]["ACTION_1"].internalList = { HACK_1,HACK_2,HACK_3,HACK_4,HACK_5,HACK_6,HACK_7,HACK_8,HACK_9,HACK_10,HACK_11,HACK_12,HACK_13,HACK_14,HACK_15,HACK_16,HACK_17,HACK_18,HACK_19,HACK_20,HACK_21,HACK_22,HACK_23,HACK_24, };
@@ -2351,7 +2459,7 @@ public:
 
 		animationFrames["Lacrymactory"]["ACTION_1"].internalList = { LACRYMACTORY_1,LACRYMACTORY_2,LACRYMACTORY_3,LACRYMACTORY_4,LACRYMACTORY_5,LACRYMACTORY_6,LACRYMACTORY_7,LACRYMACTORY_8,LACRYMACTORY_9,LACRYMACTORY_10,LACRYMACTORY_11,LACRYMACTORY_12,LACRYMACTORY_13,LACRYMACTORY_14,LACRYMACTORY_15,LACRYMACTORY_16,LACRYMACTORY_17,LACRYMACTORY_18,LACRYMACTORY_19,LACRYMACTORY_20,LACRYMACTORY_21,LACRYMACTORY_22,LACRYMACTORY_23,LACRYMACTORY_24,LACRYMACTORY_25,LACRYMACTORY_26,LACRYMACTORY_27,LACRYMACTORY_28,LACRYMACTORY_29,LACRYMACTORY_30,LACRYMACTORY_31,LACRYMACTORY_32,LACRYMACTORY_33,LACRYMACTORY_34,LACRYMACTORY_35,LACRYMACTORY_36,LACRYMACTORY_37,LACRYMACTORY_38,LACRYMACTORY_39,LACRYMACTORY_40,LACRYMACTORY_41,LACRYMACTORY_42,LACRYMACTORY_43,LACRYMACTORY_44,LACRYMACTORY_45,LACRYMACTORY_46,LACRYMACTORY_47,LACRYMACTORY_48, };
 
-		animationFrames["Excommunicative Assault"]["ACTION_1"].internalList = {			EXCOMMUNICATIVEASSAULT_1,EXCOMMUNICATIVEASSAULT_2,EXCOMMUNICATIVEASSAULT_3,EXCOMMUNICATIVEASSAULT_4,EXCOMMUNICATIVEASSAULT_5,EXCOMMUNICATIVEASSAULT_6,EXCOMMUNICATIVEASSAULT_7,EXCOMMUNICATIVEASSAULT_8,EXCOMMUNICATIVEASSAULT_9,EXCOMMUNICATIVEASSAULT_10,EXCOMMUNICATIVEASSAULT_11,EXCOMMUNICATIVEASSAULT_12,EXCOMMUNICATIVEASSAULT_13,EXCOMMUNICATIVEASSAULT_14,EXCOMMUNICATIVEASSAULT_15,EXCOMMUNICATIVEASSAULT_16,EXCOMMUNICATIVEASSAULT_17,EXCOMMUNICATIVEASSAULT_18,EXCOMMUNICATIVEASSAULT_19,EXCOMMUNICATIVEASSAULT_20,EXCOMMUNICATIVEASSAULT_21,EXCOMMUNICATIVEASSAULT_22,EXCOMMUNICATIVEASSAULT_23,EXCOMMUNICATIVEASSAULT_24,EXCOMMUNICATIVEASSAULT_25,EXCOMMUNICATIVEASSAULT_26,EXCOMMUNICATIVEASSAULT_27,EXCOMMUNICATIVEASSAULT_28,EXCOMMUNICATIVEASSAULT_29,EXCOMMUNICATIVEASSAULT_30,EXCOMMUNICATIVEASSAULT_31,EXCOMMUNICATIVEASSAULT_32,EXCOMMUNICATIVEASSAULT_33,EXCOMMUNICATIVEASSAULT_34,EXCOMMUNICATIVEASSAULT_35,EXCOMMUNICATIVEASSAULT_36,EXCOMMUNICATIVEASSAULT_37,EXCOMMUNICATIVEASSAULT_38,EXCOMMUNICATIVEASSAULT_39,EXCOMMUNICATIVEASSAULT_40,EXCOMMUNICATIVEASSAULT_41,EXCOMMUNICATIVEASSAULT_42,EXCOMMUNICATIVEASSAULT_43,EXCOMMUNICATIVEASSAULT_44,EXCOMMUNICATIVEASSAULT_45,EXCOMMUNICATIVEASSAULT_46,EXCOMMUNICATIVEASSAULT_47,EXCOMMUNICATIVEASSAULT_48,
+		animationFrames["Excommunicative Assault"]["ACTION_1"].internalList = { EXCOMMUNICATIVEASSAULT_1,EXCOMMUNICATIVEASSAULT_2,EXCOMMUNICATIVEASSAULT_3,EXCOMMUNICATIVEASSAULT_4,EXCOMMUNICATIVEASSAULT_5,EXCOMMUNICATIVEASSAULT_6,EXCOMMUNICATIVEASSAULT_7,EXCOMMUNICATIVEASSAULT_8,EXCOMMUNICATIVEASSAULT_9,EXCOMMUNICATIVEASSAULT_10,EXCOMMUNICATIVEASSAULT_11,EXCOMMUNICATIVEASSAULT_12,EXCOMMUNICATIVEASSAULT_13,EXCOMMUNICATIVEASSAULT_14,EXCOMMUNICATIVEASSAULT_15,EXCOMMUNICATIVEASSAULT_16,EXCOMMUNICATIVEASSAULT_17,EXCOMMUNICATIVEASSAULT_18,EXCOMMUNICATIVEASSAULT_19,EXCOMMUNICATIVEASSAULT_20,EXCOMMUNICATIVEASSAULT_21,EXCOMMUNICATIVEASSAULT_22,EXCOMMUNICATIVEASSAULT_23,EXCOMMUNICATIVEASSAULT_24,EXCOMMUNICATIVEASSAULT_25,EXCOMMUNICATIVEASSAULT_26,EXCOMMUNICATIVEASSAULT_27,EXCOMMUNICATIVEASSAULT_28,EXCOMMUNICATIVEASSAULT_29,EXCOMMUNICATIVEASSAULT_30,EXCOMMUNICATIVEASSAULT_31,EXCOMMUNICATIVEASSAULT_32,EXCOMMUNICATIVEASSAULT_33,EXCOMMUNICATIVEASSAULT_34,EXCOMMUNICATIVEASSAULT_35,EXCOMMUNICATIVEASSAULT_36,EXCOMMUNICATIVEASSAULT_37,EXCOMMUNICATIVEASSAULT_38,EXCOMMUNICATIVEASSAULT_39,EXCOMMUNICATIVEASSAULT_40,EXCOMMUNICATIVEASSAULT_41,EXCOMMUNICATIVEASSAULT_42,EXCOMMUNICATIVEASSAULT_43,EXCOMMUNICATIVEASSAULT_44,EXCOMMUNICATIVEASSAULT_45,EXCOMMUNICATIVEASSAULT_46,EXCOMMUNICATIVEASSAULT_47,EXCOMMUNICATIVEASSAULT_48,
 		};
 
 		animationFrames["Mourning Edge"]["ACTION_1"].internalList = { MOURNINGEDGE_1,MOURNINGEDGE_2,MOURNINGEDGE_3,MOURNINGEDGE_4,MOURNINGEDGE_5,MOURNINGEDGE_6,MOURNINGEDGE_7,MOURNINGEDGE_8,MOURNINGEDGE_9,MOURNINGEDGE_10,MOURNINGEDGE_11,MOURNINGEDGE_12,MOURNINGEDGE_13,MOURNINGEDGE_14,MOURNINGEDGE_15,MOURNINGEDGE_16,MOURNINGEDGE_17,MOURNINGEDGE_18,MOURNINGEDGE_19,MOURNINGEDGE_20,MOURNINGEDGE_21,MOURNINGEDGE_22,MOURNINGEDGE_23,MOURNINGEDGE_24, };
@@ -2371,7 +2479,7 @@ public:
 
 		animationFrames["Suppress"]["ACTION_1"].internalList = { SUPPRESS_1,SUPPRESS_2,SUPPRESS_3,SUPPRESS_4,SUPPRESS_5,SUPPRESS_6,SUPPRESS_7,SUPPRESS_8,SUPPRESS_9,SUPPRESS_10,SUPPRESS_11,SUPPRESS_12,SUPPRESS_13,SUPPRESS_14,SUPPRESS_15,SUPPRESS_16,SUPPRESS_17,SUPPRESS_18,SUPPRESS_19,SUPPRESS_20,SUPPRESS_21,SUPPRESS_22,SUPPRESS_23,SUPPRESS_24,SUPPRESS_25,SUPPRESS_26,SUPPRESS_27,SUPPRESS_28,SUPPRESS_29,SUPPRESS_30,SUPPRESS_31,SUPPRESS_32,SUPPRESS_33,SUPPRESS_34,SUPPRESS_35,SUPPRESS_36,SUPPRESS_37,SUPPRESS_38,SUPPRESS_39,SUPPRESS_40,SUPPRESS_41,SUPPRESS_42,SUPPRESS_43,SUPPRESS_44,SUPPRESS_45,SUPPRESS_46,SUPPRESS_47,SUPPRESS_48, };
 
-		animationFrames["Godly Repulsion"]["ACTION_1"].internalList = {			GODLYREPULSION_1,GODLYREPULSION_2,GODLYREPULSION_3,GODLYREPULSION_4,GODLYREPULSION_5,GODLYREPULSION_6,GODLYREPULSION_7,GODLYREPULSION_8,GODLYREPULSION_9,GODLYREPULSION_10,GODLYREPULSION_11,GODLYREPULSION_12,GODLYREPULSION_13,GODLYREPULSION_14,GODLYREPULSION_15,GODLYREPULSION_16,GODLYREPULSION_17,GODLYREPULSION_18,GODLYREPULSION_19,GODLYREPULSION_20,GODLYREPULSION_21,GODLYREPULSION_22,GODLYREPULSION_23,GODLYREPULSION_24,GODLYREPULSION_25,GODLYREPULSION_26,GODLYREPULSION_27,GODLYREPULSION_28,GODLYREPULSION_29,GODLYREPULSION_30,GODLYREPULSION_31,GODLYREPULSION_32,GODLYREPULSION_33,GODLYREPULSION_34,GODLYREPULSION_35,GODLYREPULSION_36,GODLYREPULSION_37,GODLYREPULSION_38,GODLYREPULSION_39,GODLYREPULSION_40,GODLYREPULSION_41,GODLYREPULSION_42,GODLYREPULSION_43,GODLYREPULSION_44,GODLYREPULSION_45,GODLYREPULSION_46,GODLYREPULSION_47,GODLYREPULSION_48,
+		animationFrames["Godly Repulsion"]["ACTION_1"].internalList = { GODLYREPULSION_1,GODLYREPULSION_2,GODLYREPULSION_3,GODLYREPULSION_4,GODLYREPULSION_5,GODLYREPULSION_6,GODLYREPULSION_7,GODLYREPULSION_8,GODLYREPULSION_9,GODLYREPULSION_10,GODLYREPULSION_11,GODLYREPULSION_12,GODLYREPULSION_13,GODLYREPULSION_14,GODLYREPULSION_15,GODLYREPULSION_16,GODLYREPULSION_17,GODLYREPULSION_18,GODLYREPULSION_19,GODLYREPULSION_20,GODLYREPULSION_21,GODLYREPULSION_22,GODLYREPULSION_23,GODLYREPULSION_24,GODLYREPULSION_25,GODLYREPULSION_26,GODLYREPULSION_27,GODLYREPULSION_28,GODLYREPULSION_29,GODLYREPULSION_30,GODLYREPULSION_31,GODLYREPULSION_32,GODLYREPULSION_33,GODLYREPULSION_34,GODLYREPULSION_35,GODLYREPULSION_36,GODLYREPULSION_37,GODLYREPULSION_38,GODLYREPULSION_39,GODLYREPULSION_40,GODLYREPULSION_41,GODLYREPULSION_42,GODLYREPULSION_43,GODLYREPULSION_44,GODLYREPULSION_45,GODLYREPULSION_46,GODLYREPULSION_47,GODLYREPULSION_48,
 		};
 
 		animationFrames["I Shall Take Care of This!"]["ACTION_1"].internalList = { ISHALLTAKECAREOFTHIS_1,ISHALLTAKECAREOFTHIS_2,ISHALLTAKECAREOFTHIS_3,ISHALLTAKECAREOFTHIS_4,ISHALLTAKECAREOFTHIS_5,ISHALLTAKECAREOFTHIS_6,ISHALLTAKECAREOFTHIS_7,ISHALLTAKECAREOFTHIS_8,ISHALLTAKECAREOFTHIS_9,ISHALLTAKECAREOFTHIS_10,ISHALLTAKECAREOFTHIS_11,ISHALLTAKECAREOFTHIS_12,ISHALLTAKECAREOFTHIS_13,ISHALLTAKECAREOFTHIS_14,ISHALLTAKECAREOFTHIS_15,ISHALLTAKECAREOFTHIS_16,ISHALLTAKECAREOFTHIS_17,ISHALLTAKECAREOFTHIS_18,ISHALLTAKECAREOFTHIS_19,ISHALLTAKECAREOFTHIS_20,ISHALLTAKECAREOFTHIS_21,ISHALLTAKECAREOFTHIS_22,ISHALLTAKECAREOFTHIS_23,ISHALLTAKECAREOFTHIS_24, };
@@ -2380,7 +2488,7 @@ public:
 
 		animationFrames["Lord's Authority"]["ACTION_1"].internalList = { LORDSAUTHORITY_1,LORDSAUTHORITY_2,LORDSAUTHORITY_3,LORDSAUTHORITY_4,LORDSAUTHORITY_5,LORDSAUTHORITY_6,LORDSAUTHORITY_7,LORDSAUTHORITY_8,LORDSAUTHORITY_9,LORDSAUTHORITY_10,LORDSAUTHORITY_11,LORDSAUTHORITY_12,LORDSAUTHORITY_13,LORDSAUTHORITY_14,LORDSAUTHORITY_15,LORDSAUTHORITY_16,LORDSAUTHORITY_17,LORDSAUTHORITY_18,LORDSAUTHORITY_19,LORDSAUTHORITY_20,LORDSAUTHORITY_21,LORDSAUTHORITY_22,LORDSAUTHORITY_23,LORDSAUTHORITY_24, };
 
-		animationFrames["Bailiff's Blade"]["ACTION_1"].internalList = {		BAILIFFSBLADE_1,BAILIFFSBLADE_2,BAILIFFSBLADE_3,BAILIFFSBLADE_4,BAILIFFSBLADE_5,BAILIFFSBLADE_6,BAILIFFSBLADE_7,BAILIFFSBLADE_8,BAILIFFSBLADE_9,BAILIFFSBLADE_10,BAILIFFSBLADE_11,BAILIFFSBLADE_12,BAILIFFSBLADE_13,BAILIFFSBLADE_14,BAILIFFSBLADE_15,BAILIFFSBLADE_16,BAILIFFSBLADE_17,BAILIFFSBLADE_18,BAILIFFSBLADE_19,BAILIFFSBLADE_20,BAILIFFSBLADE_21,BAILIFFSBLADE_22,BAILIFFSBLADE_23,BAILIFFSBLADE_24,
+		animationFrames["Bailiff's Blade"]["ACTION_1"].internalList = { BAILIFFSBLADE_1,BAILIFFSBLADE_2,BAILIFFSBLADE_3,BAILIFFSBLADE_4,BAILIFFSBLADE_5,BAILIFFSBLADE_6,BAILIFFSBLADE_7,BAILIFFSBLADE_8,BAILIFFSBLADE_9,BAILIFFSBLADE_10,BAILIFFSBLADE_11,BAILIFFSBLADE_12,BAILIFFSBLADE_13,BAILIFFSBLADE_14,BAILIFFSBLADE_15,BAILIFFSBLADE_16,BAILIFFSBLADE_17,BAILIFFSBLADE_18,BAILIFFSBLADE_19,BAILIFFSBLADE_20,BAILIFFSBLADE_21,BAILIFFSBLADE_22,BAILIFFSBLADE_23,BAILIFFSBLADE_24,
 		};
 
 		animationFrames["Fight the Pain!"]["ACTION_1"].internalList = { FIGHTTHEPAIN_1,FIGHTTHEPAIN_2,FIGHTTHEPAIN_3,FIGHTTHEPAIN_4,FIGHTTHEPAIN_5,FIGHTTHEPAIN_6,FIGHTTHEPAIN_7,FIGHTTHEPAIN_8,FIGHTTHEPAIN_9,FIGHTTHEPAIN_10,FIGHTTHEPAIN_11,FIGHTTHEPAIN_12,FIGHTTHEPAIN_13,FIGHTTHEPAIN_14,FIGHTTHEPAIN_15,FIGHTTHEPAIN_16,FIGHTTHEPAIN_17,FIGHTTHEPAIN_18,FIGHTTHEPAIN_19,FIGHTTHEPAIN_20,FIGHTTHEPAIN_21,FIGHTTHEPAIN_22,FIGHTTHEPAIN_23,FIGHTTHEPAIN_24, };
@@ -2396,7 +2504,7 @@ public:
 
 		animationFrames["Light from the Other Side"]["ACTION_1"].internalList = { LFROMTHEOTHERS_1,LFROMTHEOTHERS_2,LFROMTHEOTHERS_3,LFROMTHEOTHERS_4,LFROMTHEOTHERS_5,LFROMTHEOTHERS_6,LFROMTHEOTHERS_7,LFROMTHEOTHERS_8,LFROMTHEOTHERS_9,LFROMTHEOTHERS_10,LFROMTHEOTHERS_11,LFROMTHEOTHERS_12,LFROMTHEOTHERS_13,LFROMTHEOTHERS_14,LFROMTHEOTHERS_15,LFROMTHEOTHERS_16,LFROMTHEOTHERS_17,LFROMTHEOTHERS_18,LFROMTHEOTHERS_19,LFROMTHEOTHERS_20,LFROMTHEOTHERS_21,LFROMTHEOTHERS_22,LFROMTHEOTHERS_23,LFROMTHEOTHERS_24,LFROMTHEOTHERS_25,LFROMTHEOTHERS_26,LFROMTHEOTHERS_27,LFROMTHEOTHERS_28,LFROMTHEOTHERS_29,LFROMTHEOTHERS_30,LFROMTHEOTHERS_31,LFROMTHEOTHERS_32,LFROMTHEOTHERS_33,LFROMTHEOTHERS_34,LFROMTHEOTHERS_35,LFROMTHEOTHERS_36,LFROMTHEOTHERS_37,LFROMTHEOTHERS_38,LFROMTHEOTHERS_39,LFROMTHEOTHERS_40,LFROMTHEOTHERS_41,LFROMTHEOTHERS_42,LFROMTHEOTHERS_43,LFROMTHEOTHERS_44,LFROMTHEOTHERS_45,LFROMTHEOTHERS_46,LFROMTHEOTHERS_47,LFROMTHEOTHERS_48, };
 
-		animationFrames["Go On Without Me!"]["ACTION_1"].internalList = {			GOONWITHOUTME_1,GOONWITHOUTME_2,GOONWITHOUTME_3,GOONWITHOUTME_4,GOONWITHOUTME_5,GOONWITHOUTME_6,GOONWITHOUTME_7,GOONWITHOUTME_8,GOONWITHOUTME_9,GOONWITHOUTME_10,GOONWITHOUTME_11,GOONWITHOUTME_12,GOONWITHOUTME_13,GOONWITHOUTME_14,GOONWITHOUTME_15,GOONWITHOUTME_16,GOONWITHOUTME_17,GOONWITHOUTME_18,GOONWITHOUTME_19,GOONWITHOUTME_20,GOONWITHOUTME_21,GOONWITHOUTME_22,GOONWITHOUTME_23,GOONWITHOUTME_24,
+		animationFrames["Go On Without Me!"]["ACTION_1"].internalList = { GOONWITHOUTME_1,GOONWITHOUTME_2,GOONWITHOUTME_3,GOONWITHOUTME_4,GOONWITHOUTME_5,GOONWITHOUTME_6,GOONWITHOUTME_7,GOONWITHOUTME_8,GOONWITHOUTME_9,GOONWITHOUTME_10,GOONWITHOUTME_11,GOONWITHOUTME_12,GOONWITHOUTME_13,GOONWITHOUTME_14,GOONWITHOUTME_15,GOONWITHOUTME_16,GOONWITHOUTME_17,GOONWITHOUTME_18,GOONWITHOUTME_19,GOONWITHOUTME_20,GOONWITHOUTME_21,GOONWITHOUTME_22,GOONWITHOUTME_23,GOONWITHOUTME_24,
 		};
 
 		animationFrames["You're Revolting!"]["ACTION_1"].internalList = { YOUREREVOLTING_1,YOUREREVOLTING_2,YOUREREVOLTING_3,YOUREREVOLTING_4,YOUREREVOLTING_5,YOUREREVOLTING_6,YOUREREVOLTING_7,YOUREREVOLTING_8,YOUREREVOLTING_9,YOUREREVOLTING_10,YOUREREVOLTING_11,YOUREREVOLTING_12,YOUREREVOLTING_13,YOUREREVOLTING_14,YOUREREVOLTING_15,YOUREREVOLTING_16,YOUREREVOLTING_17,YOUREREVOLTING_18,YOUREREVOLTING_19,YOUREREVOLTING_20,YOUREREVOLTING_21,YOUREREVOLTING_22,YOUREREVOLTING_23,YOUREREVOLTING_24, };
@@ -2410,22 +2518,22 @@ public:
 
 		animationFrames["Mug"]["ACTION_1"].internalList = { MUG_1,MUG_2,MUG_3,MUG_4,MUG_5,MUG_6,MUG_7,MUG_8,MUG_9,MUG_10,MUG_11,MUG_12,MUG_13,MUG_14,MUG_15,MUG_16,MUG_17,MUG_18,MUG_19,MUG_20,MUG_21,MUG_22,MUG_23,MUG_24,MUG_25,MUG_26,MUG_27,MUG_28,MUG_29,MUG_30,MUG_31,MUG_32,MUG_33,MUG_34,MUG_35,MUG_36,MUG_37,MUG_38,MUG_39,MUG_40,MUG_41,MUG_42,MUG_43,MUG_44,MUG_45,MUG_46,MUG_47,MUG_48, };
 
-		animationFrames["Charm Collapse"]["ACTION_1"].internalList = {			CHARMCOLLAPSE_1,CHARMCOLLAPSE_2,CHARMCOLLAPSE_3,CHARMCOLLAPSE_4,CHARMCOLLAPSE_5,CHARMCOLLAPSE_6,CHARMCOLLAPSE_7,CHARMCOLLAPSE_8,CHARMCOLLAPSE_9,CHARMCOLLAPSE_10,CHARMCOLLAPSE_11,CHARMCOLLAPSE_12,CHARMCOLLAPSE_13,CHARMCOLLAPSE_14,CHARMCOLLAPSE_15,CHARMCOLLAPSE_16,CHARMCOLLAPSE_17,CHARMCOLLAPSE_18,CHARMCOLLAPSE_19,CHARMCOLLAPSE_20,CHARMCOLLAPSE_21,CHARMCOLLAPSE_22,CHARMCOLLAPSE_23,CHARMCOLLAPSE_24,CHARMCOLLAPSE_25,CHARMCOLLAPSE_26,CHARMCOLLAPSE_27,CHARMCOLLAPSE_28,CHARMCOLLAPSE_29,CHARMCOLLAPSE_30,CHARMCOLLAPSE_31,CHARMCOLLAPSE_32,CHARMCOLLAPSE_33,CHARMCOLLAPSE_34,CHARMCOLLAPSE_35,CHARMCOLLAPSE_36,CHARMCOLLAPSE_37,CHARMCOLLAPSE_38,CHARMCOLLAPSE_39,CHARMCOLLAPSE_40,CHARMCOLLAPSE_41,CHARMCOLLAPSE_42,CHARMCOLLAPSE_43,CHARMCOLLAPSE_44,CHARMCOLLAPSE_45,CHARMCOLLAPSE_46,CHARMCOLLAPSE_47,CHARMCOLLAPSE_48,
+		animationFrames["Charm Collapse"]["ACTION_1"].internalList = { CHARMCOLLAPSE_1,CHARMCOLLAPSE_2,CHARMCOLLAPSE_3,CHARMCOLLAPSE_4,CHARMCOLLAPSE_5,CHARMCOLLAPSE_6,CHARMCOLLAPSE_7,CHARMCOLLAPSE_8,CHARMCOLLAPSE_9,CHARMCOLLAPSE_10,CHARMCOLLAPSE_11,CHARMCOLLAPSE_12,CHARMCOLLAPSE_13,CHARMCOLLAPSE_14,CHARMCOLLAPSE_15,CHARMCOLLAPSE_16,CHARMCOLLAPSE_17,CHARMCOLLAPSE_18,CHARMCOLLAPSE_19,CHARMCOLLAPSE_20,CHARMCOLLAPSE_21,CHARMCOLLAPSE_22,CHARMCOLLAPSE_23,CHARMCOLLAPSE_24,CHARMCOLLAPSE_25,CHARMCOLLAPSE_26,CHARMCOLLAPSE_27,CHARMCOLLAPSE_28,CHARMCOLLAPSE_29,CHARMCOLLAPSE_30,CHARMCOLLAPSE_31,CHARMCOLLAPSE_32,CHARMCOLLAPSE_33,CHARMCOLLAPSE_34,CHARMCOLLAPSE_35,CHARMCOLLAPSE_36,CHARMCOLLAPSE_37,CHARMCOLLAPSE_38,CHARMCOLLAPSE_39,CHARMCOLLAPSE_40,CHARMCOLLAPSE_41,CHARMCOLLAPSE_42,CHARMCOLLAPSE_43,CHARMCOLLAPSE_44,CHARMCOLLAPSE_45,CHARMCOLLAPSE_46,CHARMCOLLAPSE_47,CHARMCOLLAPSE_48,
 		};
 
 		animationFrames["Psychic Pithing"]["ACTION_1"].internalList = { PSYCHICPITHING_1,PSYCHICPITHING_2,PSYCHICPITHING_3,PSYCHICPITHING_4,PSYCHICPITHING_5,PSYCHICPITHING_6,PSYCHICPITHING_7,PSYCHICPITHING_8,PSYCHICPITHING_9,PSYCHICPITHING_10,PSYCHICPITHING_11,PSYCHICPITHING_12,PSYCHICPITHING_13,PSYCHICPITHING_14,PSYCHICPITHING_15,PSYCHICPITHING_16,PSYCHICPITHING_17,PSYCHICPITHING_18,PSYCHICPITHING_19,PSYCHICPITHING_20,PSYCHICPITHING_21,PSYCHICPITHING_22,PSYCHICPITHING_23,PSYCHICPITHING_24,PSYCHICPITHING_25,PSYCHICPITHING_26,PSYCHICPITHING_27,PSYCHICPITHING_28,PSYCHICPITHING_29,PSYCHICPITHING_30,PSYCHICPITHING_31,PSYCHICPITHING_32,PSYCHICPITHING_33,PSYCHICPITHING_34,PSYCHICPITHING_35,PSYCHICPITHING_36,PSYCHICPITHING_37,PSYCHICPITHING_38,PSYCHICPITHING_39,PSYCHICPITHING_40,PSYCHICPITHING_41,PSYCHICPITHING_42,PSYCHICPITHING_43,PSYCHICPITHING_44,PSYCHICPITHING_45,PSYCHICPITHING_46,PSYCHICPITHING_47,PSYCHICPITHING_48, };
 
-		animationFrames["Time Vortex"]["ACTION_1"].internalList = {			TIMEVORTEX_1,TIMEVORTEX_2,TIMEVORTEX_3,TIMEVORTEX_4,TIMEVORTEX_5,TIMEVORTEX_6,TIMEVORTEX_7,TIMEVORTEX_8,TIMEVORTEX_9,TIMEVORTEX_10,TIMEVORTEX_11,TIMEVORTEX_12,TIMEVORTEX_13,TIMEVORTEX_14,TIMEVORTEX_15,TIMEVORTEX_16,TIMEVORTEX_17,TIMEVORTEX_18,TIMEVORTEX_19,TIMEVORTEX_20,TIMEVORTEX_21,TIMEVORTEX_22,TIMEVORTEX_23,TIMEVORTEX_24,TIMEVORTEX_25,TIMEVORTEX_26,TIMEVORTEX_27,TIMEVORTEX_28,TIMEVORTEX_29,TIMEVORTEX_30,TIMEVORTEX_31,TIMEVORTEX_32,TIMEVORTEX_33,TIMEVORTEX_34,TIMEVORTEX_35,TIMEVORTEX_36,TIMEVORTEX_37,TIMEVORTEX_38,TIMEVORTEX_39,TIMEVORTEX_40,TIMEVORTEX_41,TIMEVORTEX_42,TIMEVORTEX_43,TIMEVORTEX_44,TIMEVORTEX_45,TIMEVORTEX_46,TIMEVORTEX_47,TIMEVORTEX_48,
+		animationFrames["Time Vortex"]["ACTION_1"].internalList = { TIMEVORTEX_1,TIMEVORTEX_2,TIMEVORTEX_3,TIMEVORTEX_4,TIMEVORTEX_5,TIMEVORTEX_6,TIMEVORTEX_7,TIMEVORTEX_8,TIMEVORTEX_9,TIMEVORTEX_10,TIMEVORTEX_11,TIMEVORTEX_12,TIMEVORTEX_13,TIMEVORTEX_14,TIMEVORTEX_15,TIMEVORTEX_16,TIMEVORTEX_17,TIMEVORTEX_18,TIMEVORTEX_19,TIMEVORTEX_20,TIMEVORTEX_21,TIMEVORTEX_22,TIMEVORTEX_23,TIMEVORTEX_24,TIMEVORTEX_25,TIMEVORTEX_26,TIMEVORTEX_27,TIMEVORTEX_28,TIMEVORTEX_29,TIMEVORTEX_30,TIMEVORTEX_31,TIMEVORTEX_32,TIMEVORTEX_33,TIMEVORTEX_34,TIMEVORTEX_35,TIMEVORTEX_36,TIMEVORTEX_37,TIMEVORTEX_38,TIMEVORTEX_39,TIMEVORTEX_40,TIMEVORTEX_41,TIMEVORTEX_42,TIMEVORTEX_43,TIMEVORTEX_44,TIMEVORTEX_45,TIMEVORTEX_46,TIMEVORTEX_47,TIMEVORTEX_48,
 		};
 
-		animationFrames["Mind Maze"]["ACTION_1"].internalList = {			MINDMAZE_1,MINDMAZE_2,MINDMAZE_3,MINDMAZE_4,MINDMAZE_5,MINDMAZE_6,MINDMAZE_7,MINDMAZE_8,MINDMAZE_9,MINDMAZE_10,MINDMAZE_11,MINDMAZE_12,MINDMAZE_13,MINDMAZE_14,MINDMAZE_15,MINDMAZE_16,MINDMAZE_17,MINDMAZE_18,MINDMAZE_19,MINDMAZE_20,MINDMAZE_21,MINDMAZE_22,MINDMAZE_23,MINDMAZE_24,MINDMAZE_25,MINDMAZE_26,MINDMAZE_27,MINDMAZE_28,MINDMAZE_29,MINDMAZE_30,MINDMAZE_31,MINDMAZE_32,MINDMAZE_33,MINDMAZE_34,MINDMAZE_35,MINDMAZE_36,MINDMAZE_37,MINDMAZE_38,MINDMAZE_39,MINDMAZE_40,MINDMAZE_41,MINDMAZE_42,MINDMAZE_43,MINDMAZE_44,MINDMAZE_45,MINDMAZE_46,MINDMAZE_47,MINDMAZE_48,
+		animationFrames["Mind Maze"]["ACTION_1"].internalList = { MINDMAZE_1,MINDMAZE_2,MINDMAZE_3,MINDMAZE_4,MINDMAZE_5,MINDMAZE_6,MINDMAZE_7,MINDMAZE_8,MINDMAZE_9,MINDMAZE_10,MINDMAZE_11,MINDMAZE_12,MINDMAZE_13,MINDMAZE_14,MINDMAZE_15,MINDMAZE_16,MINDMAZE_17,MINDMAZE_18,MINDMAZE_19,MINDMAZE_20,MINDMAZE_21,MINDMAZE_22,MINDMAZE_23,MINDMAZE_24,MINDMAZE_25,MINDMAZE_26,MINDMAZE_27,MINDMAZE_28,MINDMAZE_29,MINDMAZE_30,MINDMAZE_31,MINDMAZE_32,MINDMAZE_33,MINDMAZE_34,MINDMAZE_35,MINDMAZE_36,MINDMAZE_37,MINDMAZE_38,MINDMAZE_39,MINDMAZE_40,MINDMAZE_41,MINDMAZE_42,MINDMAZE_43,MINDMAZE_44,MINDMAZE_45,MINDMAZE_46,MINDMAZE_47,MINDMAZE_48,
 		};
 
 		animationFrames["Blinded Eye"]["ACTION_1"].internalList = { BLINDEDEYE_1,BLINDEDEYE_2,BLINDEDEYE_3,BLINDEDEYE_4,BLINDEDEYE_5,BLINDEDEYE_6,BLINDEDEYE_7,BLINDEDEYE_8,BLINDEDEYE_9,BLINDEDEYE_10,BLINDEDEYE_11,BLINDEDEYE_12,BLINDEDEYE_13,BLINDEDEYE_14,BLINDEDEYE_15,BLINDEDEYE_16,BLINDEDEYE_17,BLINDEDEYE_18,BLINDEDEYE_19,BLINDEDEYE_20,BLINDEDEYE_21,BLINDEDEYE_22,BLINDEDEYE_23,BLINDEDEYE_24,BLINDEDEYE_25,BLINDEDEYE_26,BLINDEDEYE_27,BLINDEDEYE_28,BLINDEDEYE_29,BLINDEDEYE_30,BLINDEDEYE_31,BLINDEDEYE_32,BLINDEDEYE_33,BLINDEDEYE_34,BLINDEDEYE_35,BLINDEDEYE_36,BLINDEDEYE_37,BLINDEDEYE_38,BLINDEDEYE_39,BLINDEDEYE_40,BLINDEDEYE_41,BLINDEDEYE_42,BLINDEDEYE_43,BLINDEDEYE_44,BLINDEDEYE_45,BLINDEDEYE_46,BLINDEDEYE_47,BLINDEDEYE_48, };
 
 		animationFrames["Black Djinn's Breath"]["ACTION_1"].internalList = { BLACKDJINNSBREATH_1,BLACKDJINNSBREATH_2,BLACKDJINNSBREATH_3,BLACKDJINNSBREATH_4,BLACKDJINNSBREATH_5,BLACKDJINNSBREATH_6,BLACKDJINNSBREATH_7,BLACKDJINNSBREATH_8,BLACKDJINNSBREATH_9,BLACKDJINNSBREATH_10,BLACKDJINNSBREATH_11,BLACKDJINNSBREATH_12,BLACKDJINNSBREATH_13,BLACKDJINNSBREATH_14,BLACKDJINNSBREATH_15,BLACKDJINNSBREATH_16,BLACKDJINNSBREATH_17,BLACKDJINNSBREATH_18,BLACKDJINNSBREATH_19,BLACKDJINNSBREATH_20,BLACKDJINNSBREATH_21,BLACKDJINNSBREATH_22,BLACKDJINNSBREATH_23,BLACKDJINNSBREATH_24,BLACKDJINNSBREATH_25,BLACKDJINNSBREATH_26,BLACKDJINNSBREATH_27,BLACKDJINNSBREATH_28,BLACKDJINNSBREATH_29,BLACKDJINNSBREATH_30,BLACKDJINNSBREATH_31,BLACKDJINNSBREATH_32,BLACKDJINNSBREATH_33,BLACKDJINNSBREATH_34,BLACKDJINNSBREATH_35,BLACKDJINNSBREATH_36,BLACKDJINNSBREATH_37,BLACKDJINNSBREATH_38,BLACKDJINNSBREATH_39,BLACKDJINNSBREATH_40,BLACKDJINNSBREATH_41,BLACKDJINNSBREATH_42,BLACKDJINNSBREATH_43,BLACKDJINNSBREATH_44,BLACKDJINNSBREATH_45,BLACKDJINNSBREATH_46,BLACKDJINNSBREATH_47,BLACKDJINNSBREATH_48, };
 
-		animationFrames["Wastrel's Comeuppance"]["ACTION_1"].internalList = {			WASTRELSCOMEUPPANCE_1,WASTRELSCOMEUPPANCE_2,WASTRELSCOMEUPPANCE_3,WASTRELSCOMEUPPANCE_4,WASTRELSCOMEUPPANCE_5,WASTRELSCOMEUPPANCE_6,WASTRELSCOMEUPPANCE_7,WASTRELSCOMEUPPANCE_8,WASTRELSCOMEUPPANCE_9,WASTRELSCOMEUPPANCE_10,WASTRELSCOMEUPPANCE_11,WASTRELSCOMEUPPANCE_12,WASTRELSCOMEUPPANCE_13,WASTRELSCOMEUPPANCE_14,WASTRELSCOMEUPPANCE_15,WASTRELSCOMEUPPANCE_16,WASTRELSCOMEUPPANCE_17,WASTRELSCOMEUPPANCE_18,WASTRELSCOMEUPPANCE_19,WASTRELSCOMEUPPANCE_20,WASTRELSCOMEUPPANCE_21,WASTRELSCOMEUPPANCE_22,WASTRELSCOMEUPPANCE_23,WASTRELSCOMEUPPANCE_24,WASTRELSCOMEUPPANCE_25,WASTRELSCOMEUPPANCE_26,WASTRELSCOMEUPPANCE_27,WASTRELSCOMEUPPANCE_28,WASTRELSCOMEUPPANCE_29,WASTRELSCOMEUPPANCE_30,WASTRELSCOMEUPPANCE_31,WASTRELSCOMEUPPANCE_32,WASTRELSCOMEUPPANCE_33,WASTRELSCOMEUPPANCE_34,WASTRELSCOMEUPPANCE_35,WASTRELSCOMEUPPANCE_36,WASTRELSCOMEUPPANCE_37,WASTRELSCOMEUPPANCE_38,WASTRELSCOMEUPPANCE_39,WASTRELSCOMEUPPANCE_40,WASTRELSCOMEUPPANCE_41,WASTRELSCOMEUPPANCE_42,WASTRELSCOMEUPPANCE_43,WASTRELSCOMEUPPANCE_44,WASTRELSCOMEUPPANCE_45,WASTRELSCOMEUPPANCE_46,WASTRELSCOMEUPPANCE_47,WASTRELSCOMEUPPANCE_48,
+		animationFrames["Wastrel's Comeuppance"]["ACTION_1"].internalList = { WASTRELSCOMEUPPANCE_1,WASTRELSCOMEUPPANCE_2,WASTRELSCOMEUPPANCE_3,WASTRELSCOMEUPPANCE_4,WASTRELSCOMEUPPANCE_5,WASTRELSCOMEUPPANCE_6,WASTRELSCOMEUPPANCE_7,WASTRELSCOMEUPPANCE_8,WASTRELSCOMEUPPANCE_9,WASTRELSCOMEUPPANCE_10,WASTRELSCOMEUPPANCE_11,WASTRELSCOMEUPPANCE_12,WASTRELSCOMEUPPANCE_13,WASTRELSCOMEUPPANCE_14,WASTRELSCOMEUPPANCE_15,WASTRELSCOMEUPPANCE_16,WASTRELSCOMEUPPANCE_17,WASTRELSCOMEUPPANCE_18,WASTRELSCOMEUPPANCE_19,WASTRELSCOMEUPPANCE_20,WASTRELSCOMEUPPANCE_21,WASTRELSCOMEUPPANCE_22,WASTRELSCOMEUPPANCE_23,WASTRELSCOMEUPPANCE_24,WASTRELSCOMEUPPANCE_25,WASTRELSCOMEUPPANCE_26,WASTRELSCOMEUPPANCE_27,WASTRELSCOMEUPPANCE_28,WASTRELSCOMEUPPANCE_29,WASTRELSCOMEUPPANCE_30,WASTRELSCOMEUPPANCE_31,WASTRELSCOMEUPPANCE_32,WASTRELSCOMEUPPANCE_33,WASTRELSCOMEUPPANCE_34,WASTRELSCOMEUPPANCE_35,WASTRELSCOMEUPPANCE_36,WASTRELSCOMEUPPANCE_37,WASTRELSCOMEUPPANCE_38,WASTRELSCOMEUPPANCE_39,WASTRELSCOMEUPPANCE_40,WASTRELSCOMEUPPANCE_41,WASTRELSCOMEUPPANCE_42,WASTRELSCOMEUPPANCE_43,WASTRELSCOMEUPPANCE_44,WASTRELSCOMEUPPANCE_45,WASTRELSCOMEUPPANCE_46,WASTRELSCOMEUPPANCE_47,WASTRELSCOMEUPPANCE_48,
 		};
 
 		animationFrames["Petrifying Touch"]["ACTION_1"].internalList = {
@@ -2469,7 +2577,7 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 
 		animationFrames["Electric Loop"]["ACTION_1"].internalList = { ELECTRICLOOP_1,ELECTRICLOOP_2,ELECTRICLOOP_3,ELECTRICLOOP_4,ELECTRICLOOP_5,ELECTRICLOOP_6,ELECTRICLOOP_7,ELECTRICLOOP_8,ELECTRICLOOP_9,ELECTRICLOOP_10,ELECTRICLOOP_11,ELECTRICLOOP_12,ELECTRICLOOP_13,ELECTRICLOOP_14,ELECTRICLOOP_15,ELECTRICLOOP_16,ELECTRICLOOP_17,ELECTRICLOOP_18,ELECTRICLOOP_19,ELECTRICLOOP_20,ELECTRICLOOP_21,ELECTRICLOOP_22,ELECTRICLOOP_23,ELECTRICLOOP_24,ELECTRICLOOP_25,ELECTRICLOOP_26,ELECTRICLOOP_27,ELECTRICLOOP_28,ELECTRICLOOP_29,ELECTRICLOOP_30,ELECTRICLOOP_31,ELECTRICLOOP_32,ELECTRICLOOP_33,ELECTRICLOOP_34,ELECTRICLOOP_35,ELECTRICLOOP_36,ELECTRICLOOP_37,ELECTRICLOOP_38,ELECTRICLOOP_39,ELECTRICLOOP_40,ELECTRICLOOP_41,ELECTRICLOOP_42,ELECTRICLOOP_43,ELECTRICLOOP_44,ELECTRICLOOP_45,ELECTRICLOOP_46,ELECTRICLOOP_47,ELECTRICLOOP_48, };
 
-		animationFrames["Mind Fry"]["ACTION_1"].internalList = {			MINDFRY_1,MINDFRY_2,MINDFRY_3,MINDFRY_4,MINDFRY_5,MINDFRY_6,MINDFRY_7,MINDFRY_8,MINDFRY_9,MINDFRY_10,MINDFRY_11,MINDFRY_12,MINDFRY_13,MINDFRY_14,MINDFRY_15,MINDFRY_16,MINDFRY_17,MINDFRY_18,MINDFRY_19,MINDFRY_20,MINDFRY_21,MINDFRY_22,MINDFRY_23,MINDFRY_24,MINDFRY_25,MINDFRY_26,MINDFRY_27,MINDFRY_28,MINDFRY_29,MINDFRY_30,MINDFRY_31,MINDFRY_32,MINDFRY_33,MINDFRY_34,MINDFRY_35,MINDFRY_36,MINDFRY_37,MINDFRY_38,MINDFRY_39,MINDFRY_40,MINDFRY_41,MINDFRY_42,MINDFRY_43,MINDFRY_44,MINDFRY_45,MINDFRY_46,MINDFRY_47,MINDFRY_48,
+		animationFrames["Mind Fry"]["ACTION_1"].internalList = { MINDFRY_1,MINDFRY_2,MINDFRY_3,MINDFRY_4,MINDFRY_5,MINDFRY_6,MINDFRY_7,MINDFRY_8,MINDFRY_9,MINDFRY_10,MINDFRY_11,MINDFRY_12,MINDFRY_13,MINDFRY_14,MINDFRY_15,MINDFRY_16,MINDFRY_17,MINDFRY_18,MINDFRY_19,MINDFRY_20,MINDFRY_21,MINDFRY_22,MINDFRY_23,MINDFRY_24,MINDFRY_25,MINDFRY_26,MINDFRY_27,MINDFRY_28,MINDFRY_29,MINDFRY_30,MINDFRY_31,MINDFRY_32,MINDFRY_33,MINDFRY_34,MINDFRY_35,MINDFRY_36,MINDFRY_37,MINDFRY_38,MINDFRY_39,MINDFRY_40,MINDFRY_41,MINDFRY_42,MINDFRY_43,MINDFRY_44,MINDFRY_45,MINDFRY_46,MINDFRY_47,MINDFRY_48,
 		};
 
 		animationFrames["Valkyrie's Aura"]["ACTION_1"].internalList = {
@@ -2484,33 +2592,33 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 
 		animationFrames["Twilightning"]["ACTION_1"].internalList = { TWILIGHTNING_1,TWILIGHTNING_2,TWILIGHTNING_3,TWILIGHTNING_4,TWILIGHTNING_5,TWILIGHTNING_6,TWILIGHTNING_7,TWILIGHTNING_8,TWILIGHTNING_9,TWILIGHTNING_10,TWILIGHTNING_11,TWILIGHTNING_12,TWILIGHTNING_13,TWILIGHTNING_14,TWILIGHTNING_15,TWILIGHTNING_16,TWILIGHTNING_17,TWILIGHTNING_18,TWILIGHTNING_19,TWILIGHTNING_20,TWILIGHTNING_21,TWILIGHTNING_22,TWILIGHTNING_23,TWILIGHTNING_24, };
 
-		animationFrames["Storm Djinn's Grace"]["ACTION_1"].internalList = {			STORMDJINNSHASTE_1,STORMDJINNSHASTE_2,STORMDJINNSHASTE_3,STORMDJINNSHASTE_4,STORMDJINNSHASTE_5,STORMDJINNSHASTE_6,STORMDJINNSHASTE_7,STORMDJINNSHASTE_8,STORMDJINNSHASTE_9,STORMDJINNSHASTE_10,STORMDJINNSHASTE_11,STORMDJINNSHASTE_12,STORMDJINNSHASTE_13,STORMDJINNSHASTE_14,STORMDJINNSHASTE_15,STORMDJINNSHASTE_16,STORMDJINNSHASTE_17,STORMDJINNSHASTE_18,STORMDJINNSHASTE_19,STORMDJINNSHASTE_20,STORMDJINNSHASTE_21,STORMDJINNSHASTE_22,STORMDJINNSHASTE_23,STORMDJINNSHASTE_24,STORMDJINNSHASTE_25,STORMDJINNSHASTE_26,STORMDJINNSHASTE_27,STORMDJINNSHASTE_28,STORMDJINNSHASTE_29,STORMDJINNSHASTE_30,STORMDJINNSHASTE_31,STORMDJINNSHASTE_32,STORMDJINNSHASTE_33,STORMDJINNSHASTE_34,STORMDJINNSHASTE_35,STORMDJINNSHASTE_36,STORMDJINNSHASTE_37,STORMDJINNSHASTE_38,STORMDJINNSHASTE_39,STORMDJINNSHASTE_40,STORMDJINNSHASTE_41,STORMDJINNSHASTE_42,STORMDJINNSHASTE_43,STORMDJINNSHASTE_44,STORMDJINNSHASTE_45,STORMDJINNSHASTE_46,STORMDJINNSHASTE_47,STORMDJINNSHASTE_48,
+		animationFrames["Storm Djinn's Grace"]["ACTION_1"].internalList = { STORMDJINNSHASTE_1,STORMDJINNSHASTE_2,STORMDJINNSHASTE_3,STORMDJINNSHASTE_4,STORMDJINNSHASTE_5,STORMDJINNSHASTE_6,STORMDJINNSHASTE_7,STORMDJINNSHASTE_8,STORMDJINNSHASTE_9,STORMDJINNSHASTE_10,STORMDJINNSHASTE_11,STORMDJINNSHASTE_12,STORMDJINNSHASTE_13,STORMDJINNSHASTE_14,STORMDJINNSHASTE_15,STORMDJINNSHASTE_16,STORMDJINNSHASTE_17,STORMDJINNSHASTE_18,STORMDJINNSHASTE_19,STORMDJINNSHASTE_20,STORMDJINNSHASTE_21,STORMDJINNSHASTE_22,STORMDJINNSHASTE_23,STORMDJINNSHASTE_24,STORMDJINNSHASTE_25,STORMDJINNSHASTE_26,STORMDJINNSHASTE_27,STORMDJINNSHASTE_28,STORMDJINNSHASTE_29,STORMDJINNSHASTE_30,STORMDJINNSHASTE_31,STORMDJINNSHASTE_32,STORMDJINNSHASTE_33,STORMDJINNSHASTE_34,STORMDJINNSHASTE_35,STORMDJINNSHASTE_36,STORMDJINNSHASTE_37,STORMDJINNSHASTE_38,STORMDJINNSHASTE_39,STORMDJINNSHASTE_40,STORMDJINNSHASTE_41,STORMDJINNSHASTE_42,STORMDJINNSHASTE_43,STORMDJINNSHASTE_44,STORMDJINNSHASTE_45,STORMDJINNSHASTE_46,STORMDJINNSHASTE_47,STORMDJINNSHASTE_48,
 		};
 
 		animationFrames["Short Circuit"]["ACTION_1"].internalList = { SHORTCIRCUIT_1,SHORTCIRCUIT_2,SHORTCIRCUIT_3,SHORTCIRCUIT_4,SHORTCIRCUIT_5,SHORTCIRCUIT_6,SHORTCIRCUIT_7,SHORTCIRCUIT_8,SHORTCIRCUIT_9,SHORTCIRCUIT_10,SHORTCIRCUIT_11,SHORTCIRCUIT_12,SHORTCIRCUIT_13,SHORTCIRCUIT_14,SHORTCIRCUIT_15,SHORTCIRCUIT_16,SHORTCIRCUIT_17,SHORTCIRCUIT_18,SHORTCIRCUIT_19,SHORTCIRCUIT_20,SHORTCIRCUIT_21,SHORTCIRCUIT_22,SHORTCIRCUIT_23,SHORTCIRCUIT_24,SHORTCIRCUIT_25,SHORTCIRCUIT_26,SHORTCIRCUIT_27,SHORTCIRCUIT_28,SHORTCIRCUIT_29,SHORTCIRCUIT_30,SHORTCIRCUIT_31,SHORTCIRCUIT_32,SHORTCIRCUIT_33,SHORTCIRCUIT_34,SHORTCIRCUIT_35,SHORTCIRCUIT_36,SHORTCIRCUIT_37,SHORTCIRCUIT_38,SHORTCIRCUIT_39,SHORTCIRCUIT_40,SHORTCIRCUIT_41,SHORTCIRCUIT_42,SHORTCIRCUIT_43,SHORTCIRCUIT_44,SHORTCIRCUIT_45,SHORTCIRCUIT_46,SHORTCIRCUIT_47,SHORTCIRCUIT_48, };
 
-		animationFrames["Shocking Defeat"]["ACTION_1"].internalList = {			SHOCKINGDEFEAT_1,SHOCKINGDEFEAT_2,SHOCKINGDEFEAT_3,SHOCKINGDEFEAT_4,SHOCKINGDEFEAT_5,SHOCKINGDEFEAT_6,SHOCKINGDEFEAT_7,SHOCKINGDEFEAT_8,SHOCKINGDEFEAT_9,SHOCKINGDEFEAT_10,SHOCKINGDEFEAT_11,SHOCKINGDEFEAT_12,SHOCKINGDEFEAT_13,SHOCKINGDEFEAT_14,SHOCKINGDEFEAT_15,SHOCKINGDEFEAT_16,SHOCKINGDEFEAT_17,SHOCKINGDEFEAT_18,SHOCKINGDEFEAT_19,SHOCKINGDEFEAT_20,SHOCKINGDEFEAT_21,SHOCKINGDEFEAT_22,SHOCKINGDEFEAT_23,SHOCKINGDEFEAT_24,
+		animationFrames["Shocking Defeat"]["ACTION_1"].internalList = { SHOCKINGDEFEAT_1,SHOCKINGDEFEAT_2,SHOCKINGDEFEAT_3,SHOCKINGDEFEAT_4,SHOCKINGDEFEAT_5,SHOCKINGDEFEAT_6,SHOCKINGDEFEAT_7,SHOCKINGDEFEAT_8,SHOCKINGDEFEAT_9,SHOCKINGDEFEAT_10,SHOCKINGDEFEAT_11,SHOCKINGDEFEAT_12,SHOCKINGDEFEAT_13,SHOCKINGDEFEAT_14,SHOCKINGDEFEAT_15,SHOCKINGDEFEAT_16,SHOCKINGDEFEAT_17,SHOCKINGDEFEAT_18,SHOCKINGDEFEAT_19,SHOCKINGDEFEAT_20,SHOCKINGDEFEAT_21,SHOCKINGDEFEAT_22,SHOCKINGDEFEAT_23,SHOCKINGDEFEAT_24,
 		};
 
 		animationFrames["Scowling Rift"]["ACTION_1"].internalList = { SCOWLINGRIFT_1,SCOWLINGRIFT_2,SCOWLINGRIFT_3,SCOWLINGRIFT_4,SCOWLINGRIFT_5,SCOWLINGRIFT_6,SCOWLINGRIFT_7,SCOWLINGRIFT_8,SCOWLINGRIFT_9,SCOWLINGRIFT_10,SCOWLINGRIFT_11,SCOWLINGRIFT_12,SCOWLINGRIFT_13,SCOWLINGRIFT_14,SCOWLINGRIFT_15,SCOWLINGRIFT_16,SCOWLINGRIFT_17,SCOWLINGRIFT_18,SCOWLINGRIFT_19,SCOWLINGRIFT_20,SCOWLINGRIFT_21,SCOWLINGRIFT_22,SCOWLINGRIFT_23,SCOWLINGRIFT_24,SCOWLINGRIFT_25,SCOWLINGRIFT_26,SCOWLINGRIFT_27,SCOWLINGRIFT_28,SCOWLINGRIFT_29,SCOWLINGRIFT_30,SCOWLINGRIFT_31,SCOWLINGRIFT_32,SCOWLINGRIFT_33,SCOWLINGRIFT_34,SCOWLINGRIFT_35,SCOWLINGRIFT_36,SCOWLINGRIFT_37,SCOWLINGRIFT_38,SCOWLINGRIFT_39,SCOWLINGRIFT_40,SCOWLINGRIFT_41,SCOWLINGRIFT_42,SCOWLINGRIFT_43,SCOWLINGRIFT_44,SCOWLINGRIFT_45,SCOWLINGRIFT_46,SCOWLINGRIFT_47,SCOWLINGRIFT_48, };
 
-		animationFrames["Fire Bolt"]["ACTION_1"].internalList = {			FIREBOLT_1,FIREBOLT_2,FIREBOLT_3,FIREBOLT_4,FIREBOLT_5,FIREBOLT_6,FIREBOLT_7,FIREBOLT_8,FIREBOLT_9,FIREBOLT_10,FIREBOLT_11,FIREBOLT_12,FIREBOLT_13,FIREBOLT_14,FIREBOLT_15,FIREBOLT_16,FIREBOLT_17,FIREBOLT_18,FIREBOLT_19,FIREBOLT_20,FIREBOLT_21,FIREBOLT_22,FIREBOLT_23,FIREBOLT_24,FIREBOLT_25,FIREBOLT_26,FIREBOLT_27,FIREBOLT_28,FIREBOLT_29,FIREBOLT_30,FIREBOLT_31,FIREBOLT_32,FIREBOLT_33,FIREBOLT_34,FIREBOLT_35,FIREBOLT_36,FIREBOLT_37,FIREBOLT_38,FIREBOLT_39,FIREBOLT_40,FIREBOLT_41,FIREBOLT_42,FIREBOLT_43,FIREBOLT_44,FIREBOLT_45,FIREBOLT_46,FIREBOLT_47,FIREBOLT_48,
+		animationFrames["Fire Bolt"]["ACTION_1"].internalList = { FIREBOLT_1,FIREBOLT_2,FIREBOLT_3,FIREBOLT_4,FIREBOLT_5,FIREBOLT_6,FIREBOLT_7,FIREBOLT_8,FIREBOLT_9,FIREBOLT_10,FIREBOLT_11,FIREBOLT_12,FIREBOLT_13,FIREBOLT_14,FIREBOLT_15,FIREBOLT_16,FIREBOLT_17,FIREBOLT_18,FIREBOLT_19,FIREBOLT_20,FIREBOLT_21,FIREBOLT_22,FIREBOLT_23,FIREBOLT_24,FIREBOLT_25,FIREBOLT_26,FIREBOLT_27,FIREBOLT_28,FIREBOLT_29,FIREBOLT_30,FIREBOLT_31,FIREBOLT_32,FIREBOLT_33,FIREBOLT_34,FIREBOLT_35,FIREBOLT_36,FIREBOLT_37,FIREBOLT_38,FIREBOLT_39,FIREBOLT_40,FIREBOLT_41,FIREBOLT_42,FIREBOLT_43,FIREBOLT_44,FIREBOLT_45,FIREBOLT_46,FIREBOLT_47,FIREBOLT_48,
 		};
 
-		animationFrames["Arcane Furnace"]["ACTION_1"].internalList = {			ARCANEFURNACE_1,ARCANEFURNACE_2,ARCANEFURNACE_3,ARCANEFURNACE_4,ARCANEFURNACE_5,ARCANEFURNACE_6,ARCANEFURNACE_7,ARCANEFURNACE_8,ARCANEFURNACE_9,ARCANEFURNACE_10,ARCANEFURNACE_11,ARCANEFURNACE_12,ARCANEFURNACE_13,ARCANEFURNACE_14,ARCANEFURNACE_15,ARCANEFURNACE_16,ARCANEFURNACE_17,ARCANEFURNACE_18,ARCANEFURNACE_19,ARCANEFURNACE_20,ARCANEFURNACE_21,ARCANEFURNACE_22,ARCANEFURNACE_23,ARCANEFURNACE_24,ARCANEFURNACE_25,ARCANEFURNACE_26,ARCANEFURNACE_27,ARCANEFURNACE_28,ARCANEFURNACE_29,ARCANEFURNACE_30,ARCANEFURNACE_31,ARCANEFURNACE_32,ARCANEFURNACE_33,ARCANEFURNACE_34,ARCANEFURNACE_35,ARCANEFURNACE_36,ARCANEFURNACE_37,ARCANEFURNACE_38,ARCANEFURNACE_39,ARCANEFURNACE_40,ARCANEFURNACE_41,ARCANEFURNACE_42,ARCANEFURNACE_43,ARCANEFURNACE_44,ARCANEFURNACE_45,ARCANEFURNACE_46,ARCANEFURNACE_47,ARCANEFURNACE_48,
+		animationFrames["Arcane Furnace"]["ACTION_1"].internalList = { ARCANEFURNACE_1,ARCANEFURNACE_2,ARCANEFURNACE_3,ARCANEFURNACE_4,ARCANEFURNACE_5,ARCANEFURNACE_6,ARCANEFURNACE_7,ARCANEFURNACE_8,ARCANEFURNACE_9,ARCANEFURNACE_10,ARCANEFURNACE_11,ARCANEFURNACE_12,ARCANEFURNACE_13,ARCANEFURNACE_14,ARCANEFURNACE_15,ARCANEFURNACE_16,ARCANEFURNACE_17,ARCANEFURNACE_18,ARCANEFURNACE_19,ARCANEFURNACE_20,ARCANEFURNACE_21,ARCANEFURNACE_22,ARCANEFURNACE_23,ARCANEFURNACE_24,ARCANEFURNACE_25,ARCANEFURNACE_26,ARCANEFURNACE_27,ARCANEFURNACE_28,ARCANEFURNACE_29,ARCANEFURNACE_30,ARCANEFURNACE_31,ARCANEFURNACE_32,ARCANEFURNACE_33,ARCANEFURNACE_34,ARCANEFURNACE_35,ARCANEFURNACE_36,ARCANEFURNACE_37,ARCANEFURNACE_38,ARCANEFURNACE_39,ARCANEFURNACE_40,ARCANEFURNACE_41,ARCANEFURNACE_42,ARCANEFURNACE_43,ARCANEFURNACE_44,ARCANEFURNACE_45,ARCANEFURNACE_46,ARCANEFURNACE_47,ARCANEFURNACE_48,
 		};
 
-		animationFrames["Flame Wave"]["ACTION_1"].internalList = {			FLAMEWAVE_1,FLAMEWAVE_2,FLAMEWAVE_3,FLAMEWAVE_4,FLAMEWAVE_5,FLAMEWAVE_6,FLAMEWAVE_7,FLAMEWAVE_8,FLAMEWAVE_9,FLAMEWAVE_10,FLAMEWAVE_11,FLAMEWAVE_12,FLAMEWAVE_13,FLAMEWAVE_14,FLAMEWAVE_15,FLAMEWAVE_16,FLAMEWAVE_17,FLAMEWAVE_18,FLAMEWAVE_19,FLAMEWAVE_20,FLAMEWAVE_21,FLAMEWAVE_22,FLAMEWAVE_23,FLAMEWAVE_24,FLAMEWAVE_25,FLAMEWAVE_26,FLAMEWAVE_27,FLAMEWAVE_28,FLAMEWAVE_29,FLAMEWAVE_30,FLAMEWAVE_31,FLAMEWAVE_32,FLAMEWAVE_33,FLAMEWAVE_34,FLAMEWAVE_35,FLAMEWAVE_36,FLAMEWAVE_37,FLAMEWAVE_38,FLAMEWAVE_39,FLAMEWAVE_40,FLAMEWAVE_41,FLAMEWAVE_42,FLAMEWAVE_43,FLAMEWAVE_44,FLAMEWAVE_45,FLAMEWAVE_46,FLAMEWAVE_47,FLAMEWAVE_48,
+		animationFrames["Flame Wave"]["ACTION_1"].internalList = { FLAMEWAVE_1,FLAMEWAVE_2,FLAMEWAVE_3,FLAMEWAVE_4,FLAMEWAVE_5,FLAMEWAVE_6,FLAMEWAVE_7,FLAMEWAVE_8,FLAMEWAVE_9,FLAMEWAVE_10,FLAMEWAVE_11,FLAMEWAVE_12,FLAMEWAVE_13,FLAMEWAVE_14,FLAMEWAVE_15,FLAMEWAVE_16,FLAMEWAVE_17,FLAMEWAVE_18,FLAMEWAVE_19,FLAMEWAVE_20,FLAMEWAVE_21,FLAMEWAVE_22,FLAMEWAVE_23,FLAMEWAVE_24,FLAMEWAVE_25,FLAMEWAVE_26,FLAMEWAVE_27,FLAMEWAVE_28,FLAMEWAVE_29,FLAMEWAVE_30,FLAMEWAVE_31,FLAMEWAVE_32,FLAMEWAVE_33,FLAMEWAVE_34,FLAMEWAVE_35,FLAMEWAVE_36,FLAMEWAVE_37,FLAMEWAVE_38,FLAMEWAVE_39,FLAMEWAVE_40,FLAMEWAVE_41,FLAMEWAVE_42,FLAMEWAVE_43,FLAMEWAVE_44,FLAMEWAVE_45,FLAMEWAVE_46,FLAMEWAVE_47,FLAMEWAVE_48,
 		};
 
 		animationFrames["Glittering Gaze"]["ACTION_1"].internalList = { GLITTERINGGAZE_1,GLITTERINGGAZE_2,GLITTERINGGAZE_3,GLITTERINGGAZE_4,GLITTERINGGAZE_5,GLITTERINGGAZE_6,GLITTERINGGAZE_7,GLITTERINGGAZE_8,GLITTERINGGAZE_9,GLITTERINGGAZE_10,GLITTERINGGAZE_11,GLITTERINGGAZE_12,GLITTERINGGAZE_13,GLITTERINGGAZE_14,GLITTERINGGAZE_15,GLITTERINGGAZE_16,GLITTERINGGAZE_17,GLITTERINGGAZE_18,GLITTERINGGAZE_19,GLITTERINGGAZE_20,GLITTERINGGAZE_21,GLITTERINGGAZE_22,GLITTERINGGAZE_23,GLITTERINGGAZE_24,GLITTERINGGAZE_25,GLITTERINGGAZE_26,GLITTERINGGAZE_27,GLITTERINGGAZE_28,GLITTERINGGAZE_29,GLITTERINGGAZE_30,GLITTERINGGAZE_31,GLITTERINGGAZE_32,GLITTERINGGAZE_33,GLITTERINGGAZE_34,GLITTERINGGAZE_35,GLITTERINGGAZE_36,GLITTERINGGAZE_37,GLITTERINGGAZE_38,GLITTERINGGAZE_39,GLITTERINGGAZE_40,GLITTERINGGAZE_41,GLITTERINGGAZE_42,GLITTERINGGAZE_43,GLITTERINGGAZE_44,GLITTERINGGAZE_45,GLITTERINGGAZE_46,GLITTERINGGAZE_47,GLITTERINGGAZE_48, };
-		
+
 		animationFrames["Fireball"]["ACTION_1"].internalList = { FIREBALL_1,FIREBALL_2,FIREBALL_3,FIREBALL_4,FIREBALL_5,FIREBALL_6,FIREBALL_7,FIREBALL_8,FIREBALL_9,FIREBALL_10,FIREBALL_11,FIREBALL_12,FIREBALL_13,FIREBALL_14,FIREBALL_15,FIREBALL_16,FIREBALL_17,FIREBALL_18,FIREBALL_19,FIREBALL_20,FIREBALL_21,FIREBALL_22,FIREBALL_23,FIREBALL_24,FIREBALL_25,FIREBALL_26,FIREBALL_27,FIREBALL_28,FIREBALL_29,FIREBALL_30,FIREBALL_31,FIREBALL_32,FIREBALL_33,FIREBALL_34,FIREBALL_35,FIREBALL_36,FIREBALL_37,FIREBALL_38,FIREBALL_39,FIREBALL_40,FIREBALL_41,FIREBALL_42,FIREBALL_43,FIREBALL_44,FIREBALL_45,FIREBALL_46,FIREBALL_47,FIREBALL_48, };
 
-		animationFrames["Ensorcell"]["ACTION_1"].internalList = {			ENSORCELL_1,ENSORCELL_2,ENSORCELL_3,ENSORCELL_4,ENSORCELL_5,ENSORCELL_6,ENSORCELL_7,ENSORCELL_8,ENSORCELL_9,ENSORCELL_10,ENSORCELL_11,ENSORCELL_12,ENSORCELL_13,ENSORCELL_14,ENSORCELL_15,ENSORCELL_16,ENSORCELL_17,ENSORCELL_18,ENSORCELL_19,ENSORCELL_20,ENSORCELL_21,ENSORCELL_22,ENSORCELL_23,ENSORCELL_24,ENSORCELL_25,ENSORCELL_26,ENSORCELL_27,ENSORCELL_28,ENSORCELL_29,ENSORCELL_30,ENSORCELL_31,ENSORCELL_32,ENSORCELL_33,ENSORCELL_34,ENSORCELL_35,ENSORCELL_36,ENSORCELL_37,ENSORCELL_38,ENSORCELL_39,ENSORCELL_40,ENSORCELL_41,ENSORCELL_42,ENSORCELL_43,ENSORCELL_44,ENSORCELL_45,ENSORCELL_46,ENSORCELL_47,ENSORCELL_48,
+		animationFrames["Ensorcell"]["ACTION_1"].internalList = { ENSORCELL_1,ENSORCELL_2,ENSORCELL_3,ENSORCELL_4,ENSORCELL_5,ENSORCELL_6,ENSORCELL_7,ENSORCELL_8,ENSORCELL_9,ENSORCELL_10,ENSORCELL_11,ENSORCELL_12,ENSORCELL_13,ENSORCELL_14,ENSORCELL_15,ENSORCELL_16,ENSORCELL_17,ENSORCELL_18,ENSORCELL_19,ENSORCELL_20,ENSORCELL_21,ENSORCELL_22,ENSORCELL_23,ENSORCELL_24,ENSORCELL_25,ENSORCELL_26,ENSORCELL_27,ENSORCELL_28,ENSORCELL_29,ENSORCELL_30,ENSORCELL_31,ENSORCELL_32,ENSORCELL_33,ENSORCELL_34,ENSORCELL_35,ENSORCELL_36,ENSORCELL_37,ENSORCELL_38,ENSORCELL_39,ENSORCELL_40,ENSORCELL_41,ENSORCELL_42,ENSORCELL_43,ENSORCELL_44,ENSORCELL_45,ENSORCELL_46,ENSORCELL_47,ENSORCELL_48,
 		};
 
-		animationFrames["Phoenix"]["ACTION_1"].internalList = {			PHOENIX_1,PHOENIX_2,PHOENIX_3,PHOENIX_4,PHOENIX_5,PHOENIX_6,PHOENIX_7,PHOENIX_8,PHOENIX_9,PHOENIX_10,PHOENIX_11,PHOENIX_12,PHOENIX_13,PHOENIX_14,PHOENIX_15,PHOENIX_16,PHOENIX_17,PHOENIX_18,PHOENIX_19,PHOENIX_20,PHOENIX_21,PHOENIX_22,PHOENIX_23,PHOENIX_24,PHOENIX_25,PHOENIX_26,PHOENIX_27,PHOENIX_28,PHOENIX_29,PHOENIX_30,PHOENIX_31,PHOENIX_32,PHOENIX_33,PHOENIX_34,PHOENIX_35,PHOENIX_36,PHOENIX_37,PHOENIX_38,PHOENIX_39,PHOENIX_40,PHOENIX_41,PHOENIX_42,PHOENIX_43,PHOENIX_44,PHOENIX_45,PHOENIX_46,PHOENIX_47,PHOENIX_48,
+		animationFrames["Phoenix"]["ACTION_1"].internalList = { PHOENIX_1,PHOENIX_2,PHOENIX_3,PHOENIX_4,PHOENIX_5,PHOENIX_6,PHOENIX_7,PHOENIX_8,PHOENIX_9,PHOENIX_10,PHOENIX_11,PHOENIX_12,PHOENIX_13,PHOENIX_14,PHOENIX_15,PHOENIX_16,PHOENIX_17,PHOENIX_18,PHOENIX_19,PHOENIX_20,PHOENIX_21,PHOENIX_22,PHOENIX_23,PHOENIX_24,PHOENIX_25,PHOENIX_26,PHOENIX_27,PHOENIX_28,PHOENIX_29,PHOENIX_30,PHOENIX_31,PHOENIX_32,PHOENIX_33,PHOENIX_34,PHOENIX_35,PHOENIX_36,PHOENIX_37,PHOENIX_38,PHOENIX_39,PHOENIX_40,PHOENIX_41,PHOENIX_42,PHOENIX_43,PHOENIX_44,PHOENIX_45,PHOENIX_46,PHOENIX_47,PHOENIX_48,
 		};
 
 		animationFrames["Stalked by Flames"]["ACTION_1"].internalList = { STALKEDBYFLAMES_1,STALKEDBYFLAMES_2,STALKEDBYFLAMES_3,STALKEDBYFLAMES_4,STALKEDBYFLAMES_5,STALKEDBYFLAMES_6,STALKEDBYFLAMES_7,STALKEDBYFLAMES_8,STALKEDBYFLAMES_9,STALKEDBYFLAMES_10,STALKEDBYFLAMES_11,STALKEDBYFLAMES_12,STALKEDBYFLAMES_13,STALKEDBYFLAMES_14,STALKEDBYFLAMES_15,STALKEDBYFLAMES_16,STALKEDBYFLAMES_17,STALKEDBYFLAMES_18,STALKEDBYFLAMES_19,STALKEDBYFLAMES_20,STALKEDBYFLAMES_21,STALKEDBYFLAMES_22,STALKEDBYFLAMES_23,STALKEDBYFLAMES_24,STALKEDBYFLAMES_25,STALKEDBYFLAMES_26,STALKEDBYFLAMES_27,STALKEDBYFLAMES_28,STALKEDBYFLAMES_29,STALKEDBYFLAMES_30,STALKEDBYFLAMES_31,STALKEDBYFLAMES_32,STALKEDBYFLAMES_33,STALKEDBYFLAMES_34,STALKEDBYFLAMES_35,STALKEDBYFLAMES_36,STALKEDBYFLAMES_37,STALKEDBYFLAMES_38,STALKEDBYFLAMES_39,STALKEDBYFLAMES_40,STALKEDBYFLAMES_41,STALKEDBYFLAMES_42,STALKEDBYFLAMES_43,STALKEDBYFLAMES_44,STALKEDBYFLAMES_45,STALKEDBYFLAMES_46,STALKEDBYFLAMES_47,STALKEDBYFLAMES_48,
@@ -2524,36 +2632,36 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 	DELAYBLAST2_1,DELAYBLAST2_2,DELAYBLAST2_3,DELAYBLAST2_4,DELAYBLAST2_5,DELAYBLAST2_6,DELAYBLAST2_7,DELAYBLAST2_8,DELAYBLAST2_9,DELAYBLAST2_10,DELAYBLAST2_11,DELAYBLAST2_12,DELAYBLAST2_13,DELAYBLAST2_14,DELAYBLAST2_15,DELAYBLAST2_16,DELAYBLAST2_17,DELAYBLAST2_18,DELAYBLAST2_19,DELAYBLAST2_20,DELAYBLAST2_21,DELAYBLAST2_22,DELAYBLAST2_23,DELAYBLAST2_24,DELAYBLAST2_25,DELAYBLAST2_26,DELAYBLAST2_27,DELAYBLAST2_28,DELAYBLAST2_29,DELAYBLAST2_30,DELAYBLAST2_31,DELAYBLAST2_32,DELAYBLAST2_33,DELAYBLAST2_34,DELAYBLAST2_35,DELAYBLAST2_36,DELAYBLAST2_37,DELAYBLAST2_38,DELAYBLAST2_39,DELAYBLAST2_40,DELAYBLAST2_41,DELAYBLAST2_42,DELAYBLAST2_43,DELAYBLAST2_44,DELAYBLAST2_45,DELAYBLAST2_46,DELAYBLAST2_47,DELAYBLAST2_48,
 		};
 
-		animationFrames["Exalted Explosion"]["ACTION_1"].internalList = {		EXALTEDEXPLOSION_1,EXALTEDEXPLOSION_2,EXALTEDEXPLOSION_3,EXALTEDEXPLOSION_4,EXALTEDEXPLOSION_5,EXALTEDEXPLOSION_6,EXALTEDEXPLOSION_7,EXALTEDEXPLOSION_8,EXALTEDEXPLOSION_9,EXALTEDEXPLOSION_10,EXALTEDEXPLOSION_11,EXALTEDEXPLOSION_12,EXALTEDEXPLOSION_13,EXALTEDEXPLOSION_14,EXALTEDEXPLOSION_15,EXALTEDEXPLOSION_16,EXALTEDEXPLOSION_17,EXALTEDEXPLOSION_18,EXALTEDEXPLOSION_19,EXALTEDEXPLOSION_20,EXALTEDEXPLOSION_21,EXALTEDEXPLOSION_22,EXALTEDEXPLOSION_23,EXALTEDEXPLOSION_24,EXALTEDEXPLOSION_25,EXALTEDEXPLOSION_26,EXALTEDEXPLOSION_27,EXALTEDEXPLOSION_28,EXALTEDEXPLOSION_29,EXALTEDEXPLOSION_30,EXALTEDEXPLOSION_31,EXALTEDEXPLOSION_32,EXALTEDEXPLOSION_33,EXALTEDEXPLOSION_34,EXALTEDEXPLOSION_35,EXALTEDEXPLOSION_36,EXALTEDEXPLOSION_37,EXALTEDEXPLOSION_38,EXALTEDEXPLOSION_39,EXALTEDEXPLOSION_40,EXALTEDEXPLOSION_41,EXALTEDEXPLOSION_42,EXALTEDEXPLOSION_43,EXALTEDEXPLOSION_44,EXALTEDEXPLOSION_45,EXALTEDEXPLOSION_46,EXALTEDEXPLOSION_47,EXALTEDEXPLOSION_48, };
+		animationFrames["Exalted Explosion"]["ACTION_1"].internalList = { EXALTEDEXPLOSION_1,EXALTEDEXPLOSION_2,EXALTEDEXPLOSION_3,EXALTEDEXPLOSION_4,EXALTEDEXPLOSION_5,EXALTEDEXPLOSION_6,EXALTEDEXPLOSION_7,EXALTEDEXPLOSION_8,EXALTEDEXPLOSION_9,EXALTEDEXPLOSION_10,EXALTEDEXPLOSION_11,EXALTEDEXPLOSION_12,EXALTEDEXPLOSION_13,EXALTEDEXPLOSION_14,EXALTEDEXPLOSION_15,EXALTEDEXPLOSION_16,EXALTEDEXPLOSION_17,EXALTEDEXPLOSION_18,EXALTEDEXPLOSION_19,EXALTEDEXPLOSION_20,EXALTEDEXPLOSION_21,EXALTEDEXPLOSION_22,EXALTEDEXPLOSION_23,EXALTEDEXPLOSION_24,EXALTEDEXPLOSION_25,EXALTEDEXPLOSION_26,EXALTEDEXPLOSION_27,EXALTEDEXPLOSION_28,EXALTEDEXPLOSION_29,EXALTEDEXPLOSION_30,EXALTEDEXPLOSION_31,EXALTEDEXPLOSION_32,EXALTEDEXPLOSION_33,EXALTEDEXPLOSION_34,EXALTEDEXPLOSION_35,EXALTEDEXPLOSION_36,EXALTEDEXPLOSION_37,EXALTEDEXPLOSION_38,EXALTEDEXPLOSION_39,EXALTEDEXPLOSION_40,EXALTEDEXPLOSION_41,EXALTEDEXPLOSION_42,EXALTEDEXPLOSION_43,EXALTEDEXPLOSION_44,EXALTEDEXPLOSION_45,EXALTEDEXPLOSION_46,EXALTEDEXPLOSION_47,EXALTEDEXPLOSION_48, };
 
-		animationFrames["Firespitter"]["ACTION_1"].internalList = {			FIRESPITTER_1,FIRESPITTER_2,FIRESPITTER_3,FIRESPITTER_4,FIRESPITTER_5,FIRESPITTER_6,FIRESPITTER_7,FIRESPITTER_8,FIRESPITTER_9,FIRESPITTER_10,FIRESPITTER_11,FIRESPITTER_12,FIRESPITTER_13,FIRESPITTER_14,FIRESPITTER_15,FIRESPITTER_16,FIRESPITTER_17,FIRESPITTER_18,FIRESPITTER_19,FIRESPITTER_20,FIRESPITTER_21,FIRESPITTER_22,FIRESPITTER_23,FIRESPITTER_24,FIRESPITTER_25,FIRESPITTER_26,FIRESPITTER_27,FIRESPITTER_28,FIRESPITTER_29,FIRESPITTER_30,FIRESPITTER_31,FIRESPITTER_32,FIRESPITTER_33,FIRESPITTER_34,FIRESPITTER_35,FIRESPITTER_36,FIRESPITTER_37,FIRESPITTER_38,FIRESPITTER_39,FIRESPITTER_40,FIRESPITTER_41,FIRESPITTER_42,FIRESPITTER_43,FIRESPITTER_44,FIRESPITTER_45,FIRESPITTER_46,FIRESPITTER_47,FIRESPITTER_48,
+		animationFrames["Firespitter"]["ACTION_1"].internalList = { FIRESPITTER_1,FIRESPITTER_2,FIRESPITTER_3,FIRESPITTER_4,FIRESPITTER_5,FIRESPITTER_6,FIRESPITTER_7,FIRESPITTER_8,FIRESPITTER_9,FIRESPITTER_10,FIRESPITTER_11,FIRESPITTER_12,FIRESPITTER_13,FIRESPITTER_14,FIRESPITTER_15,FIRESPITTER_16,FIRESPITTER_17,FIRESPITTER_18,FIRESPITTER_19,FIRESPITTER_20,FIRESPITTER_21,FIRESPITTER_22,FIRESPITTER_23,FIRESPITTER_24,FIRESPITTER_25,FIRESPITTER_26,FIRESPITTER_27,FIRESPITTER_28,FIRESPITTER_29,FIRESPITTER_30,FIRESPITTER_31,FIRESPITTER_32,FIRESPITTER_33,FIRESPITTER_34,FIRESPITTER_35,FIRESPITTER_36,FIRESPITTER_37,FIRESPITTER_38,FIRESPITTER_39,FIRESPITTER_40,FIRESPITTER_41,FIRESPITTER_42,FIRESPITTER_43,FIRESPITTER_44,FIRESPITTER_45,FIRESPITTER_46,FIRESPITTER_47,FIRESPITTER_48,
 		};
 
-		animationFrames["Vault of Destruction"]["ACTION_1"].internalList = {			VAULTOFDESTRUCTION_1,VAULTOFDESTRUCTION_2,VAULTOFDESTRUCTION_3,VAULTOFDESTRUCTION_4,VAULTOFDESTRUCTION_5,VAULTOFDESTRUCTION_6,VAULTOFDESTRUCTION_7,VAULTOFDESTRUCTION_8,VAULTOFDESTRUCTION_9,VAULTOFDESTRUCTION_10,VAULTOFDESTRUCTION_11,VAULTOFDESTRUCTION_12,VAULTOFDESTRUCTION_13,VAULTOFDESTRUCTION_14,VAULTOFDESTRUCTION_15,VAULTOFDESTRUCTION_16,VAULTOFDESTRUCTION_17,VAULTOFDESTRUCTION_18,VAULTOFDESTRUCTION_19,VAULTOFDESTRUCTION_20,VAULTOFDESTRUCTION_21,VAULTOFDESTRUCTION_22,VAULTOFDESTRUCTION_23,VAULTOFDESTRUCTION_24,VAULTOFDESTRUCTION_25,VAULTOFDESTRUCTION_26,VAULTOFDESTRUCTION_27,VAULTOFDESTRUCTION_28,VAULTOFDESTRUCTION_29,VAULTOFDESTRUCTION_30,VAULTOFDESTRUCTION_31,VAULTOFDESTRUCTION_32,VAULTOFDESTRUCTION_33,VAULTOFDESTRUCTION_34,VAULTOFDESTRUCTION_35,VAULTOFDESTRUCTION_36,VAULTOFDESTRUCTION_37,VAULTOFDESTRUCTION_38,VAULTOFDESTRUCTION_39,VAULTOFDESTRUCTION_40,VAULTOFDESTRUCTION_41,VAULTOFDESTRUCTION_42,VAULTOFDESTRUCTION_43,VAULTOFDESTRUCTION_44,VAULTOFDESTRUCTION_45,VAULTOFDESTRUCTION_46,VAULTOFDESTRUCTION_47,VAULTOFDESTRUCTION_48,
+		animationFrames["Vault of Destruction"]["ACTION_1"].internalList = { VAULTOFDESTRUCTION_1,VAULTOFDESTRUCTION_2,VAULTOFDESTRUCTION_3,VAULTOFDESTRUCTION_4,VAULTOFDESTRUCTION_5,VAULTOFDESTRUCTION_6,VAULTOFDESTRUCTION_7,VAULTOFDESTRUCTION_8,VAULTOFDESTRUCTION_9,VAULTOFDESTRUCTION_10,VAULTOFDESTRUCTION_11,VAULTOFDESTRUCTION_12,VAULTOFDESTRUCTION_13,VAULTOFDESTRUCTION_14,VAULTOFDESTRUCTION_15,VAULTOFDESTRUCTION_16,VAULTOFDESTRUCTION_17,VAULTOFDESTRUCTION_18,VAULTOFDESTRUCTION_19,VAULTOFDESTRUCTION_20,VAULTOFDESTRUCTION_21,VAULTOFDESTRUCTION_22,VAULTOFDESTRUCTION_23,VAULTOFDESTRUCTION_24,VAULTOFDESTRUCTION_25,VAULTOFDESTRUCTION_26,VAULTOFDESTRUCTION_27,VAULTOFDESTRUCTION_28,VAULTOFDESTRUCTION_29,VAULTOFDESTRUCTION_30,VAULTOFDESTRUCTION_31,VAULTOFDESTRUCTION_32,VAULTOFDESTRUCTION_33,VAULTOFDESTRUCTION_34,VAULTOFDESTRUCTION_35,VAULTOFDESTRUCTION_36,VAULTOFDESTRUCTION_37,VAULTOFDESTRUCTION_38,VAULTOFDESTRUCTION_39,VAULTOFDESTRUCTION_40,VAULTOFDESTRUCTION_41,VAULTOFDESTRUCTION_42,VAULTOFDESTRUCTION_43,VAULTOFDESTRUCTION_44,VAULTOFDESTRUCTION_45,VAULTOFDESTRUCTION_46,VAULTOFDESTRUCTION_47,VAULTOFDESTRUCTION_48,
 		};
 
-		animationFrames["Starburst"]["ACTION_1"].internalList = {		BLAST_1,BLAST_2,BLAST_3,BLAST_4,BLAST_5,BLAST_6,BLAST_7,BLAST_8,BLAST_9,BLAST_10,BLAST_11,BLAST_12,BLAST_13,BLAST_14,BLAST_15,BLAST_16,BLAST_17,BLAST_18,BLAST_19,BLAST_20,BLAST_21,BLAST_22,BLAST_23,BLAST_24,BLAST_25,BLAST_26,BLAST_27,BLAST_28,BLAST_29,BLAST_30,BLAST_31,BLAST_32,BLAST_33,BLAST_34,BLAST_35,BLAST_36,BLAST_37,BLAST_38,BLAST_39,BLAST_40,BLAST_41,BLAST_42,BLAST_43,BLAST_44,BLAST_45,BLAST_46,BLAST_47,BLAST_48,
+		animationFrames["Starburst"]["ACTION_1"].internalList = { BLAST_1,BLAST_2,BLAST_3,BLAST_4,BLAST_5,BLAST_6,BLAST_7,BLAST_8,BLAST_9,BLAST_10,BLAST_11,BLAST_12,BLAST_13,BLAST_14,BLAST_15,BLAST_16,BLAST_17,BLAST_18,BLAST_19,BLAST_20,BLAST_21,BLAST_22,BLAST_23,BLAST_24,BLAST_25,BLAST_26,BLAST_27,BLAST_28,BLAST_29,BLAST_30,BLAST_31,BLAST_32,BLAST_33,BLAST_34,BLAST_35,BLAST_36,BLAST_37,BLAST_38,BLAST_39,BLAST_40,BLAST_41,BLAST_42,BLAST_43,BLAST_44,BLAST_45,BLAST_46,BLAST_47,BLAST_48,
 		};
 
-		animationFrames["Tsunami"]["ACTION_1"].internalList = {			TSUNAMI_1,TSUNAMI_2,TSUNAMI_3,TSUNAMI_4,TSUNAMI_5,TSUNAMI_6,TSUNAMI_7,TSUNAMI_8,TSUNAMI_9,TSUNAMI_10,TSUNAMI_11,TSUNAMI_12,TSUNAMI_13,TSUNAMI_14,TSUNAMI_15,TSUNAMI_16,TSUNAMI_17,TSUNAMI_18,TSUNAMI_19,TSUNAMI_20,TSUNAMI_21,TSUNAMI_22,TSUNAMI_23,TSUNAMI_24,TSUNAMI_25,TSUNAMI_26,TSUNAMI_27,TSUNAMI_28,TSUNAMI_29,TSUNAMI_30,TSUNAMI_31,TSUNAMI_32,TSUNAMI_33,TSUNAMI_34,TSUNAMI_35,TSUNAMI_36,TSUNAMI_37,TSUNAMI_38,TSUNAMI_39,TSUNAMI_40,TSUNAMI_41,TSUNAMI_42,TSUNAMI_43,TSUNAMI_44,TSUNAMI_45,TSUNAMI_46,TSUNAMI_47,TSUNAMI_48,TSUNAMI_49,TSUNAMI_50,TSUNAMI_51,TSUNAMI_52,TSUNAMI_53,TSUNAMI_54,TSUNAMI_55,TSUNAMI_56,TSUNAMI_57,TSUNAMI_58,TSUNAMI_59,TSUNAMI_60,TSUNAMI_61,TSUNAMI_62,TSUNAMI_63,TSUNAMI_64,TSUNAMI_65,TSUNAMI_66,TSUNAMI_67,TSUNAMI_68,TSUNAMI_69,TSUNAMI_70,TSUNAMI_71,TSUNAMI_72,
+		animationFrames["Tsunami"]["ACTION_1"].internalList = { TSUNAMI_1,TSUNAMI_2,TSUNAMI_3,TSUNAMI_4,TSUNAMI_5,TSUNAMI_6,TSUNAMI_7,TSUNAMI_8,TSUNAMI_9,TSUNAMI_10,TSUNAMI_11,TSUNAMI_12,TSUNAMI_13,TSUNAMI_14,TSUNAMI_15,TSUNAMI_16,TSUNAMI_17,TSUNAMI_18,TSUNAMI_19,TSUNAMI_20,TSUNAMI_21,TSUNAMI_22,TSUNAMI_23,TSUNAMI_24,TSUNAMI_25,TSUNAMI_26,TSUNAMI_27,TSUNAMI_28,TSUNAMI_29,TSUNAMI_30,TSUNAMI_31,TSUNAMI_32,TSUNAMI_33,TSUNAMI_34,TSUNAMI_35,TSUNAMI_36,TSUNAMI_37,TSUNAMI_38,TSUNAMI_39,TSUNAMI_40,TSUNAMI_41,TSUNAMI_42,TSUNAMI_43,TSUNAMI_44,TSUNAMI_45,TSUNAMI_46,TSUNAMI_47,TSUNAMI_48,TSUNAMI_49,TSUNAMI_50,TSUNAMI_51,TSUNAMI_52,TSUNAMI_53,TSUNAMI_54,TSUNAMI_55,TSUNAMI_56,TSUNAMI_57,TSUNAMI_58,TSUNAMI_59,TSUNAMI_60,TSUNAMI_61,TSUNAMI_62,TSUNAMI_63,TSUNAMI_64,TSUNAMI_65,TSUNAMI_66,TSUNAMI_67,TSUNAMI_68,TSUNAMI_69,TSUNAMI_70,TSUNAMI_71,TSUNAMI_72,
 		};
 
-		animationFrames["Odyllic Cleansing"]["ACTION_1"].internalList = {			ODYLLICCLEANSING_1,ODYLLICCLEANSING_2,ODYLLICCLEANSING_3,ODYLLICCLEANSING_4,ODYLLICCLEANSING_5,ODYLLICCLEANSING_6,ODYLLICCLEANSING_7,ODYLLICCLEANSING_8,ODYLLICCLEANSING_9,ODYLLICCLEANSING_10,ODYLLICCLEANSING_11,ODYLLICCLEANSING_12,ODYLLICCLEANSING_13,ODYLLICCLEANSING_14,ODYLLICCLEANSING_15,ODYLLICCLEANSING_16,ODYLLICCLEANSING_17,ODYLLICCLEANSING_18,ODYLLICCLEANSING_19,ODYLLICCLEANSING_20,ODYLLICCLEANSING_21,ODYLLICCLEANSING_22,ODYLLICCLEANSING_23,ODYLLICCLEANSING_24,ODYLLICCLEANSING_25,ODYLLICCLEANSING_26,ODYLLICCLEANSING_27,ODYLLICCLEANSING_28,ODYLLICCLEANSING_29,ODYLLICCLEANSING_30,ODYLLICCLEANSING_31,ODYLLICCLEANSING_32,ODYLLICCLEANSING_33,ODYLLICCLEANSING_34,ODYLLICCLEANSING_35,ODYLLICCLEANSING_36,ODYLLICCLEANSING_37,ODYLLICCLEANSING_38,ODYLLICCLEANSING_39,ODYLLICCLEANSING_40,ODYLLICCLEANSING_41,ODYLLICCLEANSING_42,ODYLLICCLEANSING_43,ODYLLICCLEANSING_44,ODYLLICCLEANSING_45,ODYLLICCLEANSING_46,ODYLLICCLEANSING_47,ODYLLICCLEANSING_48,
+		animationFrames["Odyllic Cleansing"]["ACTION_1"].internalList = { ODYLLICCLEANSING_1,ODYLLICCLEANSING_2,ODYLLICCLEANSING_3,ODYLLICCLEANSING_4,ODYLLICCLEANSING_5,ODYLLICCLEANSING_6,ODYLLICCLEANSING_7,ODYLLICCLEANSING_8,ODYLLICCLEANSING_9,ODYLLICCLEANSING_10,ODYLLICCLEANSING_11,ODYLLICCLEANSING_12,ODYLLICCLEANSING_13,ODYLLICCLEANSING_14,ODYLLICCLEANSING_15,ODYLLICCLEANSING_16,ODYLLICCLEANSING_17,ODYLLICCLEANSING_18,ODYLLICCLEANSING_19,ODYLLICCLEANSING_20,ODYLLICCLEANSING_21,ODYLLICCLEANSING_22,ODYLLICCLEANSING_23,ODYLLICCLEANSING_24,ODYLLICCLEANSING_25,ODYLLICCLEANSING_26,ODYLLICCLEANSING_27,ODYLLICCLEANSING_28,ODYLLICCLEANSING_29,ODYLLICCLEANSING_30,ODYLLICCLEANSING_31,ODYLLICCLEANSING_32,ODYLLICCLEANSING_33,ODYLLICCLEANSING_34,ODYLLICCLEANSING_35,ODYLLICCLEANSING_36,ODYLLICCLEANSING_37,ODYLLICCLEANSING_38,ODYLLICCLEANSING_39,ODYLLICCLEANSING_40,ODYLLICCLEANSING_41,ODYLLICCLEANSING_42,ODYLLICCLEANSING_43,ODYLLICCLEANSING_44,ODYLLICCLEANSING_45,ODYLLICCLEANSING_46,ODYLLICCLEANSING_47,ODYLLICCLEANSING_48,
 		};
 
-		animationFrames["Brine"]["ACTION_1"].internalList = {			BRINE_1,BRINE_2,BRINE_3,BRINE_4,BRINE_5,BRINE_6,BRINE_7,BRINE_8,BRINE_9,BRINE_10,BRINE_11,BRINE_12,BRINE_13,BRINE_14,BRINE_15,BRINE_16,BRINE_17,BRINE_18,BRINE_19,BRINE_20,BRINE_21,BRINE_22,BRINE_23,BRINE_24,BRINE_25,BRINE_26,BRINE_27,BRINE_28,BRINE_29,BRINE_30,BRINE_31,BRINE_32,BRINE_33,BRINE_34,BRINE_35,BRINE_36,BRINE_37,BRINE_38,BRINE_39,BRINE_40,BRINE_41,BRINE_42,BRINE_43,BRINE_44,BRINE_45,BRINE_46,BRINE_47,BRINE_48,
+		animationFrames["Brine"]["ACTION_1"].internalList = { BRINE_1,BRINE_2,BRINE_3,BRINE_4,BRINE_5,BRINE_6,BRINE_7,BRINE_8,BRINE_9,BRINE_10,BRINE_11,BRINE_12,BRINE_13,BRINE_14,BRINE_15,BRINE_16,BRINE_17,BRINE_18,BRINE_19,BRINE_20,BRINE_21,BRINE_22,BRINE_23,BRINE_24,BRINE_25,BRINE_26,BRINE_27,BRINE_28,BRINE_29,BRINE_30,BRINE_31,BRINE_32,BRINE_33,BRINE_34,BRINE_35,BRINE_36,BRINE_37,BRINE_38,BRINE_39,BRINE_40,BRINE_41,BRINE_42,BRINE_43,BRINE_44,BRINE_45,BRINE_46,BRINE_47,BRINE_48,
 		};
 
-		animationFrames["Borealis Blast"]["ACTION_1"].internalList = {			BOREALISBLAST_1,BOREALISBLAST_2,BOREALISBLAST_3,BOREALISBLAST_4,BOREALISBLAST_5,BOREALISBLAST_6,BOREALISBLAST_7,BOREALISBLAST_8,BOREALISBLAST_9,BOREALISBLAST_10,BOREALISBLAST_11,BOREALISBLAST_12,BOREALISBLAST_13,BOREALISBLAST_14,BOREALISBLAST_15,BOREALISBLAST_16,BOREALISBLAST_17,BOREALISBLAST_18,BOREALISBLAST_19,BOREALISBLAST_20,BOREALISBLAST_21,BOREALISBLAST_22,BOREALISBLAST_23,BOREALISBLAST_24,BOREALISBLAST_25,BOREALISBLAST_26,BOREALISBLAST_27,BOREALISBLAST_28,BOREALISBLAST_29,BOREALISBLAST_30,BOREALISBLAST_31,BOREALISBLAST_32,BOREALISBLAST_33,BOREALISBLAST_34,BOREALISBLAST_35,BOREALISBLAST_36,BOREALISBLAST_37,BOREALISBLAST_38,BOREALISBLAST_39,BOREALISBLAST_40,BOREALISBLAST_41,BOREALISBLAST_42,BOREALISBLAST_43,BOREALISBLAST_44,BOREALISBLAST_45,BOREALISBLAST_46,BOREALISBLAST_47,BOREALISBLAST_48,
+		animationFrames["Borealis Blast"]["ACTION_1"].internalList = { BOREALISBLAST_1,BOREALISBLAST_2,BOREALISBLAST_3,BOREALISBLAST_4,BOREALISBLAST_5,BOREALISBLAST_6,BOREALISBLAST_7,BOREALISBLAST_8,BOREALISBLAST_9,BOREALISBLAST_10,BOREALISBLAST_11,BOREALISBLAST_12,BOREALISBLAST_13,BOREALISBLAST_14,BOREALISBLAST_15,BOREALISBLAST_16,BOREALISBLAST_17,BOREALISBLAST_18,BOREALISBLAST_19,BOREALISBLAST_20,BOREALISBLAST_21,BOREALISBLAST_22,BOREALISBLAST_23,BOREALISBLAST_24,BOREALISBLAST_25,BOREALISBLAST_26,BOREALISBLAST_27,BOREALISBLAST_28,BOREALISBLAST_29,BOREALISBLAST_30,BOREALISBLAST_31,BOREALISBLAST_32,BOREALISBLAST_33,BOREALISBLAST_34,BOREALISBLAST_35,BOREALISBLAST_36,BOREALISBLAST_37,BOREALISBLAST_38,BOREALISBLAST_39,BOREALISBLAST_40,BOREALISBLAST_41,BOREALISBLAST_42,BOREALISBLAST_43,BOREALISBLAST_44,BOREALISBLAST_45,BOREALISBLAST_46,BOREALISBLAST_47,BOREALISBLAST_48,
 		};
 
-		animationFrames["Cryogenic Sleep"]["ACTION_1"].internalList = {	CRYOGENICSLEEP_1,CRYOGENICSLEEP_2,CRYOGENICSLEEP_3,CRYOGENICSLEEP_4,CRYOGENICSLEEP_5,CRYOGENICSLEEP_6,CRYOGENICSLEEP_7,CRYOGENICSLEEP_8,CRYOGENICSLEEP_9,CRYOGENICSLEEP_10,CRYOGENICSLEEP_11,CRYOGENICSLEEP_12,CRYOGENICSLEEP_13,CRYOGENICSLEEP_14,CRYOGENICSLEEP_15,CRYOGENICSLEEP_16,CRYOGENICSLEEP_17,CRYOGENICSLEEP_18,CRYOGENICSLEEP_19,CRYOGENICSLEEP_20,CRYOGENICSLEEP_21,CRYOGENICSLEEP_22,CRYOGENICSLEEP_23,CRYOGENICSLEEP_24,CRYOGENICSLEEP_25,CRYOGENICSLEEP_26,CRYOGENICSLEEP_27,CRYOGENICSLEEP_28,CRYOGENICSLEEP_29,CRYOGENICSLEEP_30,CRYOGENICSLEEP_31,CRYOGENICSLEEP_32,CRYOGENICSLEEP_33,CRYOGENICSLEEP_34,CRYOGENICSLEEP_35,CRYOGENICSLEEP_36,CRYOGENICSLEEP_37,CRYOGENICSLEEP_38,CRYOGENICSLEEP_39,CRYOGENICSLEEP_40,CRYOGENICSLEEP_41,CRYOGENICSLEEP_42,CRYOGENICSLEEP_43,CRYOGENICSLEEP_44,CRYOGENICSLEEP_45,CRYOGENICSLEEP_46,CRYOGENICSLEEP_47,CRYOGENICSLEEP_48,
+		animationFrames["Cryogenic Sleep"]["ACTION_1"].internalList = { CRYOGENICSLEEP_1,CRYOGENICSLEEP_2,CRYOGENICSLEEP_3,CRYOGENICSLEEP_4,CRYOGENICSLEEP_5,CRYOGENICSLEEP_6,CRYOGENICSLEEP_7,CRYOGENICSLEEP_8,CRYOGENICSLEEP_9,CRYOGENICSLEEP_10,CRYOGENICSLEEP_11,CRYOGENICSLEEP_12,CRYOGENICSLEEP_13,CRYOGENICSLEEP_14,CRYOGENICSLEEP_15,CRYOGENICSLEEP_16,CRYOGENICSLEEP_17,CRYOGENICSLEEP_18,CRYOGENICSLEEP_19,CRYOGENICSLEEP_20,CRYOGENICSLEEP_21,CRYOGENICSLEEP_22,CRYOGENICSLEEP_23,CRYOGENICSLEEP_24,CRYOGENICSLEEP_25,CRYOGENICSLEEP_26,CRYOGENICSLEEP_27,CRYOGENICSLEEP_28,CRYOGENICSLEEP_29,CRYOGENICSLEEP_30,CRYOGENICSLEEP_31,CRYOGENICSLEEP_32,CRYOGENICSLEEP_33,CRYOGENICSLEEP_34,CRYOGENICSLEEP_35,CRYOGENICSLEEP_36,CRYOGENICSLEEP_37,CRYOGENICSLEEP_38,CRYOGENICSLEEP_39,CRYOGENICSLEEP_40,CRYOGENICSLEEP_41,CRYOGENICSLEEP_42,CRYOGENICSLEEP_43,CRYOGENICSLEEP_44,CRYOGENICSLEEP_45,CRYOGENICSLEEP_46,CRYOGENICSLEEP_47,CRYOGENICSLEEP_48,
 		};
 
-		animationFrames["Polar Prison"]["ACTION_1"].internalList = {			POLARPRISON_1,POLARPRISON_2,POLARPRISON_3,POLARPRISON_4,POLARPRISON_5,POLARPRISON_6,POLARPRISON_7,POLARPRISON_8,POLARPRISON_9,POLARPRISON_10,POLARPRISON_11,POLARPRISON_12,POLARPRISON_13,POLARPRISON_14,POLARPRISON_15,POLARPRISON_16,POLARPRISON_17,POLARPRISON_18,POLARPRISON_19,POLARPRISON_20,POLARPRISON_21,POLARPRISON_22,POLARPRISON_23,POLARPRISON_24,POLARPRISON_25,POLARPRISON_26,POLARPRISON_27,POLARPRISON_28,POLARPRISON_29,POLARPRISON_30,POLARPRISON_31,POLARPRISON_32,POLARPRISON_33,POLARPRISON_34,POLARPRISON_35,POLARPRISON_36,POLARPRISON_37,POLARPRISON_38,POLARPRISON_39,POLARPRISON_40,POLARPRISON_41,POLARPRISON_42,POLARPRISON_43,POLARPRISON_44,POLARPRISON_45,POLARPRISON_46,POLARPRISON_47,POLARPRISON_48,
+		animationFrames["Polar Prison"]["ACTION_1"].internalList = { POLARPRISON_1,POLARPRISON_2,POLARPRISON_3,POLARPRISON_4,POLARPRISON_5,POLARPRISON_6,POLARPRISON_7,POLARPRISON_8,POLARPRISON_9,POLARPRISON_10,POLARPRISON_11,POLARPRISON_12,POLARPRISON_13,POLARPRISON_14,POLARPRISON_15,POLARPRISON_16,POLARPRISON_17,POLARPRISON_18,POLARPRISON_19,POLARPRISON_20,POLARPRISON_21,POLARPRISON_22,POLARPRISON_23,POLARPRISON_24,POLARPRISON_25,POLARPRISON_26,POLARPRISON_27,POLARPRISON_28,POLARPRISON_29,POLARPRISON_30,POLARPRISON_31,POLARPRISON_32,POLARPRISON_33,POLARPRISON_34,POLARPRISON_35,POLARPRISON_36,POLARPRISON_37,POLARPRISON_38,POLARPRISON_39,POLARPRISON_40,POLARPRISON_41,POLARPRISON_42,POLARPRISON_43,POLARPRISON_44,POLARPRISON_45,POLARPRISON_46,POLARPRISON_47,POLARPRISON_48,
 		};
 
-		animationFrames["Nacreous Aura"]["ACTION_1"].internalList = {			NACREOUSAURA_1,NACREOUSAURA_2,NACREOUSAURA_3,NACREOUSAURA_4,NACREOUSAURA_5,NACREOUSAURA_6,NACREOUSAURA_7,NACREOUSAURA_8,NACREOUSAURA_9,NACREOUSAURA_10,NACREOUSAURA_11,NACREOUSAURA_12,NACREOUSAURA_13,NACREOUSAURA_14,NACREOUSAURA_15,NACREOUSAURA_16,NACREOUSAURA_17,NACREOUSAURA_18,NACREOUSAURA_19,NACREOUSAURA_20,NACREOUSAURA_21,NACREOUSAURA_22,NACREOUSAURA_23,NACREOUSAURA_24,NACREOUSAURA_25,NACREOUSAURA_26,NACREOUSAURA_27,NACREOUSAURA_28,NACREOUSAURA_29,NACREOUSAURA_30,NACREOUSAURA_31,NACREOUSAURA_32,NACREOUSAURA_33,NACREOUSAURA_34,NACREOUSAURA_35,NACREOUSAURA_36,NACREOUSAURA_37,NACREOUSAURA_38,NACREOUSAURA_39,NACREOUSAURA_40,NACREOUSAURA_41,NACREOUSAURA_42,NACREOUSAURA_43,NACREOUSAURA_44,NACREOUSAURA_45,NACREOUSAURA_46,NACREOUSAURA_47,NACREOUSAURA_48
+		animationFrames["Nacreous Aura"]["ACTION_1"].internalList = { NACREOUSAURA_1,NACREOUSAURA_2,NACREOUSAURA_3,NACREOUSAURA_4,NACREOUSAURA_5,NACREOUSAURA_6,NACREOUSAURA_7,NACREOUSAURA_8,NACREOUSAURA_9,NACREOUSAURA_10,NACREOUSAURA_11,NACREOUSAURA_12,NACREOUSAURA_13,NACREOUSAURA_14,NACREOUSAURA_15,NACREOUSAURA_16,NACREOUSAURA_17,NACREOUSAURA_18,NACREOUSAURA_19,NACREOUSAURA_20,NACREOUSAURA_21,NACREOUSAURA_22,NACREOUSAURA_23,NACREOUSAURA_24,NACREOUSAURA_25,NACREOUSAURA_26,NACREOUSAURA_27,NACREOUSAURA_28,NACREOUSAURA_29,NACREOUSAURA_30,NACREOUSAURA_31,NACREOUSAURA_32,NACREOUSAURA_33,NACREOUSAURA_34,NACREOUSAURA_35,NACREOUSAURA_36,NACREOUSAURA_37,NACREOUSAURA_38,NACREOUSAURA_39,NACREOUSAURA_40,NACREOUSAURA_41,NACREOUSAURA_42,NACREOUSAURA_43,NACREOUSAURA_44,NACREOUSAURA_45,NACREOUSAURA_46,NACREOUSAURA_47,NACREOUSAURA_48
 		};
 
 		animationFrames["Nacreous Aura 2"] = animationFrames["Nacreous Aura"];
@@ -2562,7 +2670,7 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 
 		animationFrames["Polar Vortex"]["ACTION_1"].internalList = { POLARVORTEX_1,POLARVORTEX_2,POLARVORTEX_3,POLARVORTEX_4,POLARVORTEX_5,POLARVORTEX_6,POLARVORTEX_7,POLARVORTEX_8,POLARVORTEX_9,POLARVORTEX_10,POLARVORTEX_11,POLARVORTEX_12,POLARVORTEX_13,POLARVORTEX_14,POLARVORTEX_15,POLARVORTEX_16,POLARVORTEX_17,POLARVORTEX_18,POLARVORTEX_19,POLARVORTEX_20,POLARVORTEX_21,POLARVORTEX_22,POLARVORTEX_23,POLARVORTEX_24,POLARVORTEX_25,POLARVORTEX_26,POLARVORTEX_27,POLARVORTEX_28,POLARVORTEX_29,POLARVORTEX_30,POLARVORTEX_31,POLARVORTEX_32,POLARVORTEX_33,POLARVORTEX_34,POLARVORTEX_35,POLARVORTEX_36,POLARVORTEX_37,POLARVORTEX_38,POLARVORTEX_39,POLARVORTEX_40,POLARVORTEX_41,POLARVORTEX_42,POLARVORTEX_43,POLARVORTEX_44,POLARVORTEX_45,POLARVORTEX_46,POLARVORTEX_47,POLARVORTEX_48, };
 
-		animationFrames["Mirror of Ice"]["ACTION_1"].internalList = {			MIRROROFICE_1,MIRROROFICE_2,MIRROROFICE_3,MIRROROFICE_4,MIRROROFICE_5,MIRROROFICE_6,MIRROROFICE_7,MIRROROFICE_8,MIRROROFICE_9,MIRROROFICE_10,MIRROROFICE_11,MIRROROFICE_12,MIRROROFICE_13,MIRROROFICE_14,MIRROROFICE_15,MIRROROFICE_16,MIRROROFICE_17,MIRROROFICE_18,MIRROROFICE_19,MIRROROFICE_20,MIRROROFICE_21,MIRROROFICE_22,MIRROROFICE_23,MIRROROFICE_24,MIRROROFICE_25,MIRROROFICE_26,MIRROROFICE_27,MIRROROFICE_28,MIRROROFICE_29,MIRROROFICE_30,MIRROROFICE_31,MIRROROFICE_32,MIRROROFICE_33,MIRROROFICE_34,MIRROROFICE_35,MIRROROFICE_36,MIRROROFICE_37,MIRROROFICE_38,MIRROROFICE_39,MIRROROFICE_40,MIRROROFICE_41,MIRROROFICE_42,MIRROROFICE_43,MIRROROFICE_44,MIRROROFICE_45,MIRROROFICE_46,MIRROROFICE_47,MIRROROFICE_48,
+		animationFrames["Mirror of Ice"]["ACTION_1"].internalList = { MIRROROFICE_1,MIRROROFICE_2,MIRROROFICE_3,MIRROROFICE_4,MIRROROFICE_5,MIRROROFICE_6,MIRROROFICE_7,MIRROROFICE_8,MIRROROFICE_9,MIRROROFICE_10,MIRROROFICE_11,MIRROROFICE_12,MIRROROFICE_13,MIRROROFICE_14,MIRROROFICE_15,MIRROROFICE_16,MIRROROFICE_17,MIRROROFICE_18,MIRROROFICE_19,MIRROROFICE_20,MIRROROFICE_21,MIRROROFICE_22,MIRROROFICE_23,MIRROROFICE_24,MIRROROFICE_25,MIRROROFICE_26,MIRROROFICE_27,MIRROROFICE_28,MIRROROFICE_29,MIRROROFICE_30,MIRROROFICE_31,MIRROROFICE_32,MIRROROFICE_33,MIRROROFICE_34,MIRROROFICE_35,MIRROROFICE_36,MIRROROFICE_37,MIRROROFICE_38,MIRROROFICE_39,MIRROROFICE_40,MIRROROFICE_41,MIRROROFICE_42,MIRROROFICE_43,MIRROROFICE_44,MIRROROFICE_45,MIRROROFICE_46,MIRROROFICE_47,MIRROROFICE_48,
 		};
 
 		animationFrames["Hail"]["ACTION_1"].internalList = { HAIL_1, };
@@ -2571,14 +2679,14 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 
 		animationFrames["Crown of Sands"]["ACTION_1"].internalList = { CROWNOFSANDS_1,CROWNOFSANDS_2,CROWNOFSANDS_3,CROWNOFSANDS_4,CROWNOFSANDS_5,CROWNOFSANDS_6,CROWNOFSANDS_7,CROWNOFSANDS_8,CROWNOFSANDS_9,CROWNOFSANDS_10,CROWNOFSANDS_11,CROWNOFSANDS_12,CROWNOFSANDS_13,CROWNOFSANDS_14,CROWNOFSANDS_15,CROWNOFSANDS_16,CROWNOFSANDS_17,CROWNOFSANDS_18,CROWNOFSANDS_19,CROWNOFSANDS_20,CROWNOFSANDS_21,CROWNOFSANDS_22,CROWNOFSANDS_23,CROWNOFSANDS_24,CROWNOFSANDS_25,CROWNOFSANDS_26,CROWNOFSANDS_27,CROWNOFSANDS_28,CROWNOFSANDS_29,CROWNOFSANDS_30,CROWNOFSANDS_31,CROWNOFSANDS_32,CROWNOFSANDS_33,CROWNOFSANDS_34,CROWNOFSANDS_35,CROWNOFSANDS_36,CROWNOFSANDS_37,CROWNOFSANDS_38,CROWNOFSANDS_39,CROWNOFSANDS_40,CROWNOFSANDS_41,CROWNOFSANDS_42,CROWNOFSANDS_43,CROWNOFSANDS_44,CROWNOFSANDS_45,CROWNOFSANDS_46,CROWNOFSANDS_47,CROWNOFSANDS_48, };
 
-		animationFrames["Crumble"]["ACTION_1"].internalList = {			CRUMBLE_1,CRUMBLE_2,CRUMBLE_3,CRUMBLE_4,CRUMBLE_5,CRUMBLE_6,CRUMBLE_7,CRUMBLE_8,CRUMBLE_9,CRUMBLE_10,CRUMBLE_11,CRUMBLE_12,CRUMBLE_13,CRUMBLE_14,CRUMBLE_15,CRUMBLE_16,CRUMBLE_17,CRUMBLE_18,CRUMBLE_19,CRUMBLE_20,CRUMBLE_21,CRUMBLE_22,CRUMBLE_23,CRUMBLE_24,CRUMBLE_25,CRUMBLE_26,CRUMBLE_27,CRUMBLE_28,CRUMBLE_29,CRUMBLE_30,CRUMBLE_31,CRUMBLE_32,CRUMBLE_33,CRUMBLE_34,CRUMBLE_35,CRUMBLE_36,CRUMBLE_37,CRUMBLE_38,CRUMBLE_39,CRUMBLE_40,CRUMBLE_41,CRUMBLE_42,CRUMBLE_43,CRUMBLE_44,CRUMBLE_45,CRUMBLE_46,CRUMBLE_47,CRUMBLE_48,
+		animationFrames["Crumble"]["ACTION_1"].internalList = { CRUMBLE_1,CRUMBLE_2,CRUMBLE_3,CRUMBLE_4,CRUMBLE_5,CRUMBLE_6,CRUMBLE_7,CRUMBLE_8,CRUMBLE_9,CRUMBLE_10,CRUMBLE_11,CRUMBLE_12,CRUMBLE_13,CRUMBLE_14,CRUMBLE_15,CRUMBLE_16,CRUMBLE_17,CRUMBLE_18,CRUMBLE_19,CRUMBLE_20,CRUMBLE_21,CRUMBLE_22,CRUMBLE_23,CRUMBLE_24,CRUMBLE_25,CRUMBLE_26,CRUMBLE_27,CRUMBLE_28,CRUMBLE_29,CRUMBLE_30,CRUMBLE_31,CRUMBLE_32,CRUMBLE_33,CRUMBLE_34,CRUMBLE_35,CRUMBLE_36,CRUMBLE_37,CRUMBLE_38,CRUMBLE_39,CRUMBLE_40,CRUMBLE_41,CRUMBLE_42,CRUMBLE_43,CRUMBLE_44,CRUMBLE_45,CRUMBLE_46,CRUMBLE_47,CRUMBLE_48,
 		};
 
 		animationFrames["Crystalline Scythe"]["ACTION_1"].internalList = { CRYSTALLINESCYTHE_1,CRYSTALLINESCYTHE_2,CRYSTALLINESCYTHE_3,CRYSTALLINESCYTHE_4,CRYSTALLINESCYTHE_5,CRYSTALLINESCYTHE_6,CRYSTALLINESCYTHE_7,CRYSTALLINESCYTHE_8,CRYSTALLINESCYTHE_9,CRYSTALLINESCYTHE_10,CRYSTALLINESCYTHE_11,CRYSTALLINESCYTHE_12,CRYSTALLINESCYTHE_13,CRYSTALLINESCYTHE_14,CRYSTALLINESCYTHE_15,CRYSTALLINESCYTHE_16,CRYSTALLINESCYTHE_17,CRYSTALLINESCYTHE_18,CRYSTALLINESCYTHE_19,CRYSTALLINESCYTHE_20,CRYSTALLINESCYTHE_21,CRYSTALLINESCYTHE_22,CRYSTALLINESCYTHE_23,CRYSTALLINESCYTHE_24,CRYSTALLINESCYTHE_25,CRYSTALLINESCYTHE_26,CRYSTALLINESCYTHE_27,CRYSTALLINESCYTHE_28,CRYSTALLINESCYTHE_29,CRYSTALLINESCYTHE_30,CRYSTALLINESCYTHE_31,CRYSTALLINESCYTHE_32,CRYSTALLINESCYTHE_33, };
 
 		animationFrames["Dust Torrent"]["ACTION_1"].internalList = { DUSTTORRENT_1,DUSTTORRENT_2,DUSTTORRENT_3,DUSTTORRENT_4,DUSTTORRENT_5,DUSTTORRENT_6,DUSTTORRENT_7,DUSTTORRENT_8,DUSTTORRENT_9,DUSTTORRENT_10,DUSTTORRENT_11,DUSTTORRENT_12,DUSTTORRENT_13,DUSTTORRENT_14,DUSTTORRENT_15,DUSTTORRENT_16,DUSTTORRENT_17,DUSTTORRENT_18,DUSTTORRENT_19,DUSTTORRENT_20,DUSTTORRENT_21,DUSTTORRENT_22,DUSTTORRENT_23,DUSTTORRENT_24,DUSTTORRENT_25,DUSTTORRENT_26,DUSTTORRENT_27,DUSTTORRENT_28,DUSTTORRENT_29,DUSTTORRENT_30,DUSTTORRENT_31,DUSTTORRENT_32,DUSTTORRENT_33,DUSTTORRENT_34,DUSTTORRENT_35,DUSTTORRENT_36,DUSTTORRENT_37,DUSTTORRENT_38,DUSTTORRENT_39,DUSTTORRENT_40,DUSTTORRENT_41,DUSTTORRENT_42,DUSTTORRENT_43,DUSTTORRENT_44,DUSTTORRENT_45,DUSTTORRENT_46,DUSTTORRENT_47,DUSTTORRENT_48, };
 
-		animationFrames["Mass Burial"]["ACTION_1"].internalList = {			MASSBURIAL_1,MASSBURIAL_2,MASSBURIAL_3,MASSBURIAL_4,MASSBURIAL_5,MASSBURIAL_6,MASSBURIAL_7,MASSBURIAL_8,MASSBURIAL_9,MASSBURIAL_10,MASSBURIAL_11,MASSBURIAL_12,MASSBURIAL_13,MASSBURIAL_14,MASSBURIAL_15,MASSBURIAL_16,MASSBURIAL_17,MASSBURIAL_18,MASSBURIAL_19,MASSBURIAL_20,MASSBURIAL_21,MASSBURIAL_22,MASSBURIAL_23,MASSBURIAL_24,MASSBURIAL_25,MASSBURIAL_26,MASSBURIAL_27,MASSBURIAL_28,MASSBURIAL_29,MASSBURIAL_30,MASSBURIAL_31,MASSBURIAL_32,MASSBURIAL_33,MASSBURIAL_34,MASSBURIAL_35,MASSBURIAL_36,MASSBURIAL_37,MASSBURIAL_38,MASSBURIAL_39,MASSBURIAL_40,MASSBURIAL_41,MASSBURIAL_42,MASSBURIAL_43,MASSBURIAL_44,MASSBURIAL_45,MASSBURIAL_46,MASSBURIAL_47,MASSBURIAL_48,
+		animationFrames["Mass Burial"]["ACTION_1"].internalList = { MASSBURIAL_1,MASSBURIAL_2,MASSBURIAL_3,MASSBURIAL_4,MASSBURIAL_5,MASSBURIAL_6,MASSBURIAL_7,MASSBURIAL_8,MASSBURIAL_9,MASSBURIAL_10,MASSBURIAL_11,MASSBURIAL_12,MASSBURIAL_13,MASSBURIAL_14,MASSBURIAL_15,MASSBURIAL_16,MASSBURIAL_17,MASSBURIAL_18,MASSBURIAL_19,MASSBURIAL_20,MASSBURIAL_21,MASSBURIAL_22,MASSBURIAL_23,MASSBURIAL_24,MASSBURIAL_25,MASSBURIAL_26,MASSBURIAL_27,MASSBURIAL_28,MASSBURIAL_29,MASSBURIAL_30,MASSBURIAL_31,MASSBURIAL_32,MASSBURIAL_33,MASSBURIAL_34,MASSBURIAL_35,MASSBURIAL_36,MASSBURIAL_37,MASSBURIAL_38,MASSBURIAL_39,MASSBURIAL_40,MASSBURIAL_41,MASSBURIAL_42,MASSBURIAL_43,MASSBURIAL_44,MASSBURIAL_45,MASSBURIAL_46,MASSBURIAL_47,MASSBURIAL_48,
 		};
 
 		animationFrames["Rocky Soil"]["ACTION_1"].internalList = { ROCKYSOIL_1,ROCKYSOIL_2,ROCKYSOIL_3,ROCKYSOIL_4,ROCKYSOIL_5,ROCKYSOIL_6,ROCKYSOIL_7,ROCKYSOIL_8,ROCKYSOIL_9,ROCKYSOIL_10,ROCKYSOIL_11,ROCKYSOIL_12,ROCKYSOIL_13,ROCKYSOIL_14,ROCKYSOIL_15,ROCKYSOIL_16,ROCKYSOIL_17,ROCKYSOIL_18,ROCKYSOIL_19,ROCKYSOIL_20,ROCKYSOIL_21,ROCKYSOIL_22,ROCKYSOIL_23,ROCKYSOIL_24,ROCKYSOIL_25,ROCKYSOIL_26,ROCKYSOIL_27,ROCKYSOIL_28,ROCKYSOIL_29,ROCKYSOIL_30,ROCKYSOIL_31,ROCKYSOIL_32,ROCKYSOIL_33,ROCKYSOIL_34,ROCKYSOIL_35,ROCKYSOIL_36,ROCKYSOIL_37,ROCKYSOIL_38,ROCKYSOIL_39,ROCKYSOIL_40,ROCKYSOIL_41,ROCKYSOIL_42,ROCKYSOIL_43,ROCKYSOIL_44,ROCKYSOIL_45,ROCKYSOIL_46,ROCKYSOIL_47,ROCKYSOIL_48,ROCKYSOIL_49,ROCKYSOIL_50,ROCKYSOIL_51,ROCKYSOIL_52,ROCKYSOIL_53,ROCKYSOIL_54,ROCKYSOIL_55,ROCKYSOIL_56,ROCKYSOIL_57,ROCKYSOIL_58,ROCKYSOIL_59,ROCKYSOIL_60,ROCKYSOIL_61,ROCKYSOIL_62,ROCKYSOIL_63,ROCKYSOIL_64,ROCKYSOIL_65,ROCKYSOIL_66,ROCKYSOIL_67,ROCKYSOIL_68,ROCKYSOIL_69,ROCKYSOIL_70,ROCKYSOIL_71,ROCKYSOIL_72,
@@ -2590,73 +2698,72 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 			JEROD_1,JEROD_2,JEROD_3,JEROD_4,JEROD_5,JEROD_6,JEROD_7,JEROD_8,JEROD_9,JEROD_10,JEROD_11,JEROD_12,JEROD_13,JEROD_14,JEROD_15,JEROD_16,JEROD_17,JEROD_18,JEROD_19,JEROD_20,JEROD_21,JEROD_22,JEROD_23,JEROD_24,
 		};
 
-		animationFrames["Ward Against Magic"]["ACTION_1"].internalList = {			WARDAGAINSTMAGIC_1,WARDAGAINSTMAGIC_2,WARDAGAINSTMAGIC_3,WARDAGAINSTMAGIC_4,WARDAGAINSTMAGIC_5,WARDAGAINSTMAGIC_6,WARDAGAINSTMAGIC_7,WARDAGAINSTMAGIC_8,WARDAGAINSTMAGIC_9,WARDAGAINSTMAGIC_10,WARDAGAINSTMAGIC_11,WARDAGAINSTMAGIC_12,WARDAGAINSTMAGIC_13,WARDAGAINSTMAGIC_14,WARDAGAINSTMAGIC_15,WARDAGAINSTMAGIC_16,WARDAGAINSTMAGIC_17,WARDAGAINSTMAGIC_18,WARDAGAINSTMAGIC_19,WARDAGAINSTMAGIC_20,WARDAGAINSTMAGIC_21,WARDAGAINSTMAGIC_22,WARDAGAINSTMAGIC_23,WARDAGAINSTMAGIC_24,WARDAGAINSTMAGIC_25,WARDAGAINSTMAGIC_26,WARDAGAINSTMAGIC_27,WARDAGAINSTMAGIC_28,WARDAGAINSTMAGIC_29,WARDAGAINSTMAGIC_30,WARDAGAINSTMAGIC_31,WARDAGAINSTMAGIC_32,WARDAGAINSTMAGIC_33,WARDAGAINSTMAGIC_34,WARDAGAINSTMAGIC_35,WARDAGAINSTMAGIC_36,WARDAGAINSTMAGIC_37,WARDAGAINSTMAGIC_38,WARDAGAINSTMAGIC_39,WARDAGAINSTMAGIC_40,WARDAGAINSTMAGIC_41,WARDAGAINSTMAGIC_42,WARDAGAINSTMAGIC_43,WARDAGAINSTMAGIC_44,WARDAGAINSTMAGIC_45,WARDAGAINSTMAGIC_46,WARDAGAINSTMAGIC_47,WARDAGAINSTMAGIC_48,WARDAGAINSTMAGIC_49,WARDAGAINSTMAGIC_50,WARDAGAINSTMAGIC_51,WARDAGAINSTMAGIC_52,WARDAGAINSTMAGIC_53,WARDAGAINSTMAGIC_54,WARDAGAINSTMAGIC_55,WARDAGAINSTMAGIC_56,WARDAGAINSTMAGIC_57,WARDAGAINSTMAGIC_58,WARDAGAINSTMAGIC_59,WARDAGAINSTMAGIC_60,WARDAGAINSTMAGIC_61,WARDAGAINSTMAGIC_62,WARDAGAINSTMAGIC_63,WARDAGAINSTMAGIC_64,WARDAGAINSTMAGIC_65,WARDAGAINSTMAGIC_66,WARDAGAINSTMAGIC_67,WARDAGAINSTMAGIC_68,WARDAGAINSTMAGIC_69,WARDAGAINSTMAGIC_70,WARDAGAINSTMAGIC_71,WARDAGAINSTMAGIC_72,
+		animationFrames["Ward Against Magic"]["ACTION_1"].internalList = { WARDAGAINSTMAGIC_1,WARDAGAINSTMAGIC_2,WARDAGAINSTMAGIC_3,WARDAGAINSTMAGIC_4,WARDAGAINSTMAGIC_5,WARDAGAINSTMAGIC_6,WARDAGAINSTMAGIC_7,WARDAGAINSTMAGIC_8,WARDAGAINSTMAGIC_9,WARDAGAINSTMAGIC_10,WARDAGAINSTMAGIC_11,WARDAGAINSTMAGIC_12,WARDAGAINSTMAGIC_13,WARDAGAINSTMAGIC_14,WARDAGAINSTMAGIC_15,WARDAGAINSTMAGIC_16,WARDAGAINSTMAGIC_17,WARDAGAINSTMAGIC_18,WARDAGAINSTMAGIC_19,WARDAGAINSTMAGIC_20,WARDAGAINSTMAGIC_21,WARDAGAINSTMAGIC_22,WARDAGAINSTMAGIC_23,WARDAGAINSTMAGIC_24,WARDAGAINSTMAGIC_25,WARDAGAINSTMAGIC_26,WARDAGAINSTMAGIC_27,WARDAGAINSTMAGIC_28,WARDAGAINSTMAGIC_29,WARDAGAINSTMAGIC_30,WARDAGAINSTMAGIC_31,WARDAGAINSTMAGIC_32,WARDAGAINSTMAGIC_33,WARDAGAINSTMAGIC_34,WARDAGAINSTMAGIC_35,WARDAGAINSTMAGIC_36,WARDAGAINSTMAGIC_37,WARDAGAINSTMAGIC_38,WARDAGAINSTMAGIC_39,WARDAGAINSTMAGIC_40,WARDAGAINSTMAGIC_41,WARDAGAINSTMAGIC_42,WARDAGAINSTMAGIC_43,WARDAGAINSTMAGIC_44,WARDAGAINSTMAGIC_45,WARDAGAINSTMAGIC_46,WARDAGAINSTMAGIC_47,WARDAGAINSTMAGIC_48,WARDAGAINSTMAGIC_49,WARDAGAINSTMAGIC_50,WARDAGAINSTMAGIC_51,WARDAGAINSTMAGIC_52,WARDAGAINSTMAGIC_53,WARDAGAINSTMAGIC_54,WARDAGAINSTMAGIC_55,WARDAGAINSTMAGIC_56,WARDAGAINSTMAGIC_57,WARDAGAINSTMAGIC_58,WARDAGAINSTMAGIC_59,WARDAGAINSTMAGIC_60,WARDAGAINSTMAGIC_61,WARDAGAINSTMAGIC_62,WARDAGAINSTMAGIC_63,WARDAGAINSTMAGIC_64,WARDAGAINSTMAGIC_65,WARDAGAINSTMAGIC_66,WARDAGAINSTMAGIC_67,WARDAGAINSTMAGIC_68,WARDAGAINSTMAGIC_69,WARDAGAINSTMAGIC_70,WARDAGAINSTMAGIC_71,WARDAGAINSTMAGIC_72,
 		};
 
-		animationFrames["Ward Against Weapons"]["ACTION_1"].internalList = {		WARDAGAINSTWEAPONS_1,WARDAGAINSTWEAPONS_2,WARDAGAINSTWEAPONS_3,WARDAGAINSTWEAPONS_4,WARDAGAINSTWEAPONS_5,WARDAGAINSTWEAPONS_6,WARDAGAINSTWEAPONS_7,WARDAGAINSTWEAPONS_8,WARDAGAINSTWEAPONS_9,WARDAGAINSTWEAPONS_10,WARDAGAINSTWEAPONS_11,WARDAGAINSTWEAPONS_12,WARDAGAINSTWEAPONS_13,WARDAGAINSTWEAPONS_14,WARDAGAINSTWEAPONS_15,WARDAGAINSTWEAPONS_16,WARDAGAINSTWEAPONS_17,WARDAGAINSTWEAPONS_18,WARDAGAINSTWEAPONS_19,WARDAGAINSTWEAPONS_20,WARDAGAINSTWEAPONS_21,WARDAGAINSTWEAPONS_22,WARDAGAINSTWEAPONS_23,WARDAGAINSTWEAPONS_24,WARDAGAINSTWEAPONS_25,WARDAGAINSTWEAPONS_26,WARDAGAINSTWEAPONS_27,WARDAGAINSTWEAPONS_28,WARDAGAINSTWEAPONS_29,WARDAGAINSTWEAPONS_30,WARDAGAINSTWEAPONS_31,WARDAGAINSTWEAPONS_32,WARDAGAINSTWEAPONS_33,WARDAGAINSTWEAPONS_34,WARDAGAINSTWEAPONS_35,WARDAGAINSTWEAPONS_36,WARDAGAINSTWEAPONS_37,WARDAGAINSTWEAPONS_38,WARDAGAINSTWEAPONS_39,WARDAGAINSTWEAPONS_40,WARDAGAINSTWEAPONS_41,WARDAGAINSTWEAPONS_42,WARDAGAINSTWEAPONS_43,WARDAGAINSTWEAPONS_44,WARDAGAINSTWEAPONS_45,WARDAGAINSTWEAPONS_46,WARDAGAINSTWEAPONS_47,WARDAGAINSTWEAPONS_48,WARDAGAINSTWEAPONS_49,WARDAGAINSTWEAPONS_50,WARDAGAINSTWEAPONS_51,WARDAGAINSTWEAPONS_52,WARDAGAINSTWEAPONS_53,WARDAGAINSTWEAPONS_54,WARDAGAINSTWEAPONS_55,WARDAGAINSTWEAPONS_56,WARDAGAINSTWEAPONS_57,WARDAGAINSTWEAPONS_58,WARDAGAINSTWEAPONS_59,WARDAGAINSTWEAPONS_60,WARDAGAINSTWEAPONS_61,WARDAGAINSTWEAPONS_62,WARDAGAINSTWEAPONS_63,WARDAGAINSTWEAPONS_64,WARDAGAINSTWEAPONS_65,WARDAGAINSTWEAPONS_66,WARDAGAINSTWEAPONS_67,WARDAGAINSTWEAPONS_68,WARDAGAINSTWEAPONS_69,WARDAGAINSTWEAPONS_70,WARDAGAINSTWEAPONS_71,WARDAGAINSTWEAPONS_72,
+		animationFrames["Ward Against Weapons"]["ACTION_1"].internalList = { WARDAGAINSTWEAPONS_1,WARDAGAINSTWEAPONS_2,WARDAGAINSTWEAPONS_3,WARDAGAINSTWEAPONS_4,WARDAGAINSTWEAPONS_5,WARDAGAINSTWEAPONS_6,WARDAGAINSTWEAPONS_7,WARDAGAINSTWEAPONS_8,WARDAGAINSTWEAPONS_9,WARDAGAINSTWEAPONS_10,WARDAGAINSTWEAPONS_11,WARDAGAINSTWEAPONS_12,WARDAGAINSTWEAPONS_13,WARDAGAINSTWEAPONS_14,WARDAGAINSTWEAPONS_15,WARDAGAINSTWEAPONS_16,WARDAGAINSTWEAPONS_17,WARDAGAINSTWEAPONS_18,WARDAGAINSTWEAPONS_19,WARDAGAINSTWEAPONS_20,WARDAGAINSTWEAPONS_21,WARDAGAINSTWEAPONS_22,WARDAGAINSTWEAPONS_23,WARDAGAINSTWEAPONS_24,WARDAGAINSTWEAPONS_25,WARDAGAINSTWEAPONS_26,WARDAGAINSTWEAPONS_27,WARDAGAINSTWEAPONS_28,WARDAGAINSTWEAPONS_29,WARDAGAINSTWEAPONS_30,WARDAGAINSTWEAPONS_31,WARDAGAINSTWEAPONS_32,WARDAGAINSTWEAPONS_33,WARDAGAINSTWEAPONS_34,WARDAGAINSTWEAPONS_35,WARDAGAINSTWEAPONS_36,WARDAGAINSTWEAPONS_37,WARDAGAINSTWEAPONS_38,WARDAGAINSTWEAPONS_39,WARDAGAINSTWEAPONS_40,WARDAGAINSTWEAPONS_41,WARDAGAINSTWEAPONS_42,WARDAGAINSTWEAPONS_43,WARDAGAINSTWEAPONS_44,WARDAGAINSTWEAPONS_45,WARDAGAINSTWEAPONS_46,WARDAGAINSTWEAPONS_47,WARDAGAINSTWEAPONS_48,WARDAGAINSTWEAPONS_49,WARDAGAINSTWEAPONS_50,WARDAGAINSTWEAPONS_51,WARDAGAINSTWEAPONS_52,WARDAGAINSTWEAPONS_53,WARDAGAINSTWEAPONS_54,WARDAGAINSTWEAPONS_55,WARDAGAINSTWEAPONS_56,WARDAGAINSTWEAPONS_57,WARDAGAINSTWEAPONS_58,WARDAGAINSTWEAPONS_59,WARDAGAINSTWEAPONS_60,WARDAGAINSTWEAPONS_61,WARDAGAINSTWEAPONS_62,WARDAGAINSTWEAPONS_63,WARDAGAINSTWEAPONS_64,WARDAGAINSTWEAPONS_65,WARDAGAINSTWEAPONS_66,WARDAGAINSTWEAPONS_67,WARDAGAINSTWEAPONS_68,WARDAGAINSTWEAPONS_69,WARDAGAINSTWEAPONS_70,WARDAGAINSTWEAPONS_71,WARDAGAINSTWEAPONS_72,
 		};
 
-		animationFrames["Ward Against Catastrophe"]["ACTION_1"].internalList = {			WARDAGAINSTCATASTROPHE_1,WARDAGAINSTCATASTROPHE_2,WARDAGAINSTCATASTROPHE_3,WARDAGAINSTCATASTROPHE_4,WARDAGAINSTCATASTROPHE_5,WARDAGAINSTCATASTROPHE_6,WARDAGAINSTCATASTROPHE_7,WARDAGAINSTCATASTROPHE_8,WARDAGAINSTCATASTROPHE_9,WARDAGAINSTCATASTROPHE_10,WARDAGAINSTCATASTROPHE_11,WARDAGAINSTCATASTROPHE_12,WARDAGAINSTCATASTROPHE_13,WARDAGAINSTCATASTROPHE_14,WARDAGAINSTCATASTROPHE_15,WARDAGAINSTCATASTROPHE_16,WARDAGAINSTCATASTROPHE_17,WARDAGAINSTCATASTROPHE_18,WARDAGAINSTCATASTROPHE_19,WARDAGAINSTCATASTROPHE_20,WARDAGAINSTCATASTROPHE_21,WARDAGAINSTCATASTROPHE_22,WARDAGAINSTCATASTROPHE_23,WARDAGAINSTCATASTROPHE_24,WARDAGAINSTCATASTROPHE_25,WARDAGAINSTCATASTROPHE_26,WARDAGAINSTCATASTROPHE_27,WARDAGAINSTCATASTROPHE_28,WARDAGAINSTCATASTROPHE_29,WARDAGAINSTCATASTROPHE_30,WARDAGAINSTCATASTROPHE_31,WARDAGAINSTCATASTROPHE_32,WARDAGAINSTCATASTROPHE_33,WARDAGAINSTCATASTROPHE_34,WARDAGAINSTCATASTROPHE_35,WARDAGAINSTCATASTROPHE_36,WARDAGAINSTCATASTROPHE_37,WARDAGAINSTCATASTROPHE_38,WARDAGAINSTCATASTROPHE_39,WARDAGAINSTCATASTROPHE_40,WARDAGAINSTCATASTROPHE_41,WARDAGAINSTCATASTROPHE_42,WARDAGAINSTCATASTROPHE_43,WARDAGAINSTCATASTROPHE_44,WARDAGAINSTCATASTROPHE_45,WARDAGAINSTCATASTROPHE_46,WARDAGAINSTCATASTROPHE_47,WARDAGAINSTCATASTROPHE_48,WARDAGAINSTCATASTROPHE_49,WARDAGAINSTCATASTROPHE_50,WARDAGAINSTCATASTROPHE_51,WARDAGAINSTCATASTROPHE_52,WARDAGAINSTCATASTROPHE_53,WARDAGAINSTCATASTROPHE_54,WARDAGAINSTCATASTROPHE_55,WARDAGAINSTCATASTROPHE_56,WARDAGAINSTCATASTROPHE_57,WARDAGAINSTCATASTROPHE_58,WARDAGAINSTCATASTROPHE_59,WARDAGAINSTCATASTROPHE_60,WARDAGAINSTCATASTROPHE_61,WARDAGAINSTCATASTROPHE_62,WARDAGAINSTCATASTROPHE_63,WARDAGAINSTCATASTROPHE_64,WARDAGAINSTCATASTROPHE_65,WARDAGAINSTCATASTROPHE_66,WARDAGAINSTCATASTROPHE_67,WARDAGAINSTCATASTROPHE_68,WARDAGAINSTCATASTROPHE_69,WARDAGAINSTCATASTROPHE_70,WARDAGAINSTCATASTROPHE_71,WARDAGAINSTCATASTROPHE_72,
+		animationFrames["Ward Against Catastrophe"]["ACTION_1"].internalList = { WARDAGAINSTCATASTROPHE_1,WARDAGAINSTCATASTROPHE_2,WARDAGAINSTCATASTROPHE_3,WARDAGAINSTCATASTROPHE_4,WARDAGAINSTCATASTROPHE_5,WARDAGAINSTCATASTROPHE_6,WARDAGAINSTCATASTROPHE_7,WARDAGAINSTCATASTROPHE_8,WARDAGAINSTCATASTROPHE_9,WARDAGAINSTCATASTROPHE_10,WARDAGAINSTCATASTROPHE_11,WARDAGAINSTCATASTROPHE_12,WARDAGAINSTCATASTROPHE_13,WARDAGAINSTCATASTROPHE_14,WARDAGAINSTCATASTROPHE_15,WARDAGAINSTCATASTROPHE_16,WARDAGAINSTCATASTROPHE_17,WARDAGAINSTCATASTROPHE_18,WARDAGAINSTCATASTROPHE_19,WARDAGAINSTCATASTROPHE_20,WARDAGAINSTCATASTROPHE_21,WARDAGAINSTCATASTROPHE_22,WARDAGAINSTCATASTROPHE_23,WARDAGAINSTCATASTROPHE_24,WARDAGAINSTCATASTROPHE_25,WARDAGAINSTCATASTROPHE_26,WARDAGAINSTCATASTROPHE_27,WARDAGAINSTCATASTROPHE_28,WARDAGAINSTCATASTROPHE_29,WARDAGAINSTCATASTROPHE_30,WARDAGAINSTCATASTROPHE_31,WARDAGAINSTCATASTROPHE_32,WARDAGAINSTCATASTROPHE_33,WARDAGAINSTCATASTROPHE_34,WARDAGAINSTCATASTROPHE_35,WARDAGAINSTCATASTROPHE_36,WARDAGAINSTCATASTROPHE_37,WARDAGAINSTCATASTROPHE_38,WARDAGAINSTCATASTROPHE_39,WARDAGAINSTCATASTROPHE_40,WARDAGAINSTCATASTROPHE_41,WARDAGAINSTCATASTROPHE_42,WARDAGAINSTCATASTROPHE_43,WARDAGAINSTCATASTROPHE_44,WARDAGAINSTCATASTROPHE_45,WARDAGAINSTCATASTROPHE_46,WARDAGAINSTCATASTROPHE_47,WARDAGAINSTCATASTROPHE_48,WARDAGAINSTCATASTROPHE_49,WARDAGAINSTCATASTROPHE_50,WARDAGAINSTCATASTROPHE_51,WARDAGAINSTCATASTROPHE_52,WARDAGAINSTCATASTROPHE_53,WARDAGAINSTCATASTROPHE_54,WARDAGAINSTCATASTROPHE_55,WARDAGAINSTCATASTROPHE_56,WARDAGAINSTCATASTROPHE_57,WARDAGAINSTCATASTROPHE_58,WARDAGAINSTCATASTROPHE_59,WARDAGAINSTCATASTROPHE_60,WARDAGAINSTCATASTROPHE_61,WARDAGAINSTCATASTROPHE_62,WARDAGAINSTCATASTROPHE_63,WARDAGAINSTCATASTROPHE_64,WARDAGAINSTCATASTROPHE_65,WARDAGAINSTCATASTROPHE_66,WARDAGAINSTCATASTROPHE_67,WARDAGAINSTCATASTROPHE_68,WARDAGAINSTCATASTROPHE_69,WARDAGAINSTCATASTROPHE_70,WARDAGAINSTCATASTROPHE_71,WARDAGAINSTCATASTROPHE_72,
 		};
 
 		animationFrames["Master of Wards"]["ACTION_1"].internalList = { MASTEROFWARDS_1,MASTEROFWARDS_2,MASTEROFWARDS_3,MASTEROFWARDS_4,MASTEROFWARDS_5,MASTEROFWARDS_6,MASTEROFWARDS_7,MASTEROFWARDS_8,MASTEROFWARDS_9,MASTEROFWARDS_10,MASTEROFWARDS_11,MASTEROFWARDS_12,MASTEROFWARDS_13,MASTEROFWARDS_14,MASTEROFWARDS_15,MASTEROFWARDS_16,MASTEROFWARDS_17,MASTEROFWARDS_18,MASTEROFWARDS_19,MASTEROFWARDS_20,MASTEROFWARDS_21,MASTEROFWARDS_22,MASTEROFWARDS_23,MASTEROFWARDS_24,MASTEROFWARDS_25,MASTEROFWARDS_26,MASTEROFWARDS_27,MASTEROFWARDS_28,MASTEROFWARDS_29,MASTEROFWARDS_30,MASTEROFWARDS_31,MASTEROFWARDS_32,MASTEROFWARDS_33,MASTEROFWARDS_34,MASTEROFWARDS_35,MASTEROFWARDS_36,MASTEROFWARDS_37,MASTEROFWARDS_38,MASTEROFWARDS_39,MASTEROFWARDS_40,MASTEROFWARDS_41,MASTEROFWARDS_42,MASTEROFWARDS_43,MASTEROFWARDS_44,MASTEROFWARDS_45,MASTEROFWARDS_46,MASTEROFWARDS_47,MASTEROFWARDS_48, };
 
-		animationFrames["Ward Against Cruelty"]["ACTION_1"].internalList = {			WARDAGAINSTCRUELTY_1,WARDAGAINSTCRUELTY_2,WARDAGAINSTCRUELTY_3,WARDAGAINSTCRUELTY_4,WARDAGAINSTCRUELTY_5,WARDAGAINSTCRUELTY_6,WARDAGAINSTCRUELTY_7,WARDAGAINSTCRUELTY_8,WARDAGAINSTCRUELTY_9,WARDAGAINSTCRUELTY_10,WARDAGAINSTCRUELTY_11,WARDAGAINSTCRUELTY_12,WARDAGAINSTCRUELTY_13,WARDAGAINSTCRUELTY_14,WARDAGAINSTCRUELTY_15,WARDAGAINSTCRUELTY_16,WARDAGAINSTCRUELTY_17,WARDAGAINSTCRUELTY_18,WARDAGAINSTCRUELTY_19,WARDAGAINSTCRUELTY_20,WARDAGAINSTCRUELTY_21,WARDAGAINSTCRUELTY_22,WARDAGAINSTCRUELTY_23,WARDAGAINSTCRUELTY_24,WARDAGAINSTCRUELTY_25,WARDAGAINSTCRUELTY_26,WARDAGAINSTCRUELTY_27,WARDAGAINSTCRUELTY_28,WARDAGAINSTCRUELTY_29,WARDAGAINSTCRUELTY_30,WARDAGAINSTCRUELTY_31,WARDAGAINSTCRUELTY_32,WARDAGAINSTCRUELTY_33,WARDAGAINSTCRUELTY_34,WARDAGAINSTCRUELTY_35,WARDAGAINSTCRUELTY_36,WARDAGAINSTCRUELTY_37,WARDAGAINSTCRUELTY_38,WARDAGAINSTCRUELTY_39,WARDAGAINSTCRUELTY_40,WARDAGAINSTCRUELTY_41,WARDAGAINSTCRUELTY_42,WARDAGAINSTCRUELTY_43,WARDAGAINSTCRUELTY_44,WARDAGAINSTCRUELTY_45,WARDAGAINSTCRUELTY_46,WARDAGAINSTCRUELTY_47,WARDAGAINSTCRUELTY_48,WARDAGAINSTCRUELTY_49,WARDAGAINSTCRUELTY_50,WARDAGAINSTCRUELTY_51,WARDAGAINSTCRUELTY_52,WARDAGAINSTCRUELTY_53,WARDAGAINSTCRUELTY_54,WARDAGAINSTCRUELTY_55,WARDAGAINSTCRUELTY_56,WARDAGAINSTCRUELTY_57,WARDAGAINSTCRUELTY_58,WARDAGAINSTCRUELTY_59,WARDAGAINSTCRUELTY_60,WARDAGAINSTCRUELTY_61,WARDAGAINSTCRUELTY_62,WARDAGAINSTCRUELTY_63,WARDAGAINSTCRUELTY_64,WARDAGAINSTCRUELTY_65,WARDAGAINSTCRUELTY_66,WARDAGAINSTCRUELTY_67,WARDAGAINSTCRUELTY_68,WARDAGAINSTCRUELTY_69,WARDAGAINSTCRUELTY_70,WARDAGAINSTCRUELTY_71,WARDAGAINSTCRUELTY_72,
+		animationFrames["Ward Against Cruelty"]["ACTION_1"].internalList = { WARDAGAINSTCRUELTY_1,WARDAGAINSTCRUELTY_2,WARDAGAINSTCRUELTY_3,WARDAGAINSTCRUELTY_4,WARDAGAINSTCRUELTY_5,WARDAGAINSTCRUELTY_6,WARDAGAINSTCRUELTY_7,WARDAGAINSTCRUELTY_8,WARDAGAINSTCRUELTY_9,WARDAGAINSTCRUELTY_10,WARDAGAINSTCRUELTY_11,WARDAGAINSTCRUELTY_12,WARDAGAINSTCRUELTY_13,WARDAGAINSTCRUELTY_14,WARDAGAINSTCRUELTY_15,WARDAGAINSTCRUELTY_16,WARDAGAINSTCRUELTY_17,WARDAGAINSTCRUELTY_18,WARDAGAINSTCRUELTY_19,WARDAGAINSTCRUELTY_20,WARDAGAINSTCRUELTY_21,WARDAGAINSTCRUELTY_22,WARDAGAINSTCRUELTY_23,WARDAGAINSTCRUELTY_24,WARDAGAINSTCRUELTY_25,WARDAGAINSTCRUELTY_26,WARDAGAINSTCRUELTY_27,WARDAGAINSTCRUELTY_28,WARDAGAINSTCRUELTY_29,WARDAGAINSTCRUELTY_30,WARDAGAINSTCRUELTY_31,WARDAGAINSTCRUELTY_32,WARDAGAINSTCRUELTY_33,WARDAGAINSTCRUELTY_34,WARDAGAINSTCRUELTY_35,WARDAGAINSTCRUELTY_36,WARDAGAINSTCRUELTY_37,WARDAGAINSTCRUELTY_38,WARDAGAINSTCRUELTY_39,WARDAGAINSTCRUELTY_40,WARDAGAINSTCRUELTY_41,WARDAGAINSTCRUELTY_42,WARDAGAINSTCRUELTY_43,WARDAGAINSTCRUELTY_44,WARDAGAINSTCRUELTY_45,WARDAGAINSTCRUELTY_46,WARDAGAINSTCRUELTY_47,WARDAGAINSTCRUELTY_48,WARDAGAINSTCRUELTY_49,WARDAGAINSTCRUELTY_50,WARDAGAINSTCRUELTY_51,WARDAGAINSTCRUELTY_52,WARDAGAINSTCRUELTY_53,WARDAGAINSTCRUELTY_54,WARDAGAINSTCRUELTY_55,WARDAGAINSTCRUELTY_56,WARDAGAINSTCRUELTY_57,WARDAGAINSTCRUELTY_58,WARDAGAINSTCRUELTY_59,WARDAGAINSTCRUELTY_60,WARDAGAINSTCRUELTY_61,WARDAGAINSTCRUELTY_62,WARDAGAINSTCRUELTY_63,WARDAGAINSTCRUELTY_64,WARDAGAINSTCRUELTY_65,WARDAGAINSTCRUELTY_66,WARDAGAINSTCRUELTY_67,WARDAGAINSTCRUELTY_68,WARDAGAINSTCRUELTY_69,WARDAGAINSTCRUELTY_70,WARDAGAINSTCRUELTY_71,WARDAGAINSTCRUELTY_72,
 		};
 
-		animationFrames["Exalted Stab"]["ACTION_1"].internalList = {			EXALTEDSTAB_1,EXALTEDSTAB_2,EXALTEDSTAB_3,EXALTEDSTAB_4,EXALTEDSTAB_5,EXALTEDSTAB_6,EXALTEDSTAB_7,EXALTEDSTAB_8,EXALTEDSTAB_9,EXALTEDSTAB_10,EXALTEDSTAB_11,EXALTEDSTAB_12,EXALTEDSTAB_13,EXALTEDSTAB_14,EXALTEDSTAB_15,EXALTEDSTAB_16,EXALTEDSTAB_17,EXALTEDSTAB_18,EXALTEDSTAB_19,EXALTEDSTAB_20,EXALTEDSTAB_21,EXALTEDSTAB_22,EXALTEDSTAB_23,EXALTEDSTAB_24,
+		animationFrames["Exalted Stab"]["ACTION_1"].internalList = { EXALTEDSTAB_1,EXALTEDSTAB_2,EXALTEDSTAB_3,EXALTEDSTAB_4,EXALTEDSTAB_5,EXALTEDSTAB_6,EXALTEDSTAB_7,EXALTEDSTAB_8,EXALTEDSTAB_9,EXALTEDSTAB_10,EXALTEDSTAB_11,EXALTEDSTAB_12,EXALTEDSTAB_13,EXALTEDSTAB_14,EXALTEDSTAB_15,EXALTEDSTAB_16,EXALTEDSTAB_17,EXALTEDSTAB_18,EXALTEDSTAB_19,EXALTEDSTAB_20,EXALTEDSTAB_21,EXALTEDSTAB_22,EXALTEDSTAB_23,EXALTEDSTAB_24,
 		};
 
-		animationFrames["Backstab"]["ACTION_1"].internalList = {			BACKSTAB_1,BACKSTAB_2,BACKSTAB_3,BACKSTAB_4,BACKSTAB_5,BACKSTAB_6,BACKSTAB_7,BACKSTAB_8,BACKSTAB_9,BACKSTAB_10,BACKSTAB_11,BACKSTAB_12,BACKSTAB_13,BACKSTAB_14,BACKSTAB_15,BACKSTAB_16,BACKSTAB_17,BACKSTAB_18,BACKSTAB_19,BACKSTAB_20,BACKSTAB_21,BACKSTAB_22,BACKSTAB_23,BACKSTAB_24,
+		animationFrames["Backstab"]["ACTION_1"].internalList = { BACKSTAB_1,BACKSTAB_2,BACKSTAB_3,BACKSTAB_4,BACKSTAB_5,BACKSTAB_6,BACKSTAB_7,BACKSTAB_8,BACKSTAB_9,BACKSTAB_10,BACKSTAB_11,BACKSTAB_12,BACKSTAB_13,BACKSTAB_14,BACKSTAB_15,BACKSTAB_16,BACKSTAB_17,BACKSTAB_18,BACKSTAB_19,BACKSTAB_20,BACKSTAB_21,BACKSTAB_22,BACKSTAB_23,BACKSTAB_24,
 		};
 
-		animationFrames["Black Mamba Strike"]["ACTION_1"].internalList = {			BLACKMAMBASTRIKE_1,BLACKMAMBASTRIKE_2,BLACKMAMBASTRIKE_3,BLACKMAMBASTRIKE_4,BLACKMAMBASTRIKE_5,BLACKMAMBASTRIKE_6,BLACKMAMBASTRIKE_7,BLACKMAMBASTRIKE_8,BLACKMAMBASTRIKE_9,BLACKMAMBASTRIKE_10,BLACKMAMBASTRIKE_11,BLACKMAMBASTRIKE_12,BLACKMAMBASTRIKE_13,BLACKMAMBASTRIKE_14,BLACKMAMBASTRIKE_15,BLACKMAMBASTRIKE_16,BLACKMAMBASTRIKE_17,BLACKMAMBASTRIKE_18,BLACKMAMBASTRIKE_19,BLACKMAMBASTRIKE_20,BLACKMAMBASTRIKE_21,BLACKMAMBASTRIKE_22,BLACKMAMBASTRIKE_23,BLACKMAMBASTRIKE_24,
+		animationFrames["Black Mamba Strike"]["ACTION_1"].internalList = { BLACKMAMBASTRIKE_1,BLACKMAMBASTRIKE_2,BLACKMAMBASTRIKE_3,BLACKMAMBASTRIKE_4,BLACKMAMBASTRIKE_5,BLACKMAMBASTRIKE_6,BLACKMAMBASTRIKE_7,BLACKMAMBASTRIKE_8,BLACKMAMBASTRIKE_9,BLACKMAMBASTRIKE_10,BLACKMAMBASTRIKE_11,BLACKMAMBASTRIKE_12,BLACKMAMBASTRIKE_13,BLACKMAMBASTRIKE_14,BLACKMAMBASTRIKE_15,BLACKMAMBASTRIKE_16,BLACKMAMBASTRIKE_17,BLACKMAMBASTRIKE_18,BLACKMAMBASTRIKE_19,BLACKMAMBASTRIKE_20,BLACKMAMBASTRIKE_21,BLACKMAMBASTRIKE_22,BLACKMAMBASTRIKE_23,BLACKMAMBASTRIKE_24,
 		};
 
-		animationFrames["Stormdragon Strike"]["ACTION_1"].internalList = {					STORMDRAGONSTRIKE_1,STORMDRAGONSTRIKE_2,STORMDRAGONSTRIKE_3,STORMDRAGONSTRIKE_4,STORMDRAGONSTRIKE_5,STORMDRAGONSTRIKE_6,STORMDRAGONSTRIKE_7,STORMDRAGONSTRIKE_8,STORMDRAGONSTRIKE_9,STORMDRAGONSTRIKE_10,STORMDRAGONSTRIKE_11,STORMDRAGONSTRIKE_12,STORMDRAGONSTRIKE_13,STORMDRAGONSTRIKE_14,STORMDRAGONSTRIKE_15,STORMDRAGONSTRIKE_16,STORMDRAGONSTRIKE_17,STORMDRAGONSTRIKE_18,STORMDRAGONSTRIKE_19,STORMDRAGONSTRIKE_20,STORMDRAGONSTRIKE_21,STORMDRAGONSTRIKE_22,STORMDRAGONSTRIKE_23,STORMDRAGONSTRIKE_24,
+		animationFrames["Stormdragon Strike"]["ACTION_1"].internalList = { STORMDRAGONSTRIKE_1,STORMDRAGONSTRIKE_2,STORMDRAGONSTRIKE_3,STORMDRAGONSTRIKE_4,STORMDRAGONSTRIKE_5,STORMDRAGONSTRIKE_6,STORMDRAGONSTRIKE_7,STORMDRAGONSTRIKE_8,STORMDRAGONSTRIKE_9,STORMDRAGONSTRIKE_10,STORMDRAGONSTRIKE_11,STORMDRAGONSTRIKE_12,STORMDRAGONSTRIKE_13,STORMDRAGONSTRIKE_14,STORMDRAGONSTRIKE_15,STORMDRAGONSTRIKE_16,STORMDRAGONSTRIKE_17,STORMDRAGONSTRIKE_18,STORMDRAGONSTRIKE_19,STORMDRAGONSTRIKE_20,STORMDRAGONSTRIKE_21,STORMDRAGONSTRIKE_22,STORMDRAGONSTRIKE_23,STORMDRAGONSTRIKE_24,
 		};
 
-		animationFrames["Paralytic Venom"]["ACTION_1"].internalList = { 			PARALYTICVENOM_1,PARALYTICVENOM_2,PARALYTICVENOM_3,PARALYTICVENOM_4,PARALYTICVENOM_5,PARALYTICVENOM_6,PARALYTICVENOM_7,PARALYTICVENOM_8,PARALYTICVENOM_9,PARALYTICVENOM_10,PARALYTICVENOM_11,PARALYTICVENOM_12,PARALYTICVENOM_13,PARALYTICVENOM_14,PARALYTICVENOM_15,PARALYTICVENOM_16,PARALYTICVENOM_17,PARALYTICVENOM_18,PARALYTICVENOM_19,PARALYTICVENOM_20,PARALYTICVENOM_21,PARALYTICVENOM_22,PARALYTICVENOM_23,PARALYTICVENOM_24,PARALYTICVENOM_25,PARALYTICVENOM_26,PARALYTICVENOM_27,PARALYTICVENOM_28,PARALYTICVENOM_29,PARALYTICVENOM_30,PARALYTICVENOM_31,PARALYTICVENOM_32,PARALYTICVENOM_33,PARALYTICVENOM_34,PARALYTICVENOM_35,PARALYTICVENOM_36,PARALYTICVENOM_37,PARALYTICVENOM_38,PARALYTICVENOM_39,PARALYTICVENOM_40,PARALYTICVENOM_41,PARALYTICVENOM_42,PARALYTICVENOM_43,PARALYTICVENOM_44,PARALYTICVENOM_45,PARALYTICVENOM_46,PARALYTICVENOM_47,PARALYTICVENOM_48,
+		animationFrames["Paralytic Venom"]["ACTION_1"].internalList = { PARALYTICVENOM_1,PARALYTICVENOM_2,PARALYTICVENOM_3,PARALYTICVENOM_4,PARALYTICVENOM_5,PARALYTICVENOM_6,PARALYTICVENOM_7,PARALYTICVENOM_8,PARALYTICVENOM_9,PARALYTICVENOM_10,PARALYTICVENOM_11,PARALYTICVENOM_12,PARALYTICVENOM_13,PARALYTICVENOM_14,PARALYTICVENOM_15,PARALYTICVENOM_16,PARALYTICVENOM_17,PARALYTICVENOM_18,PARALYTICVENOM_19,PARALYTICVENOM_20,PARALYTICVENOM_21,PARALYTICVENOM_22,PARALYTICVENOM_23,PARALYTICVENOM_24,PARALYTICVENOM_25,PARALYTICVENOM_26,PARALYTICVENOM_27,PARALYTICVENOM_28,PARALYTICVENOM_29,PARALYTICVENOM_30,PARALYTICVENOM_31,PARALYTICVENOM_32,PARALYTICVENOM_33,PARALYTICVENOM_34,PARALYTICVENOM_35,PARALYTICVENOM_36,PARALYTICVENOM_37,PARALYTICVENOM_38,PARALYTICVENOM_39,PARALYTICVENOM_40,PARALYTICVENOM_41,PARALYTICVENOM_42,PARALYTICVENOM_43,PARALYTICVENOM_44,PARALYTICVENOM_45,PARALYTICVENOM_46,PARALYTICVENOM_47,PARALYTICVENOM_48,
 		};
 
-		animationFrames["Scatter Strike"]["ACTION_1"].internalList = {			SCATTERSTRIKE_1,SCATTERSTRIKE_2,SCATTERSTRIKE_3,SCATTERSTRIKE_4,SCATTERSTRIKE_5,SCATTERSTRIKE_6,SCATTERSTRIKE_7,SCATTERSTRIKE_8,SCATTERSTRIKE_9,SCATTERSTRIKE_10,SCATTERSTRIKE_11,SCATTERSTRIKE_12,SCATTERSTRIKE_13,SCATTERSTRIKE_14,SCATTERSTRIKE_15,SCATTERSTRIKE_16,SCATTERSTRIKE_17,SCATTERSTRIKE_18,SCATTERSTRIKE_19,SCATTERSTRIKE_20,SCATTERSTRIKE_21,SCATTERSTRIKE_22,SCATTERSTRIKE_23,SCATTERSTRIKE_24,SCATTERSTRIKE_25,SCATTERSTRIKE_26,SCATTERSTRIKE_27,SCATTERSTRIKE_28,SCATTERSTRIKE_29,SCATTERSTRIKE_30,SCATTERSTRIKE_31,SCATTERSTRIKE_32,SCATTERSTRIKE_33,SCATTERSTRIKE_34,SCATTERSTRIKE_35,SCATTERSTRIKE_36,SCATTERSTRIKE_37,SCATTERSTRIKE_38,SCATTERSTRIKE_39,SCATTERSTRIKE_40,SCATTERSTRIKE_41,SCATTERSTRIKE_42,SCATTERSTRIKE_43,SCATTERSTRIKE_44,SCATTERSTRIKE_45,SCATTERSTRIKE_46,SCATTERSTRIKE_47,SCATTERSTRIKE_48,
+		animationFrames["Scatter Strike"]["ACTION_1"].internalList = { SCATTERSTRIKE_1,SCATTERSTRIKE_2,SCATTERSTRIKE_3,SCATTERSTRIKE_4,SCATTERSTRIKE_5,SCATTERSTRIKE_6,SCATTERSTRIKE_7,SCATTERSTRIKE_8,SCATTERSTRIKE_9,SCATTERSTRIKE_10,SCATTERSTRIKE_11,SCATTERSTRIKE_12,SCATTERSTRIKE_13,SCATTERSTRIKE_14,SCATTERSTRIKE_15,SCATTERSTRIKE_16,SCATTERSTRIKE_17,SCATTERSTRIKE_18,SCATTERSTRIKE_19,SCATTERSTRIKE_20,SCATTERSTRIKE_21,SCATTERSTRIKE_22,SCATTERSTRIKE_23,SCATTERSTRIKE_24,SCATTERSTRIKE_25,SCATTERSTRIKE_26,SCATTERSTRIKE_27,SCATTERSTRIKE_28,SCATTERSTRIKE_29,SCATTERSTRIKE_30,SCATTERSTRIKE_31,SCATTERSTRIKE_32,SCATTERSTRIKE_33,SCATTERSTRIKE_34,SCATTERSTRIKE_35,SCATTERSTRIKE_36,SCATTERSTRIKE_37,SCATTERSTRIKE_38,SCATTERSTRIKE_39,SCATTERSTRIKE_40,SCATTERSTRIKE_41,SCATTERSTRIKE_42,SCATTERSTRIKE_43,SCATTERSTRIKE_44,SCATTERSTRIKE_45,SCATTERSTRIKE_46,SCATTERSTRIKE_47,SCATTERSTRIKE_48,
 		};
 
-		animationFrames["Blades of Punishment"]["ACTION_1"].internalList = {			BLADESOFPUNISHMENT_1,BLADESOFPUNISHMENT_2,BLADESOFPUNISHMENT_3,BLADESOFPUNISHMENT_4,BLADESOFPUNISHMENT_5,BLADESOFPUNISHMENT_6,BLADESOFPUNISHMENT_7,BLADESOFPUNISHMENT_8,BLADESOFPUNISHMENT_9,BLADESOFPUNISHMENT_10,BLADESOFPUNISHMENT_11,BLADESOFPUNISHMENT_12,BLADESOFPUNISHMENT_13,BLADESOFPUNISHMENT_14,BLADESOFPUNISHMENT_15,BLADESOFPUNISHMENT_16,BLADESOFPUNISHMENT_17,BLADESOFPUNISHMENT_18,BLADESOFPUNISHMENT_19,BLADESOFPUNISHMENT_20,BLADESOFPUNISHMENT_21,BLADESOFPUNISHMENT_22,BLADESOFPUNISHMENT_23,BLADESOFPUNISHMENT_24,
+		animationFrames["Blades of Punishment"]["ACTION_1"].internalList = { BLADESOFPUNISHMENT_1,BLADESOFPUNISHMENT_2,BLADESOFPUNISHMENT_3,BLADESOFPUNISHMENT_4,BLADESOFPUNISHMENT_5,BLADESOFPUNISHMENT_6,BLADESOFPUNISHMENT_7,BLADESOFPUNISHMENT_8,BLADESOFPUNISHMENT_9,BLADESOFPUNISHMENT_10,BLADESOFPUNISHMENT_11,BLADESOFPUNISHMENT_12,BLADESOFPUNISHMENT_13,BLADESOFPUNISHMENT_14,BLADESOFPUNISHMENT_15,BLADESOFPUNISHMENT_16,BLADESOFPUNISHMENT_17,BLADESOFPUNISHMENT_18,BLADESOFPUNISHMENT_19,BLADESOFPUNISHMENT_20,BLADESOFPUNISHMENT_21,BLADESOFPUNISHMENT_22,BLADESOFPUNISHMENT_23,BLADESOFPUNISHMENT_24,
 		};
 
-		animationFrames["Spirit Shanks"]["ACTION_1"].internalList = {			SPIRITSHANKS_1,SPIRITSHANKS_2,SPIRITSHANKS_3,SPIRITSHANKS_4,SPIRITSHANKS_5,SPIRITSHANKS_6,SPIRITSHANKS_7,SPIRITSHANKS_8,SPIRITSHANKS_9,SPIRITSHANKS_10,SPIRITSHANKS_11,SPIRITSHANKS_12,SPIRITSHANKS_13,SPIRITSHANKS_14,SPIRITSHANKS_15,SPIRITSHANKS_16,SPIRITSHANKS_17,SPIRITSHANKS_18,SPIRITSHANKS_19,SPIRITSHANKS_20,SPIRITSHANKS_21,SPIRITSHANKS_22,SPIRITSHANKS_23,SPIRITSHANKS_24,
+		animationFrames["Spirit Shanks"]["ACTION_1"].internalList = { SPIRITSHANKS_1,SPIRITSHANKS_2,SPIRITSHANKS_3,SPIRITSHANKS_4,SPIRITSHANKS_5,SPIRITSHANKS_6,SPIRITSHANKS_7,SPIRITSHANKS_8,SPIRITSHANKS_9,SPIRITSHANKS_10,SPIRITSHANKS_11,SPIRITSHANKS_12,SPIRITSHANKS_13,SPIRITSHANKS_14,SPIRITSHANKS_15,SPIRITSHANKS_16,SPIRITSHANKS_17,SPIRITSHANKS_18,SPIRITSHANKS_19,SPIRITSHANKS_20,SPIRITSHANKS_21,SPIRITSHANKS_22,SPIRITSHANKS_23,SPIRITSHANKS_24,
 		};
 
-		animationFrames["Brutalism"]["ACTION_1"].internalList = {			BRUTALISM_1,BRUTALISM_2,BRUTALISM_3,BRUTALISM_4,BRUTALISM_5,BRUTALISM_6,BRUTALISM_7,BRUTALISM_8,BRUTALISM_9,BRUTALISM_10,BRUTALISM_11,BRUTALISM_12,BRUTALISM_13,BRUTALISM_14,BRUTALISM_15,BRUTALISM_16,BRUTALISM_17,BRUTALISM_18,BRUTALISM_19,BRUTALISM_20,BRUTALISM_21,BRUTALISM_22,BRUTALISM_23,BRUTALISM_24,
+		animationFrames["Brutalism"]["ACTION_1"].internalList = { BRUTALISM_1,BRUTALISM_2,BRUTALISM_3,BRUTALISM_4,BRUTALISM_5,BRUTALISM_6,BRUTALISM_7,BRUTALISM_8,BRUTALISM_9,BRUTALISM_10,BRUTALISM_11,BRUTALISM_12,BRUTALISM_13,BRUTALISM_14,BRUTALISM_15,BRUTALISM_16,BRUTALISM_17,BRUTALISM_18,BRUTALISM_19,BRUTALISM_20,BRUTALISM_21,BRUTALISM_22,BRUTALISM_23,BRUTALISM_24,
 		};
 
-		animationFrames["Royal Slicers"]["ACTION_1"].internalList = {			ROYALSLICERS_1,ROYALSLICERS_2,ROYALSLICERS_3,ROYALSLICERS_4,ROYALSLICERS_5,ROYALSLICERS_6,ROYALSLICERS_7,ROYALSLICERS_8,ROYALSLICERS_9,ROYALSLICERS_10,ROYALSLICERS_11,ROYALSLICERS_12,ROYALSLICERS_13,ROYALSLICERS_14,ROYALSLICERS_15,ROYALSLICERS_16,ROYALSLICERS_17,ROYALSLICERS_18,ROYALSLICERS_19,ROYALSLICERS_20,ROYALSLICERS_21,ROYALSLICERS_22,ROYALSLICERS_23,ROYALSLICERS_24,
+		animationFrames["Royal Slicers"]["ACTION_1"].internalList = { ROYALSLICERS_1,ROYALSLICERS_2,ROYALSLICERS_3,ROYALSLICERS_4,ROYALSLICERS_5,ROYALSLICERS_6,ROYALSLICERS_7,ROYALSLICERS_8,ROYALSLICERS_9,ROYALSLICERS_10,ROYALSLICERS_11,ROYALSLICERS_12,ROYALSLICERS_13,ROYALSLICERS_14,ROYALSLICERS_15,ROYALSLICERS_16,ROYALSLICERS_17,ROYALSLICERS_18,ROYALSLICERS_19,ROYALSLICERS_20,ROYALSLICERS_21,ROYALSLICERS_22,ROYALSLICERS_23,ROYALSLICERS_24,
 		};
 
-		animationFrames["Parting Stab"]["ACTION_1"].internalList = {		PARTINGSTAB_1,PARTINGSTAB_2,PARTINGSTAB_3,PARTINGSTAB_4,PARTINGSTAB_5,PARTINGSTAB_6,PARTINGSTAB_7,PARTINGSTAB_8,PARTINGSTAB_9,PARTINGSTAB_10,PARTINGSTAB_11,PARTINGSTAB_12,PARTINGSTAB_13,PARTINGSTAB_14,PARTINGSTAB_15,PARTINGSTAB_16,PARTINGSTAB_17,PARTINGSTAB_18,PARTINGSTAB_19,PARTINGSTAB_20,PARTINGSTAB_21,PARTINGSTAB_22,PARTINGSTAB_23,PARTINGSTAB_24,
+		animationFrames["Parting Stab"]["ACTION_1"].internalList = { PARTINGSTAB_1,PARTINGSTAB_2,PARTINGSTAB_3,PARTINGSTAB_4,PARTINGSTAB_5,PARTINGSTAB_6,PARTINGSTAB_7,PARTINGSTAB_8,PARTINGSTAB_9,PARTINGSTAB_10,PARTINGSTAB_11,PARTINGSTAB_12,PARTINGSTAB_13,PARTINGSTAB_14,PARTINGSTAB_15,PARTINGSTAB_16,PARTINGSTAB_17,PARTINGSTAB_18,PARTINGSTAB_19,PARTINGSTAB_20,PARTINGSTAB_21,PARTINGSTAB_22,PARTINGSTAB_23,PARTINGSTAB_24,
 		};
 
-		animationFrames["Shattered Moebius"]["ACTION_1"].internalList = {			SHATTEREDMOEBIUS_1,SHATTEREDMOEBIUS_2,SHATTEREDMOEBIUS_3,SHATTEREDMOEBIUS_4,SHATTEREDMOEBIUS_5,SHATTEREDMOEBIUS_6,SHATTEREDMOEBIUS_7,SHATTEREDMOEBIUS_8,SHATTEREDMOEBIUS_9,SHATTEREDMOEBIUS_10,SHATTEREDMOEBIUS_11,SHATTEREDMOEBIUS_12,SHATTEREDMOEBIUS_13,SHATTEREDMOEBIUS_14,SHATTEREDMOEBIUS_15,SHATTEREDMOEBIUS_16,SHATTEREDMOEBIUS_17,SHATTEREDMOEBIUS_18,SHATTEREDMOEBIUS_19,SHATTEREDMOEBIUS_20,SHATTEREDMOEBIUS_21,SHATTEREDMOEBIUS_22,SHATTEREDMOEBIUS_23,SHATTEREDMOEBIUS_24,
+		animationFrames["Shattered Moebius"]["ACTION_1"].internalList = { SHATTEREDMOEBIUS_1,SHATTEREDMOEBIUS_2,SHATTEREDMOEBIUS_3,SHATTEREDMOEBIUS_4,SHATTEREDMOEBIUS_5,SHATTEREDMOEBIUS_6,SHATTEREDMOEBIUS_7,SHATTEREDMOEBIUS_8,SHATTEREDMOEBIUS_9,SHATTEREDMOEBIUS_10,SHATTEREDMOEBIUS_11,SHATTEREDMOEBIUS_12,SHATTEREDMOEBIUS_13,SHATTEREDMOEBIUS_14,SHATTEREDMOEBIUS_15,SHATTEREDMOEBIUS_16,SHATTEREDMOEBIUS_17,SHATTEREDMOEBIUS_18,SHATTEREDMOEBIUS_19,SHATTEREDMOEBIUS_20,SHATTEREDMOEBIUS_21,SHATTEREDMOEBIUS_22,SHATTEREDMOEBIUS_23,SHATTEREDMOEBIUS_24,
 		};
 
-		animationFrames["Magehunter Strike"]["ACTION_1"].internalList = {			MAGEHUNTERSTRIKE_1,MAGEHUNTERSTRIKE_2,MAGEHUNTERSTRIKE_3,MAGEHUNTERSTRIKE_4,MAGEHUNTERSTRIKE_5,MAGEHUNTERSTRIKE_6,MAGEHUNTERSTRIKE_7,MAGEHUNTERSTRIKE_8,MAGEHUNTERSTRIKE_9,MAGEHUNTERSTRIKE_10,MAGEHUNTERSTRIKE_11,MAGEHUNTERSTRIKE_12,MAGEHUNTERSTRIKE_13,MAGEHUNTERSTRIKE_14,MAGEHUNTERSTRIKE_15,MAGEHUNTERSTRIKE_16,MAGEHUNTERSTRIKE_17,MAGEHUNTERSTRIKE_18,MAGEHUNTERSTRIKE_19,MAGEHUNTERSTRIKE_20,MAGEHUNTERSTRIKE_21,MAGEHUNTERSTRIKE_22,MAGEHUNTERSTRIKE_23,MAGEHUNTERSTRIKE_24,MAGEHUNTERSTRIKE_25,MAGEHUNTERSTRIKE_26,MAGEHUNTERSTRIKE_27,MAGEHUNTERSTRIKE_28,MAGEHUNTERSTRIKE_29,MAGEHUNTERSTRIKE_30,MAGEHUNTERSTRIKE_31,MAGEHUNTERSTRIKE_32,MAGEHUNTERSTRIKE_33,MAGEHUNTERSTRIKE_34,MAGEHUNTERSTRIKE_35,MAGEHUNTERSTRIKE_36,MAGEHUNTERSTRIKE_37,MAGEHUNTERSTRIKE_38,MAGEHUNTERSTRIKE_39,MAGEHUNTERSTRIKE_40,
+		animationFrames["Magehunter Strike"]["ACTION_1"].internalList = { MAGEHUNTERSTRIKE_1,MAGEHUNTERSTRIKE_2,MAGEHUNTERSTRIKE_3,MAGEHUNTERSTRIKE_4,MAGEHUNTERSTRIKE_5,MAGEHUNTERSTRIKE_6,MAGEHUNTERSTRIKE_7,MAGEHUNTERSTRIKE_8,MAGEHUNTERSTRIKE_9,MAGEHUNTERSTRIKE_10,MAGEHUNTERSTRIKE_11,MAGEHUNTERSTRIKE_12,MAGEHUNTERSTRIKE_13,MAGEHUNTERSTRIKE_14,MAGEHUNTERSTRIKE_15,MAGEHUNTERSTRIKE_16,MAGEHUNTERSTRIKE_17,MAGEHUNTERSTRIKE_18,MAGEHUNTERSTRIKE_19,MAGEHUNTERSTRIKE_20,MAGEHUNTERSTRIKE_21,MAGEHUNTERSTRIKE_22,MAGEHUNTERSTRIKE_23,MAGEHUNTERSTRIKE_24,MAGEHUNTERSTRIKE_25,MAGEHUNTERSTRIKE_26,MAGEHUNTERSTRIKE_27,MAGEHUNTERSTRIKE_28,MAGEHUNTERSTRIKE_29,MAGEHUNTERSTRIKE_30,MAGEHUNTERSTRIKE_31,MAGEHUNTERSTRIKE_32,MAGEHUNTERSTRIKE_33,MAGEHUNTERSTRIKE_34,MAGEHUNTERSTRIKE_35,MAGEHUNTERSTRIKE_36,MAGEHUNTERSTRIKE_37,MAGEHUNTERSTRIKE_38,MAGEHUNTERSTRIKE_39,MAGEHUNTERSTRIKE_40,
 		};
 
-		animationFrames["Death Chant"]["ACTION_1"].internalList = {		DEATHCHANT_1,DEATHCHANT_2,DEATHCHANT_3,DEATHCHANT_4,DEATHCHANT_5,DEATHCHANT_6,DEATHCHANT_7,DEATHCHANT_8,DEATHCHANT_9,DEATHCHANT_10,DEATHCHANT_11,DEATHCHANT_12,DEATHCHANT_13,DEATHCHANT_14,DEATHCHANT_15,DEATHCHANT_16,DEATHCHANT_17,DEATHCHANT_18,DEATHCHANT_19,DEATHCHANT_20,DEATHCHANT_21,DEATHCHANT_22,DEATHCHANT_23,DEATHCHANT_24,DEATHCHANT_25,DEATHCHANT_26,DEATHCHANT_27,DEATHCHANT_28,DEATHCHANT_29,DEATHCHANT_30,DEATHCHANT_31,DEATHCHANT_32,DEATHCHANT_33,DEATHCHANT_34,DEATHCHANT_35,DEATHCHANT_36,DEATHCHANT_37,DEATHCHANT_38,DEATHCHANT_39,DEATHCHANT_40,DEATHCHANT_41,DEATHCHANT_42,DEATHCHANT_43,DEATHCHANT_44,DEATHCHANT_45,DEATHCHANT_46,DEATHCHANT_47,DEATHCHANT_48, };
+		animationFrames["Death Chant"]["ACTION_1"].internalList = { DEATHCHANT_1,DEATHCHANT_2,DEATHCHANT_3,DEATHCHANT_4,DEATHCHANT_5,DEATHCHANT_6,DEATHCHANT_7,DEATHCHANT_8,DEATHCHANT_9,DEATHCHANT_10,DEATHCHANT_11,DEATHCHANT_12,DEATHCHANT_13,DEATHCHANT_14,DEATHCHANT_15,DEATHCHANT_16,DEATHCHANT_17,DEATHCHANT_18,DEATHCHANT_19,DEATHCHANT_20,DEATHCHANT_21,DEATHCHANT_22,DEATHCHANT_23,DEATHCHANT_24,DEATHCHANT_25,DEATHCHANT_26,DEATHCHANT_27,DEATHCHANT_28,DEATHCHANT_29,DEATHCHANT_30,DEATHCHANT_31,DEATHCHANT_32,DEATHCHANT_33,DEATHCHANT_34,DEATHCHANT_35,DEATHCHANT_36,DEATHCHANT_37,DEATHCHANT_38,DEATHCHANT_39,DEATHCHANT_40,DEATHCHANT_41,DEATHCHANT_42,DEATHCHANT_43,DEATHCHANT_44,DEATHCHANT_45,DEATHCHANT_46,DEATHCHANT_47,DEATHCHANT_48, };
 
-		animationFrames["Shroud of Intrigue"]["ACTION_1"].internalList = {			SHROUDOFINTRIGUE_1,SHROUDOFINTRIGUE_2,SHROUDOFINTRIGUE_3,SHROUDOFINTRIGUE_4,SHROUDOFINTRIGUE_5,SHROUDOFINTRIGUE_6,SHROUDOFINTRIGUE_7,SHROUDOFINTRIGUE_8,SHROUDOFINTRIGUE_9,SHROUDOFINTRIGUE_10,SHROUDOFINTRIGUE_11,SHROUDOFINTRIGUE_12,SHROUDOFINTRIGUE_13,SHROUDOFINTRIGUE_14,SHROUDOFINTRIGUE_15,SHROUDOFINTRIGUE_16,SHROUDOFINTRIGUE_17,SHROUDOFINTRIGUE_18,SHROUDOFINTRIGUE_19,SHROUDOFINTRIGUE_20,SHROUDOFINTRIGUE_21,SHROUDOFINTRIGUE_22,SHROUDOFINTRIGUE_23,SHROUDOFINTRIGUE_24,SHROUDOFINTRIGUE_25,SHROUDOFINTRIGUE_26,SHROUDOFINTRIGUE_27,SHROUDOFINTRIGUE_28,SHROUDOFINTRIGUE_29,SHROUDOFINTRIGUE_30,SHROUDOFINTRIGUE_31,SHROUDOFINTRIGUE_32,SHROUDOFINTRIGUE_33,SHROUDOFINTRIGUE_34,SHROUDOFINTRIGUE_35,SHROUDOFINTRIGUE_36,SHROUDOFINTRIGUE_37,SHROUDOFINTRIGUE_38,SHROUDOFINTRIGUE_39,SHROUDOFINTRIGUE_40,SHROUDOFINTRIGUE_41,SHROUDOFINTRIGUE_42,SHROUDOFINTRIGUE_43,SHROUDOFINTRIGUE_44,SHROUDOFINTRIGUE_45,SHROUDOFINTRIGUE_46,SHROUDOFINTRIGUE_47,SHROUDOFINTRIGUE_48,
+		animationFrames["Shroud of Intrigue"]["ACTION_1"].internalList = { SHROUDOFINTRIGUE_1,SHROUDOFINTRIGUE_2,SHROUDOFINTRIGUE_3,SHROUDOFINTRIGUE_4,SHROUDOFINTRIGUE_5,SHROUDOFINTRIGUE_6,SHROUDOFINTRIGUE_7,SHROUDOFINTRIGUE_8,SHROUDOFINTRIGUE_9,SHROUDOFINTRIGUE_10,SHROUDOFINTRIGUE_11,SHROUDOFINTRIGUE_12,SHROUDOFINTRIGUE_13,SHROUDOFINTRIGUE_14,SHROUDOFINTRIGUE_15,SHROUDOFINTRIGUE_16,SHROUDOFINTRIGUE_17,SHROUDOFINTRIGUE_18,SHROUDOFINTRIGUE_19,SHROUDOFINTRIGUE_20,SHROUDOFINTRIGUE_21,SHROUDOFINTRIGUE_22,SHROUDOFINTRIGUE_23,SHROUDOFINTRIGUE_24,SHROUDOFINTRIGUE_25,SHROUDOFINTRIGUE_26,SHROUDOFINTRIGUE_27,SHROUDOFINTRIGUE_28,SHROUDOFINTRIGUE_29,SHROUDOFINTRIGUE_30,SHROUDOFINTRIGUE_31,SHROUDOFINTRIGUE_32,SHROUDOFINTRIGUE_33,SHROUDOFINTRIGUE_34,SHROUDOFINTRIGUE_35,SHROUDOFINTRIGUE_36,SHROUDOFINTRIGUE_37,SHROUDOFINTRIGUE_38,SHROUDOFINTRIGUE_39,SHROUDOFINTRIGUE_40,SHROUDOFINTRIGUE_41,SHROUDOFINTRIGUE_42,SHROUDOFINTRIGUE_43,SHROUDOFINTRIGUE_44,SHROUDOFINTRIGUE_45,SHROUDOFINTRIGUE_46,SHROUDOFINTRIGUE_47,SHROUDOFINTRIGUE_48,
 		};
 
-		animationFrames["Chant of Concentration"]["ACTION_1"].internalList = {			CHANTOFCONCENTRATION_1,CHANTOFCONCENTRATION_2,CHANTOFCONCENTRATION_3,CHANTOFCONCENTRATION_4,CHANTOFCONCENTRATION_5,CHANTOFCONCENTRATION_6,CHANTOFCONCENTRATION_7,CHANTOFCONCENTRATION_8,CHANTOFCONCENTRATION_9,CHANTOFCONCENTRATION_10,CHANTOFCONCENTRATION_11,CHANTOFCONCENTRATION_12,CHANTOFCONCENTRATION_13,CHANTOFCONCENTRATION_14,CHANTOFCONCENTRATION_15,CHANTOFCONCENTRATION_16,CHANTOFCONCENTRATION_17,CHANTOFCONCENTRATION_18,CHANTOFCONCENTRATION_19,CHANTOFCONCENTRATION_20,CHANTOFCONCENTRATION_21,CHANTOFCONCENTRATION_22,CHANTOFCONCENTRATION_23,CHANTOFCONCENTRATION_24,CHANTOFCONCENTRATION_25,CHANTOFCONCENTRATION_26,CHANTOFCONCENTRATION_27,CHANTOFCONCENTRATION_28,CHANTOFCONCENTRATION_29,CHANTOFCONCENTRATION_30,CHANTOFCONCENTRATION_31,CHANTOFCONCENTRATION_32,CHANTOFCONCENTRATION_33,CHANTOFCONCENTRATION_34,CHANTOFCONCENTRATION_35,CHANTOFCONCENTRATION_36,CHANTOFCONCENTRATION_37,CHANTOFCONCENTRATION_38,CHANTOFCONCENTRATION_39,CHANTOFCONCENTRATION_40,CHANTOFCONCENTRATION_41,CHANTOFCONCENTRATION_42,CHANTOFCONCENTRATION_43,CHANTOFCONCENTRATION_44,CHANTOFCONCENTRATION_45,CHANTOFCONCENTRATION_46,CHANTOFCONCENTRATION_47,CHANTOFCONCENTRATION_48,
+		animationFrames["Chant of Concentration"]["ACTION_1"].internalList = { CHANTOFCONCENTRATION_1,CHANTOFCONCENTRATION_2,CHANTOFCONCENTRATION_3,CHANTOFCONCENTRATION_4,CHANTOFCONCENTRATION_5,CHANTOFCONCENTRATION_6,CHANTOFCONCENTRATION_7,CHANTOFCONCENTRATION_8,CHANTOFCONCENTRATION_9,CHANTOFCONCENTRATION_10,CHANTOFCONCENTRATION_11,CHANTOFCONCENTRATION_12,CHANTOFCONCENTRATION_13,CHANTOFCONCENTRATION_14,CHANTOFCONCENTRATION_15,CHANTOFCONCENTRATION_16,CHANTOFCONCENTRATION_17,CHANTOFCONCENTRATION_18,CHANTOFCONCENTRATION_19,CHANTOFCONCENTRATION_20,CHANTOFCONCENTRATION_21,CHANTOFCONCENTRATION_22,CHANTOFCONCENTRATION_23,CHANTOFCONCENTRATION_24,CHANTOFCONCENTRATION_25,CHANTOFCONCENTRATION_26,CHANTOFCONCENTRATION_27,CHANTOFCONCENTRATION_28,CHANTOFCONCENTRATION_29,CHANTOFCONCENTRATION_30,CHANTOFCONCENTRATION_31,CHANTOFCONCENTRATION_32,CHANTOFCONCENTRATION_33,CHANTOFCONCENTRATION_34,CHANTOFCONCENTRATION_35,CHANTOFCONCENTRATION_36,CHANTOFCONCENTRATION_37,CHANTOFCONCENTRATION_38,CHANTOFCONCENTRATION_39,CHANTOFCONCENTRATION_40,CHANTOFCONCENTRATION_41,CHANTOFCONCENTRATION_42,CHANTOFCONCENTRATION_43,CHANTOFCONCENTRATION_44,CHANTOFCONCENTRATION_45,CHANTOFCONCENTRATION_46,CHANTOFCONCENTRATION_47,CHANTOFCONCENTRATION_48,
 		};
 
-		animationFrames["DEFAULT_AFFECTION"]["ACTION_1"].internalList = {			AFFECTION_1,AFFECTION_2,AFFECTION_3,AFFECTION_4,AFFECTION_5,AFFECTION_6,AFFECTION_7,AFFECTION_8,AFFECTION_9,AFFECTION_10,AFFECTION_11,AFFECTION_12,AFFECTION_13,AFFECTION_14,AFFECTION_15,AFFECTION_16,AFFECTION_17,AFFECTION_18,AFFECTION_19,AFFECTION_20,AFFECTION_21,AFFECTION_22,AFFECTION_23,AFFECTION_24,AFFECTION_25,AFFECTION_26,AFFECTION_27,AFFECTION_28,AFFECTION_29,AFFECTION_30,AFFECTION_31,AFFECTION_32,AFFECTION_33,AFFECTION_34,AFFECTION_35,AFFECTION_36,AFFECTION_37,AFFECTION_38,AFFECTION_39,AFFECTION_40,AFFECTION_41,AFFECTION_42,AFFECTION_43,AFFECTION_44,AFFECTION_45,AFFECTION_46,AFFECTION_47,AFFECTION_48,
+		animationFrames["DEFAULT_AFFECTION"]["ACTION_1"].internalList = { AFFECTION_1,AFFECTION_2,AFFECTION_3,AFFECTION_4,AFFECTION_5,AFFECTION_6,AFFECTION_7,AFFECTION_8,AFFECTION_9,AFFECTION_10,AFFECTION_11,AFFECTION_12,AFFECTION_13,AFFECTION_14,AFFECTION_15,AFFECTION_16,AFFECTION_17,AFFECTION_18,AFFECTION_19,AFFECTION_20,AFFECTION_21,AFFECTION_22,AFFECTION_23,AFFECTION_24,AFFECTION_25,AFFECTION_26,AFFECTION_27,AFFECTION_28,AFFECTION_29,AFFECTION_30,AFFECTION_31,AFFECTION_32,AFFECTION_33,AFFECTION_34,AFFECTION_35,AFFECTION_36,AFFECTION_37,AFFECTION_38,AFFECTION_39,AFFECTION_40,AFFECTION_41,AFFECTION_42,AFFECTION_43,AFFECTION_44,AFFECTION_45,AFFECTION_46,AFFECTION_47,AFFECTION_48,
 		};
-
-
-
 	}
+
+
 	void defineCombatPlayerImages() {
 		animationFrames["Angela Fleuret"]["COMBAT_BACK"].internalList = { COMBAT_ANGELA_BACK_1 };
 		animationFrames["Angela Fleuret"]["COMBAT_FRONT"].internalList = { COMBAT_ANGELA_FRONT_1 };
@@ -2678,26 +2785,26 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 		animationFrames["Olyver Sumner"]["COMBAT_FRONT"].internalList = { COMBAT_OLYVER_FRONT_1 };
 		animationFrames["Tianshun Song"]["COMBAT_BACK"].internalList = { COMBAT_TIANSHUN_BACK_1 };
 		animationFrames["Tianshun Song"]["COMBAT_FRONT"].internalList = { COMBAT_TIANSHUN_FRONT_1 };
-		animationFrames["Skeleton Warrior"]["COMBAT_BACK"].internalList = { ANIMATESKELETONWARRIORBACK_34 };
-		animationFrames["Skeleton Warrior"]["COMBAT_FRONT"].internalList = { ANIMATESKELETONWARRIORFRONT_34 };
-		animationFrames["Bone Priest"]["COMBAT_BACK"].internalList = { BONEPRIESTBACK_34 };
-		animationFrames["Bone Priest"]["COMBAT_FRONT"].internalList = { BONEPRIESTFRONT_34 };
-		animationFrames["Avatar of the Night"]["COMBAT_BACK"].internalList = { AVATAROFTHENIGHTBACK_34 };
-		animationFrames["Avatar of the Night"]["COMBAT_FRONT"].internalList = { AVATAROFTHENIGHTFRONT_34 };
-		animationFrames["Mound of Leeches"]["COMBAT_BACK"].internalList = { MOUNDOFLEECHESB_34 };
-		animationFrames["Mound of Leeches"]["COMBAT_FRONT"].internalList = { MOUNDOFLEECHESF_34 };
-		animationFrames["Affection"]["COMBAT_BACK"].internalList = { AFFECTIONBACK_34 };
-		animationFrames["Affection"]["COMBAT_FRONT"].internalList = { AFFECTIONFRONT_34};
-		animationFrames["Cursed Doll"]["COMBAT_BACK"].internalList = { CURSEDDOLLBACK_34 };
-		animationFrames["Cursed Doll"]["COMBAT_FRONT"].internalList = { CURSEDDOLLFRONT_34 };
-		animationFrames["Hanged Man"]["COMBAT_BACK"].internalList = { HANGEDMANBACK_34 };
-		animationFrames["Hanged Man"]["COMBAT_FRONT"].internalList = { HANGEDMANFRONT_34 };
-		animationFrames["Minion"]["COMBAT_BACK"].internalList = { MINIONBACK_34 };
-		animationFrames["Minion"]["COMBAT_FRONT"].internalList = { MINIONFRONT_34 };
-		animationFrames["Failed Embryo"]["COMBAT_BACK"].internalList = { FAILEDEMBRYO_BACK_34 };
-		animationFrames["Failed Embryo"]["COMBAT_FRONT"].internalList = { FAILEDEMBRYO_FRONT_34 };
-		animationFrames["Fleshmender"]["COMBAT_BACK"].internalList = { FLESHMENDER_BACK_34 };
-		animationFrames["Fleshmender"]["COMBAT_FRONT"].internalList = { FLESHMENDER_FRONT_34 };
+		animationFrames["Skeleton Warrior"]["COMBAT_BACK"].internalList = { ANIMATESKELETONWARRIORBACK_33 };
+		animationFrames["Skeleton Warrior"]["COMBAT_FRONT"].internalList = { ANIMATESKELETONWARRIORFRONT_33 };
+		animationFrames["Bone Priest"]["COMBAT_BACK"].internalList = { BONEPRIESTBACK_33 };
+		animationFrames["Bone Priest"]["COMBAT_FRONT"].internalList = { BONEPRIESTFRONT_33 };
+		animationFrames["Avatar of the Night"]["COMBAT_BACK"].internalList = { AVATAROFTHENIGHTBACK_33 };
+		animationFrames["Avatar of the Night"]["COMBAT_FRONT"].internalList = { AVATAROFTHENIGHTFRONT_33 };
+		animationFrames["Mound of Leeches"]["COMBAT_BACK"].internalList = { MOUNDOFLEECHESB_33 };
+		animationFrames["Mound of Leeches"]["COMBAT_FRONT"].internalList = { MOUNDOFLEECHESF_33 };
+		animationFrames["Affection"]["COMBAT_BACK"].internalList = { AFFECTIONBACK_33 };
+		animationFrames["Affection"]["COMBAT_FRONT"].internalList = { AFFECTIONFRONT_33 };
+		animationFrames["Cursed Doll"]["COMBAT_BACK"].internalList = { CURSEDDOLLBACK_33 };
+		animationFrames["Cursed Doll"]["COMBAT_FRONT"].internalList = { CURSEDDOLLFRONT_33 };
+		animationFrames["Hanged Man"]["COMBAT_BACK"].internalList = { HANGEDMANBACK_33 };
+		animationFrames["Hanged Man"]["COMBAT_FRONT"].internalList = { HANGEDMANFRONT_33 };
+		animationFrames["Minion"]["COMBAT_BACK"].internalList = { MINIONBACK_33 };
+		animationFrames["Minion"]["COMBAT_FRONT"].internalList = { MINIONFRONT_33 };
+		animationFrames["Failed Embryo"]["COMBAT_BACK"].internalList = { FAILEDEMBRYO_BACK_33 };
+		animationFrames["Failed Embryo"]["COMBAT_FRONT"].internalList = { FAILEDEMBRYO_FRONT_33 };
+		animationFrames["Fleshmender"]["COMBAT_BACK"].internalList = { FLESHMENDER_BACK_33 };
+		animationFrames["Fleshmender"]["COMBAT_FRONT"].internalList = { FLESHMENDER_FRONT_33 };
 
 		animationFrames["EnragedNoblewoman"]["COMBAT_BACK"].internalList = { COMBAT_ENRAGEDNOBLEWOMAN_BACK_1 };
 		animationFrames["EnragedNoblewoman"]["COMBAT_FRONT"].internalList = { COMBAT_ENRAGEDNOBLEWOMAN_FRONT_1 };
@@ -2706,7 +2813,7 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 		animationFrames["WIlliamDeVaines"]["COMBAT_FRONT"].internalList = { WILLIAMFRONT };
 		animationFrames["WIlliamDeVaines"]["COMBAT_BACK"].internalList = { WILLIAMBACK };
 		animationFrames["EnragedNe'erDoWell"]["COMBAT_FRONT"].internalList = { COMBAT_ENRAGEDNEERDOWELL_FRONT_1 };
-		animationFrames["EnragedNe'erDoWell"]["COMBAT_BACK"].internalList = { COMBAT_ENRAGEDNEERDOWELL_BACK_1};
+		animationFrames["EnragedNe'erDoWell"]["COMBAT_BACK"].internalList = { COMBAT_ENRAGEDNEERDOWELL_BACK_1 };
 		animationFrames["EnragedDeaconess"]["COMBAT_FRONT"].internalList = { COMBAT_ENRAGEDDEACONESS_FRONT_1 };
 		animationFrames["EnragedDeaconess"]["COMBAT_BACK"].internalList = { COMBAT_ENRAGEDDEACONESS_BACK_1 };
 
@@ -2766,6 +2873,32 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 		animationFrames["EnragedNobleman"]["COMBAT_FRONT"].internalList = { ENRAGEDNOBLEMAN_COMBATFRONT };
 		animationFrames["EnragedNobleman"]["COMBAT_BACK"].internalList = { ENRAGEDNOBLEMAN_COMBATBACK };
 
+		animationFrames["Koudelka Bloodmire"]["STAND_NE"].internalList = { KOUDELKA_STAND_NE_1, KOUDELKA_STAND_NE_2 };
+		animationFrames["Koudelka Bloodmire"]["STAND_SE"].internalList = { KOUDELKA_STAND_SE_1, KOUDELKA_STAND_SE_2 };
+		animationFrames["Koudelka Bloodmire"]["WALK_NE"].internalList = { KOUDELKA_WALK_NE_1, KOUDELKA_WALK_NE_2,KOUDELKA_WALK_NE_3,KOUDELKA_WALK_NE_2 };
+		animationFrames["Koudelka Bloodmire"]["WALK_SE"].internalList = { KOUDELKA_WALK_SE_1, KOUDELKA_WALK_SE_2,KOUDELKA_WALK_SE_3,KOUDELKA_WALK_SE_2 };
+		animationFrames["Koudelka Bloodmire"]["STAND_NW"] = animationFrames["Koudelka Bloodmire"]["STAND_NE"];
+		animationFrames["Koudelka Bloodmire"]["WALK_NW"] = animationFrames["Koudelka Bloodmire"]["WALK_NE"];
+		animationFrames["Koudelka Bloodmire"]["STAND_SW"] = animationFrames["Koudelka Bloodmire"]["STAND_SE"];
+		animationFrames["Koudelka Bloodmire"]["WALK_SW"] = animationFrames["Koudelka Bloodmire"]["WALK_SE"];
+		animationFrames["Shadow Koudelka Bloodmire"]["STAND_NE"] = animationFrames["Shadow Koudelka Bloodmire"]["STAND_BACK"];
+		animationFrames["Shadow Koudelka Bloodmire"]["STAND_SE"] = animationFrames["Shadow Koudelka Bloodmire"]["STAND_FRONT"];
+		animationFrames["Shadow Koudelka Bloodmire"]["WALK_NE"] = animationFrames["Shadow Koudelka Bloodmire"]["WALK_BACK"];
+		animationFrames["Shadow Koudelka Bloodmire"]["WALK_SE"] = animationFrames["Shadow Koudelka Bloodmire"]["WALK_FRONT"];
+		animationFrames["Shadow Koudelka Bloodmire"]["STAND_NW"] = animationFrames["Shadow Koudelka Bloodmire"]["STAND_NE"];
+		animationFrames["Shadow Koudelka Bloodmire"]["WALK_NW"] = animationFrames["Shadow Koudelka Bloodmire"]["WALK_NE"];
+		animationFrames["Shadow Koudelka Bloodmire"]["STAND_SW"] = animationFrames["Shadow Koudelka Bloodmire"]["STAND_SE"];
+		animationFrames["Shadow Koudelka Bloodmire"]["WALK_SW"] = animationFrames["Shadow Koudelka Bloodmire"]["WALK_SE"];
+		animationFrames["WomanInWhite"]["COMBAT_BACK"].internalList = { JOANACOMBATBACK };
+		animationFrames["WomanInWhite"]["COMBAT_FRONT"].internalList = { JOANACOMBATFRONT };
+		animationFrames["Enraged Tree"]["COMBAT_BACK"].internalList = { ENRAGEDTREEBACK };
+		animationFrames["Enraged Tree"]["COMBAT_FRONT"].internalList = { ENRAGEDTREEFRONT };
+		animationFrames["Enraged Venus"]["COMBAT_BACK"].internalList = { ENRAGEDVENUSBACK };
+		animationFrames["Enraged Venus"]["COMBAT_FRONT"].internalList = { ENRAGEDVENUSFRONT };
+		animationFrames["Enraged Vines"]["COMBAT_BACK"].internalList = { ENRAGEDVINESBACK };
+		animationFrames["Enraged Vines"]["COMBAT_FRONT"].internalList = { ENRAGEDVINESFRONT };
+		animationFrames["Enraged Thorn"]["COMBAT_BACK"].internalList = { ENRAGEDTHORNBACK };
+		animationFrames["Enraged Thorn"]["COMBAT_FRONT"].internalList = { ENRAGEDTHORNFRONT };
 	}
 	void defineCodexImages() {
 		animationFrames["Codex"]["Angela Fleuret"].internalList = { CODEXPAGE_ANGELAFLEURET };
@@ -2807,9 +2940,17 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 		animationFrames["Chest3"]["STAND_FRONT"].internalList = { CHEST3_1 };
 		animationFrames["Chest3"]["OPEN_FRONT"].internalList = { CHEST3_12 };
 
-		animationFrames["EliteChest"]["STAND_FRONT"].internalList = { ELITECHEST_1};
+		animationFrames["EliteChest"]["STAND_FRONT"].internalList = { ELITECHEST_1 };
 		animationFrames["EliteChest"]["OPEN_FRONT"].internalList = { ELITECHEST_12 };
 		animationFrames["EliteChest"]["ACTION_FRONT"].internalList = { ELITECHEST_1,ELITECHEST_2,ELITECHEST_3,ELITECHEST_4,ELITECHEST_5,ELITECHEST_6,ELITECHEST_7,ELITECHEST_8,ELITECHEST_9,ELITECHEST_10,ELITECHEST_11,ELITECHEST_12, };
+
+		animationFrames["EliteChest2"]["STAND_FRONT"].internalList = { ELITECHEST2_1 };
+		animationFrames["EliteChest2"]["OPEN_FRONT"].internalList = { ELITECHEST2_12 };
+		animationFrames["EliteChest2"]["ACTION_FRONT"].internalList = { ELITECHEST2_1,ELITECHEST2_2,ELITECHEST2_3,ELITECHEST2_4,ELITECHEST2_5,ELITECHEST2_6,ELITECHEST2_7,ELITECHEST2_8,ELITECHEST2_9,ELITECHEST2_10,ELITECHEST2_11,ELITECHEST2_12, };
+
+		animationFrames["EliteChest3"]["STAND_FRONT"].internalList = { ELITECHEST3_1 };
+		animationFrames["EliteChest3"]["OPEN_FRONT"].internalList = { ELITECHEST3_12 };
+		animationFrames["EliteChest3"]["ACTION_FRONT"].internalList = { ELITECHEST3_1,ELITECHEST3_2,ELITECHEST3_3,ELITECHEST3_4,ELITECHEST3_5,ELITECHEST3_6,ELITECHEST3_7,ELITECHEST3_8,ELITECHEST3_9,ELITECHEST3_10,ELITECHEST3_11,ELITECHEST3_12, };
 
 		animationFrames["WATERFONTMONO"]["ON_FRONT"].internalList = { WATERFONTMONOFRONT_1,WATERFONTMONOFRONT_2,WATERFONTMONOFRONT_3,WATERFONTMONOFRONT_4,WATERFONTMONOFRONT_5, };
 		animationFrames["WATERFONTMONO"]["OFF_FRONT"].internalList = { WATERFONTMONOFRONT_6 };
@@ -2826,7 +2967,7 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 		animationFrames["WATERFONTMONOFLOOR"]["OFF_BACK"].internalList = { WATERFONTMONOBACKFLOOR_6 };
 
 		animationFrames["WATERFONTDUO"]["ON_FRONT"].internalList = { WATERFONTDUOFRONT_1,WATERFONTDUOFRONT_2,WATERFONTDUOFRONT_3,WATERFONTDUOFRONT_4,WATERFONTDUOFRONT_5, };
-		animationFrames["WATERFONTDUO"]["OFF_FRONT"].internalList = { WATERFONTDUOFRONT_6};
+		animationFrames["WATERFONTDUO"]["OFF_FRONT"].internalList = { WATERFONTDUOFRONT_6 };
 		animationFrames["WATERFONTDUO"]["ON_BACK"].internalList = { WATERFONTDUOBACK_1,WATERFONTDUOBACK_2,WATERFONTDUOBACK_3,WATERFONTDUOBACK_4,WATERFONTDUOBACK_5, };
 		animationFrames["WATERFONTDUO"]["OFF_BACK"].internalList = { WATERFONTDUOBACK_6, };
 		animationFrames["WATERFONTDUO"]["ON_LEFT"].internalList = { WATERFONTDUOLEFT_1,WATERFONTDUOLEFT_2,WATERFONTDUOLEFT_3,WATERFONTDUOLEFT_4,WATERFONTDUOLEFT_5, };
@@ -2859,7 +3000,7 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 		animationFrames["WATERFONTSTARTFLOOR"]["OFF_FRONT"].internalList = { WATERFONTSTARTFLOOR_6 };
 
 		animationFrames["WATERROOM"]["ON_FRONT"].internalList = { WATERROOM_1,WATERROOM_2,WATERROOM_3,WATERROOM_4,WATERROOM_5, };
-		animationFrames["WATERROOM"]["OFF_FRONT"].internalList = { WATERROOM_6,};
+		animationFrames["WATERROOM"]["OFF_FRONT"].internalList = { WATERROOM_6, };
 
 		animationFrames["WATERFONTBROKEN"]["OFF_FRONT"].internalList = { WATERFONTBROKEN };
 		animationFrames["WATERFONTBROKEN"]["OFF_LEFT"].internalList = { WATERFONTBROKEN };
@@ -2936,7 +3077,7 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 
 		animationFrames["EnragedZombieFemale"]["STAND_FRONT"].internalList = { LEFTWINGZOMBIEFEMALE_1 };
 		animationFrames["EnragedZombieFemale"]["ACTION_FRONT"].internalList = { LEFTWINGZOMBIEFEMALE_1,LEFTWINGZOMBIEFEMALE_2,LEFTWINGZOMBIEFEMALE_3,LEFTWINGZOMBIEFEMALE_4,LEFTWINGZOMBIEFEMALE_5,LEFTWINGZOMBIEFEMALE_6,LEFTWINGZOMBIEFEMALE_7,LEFTWINGZOMBIEFEMALE_8,LEFTWINGZOMBIEFEMALE_9,LEFTWINGZOMBIEFEMALE_10,LEFTWINGZOMBIEFEMALE_11,LEFTWINGZOMBIEFEMALE_12,LEFTWINGZOMBIEFEMALE_13,LEFTWINGZOMBIEFEMALE_14,LEFTWINGZOMBIEFEMALE_15,LEFTWINGZOMBIEFEMALE_16,LEFTWINGZOMBIEFEMALE_17,LEFTWINGZOMBIEFEMALE_18,LEFTWINGZOMBIEFEMALE_19,LEFTWINGZOMBIEFEMALE_20,LEFTWINGZOMBIEFEMALE_21,LEFTWINGZOMBIEFEMALE_22,LEFTWINGZOMBIEFEMALE_23,LEFTWINGZOMBIEFEMALE_24,LEFTWINGZOMBIEFEMALE_25,LEFTWINGZOMBIEFEMALE_26,LEFTWINGZOMBIEFEMALE_27,LEFTWINGZOMBIEFEMALE_28,LEFTWINGZOMBIEFEMALE_29,LEFTWINGZOMBIEFEMALE_30,LEFTWINGZOMBIEFEMALE_31, };
-		
+
 		animationFrames["EnragedZombieMale"]["STAND_FRONT"].internalList = { LEFTWINGZOMBIEMALE_1 };
 		animationFrames["EnragedZombieMale"]["ACTION_FRONT"].internalList = { LEFTWINGZOMBIEMALE_1,LEFTWINGZOMBIEMALE_2,LEFTWINGZOMBIEMALE_3,LEFTWINGZOMBIEMALE_4,LEFTWINGZOMBIEMALE_5,LEFTWINGZOMBIEMALE_6,LEFTWINGZOMBIEMALE_7,LEFTWINGZOMBIEMALE_8,LEFTWINGZOMBIEMALE_9,LEFTWINGZOMBIEMALE_10,LEFTWINGZOMBIEMALE_11,LEFTWINGZOMBIEMALE_12,LEFTWINGZOMBIEMALE_13,LEFTWINGZOMBIEMALE_14,LEFTWINGZOMBIEMALE_15,LEFTWINGZOMBIEMALE_16,LEFTWINGZOMBIEMALE_17,LEFTWINGZOMBIEMALE_18,LEFTWINGZOMBIEMALE_19,LEFTWINGZOMBIEMALE_20,LEFTWINGZOMBIEMALE_21,LEFTWINGZOMBIEMALE_22,LEFTWINGZOMBIEMALE_23,LEFTWINGZOMBIEMALE_24,LEFTWINGZOMBIEMALE_25,LEFTWINGZOMBIEMALE_26,LEFTWINGZOMBIEMALE_27,LEFTWINGZOMBIEMALE_28,LEFTWINGZOMBIEMALE_29,LEFTWINGZOMBIEMALE_30,LEFTWINGZOMBIEMALE_31, };
 
@@ -2960,7 +3101,7 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 		animationFrames["SPAINTAVERN1"]["STAND_FRONT"].internalList = { SPAINTAVERN1 };
 		animationFrames["TAVERNBED"]["STAND_FRONT"].internalList = { TAVERNBED };
 
-		animationFrames["TAVERNMAN"]["STAND_FRONT"].internalList = { TAVERNMAN_F1, TAVERNMAN_F2};
+		animationFrames["TAVERNMAN"]["STAND_FRONT"].internalList = { TAVERNMAN_F1, TAVERNMAN_F2 };
 		animationFrames["TAVERNMAN"]["STAND_RIGHT"].internalList = { TAVERNMAN_R1, TAVERNMAN_R2 };
 		animationFrames["TAVERNMAN"]["STAND_BACK"].internalList = { TAVERNMAN_B1, TAVERNMAN_B1 };
 		animationFrames["TAVERNWOMAN"]["STAND_FRONT"].internalList = { TAVERNWOMAN_F1, TAVERNWOMAN_F2 };
@@ -2968,8 +3109,127 @@ PETRIFYINGTOUCH_1,PETRIFYINGTOUCH_2,PETRIFYINGTOUCH_3,PETRIFYINGTOUCH_4,PETRIFYI
 
 		animationFrames["CairoPalace"]["STAND_FRONT"].internalList = { CAIROPALACE };
 		animationFrames["CairoPalaceTop"]["STAND_FRONT"].internalList = { CAIROPALACETOP };
+
+		animationFrames["GraveyardTop"]["STAND_FRONT"].internalList = { GRAVEYARD_TOP };
+		animationFrames["Grave1"]["STAND_FRONT"].internalList = {GRAVE1};
+		animationFrames["GRAVEYARDSLICE1"]["STAND_FRONT"].internalList = { GRAVEYARDSLICE_1 };
+		animationFrames["GRAVEYARDSLICE2"]["STAND_FRONT"].internalList = { GRAVEYARDSLICE_2 };
+		animationFrames["GRAVEYARDSLICE3"]["STAND_FRONT"].internalList = { GRAVEYARDSLICE_3 };
+
+		animationFrames["EMPTY"]["SPEAKER"].internalList = { EMPTYOBJECT };
+		animationFrames["LampLight1"]["STAND_FRONT"].internalList = {
+			LAMPLIGHT1 , LAMPLIGHT2, LAMPLIGHT3, LAMPLIGHT4, LAMPLIGHT5, LAMPLIGHT6, LAMPLIGHT7, LAMPLIGHT8, LAMPLIGHT9, LAMPLIGHT10, LAMPLIGHT11,LAMPLIGHT12,LAMPLIGHT13,LAMPLIGHT14,LAMPLIGHT15,LAMPLIGHT16,LAMPLIGHT17,LAMPLIGHT18
+		};
+		animationFrames["Well"]["STAND_FRONT"].internalList = { WELL };
+		animationFrames["DeadWoman1"]["STAND_FRONT"].internalList = { DEADWOMAN1 };
+		animationFrames["DeadMan1"]["STAND_FRONT"].internalList = { DEADMAN1 };
+		animationFrames["Fog2"]["STAND_FRONT"].internalList = { FOG2_1 };
+		animationFrames["Fog1"]["STAND_FRONT"].internalList = { FOG1,FOG2,FOG3,FOG4,FOG5,FOG6,FOG7,FOG8,FOG9,FOG10,FOG11,FOG12,FOG13,FOG14,FOG15,FOG16,FOG17,FOG18,FOG19,FOG20,FOG21,FOG22,FOG23,FOG24,FOG24,FOG23,FOG22,FOG21,FOG20,FOG19,FOG18,FOG17,FOG16,FOG15,FOG14,FOG13,FOG12,FOG11,FOG10,FOG9,FOG8,FOG7,FOG6,FOG5,FOG4,FOG3,FOG2,FOG1, };
+		animationFrames["CityFog1"]["STAND_FRONT"].internalList = { CITYFOGFOG1_1,CITYFOGFOG1_2,CITYFOGFOG1_3,CITYFOGFOG1_4,CITYFOGFOG1_5,CITYFOGFOG1_6,CITYFOGFOG1_7,CITYFOGFOG1_8,CITYFOGFOG1_9,CITYFOGFOG1_10,CITYFOGFOG1_11,CITYFOGFOG1_12,CITYFOGFOG1_13,CITYFOGFOG1_14,CITYFOGFOG1_15,CITYFOGFOG1_16,CITYFOGFOG1_17,CITYFOGFOG1_18,CITYFOGFOG1_19,CITYFOGFOG1_20,CITYFOGFOG1_21,CITYFOGFOG1_22,CITYFOGFOG1_23,CITYFOGFOG1_24,CITYFOGFOG1_23,CITYFOGFOG1_22,CITYFOGFOG1_21,CITYFOGFOG1_20,CITYFOGFOG1_19,CITYFOGFOG1_18,CITYFOGFOG1_17,CITYFOGFOG1_16,CITYFOGFOG1_15,CITYFOGFOG1_14,CITYFOGFOG1_13,CITYFOGFOG1_12,CITYFOGFOG1_11,CITYFOGFOG1_10,CITYFOGFOG1_9,CITYFOGFOG1_8,CITYFOGFOG1_7,CITYFOGFOG1_6,CITYFOGFOG1_5,CITYFOGFOG1_4,CITYFOGFOG1_3,CITYFOGFOG1_2,CITYFOGFOG1_1, };
+
+		animationFrames["House1Inside1AsObject"]["STAND_FRONT"].internalList = { HOUSE1INSIDE1 };
+		animationFrames["House1Inside2AsObject"]["STAND_FRONT"].internalList = { HOUSE1INSIDE2 };
+		animationFrames["Fireplace1"]["STAND_FRONT"].internalList = { FIREPLACE1_1, FIREPLACE1_2,FIREPLACE1_3,FIREPLACE1_4,FIREPLACE1_5,FIREPLACE1_6,FIREPLACE1_7,FIREPLACE1_8,FIREPLACE1_9,FIREPLACE1_10,FIREPLACE1_11,FIREPLACE1_12,FIREPLACE1_13,FIREPLACE1_14,FIREPLACE1_15,FIREPLACE1_16,FIREPLACE1_17,FIREPLACE1_18,FIREPLACE1_19,FIREPLACE1_20,FIREPLACE1_21,FIREPLACE1_22,FIREPLACE1_23,FIREPLACE1_24 };
+		animationFrames["Fireplace2"]["STAND_FRONT"].internalList = { FIREPLACE2_1,FIREPLACE2_2,FIREPLACE2_3,FIREPLACE2_4,FIREPLACE2_5,FIREPLACE2_6,FIREPLACE2_7,FIREPLACE2_8,FIREPLACE2_9,FIREPLACE2_10,FIREPLACE2_11,FIREPLACE2_12,FIREPLACE2_13,FIREPLACE2_14,FIREPLACE2_15,FIREPLACE2_16,FIREPLACE2_17,FIREPLACE2_18,FIREPLACE2_19,FIREPLACE2_20,FIREPLACE2_21,FIREPLACE2_22,FIREPLACE2_23,FIREPLACE2_24,FIREPLACE2_25,FIREPLACE2_26,FIREPLACE2_27,FIREPLACE2_28,FIREPLACE2_29,FIREPLACE2_30,FIREPLACE2_31,FIREPLACE2_32,FIREPLACE2_33,FIREPLACE2_34,FIREPLACE2_35,FIREPLACE2_36,FIREPLACE2_37,FIREPLACE2_38,FIREPLACE2_39,FIREPLACE2_40,FIREPLACE2_41,FIREPLACE2_42,FIREPLACE2_43,FIREPLACE2_44,FIREPLACE2_45,FIREPLACE2_46,FIREPLACE2_47,FIREPLACE2_48, };
+		animationFrames["OldBookMan"]["STAND_FRONT"].internalList = { BOOKSELLER_OLD_MAN_STAND_FRONT_1, BOOKSELLER_OLD_MAN_STAND_FRONT_2 };
+		animationFrames["Shadow OldBookMan"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+
+		animationFrames["CutsceneLoadingScreen"]["ACTION_1"].internalList = { LOADINGSCREEN_1 };
+		animationFrames["TownTop"]["STAND_FRONT"].internalList = { TOWNTOP };
+		animationFrames["Town1Fence"]["STAND_FRONT"].internalList = { TOWN1FENCE };
+		animationFrames["CAT1"]["STAND_FRONT"].internalList = { CAT1,CAT2 };
+		animationFrames["CAT1SHADOW1"]["STAND_FRONT"].internalList = { CAT1SHADOW1,CAT1SHADOW2 };
+		animationFrames["CITYLAMP"]["STAND_FRONT"].internalList = { CITYLAMP_1 ,CITYLAMP_2 ,CITYLAMP_3,CITYLAMP_4,CITYLAMP_5,CITYLAMP_6,CITYLAMP_7,CITYLAMP_8,CITYLAMP_9,CITYLAMP_10,CITYLAMP_11,CITYLAMP_12 };
+		animationFrames["CITYLAMP2"]["STAND_FRONT"].internalList = animationFrames["CITYLAMP"]["STAND_FRONT"].internalList;
+		animationFrames["CITYLAMP2"]["STAND_FRONT"].internalList.reverse();
+		animationFrames["CITYLAMP3"]["STAND_FRONT"].internalList = { CITYLAMP_6,CITYLAMP_7,CITYLAMP_8,CITYLAMP_9,CITYLAMP_10,CITYLAMP_11,CITYLAMP_12,CITYLAMP_1,CITYLAMP_2,CITYLAMP_3,CITYLAMP_4,CITYLAMP_5 };
+
+		animationFrames["FLAG1"]["STAND_FRONT"].internalList = { FLAG1_1,FLAG1_2,FLAG1_3,FLAG1_4,FLAG1_5,FLAG1_6,FLAG1_7,FLAG1_8,FLAG1_9,FLAG1_10,FLAG1_11,FLAG1_12,FLAG1_13,FLAG1_14,FLAG1_15,FLAG1_16,FLAG1_17,FLAG1_18,FLAG1_19,FLAG1_20,FLAG1_21,FLAG1_22,FLAG1_23,FLAG1_24,FLAG1_25,FLAG1_26,FLAG1_27,FLAG1_28,FLAG1_29,FLAG1_30,FLAG1_31,FLAG1_32,FLAG1_33,FLAG1_34,FLAG1_35,FLAG1_36,FLAG1_37,FLAG1_38,FLAG1_39,FLAG1_40,FLAG1_41,FLAG1_42,FLAG1_43,FLAG1_44,FLAG1_45,FLAG1_46,FLAG1_47,FLAG1_48,FLAG1_49,FLAG1_50,FLAG1_51,FLAG1_52,FLAG1_53,FLAG1_54,FLAG1_55,FLAG1_56,FLAG1_57,FLAG1_58,FLAG1_59,FLAG1_60,FLAG1_61,FLAG1_62,FLAG1_63,FLAG1_64,FLAG1_65,FLAG1_66,FLAG1_67,FLAG1_68,FLAG1_69,FLAG1_70,FLAG1_71,FLAG1_72,FLAG1_73,FLAG1_74,FLAG1_75,FLAG1_76,FLAG1_77,FLAG1_78,FLAG1_79,FLAG1_80,FLAG1_81,FLAG1_82,FLAG1_83,FLAG1_84,FLAG1_85,FLAG1_86,FLAG1_87,FLAG1_88,FLAG1_89,FLAG1_90,FLAG1_91,FLAG1_92,FLAG1_93,FLAG1_94,FLAG1_95,FLAG1_96,FLAG1_97,FLAG1_98,FLAG1_99,FLAG1_100,FLAG1_101,FLAG1_102,FLAG1_103,FLAG1_104,FLAG1_105,FLAG1_106,FLAG1_107,FLAG1_108,FLAG1_109,FLAG1_110,FLAG1_111,FLAG1_112,FLAG1_113,FLAG1_114,FLAG1_115,FLAG1_116,FLAG1_117,FLAG1_118,FLAG1_119,FLAG1_120,FLAG1_121,FLAG1_122,FLAG1_123,FLAG1_124,FLAG1_125,FLAG1_126,FLAG1_127,FLAG1_128,FLAG1_129,FLAG1_130,FLAG1_131,FLAG1_132,FLAG1_133,FLAG1_134,FLAG1_135,FLAG1_136,FLAG1_137,FLAG1_138,FLAG1_139,FLAG1_140,FLAG1_141,FLAG1_142,FLAG1_143,FLAG1_144,FLAG1_145,FLAG1_146,FLAG1_147,FLAG1_148,FLAG1_149,FLAG1_150, };
+
+		animationFrames["FLAG2"]["STAND_FRONT"].internalList = { FLAG2_1,FLAG2_2,FLAG2_3,FLAG2_4,FLAG2_5,FLAG2_6,FLAG2_7,FLAG2_8,FLAG2_9,FLAG2_10,FLAG2_11,FLAG2_12,FLAG2_13,FLAG2_14,FLAG2_15,FLAG2_16,FLAG2_17,FLAG2_18,FLAG2_19,FLAG2_20,FLAG2_21,FLAG2_22,FLAG2_23,FLAG2_24,FLAG2_25,FLAG2_26,FLAG2_27,FLAG2_28,FLAG2_29,FLAG2_30,FLAG2_31,FLAG2_32,FLAG2_33,FLAG2_34,FLAG2_35,FLAG2_36,FLAG2_37,FLAG2_38,FLAG2_39,FLAG2_40,FLAG2_41,FLAG2_42,FLAG2_43,FLAG2_44,FLAG2_45,FLAG2_46,FLAG2_47,FLAG2_48,FLAG2_49,FLAG2_50,FLAG2_51,FLAG2_52,FLAG2_53,FLAG2_54,FLAG2_55,FLAG2_56,FLAG2_57,FLAG2_58,FLAG2_59,FLAG2_60,FLAG2_61,FLAG2_62,FLAG2_63,FLAG2_64,FLAG2_65,FLAG2_66,FLAG2_67,FLAG2_68,FLAG2_69,FLAG2_70,FLAG2_71,FLAG2_72,FLAG2_73,FLAG2_74,FLAG2_75,FLAG2_76,FLAG2_77,FLAG2_78,FLAG2_79,FLAG2_80,FLAG2_81,FLAG2_82,FLAG2_83,FLAG2_84,FLAG2_85,FLAG2_86,FLAG2_87,FLAG2_88,FLAG2_89,FLAG2_90,FLAG2_91,FLAG2_92,FLAG2_93,FLAG2_94,FLAG2_95,FLAG2_96,FLAG2_97,FLAG2_98,FLAG2_99,FLAG2_100,FLAG2_101,FLAG2_102,FLAG2_103,FLAG2_104,FLAG2_105,FLAG2_106,FLAG2_107,FLAG2_108,FLAG2_109,FLAG2_110,FLAG2_111,FLAG2_112,FLAG2_113,FLAG2_114,FLAG2_115,FLAG2_116,FLAG2_117,FLAG2_118,FLAG2_119,FLAG2_120,FLAG2_121,FLAG2_122,FLAG2_123,FLAG2_124,FLAG2_125,FLAG2_126,FLAG2_127,FLAG2_128,FLAG2_129,FLAG2_130,FLAG2_131,FLAG2_132,FLAG2_133,FLAG2_134,FLAG2_135,FLAG2_136,FLAG2_137,FLAG2_138,FLAG2_139,FLAG2_140,FLAG2_141,FLAG2_142,FLAG2_143,FLAG2_144,FLAG2_145,FLAG2_146,FLAG2_147,FLAG2_148,FLAG2_149,FLAG2_150, };
+
+		animationFrames["DOG1"]["STAND_FRONT"].internalList = { DOG1_4, DOG1_5, DOG1_6, DOG1_5 };
+		animationFrames["DOG1SHADOW"]["STAND_FRONT"].internalList = { DOG1_1, DOG1_2, DOG1_3, DOG1_2 };
+
+		animationFrames["Gravedigger"]["STAND_FRONT"].internalList = { GRAVEDIGGER_1 , GRAVEDIGGER_2, };
+		animationFrames["Shadow Gravedigger"]["STAND_FRONT"].internalList = { BASIC_SHADOW, };
+		animationFrames["Father Charlot"]["SPEAKER"].internalList = { GRAVEDIGGER_3 };
+
+		animationFrames["NPCMAN1"]["STAND_FRONT"].internalList = { NPCMAN1_1 ,NPCMAN1_2 };
+		animationFrames["NPCMAN1SHADOW"]["STAND_FRONT"].internalList = { BASIC_SHADOW, };
+		animationFrames["NPCMAN1"]["SPEAKER"].internalList = { NPCMAN1_5 };
+
+		animationFrames["NPCMAN2"]["STAND_FRONT"].internalList = { NPCMAN2_1 ,NPCMAN2_2 };
+		animationFrames["NPCMAN2SHADOW"]["STAND_FRONT"].internalList = { BASIC_SHADOW, };
+		animationFrames["NPCMAN2"]["SPEAKER"].internalList = { NPCMAN2_5 };
+
+		animationFrames["ELDERLYF1"]["STAND_FRONT"].internalList = { ELDERLYF1_1 ,ELDERLYF1_2 };
+		animationFrames["ELDERLYF1SHADOW"]["STAND_FRONT"].internalList = { BASIC_SHADOW, };
+		animationFrames["Colette Verderonne"]["SPEAKER"].internalList = { ELDERLYF1_5 };
+
+		animationFrames["ELDERLYF2"]["STAND_FRONT"].internalList = { ELDERLYF2_1 ,ELDERLYF2_2 };
+		animationFrames["ELDERLYF2SHADOW"]["STAND_FRONT"].internalList = { BASIC_SHADOW, };
+
+		animationFrames["GUARD1M"]["STAND_FRONT"].internalList = { GUARDM1_1, GUARDM1_2 };
+		animationFrames["Shadow GUARD1M"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["GuardM1"]["SPEAKER"].internalList = { GUARDM1_5 };
+
+		animationFrames["GUARD1F"]["STAND_FRONT"].internalList = { GUARDF1_1, GUARDF1_2 };
+		animationFrames["Shadow GUARD1F"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["GuardF1"]["SPEAKER"].internalList = { GUARDF1_5 };
+
+		animationFrames["PEASANTF1"]["STAND_FRONT"].internalList = { PEASANTF1_1, PEASANTF1_2 };
+		animationFrames["Shadow PEASANTF1"]["STAND_FRONT"].internalList = { BASIC_SHADOW };
+		animationFrames["PeasantF1"]["SPEAKER"].internalList = { PEASANTF1_5 };
+
+		animationFrames["BSMITHM"]["STAND_FRONT"].internalList = { BSMITHM_1, BSMITHM_2 };
+		animationFrames["Shadow BSMITHM"]["STAND_FRONT"].internalList = { BASIC_SHADOW, };
+
+		animationFrames["BSMITHF"]["STAND_FRONT"].internalList = { BSMITHF_1, BSMITHF_2 };
+		animationFrames["Shadow BSMITHF"]["STAND_FRONT"].internalList = { BASIC_SHADOW, };
+
+		animationFrames["SMITHYINSIDE"]["STAND_FRONT"].internalList = { SMITHYINSIDE };
+
+		animationFrames["ISOHOUSE1"]["STAND_FRONT"].internalList = { ISOHOUSE1 };
+		animationFrames["ISOHOUSE2"]["STAND_FRONT"].internalList = { ISOHOUSE2 };
+
+		animationFrames["EMPTYOBJECT"]["STAND_FRONT"].internalList = { EMPTYOBJECT };
+		animationFrames["TAVERN1_1"]["STAND_FRONT"].internalList = { TAVERN1_1 };
+		animationFrames["TAVERN1_2"]["STAND_FRONT"].internalList = { TAVERN1_2 };
+		animationFrames["TAVERN1_3"]["STAND_FRONT"].internalList = { TAVERN1_3 };
+		animationFrames["TAVERN1_4"]["STAND_FRONT"].internalList = { TAVERN1_4 };
+
+		animationFrames["TAVERN1_UPSTAIRS"]["STAND_FRONT"].internalList = { TAVERNUPSTAIRSNIGHT };
+		animationFrames["TAVERN1_UPSTAIRS"]["ON_TOP"].internalList = { TAVERNUPSTAIRSNIGHTONTOP_1,TAVERNUPSTAIRSNIGHTONTOP_2,TAVERNUPSTAIRSNIGHTONTOP_3,TAVERNUPSTAIRSNIGHTONTOP_4,TAVERNUPSTAIRSNIGHTONTOP_5, };
+		animationFrames["TAVERN1_UPSTAIRSDAY"]["STAND_FRONT"].internalList = { TAVERNUPSTAIRSDAY };
+		animationFrames["TAVERN1_BASEMENT"]["STAND_FRONT"].internalList = { TAVERNBASEMENT };
+		animationFrames["TAVERN1_BASEMENTONTOP1"]["STAND_FRONT"].internalList = { TAVERNBASEMENT_1 };
+		animationFrames["TAVERN1_BASEMENTONTOP2"]["STAND_FRONT"].internalList = { TAVERNBASEMENT_2 };
+
+		animationFrames["VATICAN"]["STAND_FRONT"].internalList = { VATICAN };
+		animationFrames["TianshunHouse"]["STAND_FRONT"].internalList = { TIANSHUNHOUSE };
+
+		animationFrames["ViennaUniversity"]["STAND_FRONT"].internalList = { VIENNAUNIVERSITY1 };
+		animationFrames["ViennaUniversity2"]["STAND_FRONT"].internalList = { VIENNAUNIVERSITY2 };
+
+		animationFrames["SKELESUMMON"]["SUMMON_FRONT"].internalList = { SKELESUMMON_1,SKELESUMMON_2,SKELESUMMON_3,SKELESUMMON_4,SKELESUMMON_5,SKELESUMMON_6,SKELESUMMON_7,SKELESUMMON_8,SKELESUMMON_9,SKELESUMMON_10,SKELESUMMON_11,SKELESUMMON_12,SKELESUMMON_13,SKELESUMMON_14,SKELESUMMON_15,SKELESUMMON_16,SKELESUMMON_17,SKELESUMMON_18,SKELESUMMON_19,SKELESUMMON_20,SKELESUMMON_21,SKELESUMMON_22,SKELESUMMON_23,SKELESUMMON_24,SKELESUMMON_25,SKELESUMMON_26,SKELESUMMON_27,SKELESUMMON_28,SKELESUMMON_29,SKELESUMMON_30,SKELESUMMON_31,SKELESUMMON_32,SKELESUMMON_33,SKELESUMMON_34,SKELESUMMON_35,SKELESUMMON_36,SKELESUMMON_37,SKELESUMMON_38,SKELESUMMON_39,SKELESUMMON_40,SKELESUMMON_41,SKELESUMMON_42,SKELESUMMON_43,SKELESUMMON_44,SKELESUMMON_45,SKELESUMMON_46,SKELESUMMON_47,SKELESUMMON_48, };
+
+		animationFrames["SKELESUMMON"]["UNSUMMON_FRONT"].internalList = animationFrames["SKELESUMMON"]["SUMMON_FRONT"].internalList;
+		animationFrames["SKELESUMMON"]["UNSUMMON_FRONT"].internalList.reverse();
+
+		animationFrames["SKELESUMMON"]["SUMMON_FRONT2"].internalList = { SKELESUMMON_47,SKELESUMMON_48, };
+
+		animationFrames["WHOSETURN"]["FRONT_ACTION"].internalList = { WHOSETURN_1,WHOSETURN_2,WHOSETURN_3,WHOSETURN_4,WHOSETURN_5,WHOSETURN_6,WHOSETURN_7,WHOSETURN_8,WHOSETURN_9,WHOSETURN_10,WHOSETURN_11,WHOSETURN_12,WHOSETURN_13,WHOSETURN_14,WHOSETURN_15,WHOSETURN_16,WHOSETURN_17,WHOSETURN_18,WHOSETURN_19,WHOSETURN_20,WHOSETURN_21,WHOSETURN_22,WHOSETURN_23, };
+
+		animationFrames["BOOTMENU1"]["ACTION_1"].internalList = { MAINMENU1_1 };
+
+		animationFrames["BOOTMENU2"]["ACTION_1"].internalList = { MAINMENU2_1,MAINMENU2_2,MAINMENU2_3,MAINMENU2_4,MAINMENU2_5,MAINMENU2_6,MAINMENU2_7,MAINMENU2_8,MAINMENU2_9,MAINMENU2_10,MAINMENU2_11,MAINMENU2_12,MAINMENU2_13,MAINMENU2_14,MAINMENU2_15,MAINMENU2_16,MAINMENU2_17,MAINMENU2_18,MAINMENU2_19,MAINMENU2_20,MAINMENU2_21,MAINMENU2_22,MAINMENU2_23,MAINMENU2_24,MAINMENU2_25,MAINMENU2_26,MAINMENU2_27,MAINMENU2_28,MAINMENU2_29,MAINMENU2_30,MAINMENU2_31,MAINMENU2_32,MAINMENU2_33,MAINMENU2_34,MAINMENU2_35,MAINMENU2_36,MAINMENU2_37,MAINMENU2_38,MAINMENU2_39,MAINMENU2_40,MAINMENU2_41,MAINMENU2_42,MAINMENU2_43,MAINMENU2_44,MAINMENU2_45,MAINMENU2_46,MAINMENU2_47,MAINMENU2_48,MAINMENU2_49,MAINMENU2_50,MAINMENU2_51,MAINMENU2_52,MAINMENU2_53,MAINMENU2_54,MAINMENU2_55,MAINMENU2_56,MAINMENU2_57,MAINMENU2_58,MAINMENU2_59,MAINMENU2_60,MAINMENU2_61,MAINMENU2_62,MAINMENU2_63,MAINMENU2_64,MAINMENU2_65,MAINMENU2_66,MAINMENU2_67,MAINMENU2_68,MAINMENU2_69,MAINMENU2_70,MAINMENU2_71,MAINMENU2_72,MAINMENU2_73,MAINMENU2_74,MAINMENU2_75,MAINMENU2_76,MAINMENU2_77,MAINMENU2_78,MAINMENU2_79,MAINMENU2_80,MAINMENU2_81,MAINMENU2_82,MAINMENU2_83,MAINMENU2_84,MAINMENU2_85,MAINMENU2_86,MAINMENU2_87,MAINMENU2_88,MAINMENU2_89,MAINMENU2_90,MAINMENU2_91,MAINMENU2_92,MAINMENU2_93,MAINMENU2_94,MAINMENU2_95,MAINMENU2_96,MAINMENU2_97,MAINMENU2_98,MAINMENU2_99,MAINMENU2_100,MAINMENU2_101,MAINMENU2_102,MAINMENU2_103,MAINMENU2_104,MAINMENU2_105,MAINMENU2_106,MAINMENU2_107,MAINMENU2_108,MAINMENU2_109,MAINMENU2_110,MAINMENU2_111,MAINMENU2_112,MAINMENU2_113,MAINMENU2_114,MAINMENU2_115,MAINMENU2_116,MAINMENU2_117,MAINMENU2_118,MAINMENU2_119,MAINMENU2_120, };
+
+		animationFrames["LOGO"]["ACTION_1"].internalList = { LOGO };
+
+		animationFrames["RoadToTownTop"]["ACTION_1"].internalList = { ROADTOTOWNTOPLAYER };
 	}
-		
+
 	string getSequenceAsString(string character, string action) {
 		// get it as one string so it can be used in event data
 		if (character.find("$PLAYER1$") != -1) {
@@ -3035,7 +3295,7 @@ public:
 			return itemsForSaleBasedOnFlags[flag];
 		}
 
-		
+
 		string uniqueID;
 		Map<string, List<string>> itemsForSaleBasedOnFlags;
 	};
@@ -3070,7 +3330,8 @@ MerchantContainer merchants;
 
 class FlagDependentCutsceneNameFinder {
 public:
-	FlagDependentCutsceneNameFinder() {
+	FlagDependentCutsceneNameFinder() {}
+	void load() {
 		duplicateCutscenes();
 	}
 	static string getNameOfCutsceneDependingOnFlags(string cutsceneName) {
@@ -3307,6 +3568,12 @@ public:
 			if (!flags["FoundMichelet"]) {
 				cutsceneName = "GraveyardLocked";
 			}
+			if (!flags["MetJoana"]) {
+				cutsceneName = "JoanaInGraveyard1";
+			}
+		}
+		if (cutsceneName == "JoanaInGraveyard3") {
+			cutsceneName = "JoanaInGraveyard3$" + player1;
 		}
 		return cutsceneName;
 	}
@@ -3343,7 +3610,7 @@ public:
 					}
 				}
 			}
-		} 
+		}
 	}
 };
 FlagDependentCutsceneNameFinder CutsceneFinder;

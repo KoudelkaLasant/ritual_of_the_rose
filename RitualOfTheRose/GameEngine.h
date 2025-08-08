@@ -50,6 +50,9 @@ public:
 					image->scale = stof(data["scale"]); // make maps x2 the size by default
 				}
 				image->scale *= controller.initialGUIScale;
+				if (data.hasKey("direction")) {
+					image->direction = data["direction"];
+				}
 				return true;
 			}
 			if (type == "STOPALLSONGS") {
@@ -979,7 +982,9 @@ public:
 						gameEngine.activeProcedure.eventList.push_front(Event("Debug Combat", "DEBUGCOMBAT", {}));
 						return false;
 					}
-					if (controller.hasThisBeenPressed(VK_F3)) {}
+					if (controller.hasThisBeenPressed(VK_F3)) {
+						gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "Earthquake Debug", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					}
 					if (Args.get("SPEEDCHEAT") == "1") {
 						exploreAnimationSpeeds["MOVE"] = 10;
 						Event("userInput", "DEBUGWALKING", { }).run(*&gameEngine);
@@ -999,6 +1004,8 @@ public:
 				string currentDirection = image->direction;
 				string currentAction = image->action;
 
+				List<string> playerMoveAttempts;
+
 
 				for (auto const& x : controller.keysPressedInOrderAsInts.internalList) {
 					if (controller.up.contains(x) or controller.down.contains(x) or controller.left.contains(x) or controller.right.contains(x)) {
@@ -1006,20 +1013,57 @@ public:
 						newAction = "WALK";
 					}
 					if (controller.up.contains(x)) {
-						newDirection = "BACK";
-						break;
+						playerMoveAttempts.addToBackIfNotAlreadyInList("BACK");
 					}
 					if (controller.down.contains(x)) {
-						newDirection = "FRONT";
-						break;
+						playerMoveAttempts.addToBackIfNotAlreadyInList("FRONT");
 					}
 					if (controller.left.contains(x)) {
-						newDirection = "LEFT";
-						break;
+						playerMoveAttempts.addToBackIfNotAlreadyInList("LEFT");
 					}
 					if (controller.right.contains(x)) {
+						playerMoveAttempts.addToBackIfNotAlreadyInList("RIGHT");
+					}
+
+					if (controller.up.contains(x) and newDirection == "") {
+						newDirection = "BACK";
+					}
+					if (controller.down.contains(x) and newDirection == "") {
+						newDirection = "FRONT";
+					}
+					if (controller.left.contains(x) and newDirection == "") {
+						newDirection = "LEFT";
+					}
+					if (controller.right.contains(x) and newDirection == "") {
 						newDirection = "RIGHT";
-						break;
+					}
+				}
+				playerMoveAttempts.internalList.sort();
+				// 8 way directions
+				if (playerMoveAttempts.size() == 2) {
+					List<string> NE; NE.internalList = {"BACK","RIGHT"};
+					List<string> SE; SE.internalList = { "FRONT","RIGHT" };
+					List<string> NW; NW.internalList = { "BACK", "LEFT"};
+					List<string> SW; SW.internalList = { "FRONT","LEFT" };
+
+					if (playerMoveAttempts.sameContents(NE)) {
+						newDirection = "NE";
+					}
+					if (playerMoveAttempts.sameContents(SE)) {
+						newDirection = "SE";
+					}
+					if (playerMoveAttempts.sameContents(NW)) {
+						newDirection = "NW";
+					}
+					if (playerMoveAttempts.sameContents(SW)) {
+						newDirection = "SW";
+					}
+				}
+				// when player stops moving give a very small window of time to preserve 8 way direction otherwise player will never be able to stand in 8 way
+				List<string> _8ways = List<string>({"NE","SE","NW","SW"});
+				if (_8ways.contains(currentDirection)) {
+					if (!CLOCK.hasEnoughTimePassed("8Way", 100)) {
+						newDirection = currentDirection;
 					}
 				}
 
@@ -1070,59 +1114,7 @@ public:
 				Map<string, string> walkableDataToMoveOn; // send this to function that deals with next step
 				if (force) { moving = false; force = false; }
 				if (force or (moving and CLOCK.hasEnoughTimePassed("EXPLORE",exploreAnimationSpeeds["MOVE"]))) {
-					// allow for 8-way movement without new animation
-					string eightWayMove = "";
-					for (auto const& x : controller.keysPressedInOrderAsInts.internalList) {
-						if (newDirection == "FRONT") {
-							if (controller.left.contains(x)) {
-								eightWayMove = "LEFT";
-								break;
-							}
-							if (controller.right.contains(x)) {
-								eightWayMove = "RIGHT";
-								break;
-							}
-						}
-						if (newDirection == "LEFT") {
-							if (controller.up.contains(x)) {
-								eightWayMove = "BACK";
-								break;
-							}
-							if (controller.down.contains(x)) {
-								eightWayMove = "FRONT";
-								break;
-							}
-						}
-						if (newDirection == "BACK") {
-							if (controller.left.contains(x)) {
-								eightWayMove = "LEFT";
-								break;
-							}
-							if (controller.right.contains(x)) {
-								eightWayMove = "RIGHT";
-								break;
-							}
-						}
-						if (newDirection == "RIGHT") {
-							if (controller.up.contains(x)) {
-								eightWayMove = "BACK";
-								break;
-							}
-							if (controller.down.contains(x)) {
-								eightWayMove = "FRONT";
-								break;
-							}
-						}
-					}
-					if (eightWayMove == "") {
-						explorer.tryToMovePlayer(newDirection, explorer.unitOfMovement);
-					}
-					else {
-						explorer.tryToMovePlayer(eightWayMove, explorer.unitOfMovement / 1.41421);
-						explorer.tryToMovePlayer(newDirection, explorer.unitOfMovement / 1.41421);
-					}
-					
-
+					explorer.tryToMovePlayer(newDirection, explorer.unitOfMovement / 1.41421);
 					if (data["audio"] != "0") {
 						if (data["noaudioyet"] == "1") {
 							data["noaudioyet"] = "0";
@@ -1163,9 +1155,12 @@ public:
 								gameEngine.stateFlags["GoingUp"] = "2";
 								string imageName = walkable.data["image"];
 								string obstructionName = walkable.data["obstruction"];
+								int howMuchBump = stoi(walkable.data["howMuchBump"]);
 								
-								graphics.bumpLayer(graphics.accessImageViaUniqueID(imageName), -2);
-								explorer.getThisMapObject(obstructionName).obstruction = true;
+								graphics.bumpLayer(graphics.accessImageViaUniqueID(imageName), howMuchBump);
+								if (obstructionName != "") {
+									explorer.getThisMapObject(obstructionName).obstruction = true;
+								}
 								needToChangeAudio = true;
 								up = true;
 							}
@@ -1173,8 +1168,11 @@ public:
 								gameEngine.stateFlags["GoingUp"] = "";
 								string imageName = walkable.data["image"];
 								string obstructionName = walkable.data["obstruction"];
-								graphics.bumpLayer(graphics.accessImageViaUniqueID(imageName), 2);
-								explorer.getThisMapObject(obstructionName).obstruction = false;
+								if (obstructionName != "") {
+									explorer.getThisMapObject(obstructionName).obstruction = false;
+								}
+								int howMuchBump = stoi(walkable.data["howMuchBump"]);
+								graphics.bumpLayer(graphics.accessImageViaUniqueID(imageName), howMuchBump);
 								needToChangeAudio = true;
 							}
 							if (walkable.data.hasKey("audioSwap") and needToChangeAudio) {
@@ -3606,6 +3604,25 @@ return true;
 							pair<string, string>("uniqueID", "DebugButton_ToggleFlag_FoundMichelet"),
 						})).run(*&gameEngine);
 				}
+				if (buttonLogic == "DebugButton_TeleportToGraveyard") {
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "TeleportToGraveyard", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					return true;
+				}
+				if (buttonLogic == "DebugButton_JoanaCutscene1") {
+					Event("DoButton", "HANDLEBUTTON", Map<string, string>({
+							pair<string, string>("uniqueID", "DebugButton_FoundMichelet"),
+						})).run(*&gameEngine);
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "JoanaInGraveyard1", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					return true;
+				}
+				if (buttonLogic == "DebugButton_AfterGraveyardCutscene") {
+					Event("DoButton", "HANDLEBUTTON", Map<string, string>({
+							pair<string, string>("uniqueID", "DebugButton_FoundMichelet"),
+							pair<string, string>("uniqueID", "JoanaInGraveyard1_TRIGGERED"),
+						})).run(*&gameEngine);
+					gameEngine.activeProcedure = gameEngine.makeDynamicCutsceneProcedure(gameEngine.language, "GraveyardTeleportAfterCutscene", saveContainer.getCurrentMainCharacter(), "EXPLORE");
+					return true;
+				}
 
 				if (buttonLogic.find("TOMETEACHTHESKILL_") != -1) {
 					List<string> data = split(buttonLogic, "_");
@@ -4930,6 +4947,7 @@ return true;
 				}
 
 				string sources = imageLookup.getSequenceAsString(data["sources_1"], data["sources_2"] + "_" + data["sources_3"]);
+				string direction = data["sources_3"];
 				string layer = data["layer"];
 				string x = data["x"];
 				string y = data["y"];
@@ -4972,6 +4990,7 @@ return true;
 						pair<string, string>("styles", "LOOP"),
 						pair<string, string>("scale", scale),
 						pair<string, string>("opacity", opacity),
+						pair<string, string>("direction", direction),
 						pair<string, string>("uniqueID", name), }))).run(*&gameEngine);
 				Event("UpdateMap", "MAPMOVE", {}).run(*&gameEngine);
 				return true;
@@ -5869,9 +5888,11 @@ return true;
 				string animationName = combat.currentBattle->currentEventStackObject.getCurrentForAnimation().sourceName;
 				Map<string, string> sData = combat.currentBattle->currentEventStackObject.getCurrentForAnimation().sData;
 
+				extras["yOffset"] = "-15";
+
 				// Tianshun is small so move Y axis down a bit
 				if (caster.find("Tianshun Song") != -1) {
-					extras["yOffset"] = "10";
+					extras["yOffset"] += "-5";
 				}
 				
 				
@@ -6183,6 +6204,93 @@ return true;
 				explorer.getThisMapObject(objectName).obstruction = isObstruction;
 				return true;
 			}
+			if (type == "EARTHQUAKE") {
+				// ONLY for Earthquakes during cutscenes
+				int quakes = stoi(data["timer"]);
+				if (quakes < 10) {
+					quakes = 10;
+				}
+				if (gameEngine.skillAnimationContainer.quakeCoordinates["CAMERA"].empty()) {
+					data["cameraStartX"] = to_string(explorer.activeCamera.position.first);
+					data["cameraStartY"] = to_string(explorer.activeCamera.position.second);
+					float shakeBasePower = 4;
+					float shakePower = shakeBasePower / quakes;
+					for (int x = 1; x < quakes; x++) {
+						float currentShakePower = shakePower * (quakes - x);
+						float currentShake = RANDOM.getRandom(-currentShakePower, currentShakePower);
+						gameEngine.skillAnimationContainer.quakeCoordinates["CAMERA"].push_front({ explorer.activeCamera.position.first + currentShake, explorer.activeCamera.position.second });
+					}
+				}
+				if (!CLOCK.hasEnoughTimePassed("EARTHQUAKE", 1)) {
+					return false;
+				}
+				if (gameEngine.skillAnimationContainer.quakeCoordinates["CAMERA"].size() > 1) {
+					explorer.activeCamera.position = gameEngine.skillAnimationContainer.quakeCoordinates["CAMERA"].front();
+					gameEngine.skillAnimationContainer.quakeCoordinates["CAMERA"].pop_front();
+					Event("Update", "MAPMOVE", {}).run(*&gameEngine);
+					return false;
+				}
+				if (gameEngine.skillAnimationContainer.quakeCoordinates["CAMERA"].size() == 1) {
+					float originalX = stof(data["cameraStartX"]);
+					float originalY = stof(data["cameraStartY"]);
+					explorer.activeCamera.position = { originalX , originalY};
+					gameEngine.skillAnimationContainer.quakeCoordinates["CAMERA"].pop_front();
+					Event("Update", "MAPMOVE", {}).run(*&gameEngine);
+					return true;
+				}
+
+			}
+			if (type == "LOADPROCEDURE") {
+				if (gameEngine.loaded) {
+					Event("LoadFinished", "LOADPROCEDUREFINISHED", {}).run(*&gameEngine);
+					return true;
+				}
+				bool finishedLoading = false;
+				wstring nextPercent = L"0%";
+				int stage = stoi(data["stage"]);
+				if (stage == 0) {
+					audio.load();
+					nextPercent = L"20%";
+				}
+				if (stage == 1) {
+					imageLookup.load();
+					nextPercent = L"40%";
+				}
+				if (stage == 2) {
+					CutsceneFinder.load();
+					nextPercent = L"60%";
+				}
+				if (stage == 3) {
+					explorer.load();
+					nextPercent = L"80%";
+				}
+				if (stage == 4) {
+					combat.load();
+					nextPercent = L"100%";
+				}
+				if (stage > 4) {
+					finishedLoading = true;
+				}
+				if (!finishedLoading) {
+					graphics.accessTextViaUniqueID("LoadingPercentage")->resetMessage(*&graphics, nextPercent);
+					gameEngine.activeProcedure.eventList.pop_front();
+					gameEngine.activeProcedure.eventList.push_front(Event("Wait", "WAIT", Map<string, string>({ pair<string, string>("clockID", "BOOTMENU"),pair<string, string>("waitDuration", "10"), })));
+					return false;
+				}
+
+				Event("LoadFinished", "LOADPROCEDUREFINISHED", {}).run(*&gameEngine);
+				return false;
+			}
+			if (type == "LOADPROCEDUREFINISHED") {
+				graphics.tearDownSpecifiedText("LoadingText");
+				graphics.tearDownSpecifiedText("LoadingPercentage");
+				gameEngine.fillInProcedureStorage();
+				gameEngine.activeProcedure = gameEngine.storedProcedures["BOOTMENU2"];
+				if (Args.get("mode") == "DEBUG") {
+					gameEngine.activeProcedure = gameEngine.storedProcedures["DEBUG3"];
+				}
+				return false;
+			}
 			return false;
 }
 		string name;
@@ -6223,6 +6331,10 @@ return true;
 			int xOffset = 0;
 			int yOffset = 0;
 			string opacity = "1.0";
+			string defaultOnTargetAnimationSpeed = "20";
+			string defaultAllAnimationSpeed = "30";
+			string defaultFullScreenAnimationSpeed = "40";
+			string defaultSummonAnimationSpeed = "40";
 			if (extras.hasKey("xOffset")) {
 				xOffset = stoi(extras["xOffset"]);
 			}
@@ -6327,6 +6439,9 @@ return true;
 						scale = "6.0";
 						yLocation = 50;
 					}
+					if (procedureName == "Fencer's Flash") {
+						scale = "1.0";
+					}
 					Event("LoadSkillAnimation", "LOADIMAGE", Map<string, string>(List<pair<string, string>>({
 						pair<string, string>("sources", imageLookup.getSequenceAsString(procedureName, "ACTION_1")),
 						pair<string, string>("x", to_string(xLocation)),
@@ -6337,7 +6452,7 @@ return true;
 						pair<string, string>("scale", scale),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "SINGLE"),
-						pair<string, string>("animation_speed", "20"),
+						pair<string, string>("animation_speed", defaultOnTargetAnimationSpeed),
 						pair<string, string>("uniqueID", "Default Skill Animation"), }))).run(*&gameEngine);
 					GameEngine::Event("PlayAudio", "PLAYSFX", Map<string, string>({
 								pair<string, string>("audio",extras["audioSource"]),
@@ -6364,8 +6479,9 @@ return true;
 			}
 			if (defaultAnimateFullScreen.contains(procedureName)) {
 				string fullScreenY = "50";
+				string scale = "4.1";
 				// some of them look too low down when used by the players against the enemy
-				List<string> makeTheseHigher = List<string>({"Excommunicative Assault", "Rotation Blade", "Reckless Swing", "Scatter Strike"});
+				List<string> makeTheseHigher = List<string>({"Excommunicative Assault", "Rotation Blade", "Reckless Swing", "Scatter Strike", "Flame Wave"});
 				if (makeTheseHigher.contains(procedureName)) {
 					fullScreenY = "30";
 				}
@@ -6377,10 +6493,10 @@ return true;
 						pair<string, string>("anchor", "CENTRE"),
 						pair<string, string>("opacity", opacity),
 						pair<string, string>("layer", to_string(imageLookup.layerDefaults["SKILLS"])),
-						pair<string, string>("scale", "4.1"),
+						pair<string, string>("scale", scale),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "SINGLE"),
-						pair<string, string>("animation_speed", "30"),
+						pair<string, string>("animation_speed", defaultFullScreenAnimationSpeed),
 						pair<string, string>("uniqueID", "Skill Animation"), }))).run(*&gameEngine);
 					GameEngine::Event("PlayAudio", "PLAYSFX", Map<string, string>({
 								pair<string, string>("audio",to_string(combat.skillDefinitions[procedureName].audioSource)),
@@ -6432,7 +6548,7 @@ return true;
 						pair<string, string>("scale", "1.0"),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "SINGLE"),
-						pair<string, string>("animation_speed", "20"),
+						pair<string, string>("animation_speed", defaultOnTargetAnimationSpeed),
 						pair<string, string>("uniqueID", who + "_" + procedureName),}))).run(*&gameEngine);
 					}
 					started = true;
@@ -6792,7 +6908,7 @@ return true;
 						pair<string, string>("scale",  extras["SUMMONTHIS_SCALE"]),
 						pair<string, string>("animated", "1"),
 						pair<string, string>("styles", "SINGLE"),
-						pair<string, string>("animation_speed", "40"),
+						pair<string, string>("animation_speed", defaultSummonAnimationSpeed),
 						pair<string, string>("uniqueID", "Animate Skill Animation"), }))).run(*&gameEngine);
 					GameEngine::Event("PlayAudio", "PLAYSFX", Map<string, string>({
 								pair<string, string>("audio", to_string(combat.skillDefinitions[procedureName].audioSource)),
@@ -7122,6 +7238,85 @@ return true;
 	Map<string, Procedure> storedProcedures = List<pair<string, Procedure>>({
 		pair<string, Procedure>({"BOOTMENU", 
 			Procedure("Boot Menu", List<Event>({
+			Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("message","$LANGUAGE$_GUI_LOADING"),
+				pair<string, string>("animateExisting","0"),
+				pair<string, string>("format", "Centaur_25"),
+				pair<string, string>("anchorStyle", "CENTRE"),
+				pair<string, string>("x", "50"),
+				pair<string, string>("y", "50"),
+				pair<string, string>("w", "100"),
+				pair<string, string>("h", "100"),
+				pair<string, string>("colour", "WHITE"),
+				pair<string, string>("shadowColour", "DARKBROWN"),
+				pair<string, string>("layer", "4"),
+				pair<string, string>("uniqueID", "LoadingText"),
+					}))),
+			Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("message","0%"),
+				pair<string, string>("direct","1"),
+				pair<string, string>("animateExisting","0"),
+				pair<string, string>("format", "Centaur_25"),
+				pair<string, string>("anchorStyle", "CENTRE"),
+				pair<string, string>("x", "50"),
+				pair<string, string>("y", "55"),
+				pair<string, string>("w", "100"),
+				pair<string, string>("h", "100"),
+				pair<string, string>("colour", "WHITE"),
+				pair<string, string>("shadowColour", "DARKBROWN"),
+				pair<string, string>("layer", "4"),
+				pair<string, string>("uniqueID", "LoadingPercentage"),
+					}))),
+			Event("Load", "LOADPROCEDURE", Map<string, string>({pair<string, string>("stage", "0"),})),
+			Event("Load", "LOADPROCEDURE", Map<string, string>({pair<string, string>("stage", "1"),})),
+			Event("Load", "LOADPROCEDURE", Map<string, string>({pair<string, string>("stage", "2"),})),
+			Event("Load", "LOADPROCEDURE", Map<string, string>({pair<string, string>("stage", "3"),})),
+			Event("Load", "LOADPROCEDURE", Map<string, string>({pair<string, string>("stage", "4"),})),
+			Event("Load", "LOADPROCEDURE", Map<string, string>({pair<string, string>("stage", "5"),})),
+				}))}),
+		});
+	void fillInProcedureStorage() {
+		storedProcedures = List<pair<string, Procedure>>({
+		pair<string, Procedure>({"BOOTMENU",
+			Procedure("Boot Menu", List<Event>({
+			Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("message","$LANGUAGE$_GUI_LOADING"),
+				pair<string, string>("animateExisting","0"),
+				pair<string, string>("format", "Centaur_25"),
+				pair<string, string>("anchorStyle", "CENTRE"),
+				pair<string, string>("x", "50"),
+				pair<string, string>("y", "50"),
+				pair<string, string>("w", "100"),
+				pair<string, string>("h", "100"),
+				pair<string, string>("colour", "WHITE"),
+				pair<string, string>("shadowColour", "DARKBROWN"),
+				pair<string, string>("layer", "4"),
+				pair<string, string>("uniqueID", "LoadingText"),
+					}))),
+			Event("Text", "DRAWTEXT", Map<string, string>(List<pair<string, string>>({
+				pair<string, string>("message","0%"),
+				pair<string, string>("direct","1"),
+				pair<string, string>("animateExisting","0"),
+				pair<string, string>("format", "Centaur_25"),
+				pair<string, string>("anchorStyle", "CENTRE"),
+				pair<string, string>("x", "50"),
+				pair<string, string>("y", "60"),
+				pair<string, string>("w", "100"),
+				pair<string, string>("h", "100"),
+				pair<string, string>("colour", "WHITE"),
+				pair<string, string>("shadowColour", "DARKBROWN"),
+				pair<string, string>("layer", "4"),
+				pair<string, string>("uniqueID", "LoadingPercentage"),
+					}))),
+			Event("Load", "LOADPROCEDURE", Map<string, string>({pair<string, string>("stage", "0"),})),
+			Event("Load", "LOADPROCEDURE", Map<string, string>({pair<string, string>("stage", "1"),})),
+			Event("Load", "LOADPROCEDURE", Map<string, string>({pair<string, string>("stage", "2"),})),
+			Event("Load", "LOADPROCEDURE", Map<string, string>({pair<string, string>("stage", "3"),})),
+			Event("Load", "LOADPROCEDURE", Map<string, string>({pair<string, string>("stage", "4"),})),
+			Event("Load", "LOADPROCEDURE", Map<string, string>({pair<string, string>("stage", "5"),})),
+				}))}),
+		pair<string, Procedure>({ "BOOTMENU2",
+			Procedure("Boot Menu", List<Event>({
 			Event("Play This Song", "PLAYTHISSONG", Map<string, string>(List<pair<string, string>>({
 					pair<string, string>("uniqueID", "8354"),
 				}))),
@@ -7212,7 +7407,7 @@ return true;
 			Event("HandleMenu", "HANDLEMENU", Map<string, string>({
 				pair<string, string>("uniqueID", "MAINMENU"),
 			})),
-				}))}),
+				})) }),
 		pair<string, Procedure>({"DEBUG1" ,
 		Procedure("Load Debug", List<Event>({
 			Event("Load Background", "LOADIMAGE", Map<string, string>(List<pair<string,string>>({
@@ -7352,7 +7547,8 @@ return true;
 				Event("Line2", "TEARDOWNDIALOGUE",{}),
 				Event("Explore", "EXPLORE",{}),
 }))}),
-		});
+			});
+	}
 	Map<string, Menu> storedMenus = List<pair<string, Menu>>({
 		pair<string, Menu>(
 			"MAINMENU", Menu("MAINMENU", List<Menu::Button>({
@@ -7421,6 +7617,10 @@ return true;
 				Menu::smallButton("DebugButton_WaterRoomDebug", "GUI_WaterRoomDebug", {70,30}),
 				Menu::smallButton("DebugButton_LookingForMichelet", "GUI_LookingForMichelet", {70,35}),
 				Menu::smallButton("DebugButton_FoundMichelet", "GUI_FoundMichelet", {70,40}),
+				Menu::smallButton("DebugButton_TeleportToGraveyard", "GUI_TELEPORTTOGRAVEYARD", {70,45}),
+				Menu::smallButton("DebugButton_JoanaCutscene1", "GUI_JOANAGRAVEYARD1", {70,50}),
+				Menu::smallButton("DebugButton_AfterGraveyardCutscene", "GUI_GRAVEYARD2", {70,55}),
+
 
 				}), Map<string, string>({
 					pair<string, string>("BUTTONMAP1", to_string(VK_ESCAPE) + " DebugButton_BackToExplore"),
@@ -8038,7 +8238,6 @@ return true;
 					acceptedLines.push_back(thisLine);
 					continue;
 				}
-
 				if (speaker == "$RUNPUZZLELOGIC$") {
 					Map<string, string> data;
 					data["whichPuzzle"] = WStringToString(val);
@@ -8061,6 +8260,15 @@ return true;
 					results.push_back(Event("ChangeImageLayer", "SETOBSTRUCTION", data));
 					continue;
 				}
+				if (speaker == "$EARTHQUAKE$") {
+					List<string> parsedData = split(WStringToString(val), "_");
+					Map<string, string> data;
+					data["duration"] = parsedData.at(0);
+					data["uniqueID"] = RANDOM.createUniqueID();
+					data["timer"] = "250";
+					results.push_back(Event("Earthquake", "EARTHQUAKE", data));
+					continue;
+				}
 				if (speaker != "PLAYER" and speaker != mainCharacter and speaker != "PLAYER$ASYNC$" and speaker != "EMPTY$ASYNC$" and speaker != "PLAYER2") {
 					// Line belongs to a different playable character
 					continue;
@@ -8077,17 +8285,7 @@ return true;
 	}
 	GameEngine() {}
 	void setup() {
-		string mode = Args.get("mode");
-		if (mode == "DEBUG") {
-			explorer.keepMapFullyOnScreen = true;
-			activeProcedure = storedProcedures["DEBUG3"];
-		}
-		else if (mode == "NORMAL") {
-			activeProcedure = storedProcedures["BOOTMENU"];
-		}
-		else {
-			activeProcedure = storedProcedures["BOOTMENU"];
-		}
+		activeProcedure = storedProcedures["BOOTMENU"];
 		CLOCK.startClock("FPS");
 		stateFlags["QUIT"] = "0";
 		stateFlags["includeEquipmentInStatView"] = "1";
@@ -8111,5 +8309,6 @@ return true;
 	Map<string, string> stateFlags;
 	string language = "ENG";
 	SkillAnimationContainer skillAnimationContainer;
+	bool loaded = false;
 };
 GameEngine game;
